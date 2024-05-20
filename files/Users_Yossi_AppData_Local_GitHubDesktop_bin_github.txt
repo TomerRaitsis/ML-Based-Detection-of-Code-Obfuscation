@@ -1,0 +1,2 @@
+@echo off
+"%~dp0\..\app-3.3.11\resources\app\static\github.bat" %*

@@ -1,0 +1,19 @@
+REM Any NVFTDLLXX.dll can be used for installing NvFrapsOpenVR.man
+
+set LIBHTCVIVE_EVENTS_MAN=%CD%\NvFrapsOpenVR.man
+set LIBHTCVIVE_PATTERN=NVFTVRDLL*.dll
+
+echo Looking for %LIBHTCVIVE_PATTERN% dll's
+
+for /f "delims=" %%a in ('dir /b /o:d "%LIBHTCVIVE_PATTERN%"') do set LIBHTCVIVE_DLL=%%a
+
+icacls "%LIBHTCVIVE_EVENTS_MAN%" /t /grant Everyone:R
+icacls "%CD%\%LIBHTCVIVE_PATTERN%" /t /grant Everyone:R
+
+wevtutil uninstall-manifest "%LIBHTCVIVE_EVENTS_MAN%"
+echo wevtutil install-manifest "%LIBHTCVIVE_EVENTS_MAN%" /rf:"%CD%\%LIBHTCVIVE_DLL%" /mf:"%CD%\%LIBHTCVIVE_DLL%"
+wevtutil install-manifest "%LIBHTCVIVE_EVENTS_MAN%" /rf:"%CD%\%LIBHTCVIVE_DLL%" /mf:"%CD%\%LIBHTCVIVE_DLL%"
+REM make sure it worked
+wevtutil get-publisher NVFT-ETW-OPENVR > nul
+if %errorlevel% neq 0 exit /b 1
+echo Installed %LIBHTCVIVE_EVENTS_MAN%

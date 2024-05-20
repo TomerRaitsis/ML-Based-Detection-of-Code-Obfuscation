@@ -1,0 +1,11 @@
+set WinOSMajor=10
+set WinOSMinor=0
+set WinOSBuild=18363
+set WinOSProductType=101
+
+set GPUBrandName=Intel Corporation
+set GPUFullName=Intel(R) UHD Graphics 630
+set GPUBrandName=NVIDIA
+set GPUFullName=NVIDIA GeForce GTX 1650
+
+set AudioBrand=None 
