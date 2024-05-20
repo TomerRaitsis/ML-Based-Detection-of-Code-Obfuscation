@@ -14,7 +14,7 @@ def calculate_entropy(data):
 
 # Paths to the directories containing data
 js_path = "./Batch-File-examples"
-obfuscated_js_path = "./Obf_data"
+obfuscated_js_path = "./Obf_data" 
 
 # Initialize lists to hold data and labels
 corpus = []
