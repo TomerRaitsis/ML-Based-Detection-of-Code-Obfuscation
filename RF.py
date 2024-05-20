@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 
-js_path = "./Batch-File-examples/files"
+js_path = "./Batch-File-examples"
 obfuscated_js_path = "./Obf_data"
 
 corpus = []
