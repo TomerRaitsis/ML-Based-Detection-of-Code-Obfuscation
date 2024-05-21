@@ -1,11 +1,10 @@
 import os
 import math
 from collections import Counter
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
 
 # Paths to your data
 js_path = "./Batch-File-examples"
@@ -44,11 +43,10 @@ X_train, X_test, y_train, y_test = train_test_split(corpus, labels, test_size=0.
 
 # Calculate entropy for all data points
 X_train_entropy = [calculate_entropy(text) for text in X_train]
-
 X_test_entropy = [calculate_entropy(text) for text in X_test]
 
-# Create and train Random Forest model
-clf = RandomForestClassifier(n_estimators=100, random_state=42)
+# Create and train SVM model
+clf = SVC(kernel='linear', random_state=42)
 
 clf.fit([[entropy] for entropy in X_train_entropy], y_train)
 
@@ -78,6 +76,4 @@ plt.xlabel('Entropy')
 plt.ylabel('Label')
 plt.title(f'Entropy vs. Label (Non-obfuscated: {num_non_obfuscated}, Obfuscated: {num_obfuscated})')
 plt.show()
-
-
 
