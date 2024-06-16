@@ -54,7 +54,8 @@ print(f"Obfuscated files: {obfuscated_files}")
 
 # Calculate entropy for all data points
 all_entropy = [calculate_entropy(text) for text in corpus]
-
+first_obf_index = labels.index(1)
+print(f"Entropy of the first obfuscated file: {all_entropy[first_obf_index]}")
 
 # Split the data into training and test sets
 X_train_entropy, X_test_entropy, y_train, y_test = train_test_split(all_entropy, labels, test_size=0.3, random_state=42)
