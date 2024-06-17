@@ -1,0 +1,18 @@
+__all__ = ['foo']
+
+a = 'a'
+_b = 'b'
+
+def foo():
+    print(a)
+
+def bar():
+    print(_b)
+
+def _baz():
+    print(a + _b)
+
+foo()
+bar()
+_baz()
+

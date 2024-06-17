@@ -1,0 +1,8 @@
+def func (OOOOO00OOO0OO00O0 ,OOO00O0OO0O000000 ,OOOOOOO00O0O0OO0O ='arg3',*,arg4 ,**OOOOOO0O0000O00O0 ):#line:1
+    print ('arg1',OOOOO00OOO0OO00O0 )#line:2
+    print ('arg2',OOO00O0OO0O000000 )#line:3
+    print ('arg3',OOOOOOO00O0O0OO0O )#line:4
+    print ('arg4',arg4 )#line:5
+    print ('kwargs',OOOOOO0O0000O00O0 )#line:6
+func ('a','b',arg3 ='c',arg4 ='d')#line:8
+

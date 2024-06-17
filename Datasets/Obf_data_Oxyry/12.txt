@@ -1,0 +1,7 @@
+def celsius_to_fahrenheit (O00OO00OOO00O0OOO ):#line:1
+    return (O00OO00OOO00O0OOO *9 /5 )+32 #line:2
+if __name__ =="__main__":#line:4
+    celsius =float (input ("Enter temperature in Celsius: "))#line:5
+    fahrenheit =celsius_to_fahrenheit (celsius )#line:6
+    print (f"{celsius}°C is {fahrenheit}°F")#line:7
+

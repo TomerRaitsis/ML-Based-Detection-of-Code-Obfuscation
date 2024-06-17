@@ -1,0 +1,13 @@
+__all__ =['foo']#line:1
+OO0000OOOO0O0O0OO ='a'#line:3
+_O000O00000O000O00 ='b'#line:4
+def foo ():#line:6
+    print (OO0000OOOO0O0O0OO )#line:7
+def O0O0O0OOO0OO00000 ():#line:9
+    print (_O000O00000O000O00 )#line:10
+def _O00OO0O0O000O0000 ():#line:12
+    print (OO0000OOOO0O0O0OO +_O000O00000O000O00 )#line:13
+foo ()#line:15
+O0O0O0OOO0OO00000 ()#line:16
+_O00OO0O0O000O0000 ()#line:17
+

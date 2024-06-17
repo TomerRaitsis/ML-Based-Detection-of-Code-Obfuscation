@@ -1,0 +1,9 @@
+a ='a'#line:1
+_OO00OOOO0OOOOOO0O ='b'#line:2
+def foo ():#line:4
+    print (a )#line:5
+def _O00O00O0O0O000OOO ():#line:7
+    print (_OO00OOOO0OOOOOO0O )#line:8
+foo ()#line:10
+_O00O00O0O0O000OOO ()#line:11
+

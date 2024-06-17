@@ -1,0 +1,12 @@
+a = 'a'
+_b = 'b'
+
+def foo():
+    print(a)
+
+def _bar():
+    print(_b)
+
+foo()
+_bar()
+

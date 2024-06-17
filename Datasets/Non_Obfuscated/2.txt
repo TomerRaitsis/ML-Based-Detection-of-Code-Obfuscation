@@ -1,0 +1,19 @@
+__all__ = []
+
+class Foo(Bar):
+    class_public_var = 'class_public_var'
+    _class_public_var = '_class_public_var'
+    __class_private_var = 'class_private'
+    
+    def __init__(self, private):
+        self.__class_private_var = private
+        
+    def public_method(self, arg):
+        self.class_public_var = arg
+        
+    def __class_priv_method(self, arg):
+        self.__class_private_var = arg
+
+foo = Foo()
+foo.public_method()
+

@@ -1,0 +1,9 @@
+def fibonacci (O00OO00O0000O0OO0 ):#line:1
+    O00000O0O00O0O0OO =[0 ,1 ]#line:2
+    while len (O00000O0O00O0O0OO )<O00OO00O0000O0OO0 :#line:3
+        O00000O0O00O0O0OO .append (O00000O0O00O0O0OO [-1 ]+O00000O0O00O0O0OO [-2 ])#line:4
+    return O00000O0O00O0O0OO #line:5
+if __name__ =="__main__":#line:7
+    n =int (input ("Enter the number of Fibonacci numbers to generate: "))#line:8
+    print (fibonacci (n ))#line:9
+

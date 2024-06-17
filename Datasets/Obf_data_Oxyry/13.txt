@@ -1,0 +1,9 @@
+def is_palindrome (OO0OOOO00O0O0OOO0 ):#line:1
+    return OO0OOOO00O0O0OOO0 ==OO0OOOO00O0O0OOO0 [::-1 ]#line:2
+if __name__ =="__main__":#line:4
+    s =input ("Enter a string to check if it's a palindrome: ")#line:5
+    if is_palindrome (s ):#line:6
+        print (f"'{s}' is a palindrome.")#line:7
+    else :#line:8
+        print (f"'{s}' is not a palindrome.")#line:9
+
