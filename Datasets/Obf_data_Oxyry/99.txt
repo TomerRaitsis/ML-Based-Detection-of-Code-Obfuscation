@@ -1,0 +1,106 @@
+import pygame #line:1:import pygame
+import random #line:2:import random
+import json #line:3:import json
+from snake import Snake ,Direction ,Point #line:4:from snake import Snake, Direction, Point
+from display import Display #line:5:from display import Display
+from constants import GameSettings #line:6:from constants import GameSettings
+class Game :#line:9:class Game:
+    ""#line:10:"""Manages the gameplay logic and its user interactions."""
+    def __init__ (O00OOO000OOO00000 ):#line:12:def __init__(self):
+        O00OOO000OOO00000 .display =Display ()#line:13:self.display = Display()
+        O00OOO000OOO00000 .snake =Snake ()#line:14:self.snake = Snake()
+        O00OOO000OOO00000 .score =0 #line:15:self.score = 0
+        O00OOO000OOO00000 .food =None #line:16:self.food = None
+        O00OOO000OOO00000 .place_food ()#line:17:self.place_food()
+        O00OOO000OOO00000 .high_score =O00OOO000OOO00000 .load_high_score ()#line:18:self.high_score = self.load_high_score()
+    def game_loop (O0OO0O000000O0OO0 ):#line:20:def game_loop(self):
+        while True :#line:21:while True:
+            O0OO0O000000O0OO0 .play_step ()#line:22:self.play_step()
+            O000OO00OOO0O0O0O ,O000O00O000OO0O0O =O0OO0O000000O0OO0 .play_step ()#line:23:game_over, score = self.play_step()
+            O0OO0O000000O0OO0 .update_high_score (O0OO0O000000O0OO0 .high_score )#line:24:self.update_high_score(self.high_score)
+            if O000OO00OOO0O0O0O :#line:25:if game_over:
+                O0OO0O000000O0OO0 .display .render_game_over ()#line:26:self.display.render_game_over()
+                if O000O00O000OO0O0O >O0OO0O000000O0OO0 .high_score :#line:27:if score > self.high_score:
+                    O0OO0O000000O0OO0 .display .render_new_high_score (O000O00O000OO0O0O )#line:28:self.display.render_new_high_score(score)
+                    O0OO0O000000O0OO0 .update_high_score (O000O00O000OO0O0O )#line:29:self.update_high_score(score)
+                    O0OO0O000000O0OO0 .high_score =O0OO0O000000O0OO0 .load_high_score ()#line:30:self.high_score = self.load_high_score()
+                O0OO0O000000O0OO0 .display .render_play_again ()#line:31:self.display.render_play_again()
+                if not O0OO0O000000O0OO0 .play_again ():#line:32:if not self.play_again():
+                    break #line:33:break
+                O0OO0O000000O0OO0 .restart_game ()#line:34:self.restart_game()
+        pygame .quit ()#line:35:pygame.quit()
+    def is_collision (OO0O0OO00O00OOO00 ):#line:37:def is_collision(self):
+        ""#line:42:"""
+        if (OO0O0OO00O00OOO00 .snake .head .x >OO0O0OO00O00OOO00 .display .width -OO0O0OO00O00OOO00 .snake .block_size or OO0O0OO00O00OOO00 .snake .head .x <0 or OO0O0OO00O00OOO00 .snake .head .y >OO0O0OO00O00OOO00 .display .height -OO0O0OO00O00OOO00 .snake .block_size or OO0O0OO00O00OOO00 .snake .head .y <0 ):#line:49:):
+            return True #line:50:return True
+        if OO0O0OO00O00OOO00 .snake .self_collision ():#line:52:if self.snake.self_collision():
+            return True #line:53:return True
+        return False #line:54:return False
+    def game_over (O0OOO0OOO0O00000O ):#line:56:def game_over(self):
+        return O0OOO0OOO0O00000O .is_collision ()#line:57:return self.is_collision()
+    def get_user_input (OOOO000OO000OOO0O ):#line:59:def get_user_input(self):
+        for OOOOO0OOO0O0000O0 in pygame .event .get ():#line:60:for event in pygame.event.get():
+            if OOOOO0OOO0O0000O0 .type ==pygame .QUIT :#line:61:if event.type == pygame.QUIT:
+                pygame .quit ()#line:62:pygame.quit()
+                quit ()#line:63:quit()
+            if OOOOO0OOO0O0000O0 .type ==pygame .KEYDOWN :#line:64:if event.type == pygame.KEYDOWN:
+                if OOOOO0OOO0O0000O0 .key ==pygame .K_LEFT :#line:65:if event.key == pygame.K_LEFT:
+                    OOOO000OO000OOO0O .snake .direction =Direction .LEFT #line:66:self.snake.direction = Direction.LEFT
+                elif OOOOO0OOO0O0000O0 .key ==pygame .K_RIGHT :#line:67:elif event.key == pygame.K_RIGHT:
+                    OOOO000OO000OOO0O .snake .direction =Direction .RIGHT #line:68:self.snake.direction = Direction.RIGHT
+                elif OOOOO0OOO0O0000O0 .key ==pygame .K_UP :#line:69:elif event.key == pygame.K_UP:
+                    OOOO000OO000OOO0O .snake .direction =Direction .UP #line:70:self.snake.direction = Direction.UP
+                elif OOOOO0OOO0O0000O0 .key ==pygame .K_DOWN :#line:71:elif event.key == pygame.K_DOWN:
+                    OOOO000OO000OOO0O .snake .direction =Direction .DOWN #line:72:self.snake.direction = Direction.DOWN
+    def play_step (OOOOOOO00OO00OO00 ):#line:74:def play_step(self):
+        ""#line:75:"""Executes one step through the game."""
+        OOOOOOO00OO00OO00 .get_user_input ()#line:76:self.get_user_input()
+        OOOOOOO00OO00OO00 .snake .move (OOOOOOO00OO00OO00 .snake .direction )#line:77:self.snake.move(self.snake.direction)
+        if OOOOOOO00OO00OO00 .snake .head ==OOOOOOO00OO00OO00 .food :#line:78:if self.snake.head == self.food:
+            OOOOOOO00OO00OO00 .score +=1 #line:79:self.score += 1
+            OOOOOOO00OO00OO00 .place_food ()#line:80:self.place_food()
+        else :#line:81:else:
+            OOOOOOO00OO00OO00 .snake .blocks .pop ()#line:82:self.snake.blocks.pop()
+        OOOOOOO00OO00OO00 .display .update_ui (OOOOOOO00OO00OO00 .snake ,OOOOOOO00OO00OO00 .food ,OOOOOOO00OO00OO00 .score ,OOOOOOO00OO00OO00 .high_score )#line:84:self.display.update_ui(self.snake, self.food, self.score, self.high_score)
+        OOOOOOO00OO00OO00 .display .clock .tick (GameSettings .SPEED )#line:85:self.display.clock.tick(GameSettings.SPEED)
+        OOOO00O00OO0O0000 =OOOOOOO00OO00OO00 .is_collision ()#line:86:game_over = self.is_collision()
+        return OOOO00O00OO0O0000 ,OOOOOOO00OO00OO00 .score #line:87:return game_over, self.score
+    def place_food (OO0OOO0O0O00O0000 ):#line:89:def place_food(self):
+        ""#line:90:"""Randomly places the food on the screen."""
+        O0O00O000OO000O0O =(random .randint (0 ,(OO0OOO0O0O00O0000 .display .width -GameSettings .BLOCK_SIZE )//GameSettings .BLOCK_SIZE ,)*GameSettings .BLOCK_SIZE )#line:98:)
+        O00OOOOO000O0OOOO =(random .randint (0 ,(OO0OOO0O0O00O0000 .display .height -GameSettings .BLOCK_SIZE )//GameSettings .BLOCK_SIZE ,)*GameSettings .BLOCK_SIZE )#line:106:)
+        OO0OOO0O0O00O0000 .food =Point (O0O00O000OO000O0O ,O00OOOOO000O0OOOO )#line:107:self.food = Point(x, y)
+        if OO0OOO0O0O00O0000 .food in OO0OOO0O0O00O0000 .snake .blocks :#line:108:if self.food in self.snake.blocks:
+            OO0OOO0O0O00O0000 .place_food ()#line:109:self.place_food()
+    def play_again (O0OOO00OOO000OOO0 ):#line:111:def play_again(self):
+        ""#line:112:"""Asks the user to play again or quit the game."""
+        while True :#line:113:while True:
+            for O00O0000OOOO000OO in pygame .event .get ():#line:114:for event in pygame.event.get():
+                if O00O0000OOOO000OO .type ==pygame .QUIT :#line:115:if event.type == pygame.QUIT:
+                    return False #line:116:return False
+                if O00O0000OOOO000OO .type ==pygame .KEYDOWN :#line:117:if event.type == pygame.KEYDOWN:
+                    if O00O0000OOOO000OO .key in [pygame .K_n ,pygame .K_ESCAPE ]:#line:118:if event.key in [pygame.K_n, pygame.K_ESCAPE]:
+                        return False #line:119:return False
+                    if O00O0000OOOO000OO .key in [pygame .K_y ,pygame .K_RETURN ]:#line:120:if event.key in [pygame.K_y, pygame.K_RETURN]:
+                        return True #line:121:return True
+    def restart_game (O00O0O0000O00O00O ):#line:123:def restart_game(self):
+        ""#line:124:"""Resets the state of the game."""
+        O00O0O0000O00O00O .snake =Snake ()#line:125:self.snake = Snake()
+        O00O0O0000O00O00O .score =0 #line:126:self.score = 0
+        O00O0O0000O00O00O .place_food ()#line:127:self.place_food()
+        O00O0O0000O00O00O .high_score =O00O0O0000O00O00O .load_high_score ()#line:128:self.high_score = self.load_high_score()
+    def load_high_score (O0O0000O0OO00OOO0 ):#line:130:def load_high_score(self):
+        ""#line:131:"""Loads the high score from a JSON file."""
+        try :#line:132:try:
+            with open ("high_score.json","r")as OO000OOO000O00OO0 :#line:133:with open("high_score.json", "r") as file:
+                O000000O0000O0O0O =json .load (OO000OOO000O00OO0 )#line:134:data = json.load(file)
+                return O000000O0000O0O0O .get ("high_score")#line:135:return data.get("high_score")
+        except FileNotFoundError :#line:136:except FileNotFoundError:
+            return 0 #line:137:return 0
+    def update_high_score (OO000OO00O000OOO0 ,OOO00O00OOO0O0O00 ):#line:139:def update_high_score(self, new_score):
+        ""#line:140:"""Updates the high score in the JSON file if the new score is greater than the current high score."""
+        O00O0OOOO00O0OO0O =OO000OO00O000OOO0 .load_high_score ()#line:141:high_score = self.load_high_score()
+        if OOO00O00OOO0O0O00 >O00O0OOOO00O0OO0O :#line:142:if new_score > high_score:
+            O0OOO0000O0O0O000 ={"high_score":OOO00O00OOO0O0O00 }#line:143:data = {"high_score": new_score}
+            with open ("high_score.json","w")as O00OO0O00000OO0OO :#line:144:with open("high_score.json", "w") as file:
+                json .dump (O0OOO0000O0O0O000 ,O00OO0O00000OO0OO )#line:145:json.dump(data, file)

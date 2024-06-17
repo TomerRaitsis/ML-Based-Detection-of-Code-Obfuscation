@@ -1,0 +1,100 @@
+bl_info ={"name":"Mesh Morpher","author":"ibra-kdbra","version":(1 ,0 ),"blender":(4 ,0 ,1 ),"location":"View3D > Sidebar > Unreal Tools Tab","description":"A tool for storing shape key data for use in a vertex shader.","warning":"","doc_url":"","category":"Unreal Tools",}#line:11:}
+import bpy #line:14:import bpy
+def pack_normals (O0O0O0O0O00OO0000 ):#line:17:def pack_normals(me):
+    ""#line:18:"""Stores normals in a given mesh's vertex colors"""
+    if not O0O0O0O0O00OO0000 .vertex_colors :#line:19:if not me.vertex_colors:
+        O0O0O0O0O00OO0000 .vertex_colors .new ()#line:20:me.vertex_colors.new()
+    O00O0OO0OOO00000O =O0O0O0O0O00OO0000 .vertex_colors [0 ]#line:21:col = me.vertex_colors[0]
+    O00O0OO0OOO00000O .name ="normals"#line:22:col.name = "normals"
+    OO0O00O0O0OOO000O =O0O0O0O0O00OO0000 .shape_keys .key_blocks [1 ]#line:23:key = me.shape_keys.key_blocks[1]
+    OO00OOOOO0OOO00O0 =list (zip (*[iter (OO0O00O0O0OOO000O .normals_vertex_get ())]*3 ))#line:24:normals = list(zip(*[iter(key.normals_vertex_get())] * 3))
+    for O000O000O0000OO0O in O0O0O0O0O00OO0000 .loops :#line:25:for loop in me.loops:
+        O000OOO0OO00OOOO0 ,O0000O0OO00O0OOO0 ,OO00OO00OOO0O0OO0 =OO00OOOOO0OOO00O0 [O000O000O0000OO0O .vertex_index ]#line:26:r, g, b = normals[loop.vertex_index]
+        O00O0OO0OOO00000O .data [O000O000O0000OO0O .index ].color =((O000OOO0OO00OOOO0 +1 )*0.5 ,(-O0000O0OO00O0OOO0 +1 )*0.5 ,(OO00OO00OOO0O0OO0 +1 )*0.5 ,1 )#line:27:col.data[loop.index].color = ((r + 1) * 0.5, (-g + 1) * 0.5, (b + 1) * 0.5, 1)
+def get_shape_key_offsets (O0O0O000000OOOOOO ,two_shape_keys =False ):#line:30:def get_shape_key_offsets(shape_keys, two_shape_keys=False):
+    ""#line:31:"""Return a list of vertex offsets between shape keys"""
+    OOO0O000OO0OOOO00 =O0O0O000000OOOOOO .key_blocks #line:32:keys = shape_keys.key_blocks
+    O0O000OOOO00OOOOO =[]#line:33:offsets = []
+    O0O00OOO00OOO000O =OOO0O000OO0OOOO00 [0 ].data #line:34:original = keys[0].data
+    OOO00OO00000O000O =OOO0O000OO0OOOO00 [1 ].data #line:35:target = keys[1].data
+    OO00O000OO0OOOOO0 =[O0O000O0OO0OOOOOO .co -O000000000OOOOO00 .co for O0O000O0OO0OOOOOO ,O000000000OOOOO00 in zip (OOO00OO00000O000O ,O0O00OOO00OOO000O )]#line:36:offset = [v1.co - v2.co for v1, v2 in zip(target, original)]
+    O0O000OOOO00OOOOO .append (OO00O000OO0OOOOO0 )#line:37:offsets.append(offset)
+    if two_shape_keys :#line:38:if two_shape_keys:
+        OOO00OO00000O000O =OOO0O000OO0OOOO00 [2 ].data #line:39:target = keys[2].data
+        OO00O000OO0OOOOO0 =[O000OO0O0OO00OO0O .co -O0O00OO000000OOO0 .co for O000OO0O0OO00OO0O ,O0O00OO000000OOO0 in zip (OOO00OO00000O000O ,O0O00OOO00OOO000O )]#line:40:offset = [v1.co - v2.co for v1, v2 in zip(target, original)]
+        O0O000OOOO00OOOOO .append (OO00O000OO0OOOOO0 )#line:41:offsets.append(offset)
+    return O0O000OOOO00OOOOO #line:42:return offsets
+def pack_offsets (OO00O0OO00O0OO000 ,O0O00000OO0OO000O ):#line:45:def pack_offsets(ob, offsets):
+    ""#line:46:"""Stores shape key vertex offsets in mesh's UVs"""
+    OOOOO00000OO00OO0 =OO00O0OO00O0OO000 .data #line:47:me = ob.data
+    while len (OOOOO00000OO00OO0 .uv_layers )<4 :#line:48:while len(me.uv_layers) < 4:
+        OOOOO00000OO00OO0 .uv_layers .new ()#line:49:me.uv_layers.new()
+    for OOO0O00OOO0OOO00O in OOOOO00000OO00OO0 .loops :#line:50:for loop in me.loops:
+        OOOO0OOOO00000OO0 ,O0O00000O0O0000OO ,O00O0O0OO0OOOOOO0 =O0O00000OO0OO000O [0 ][OOO0O00OOO0OOO00O .vertex_index ]#line:51:x1, y1, z1 = offsets[0][loop.vertex_index]
+        if len (O0O00000OO0OO000O )>1 :#line:52:if len(offsets) > 1:
+            OO0O000O000000O00 =O0O00000OO0OO000O [1 ][OOO0O00OOO0OOO00O .vertex_index ]#line:53:offset = offsets[1][loop.vertex_index]
+        else :#line:54:else:
+            OO0O000O000000O00 =OO00O0OO00O0OO000 .location #line:55:offset = ob.location
+        O0000000OOOO0OO0O ,OOO0O0000OO00OOOO ,O0O0O00O00O000O00 =OO0O000O000000O00 #line:56:x2, y2, z2 = offset
+        OOOOO00000OO00OO0 .uv_layers [1 ].data [OOO0O00OOO0OOO00O .index ].uv =(O0000000OOOO0OO0O ,1 -(-OOO0O0000OO00OOOO ))#line:57:me.uv_layers[1].data[loop.index].uv = (x2, 1 - (-y2))
+        OOOOO00000OO00OO0 .uv_layers [2 ].data [OOO0O00OOO0OOO00O .index ].uv =(O0O0O00O00O000O00 ,1 -OOOO0OOOO00000OO0 )#line:58:me.uv_layers[2].data[loop.index].uv = (z2, 1 - x1)
+        OOOOO00000OO00OO0 .uv_layers [3 ].data [OOO0O00OOO0OOO00O .index ].uv =(-O0O00000O0O0000OO ,1 -O00O0O0OO0OOOOOO0 )#line:59:me.uv_layers[3].data[loop.index].uv = (-y1, 1 - z1)
+class MeshMorpherSettings (bpy .types .PropertyGroup ):#line:62:class MeshMorpherSettings(bpy.types.PropertyGroup):
+    store_shape_key1_normals :bpy .props .BoolProperty (name ="First Shape Key Normals",description ="Store first shape key's vertex normals in vertex colors",default =True ,)#line:67:)
+    two_shape_keys :bpy .props .BoolProperty (name ="Two Shape Keys",description ="Store vertex offsets for first and second shape keys",default =False ,)#line:72:)
+class OBJECT_OT_ProcessShapeKeys (bpy .types .Operator ):#line:75:class OBJECT_OT_ProcessShapeKeys(bpy.types.Operator):
+    ""#line:76:"""Store object's shape key offsets in it's UV layers"""
+    bl_idname ="object.process_shape_keys"#line:78:bl_idname = "object.process_shape_keys"
+    bl_label ="Process Shape Keys"#line:79:bl_label = "Process Shape Keys"
+    store_shape_key1_normals :bpy .props .BoolProperty (name ="First Shape Key Normals",default =True )#line:83:)
+    two_shape_keys :bpy .props .BoolProperty (name ="Two Shape Keys",default =False )#line:84:two_shape_keys: bpy.props.BoolProperty(name="Two Shape Keys", default=False)
+    @classmethod #line:86:@classmethod
+    def poll (OO0000OOO000O00O0 ,O000O00O00000OOOO ):#line:87:def poll(cls, context):
+        OO000OOO0O000OO00 =O000O00O00000OOOO .active_object #line:88:ob = context.active_object
+        return OO000OOO0O000OO00 and OO000OOO0O000OO00 .type =="MESH"and OO000OOO0O000OO00 .mode =="OBJECT"#line:89:return ob and ob.type == "MESH" and ob.mode == "OBJECT"
+    def execute (OO0O0OOOOO000OOOO ,O0O0OO0O000000OO0 ):#line:91:def execute(self, context):
+        OO00O000OO0O000O0 =O0O0OO0O000000OO0 .scene .unit_settings #line:92:units = context.scene.unit_settings
+        OO000O00OOO0OOOOO =O0O0OO0O000000OO0 .object #line:93:ob = context.object
+        O00O0O00OOO0OOO00 =OO000O00OOO0OOOOO .data .shape_keys #line:94:shape_keys = ob.data.shape_keys
+        if OO00O000OO0O000O0 .system !="METRIC"or round (OO00O000OO0O000O0 .scale_length ,2 )!=0.01 :#line:95:if units.system != "METRIC" or round(units.scale_length, 2) != 0.01:
+            OO0O0OOOOO000OOOO .report ({"ERROR"},"Scene Units must be Metric with a Unit Scale of 0.01!")#line:98:)
+            return {"CANCELLED"}#line:99:return {"CANCELLED"}
+        if not O00O0O00OOO0OOO00 :#line:100:if not shape_keys:
+            OO0O0OOOOO000OOOO .report ({"ERROR"},"Object has no shape keys!")#line:101:self.report({"ERROR"}, "Object has no shape keys!")
+            return {"CANCELLED"}#line:102:return {"CANCELLED"}
+        if len (O00O0O00OOO0OOO00 .key_blocks )<2 +OO0O0OOOOO000OOOO .two_shape_keys :#line:103:if len(shape_keys.key_blocks) < 2 + self.two_shape_keys:
+            OO0O0OOOOO000OOOO .report ({"ERROR"},"Object needs additional shape keys!")#line:104:self.report({"ERROR"}, "Object needs additional shape keys!")
+            return {"CANCELLED"}#line:105:return {"CANCELLED"}
+        if OO0O0OOOOO000OOOO .store_shape_key1_normals :#line:106:if self.store_shape_key1_normals:
+            pack_normals (OO000O00OOO0OOOOO .data )#line:107:pack_normals(ob.data)
+        O000OO0O0O0O0O00O =get_shape_key_offsets (O00O0O00OOO0OOO00 ,OO0O0OOOOO000OOOO .two_shape_keys )#line:108:offsets = get_shape_key_offsets(shape_keys, self.two_shape_keys)
+        pack_offsets (OO000O00OOO0OOOOO ,O000OO0O0O0O0O00O )#line:109:pack_offsets(ob, offsets)
+        return {"FINISHED"}#line:110:return {"FINISHED"}
+class VIEW3D_PT_MeshMorpher (bpy .types .Panel ):#line:113:class VIEW3D_PT_MeshMorpher(bpy.types.Panel):
+    ""#line:114:"""Creates a Panel in 3D Viewport"""
+    bl_label ="Mesh Morpher"#line:116:bl_label = "Mesh Morpher"
+    bl_idname ="VIEW3D_PT_mesh_morpher"#line:117:bl_idname = "VIEW3D_PT_mesh_morpher"
+    bl_space_type ="VIEW_3D"#line:118:bl_space_type = "VIEW_3D"
+    bl_region_type ="UI"#line:119:bl_region_type = "UI"
+    bl_category ="Unreal Tools"#line:120:bl_category = "Unreal Tools"
+    def draw (OO00OO0000OOO0OO0 ,O00OOOOOOO0000OO0 ):#line:122:def draw(self, context):
+        O000000O0OO00OOO0 =OO00OO0000OOO0OO0 .layout #line:123:layout = self.layout
+        O00O00O0OO00OO000 =O000000O0OO00OOO0 .column ()#line:124:col = layout.column()
+        OO000O000OOOO000O =O00OOOOOOO0000OO0 .scene .mesh_morpher_settings #line:125:props = context.scene.mesh_morpher_settings
+        O00O00O0OO00OO000 .prop (OO000O000OOOO000O ,"store_shape_key1_normals")#line:126:col.prop(props, "store_shape_key1_normals")
+        O00O00O0OO00OO000 .prop (OO000O000OOOO000O ,"two_shape_keys")#line:127:col.prop(props, "two_shape_keys")
+        O0000000000O0OOO0 =O00O00O0OO00OO000 .operator ("object.process_shape_keys")#line:128:op = col.operator("object.process_shape_keys")
+        O0000000000O0OOO0 .store_shape_key1_normals =OO000O000OOOO000O .store_shape_key1_normals #line:129:op.store_shape_key1_normals = props.store_shape_key1_normals
+        O0000000000O0OOO0 .two_shape_keys =OO000O000OOOO000O .two_shape_keys #line:130:op.two_shape_keys = props.two_shape_keys
+def register ():#line:133:def register():
+    bpy .utils .register_class (MeshMorpherSettings )#line:134:bpy.utils.register_class(MeshMorpherSettings)
+    bpy .utils .register_class (OBJECT_OT_ProcessShapeKeys )#line:135:bpy.utils.register_class(OBJECT_OT_ProcessShapeKeys)
+    bpy .utils .register_class (VIEW3D_PT_MeshMorpher )#line:136:bpy.utils.register_class(VIEW3D_PT_MeshMorpher)
+    bpy .types .Scene .mesh_morpher_settings =bpy .props .PointerProperty (type =MeshMorpherSettings )#line:139:)
+def unregister ():#line:142:def unregister():
+    bpy .utils .unregister_class (MeshMorpherSettings )#line:143:bpy.utils.unregister_class(MeshMorpherSettings)
+    bpy .utils .unregister_class (OBJECT_OT_ProcessShapeKeys )#line:144:bpy.utils.unregister_class(OBJECT_OT_ProcessShapeKeys)
+    bpy .utils .unregister_class (VIEW3D_PT_MeshMorpher )#line:145:bpy.utils.unregister_class(VIEW3D_PT_MeshMorpher)
+    del bpy .types .Scene .mesh_morpher_settings #line:146:del bpy.types.Scene.mesh_morpher_settings
+if __name__ =="__main__":#line:149:if __name__ == "__main__":
+    register ()#line:150:register()

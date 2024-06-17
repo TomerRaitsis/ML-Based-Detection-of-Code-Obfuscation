@@ -1,0 +1,158 @@
+from __future__ import absolute_import ,division ,unicode_literals #line:1
+from pip ._vendor .six import text_type #line:2
+from lxml import etree #line:4
+from ..treebuilders .etree import tag_regexp #line:5
+from .import base #line:7
+from ..import _ihatexml #line:9
+def ensure_str (OOOOOOO00O00OO00O ):#line:12
+    if OOOOOOO00O00OO00O is None :#line:13
+        return None #line:14
+    elif isinstance (OOOOOOO00O00OO00O ,text_type ):#line:15
+        return OOOOOOO00O00OO00O #line:16
+    else :#line:17
+        return OOOOOOO00O00OO00O .decode ("ascii","strict")#line:18
+class Root (object ):#line:21
+    def __init__ (OO000O0O0OOO0O0OO ,O0O00O00OOOO0O0OO ):#line:22
+        OO000O0O0OOO0O0OO .elementtree =O0O00O00OOOO0O0OO #line:23
+        OO000O0O0OOO0O0OO .children =[]#line:24
+        try :#line:26
+            if O0O00O00OOOO0O0OO .docinfo .internalDTD :#line:27
+                OO000O0O0OOO0O0OO .children .append (Doctype (OO000O0O0OOO0O0OO ,ensure_str (O0O00O00OOOO0O0OO .docinfo .root_name ),ensure_str (O0O00O00OOOO0O0OO .docinfo .public_id ),ensure_str (O0O00O00OOOO0O0OO .docinfo .system_url )))#line:31
+        except AttributeError :#line:32
+            pass #line:33
+        try :#line:35
+            OO00O000OOOOO00OO =O0O00O00OOOO0O0OO .getroot ()#line:36
+        except AttributeError :#line:37
+            OO00O000OOOOO00OO =O0O00O00OOOO0O0OO #line:38
+        while OO00O000OOOOO00OO .getprevious ()is not None :#line:40
+            OO00O000OOOOO00OO =OO00O000OOOOO00OO .getprevious ()#line:41
+        while OO00O000OOOOO00OO is not None :#line:42
+            OO000O0O0OOO0O0OO .children .append (OO00O000OOOOO00OO )#line:43
+            OO00O000OOOOO00OO =OO00O000OOOOO00OO .getnext ()#line:44
+        OO000O0O0OOO0O0OO .text =None #line:46
+        OO000O0O0OOO0O0OO .tail =None #line:47
+    def __getitem__ (OO00000000000OO00 ,O00OOOO00O0O00000 ):#line:49
+        return OO00000000000OO00 .children [O00OOOO00O0O00000 ]#line:50
+    def getnext (OOO0OOO000OOOOOOO ):#line:52
+        return None #line:53
+    def __len__ (OOOO0OO00O0000OOO ):#line:55
+        return 1 #line:56
+class Doctype (object ):#line:59
+    def __init__ (O0O0O0OOOO0000OOO ,OO00O0O000OO0O0O0 ,OO0O0O00OOOOO0OOO ,O0O00OOOO0OOOO0O0 ,OO00OO0OO000O0000 ):#line:60
+        O0O0O0OOOO0000OOO .root_node =OO00O0O000OO0O0O0 #line:61
+        O0O0O0OOOO0000OOO .name =OO0O0O00OOOOO0OOO #line:62
+        O0O0O0OOOO0000OOO .public_id =O0O00OOOO0OOOO0O0 #line:63
+        O0O0O0OOOO0000OOO .system_id =OO00OO0OO000O0000 #line:64
+        O0O0O0OOOO0000OOO .text =None #line:66
+        O0O0O0OOOO0000OOO .tail =None #line:67
+    def getnext (O0O0OOOO000OOO000 ):#line:69
+        return O0O0OOOO000OOO000 .root_node .children [1 ]#line:70
+class FragmentRoot (Root ):#line:73
+    def __init__ (OOO0O00O0000O0OOO ,O00000O0O000O0O0O ):#line:74
+        OOO0O00O0000O0OOO .children =[FragmentWrapper (OOO0O00O0000O0OOO ,O00O0O00OOO000000 )for O00O0O00OOO000000 in O00000O0O000O0O0O ]#line:75
+        OOO0O00O0000O0OOO .text =OOO0O00O0000O0OOO .tail =None #line:76
+    def getnext (OO0O0O0O0OO0O0OOO ):#line:78
+        return None #line:79
+class FragmentWrapper (object ):#line:82
+    def __init__ (OO00OO0O0OO0OO0OO ,O0OOO00O0OOO00000 ,OO00O0O0OOOOO00O0 ):#line:83
+        OO00OO0O0OO0OO0OO .root_node =O0OOO00O0OOO00000 #line:84
+        OO00OO0O0OO0OO0OO .obj =OO00O0O0OOOOO00O0 #line:85
+        if hasattr (OO00OO0O0OO0OO0OO .obj ,'text'):#line:86
+            OO00OO0O0OO0OO0OO .text =ensure_str (OO00OO0O0OO0OO0OO .obj .text )#line:87
+        else :#line:88
+            OO00OO0O0OO0OO0OO .text =None #line:89
+        if hasattr (OO00OO0O0OO0OO0OO .obj ,'tail'):#line:90
+            OO00OO0O0OO0OO0OO .tail =ensure_str (OO00OO0O0OO0OO0OO .obj .tail )#line:91
+        else :#line:92
+            OO00OO0O0OO0OO0OO .tail =None #line:93
+    def __getattr__ (O00O0O0O0000OOOOO ,O00O00OOO00O0O00O ):#line:95
+        return getattr (O00O0O0O0000OOOOO .obj ,O00O00OOO00O0O00O )#line:96
+    def getnext (OOO0OOOO0OOO00O0O ):#line:98
+        O0OOO00OOOO00O0OO =OOO0OOOO0OOO00O0O .root_node .children #line:99
+        OO00OOOO000OOO00O =O0OOO00OOOO00O0OO .index (OOO0OOOO0OOO00O0O )#line:100
+        if OO00OOOO000OOO00O <len (O0OOO00OOOO00O0OO )-1 :#line:101
+            return O0OOO00OOOO00O0OO [OO00OOOO000OOO00O +1 ]#line:102
+        else :#line:103
+            return None #line:104
+    def __getitem__ (OO0OO0O0OOO0OO000 ,O00O0O0O0OO0O00O0 ):#line:106
+        return OO0OO0O0OOO0OO000 .obj [O00O0O0O0OO0O00O0 ]#line:107
+    def __bool__ (OOO0OO0O00O00O00O ):#line:109
+        return bool (OOO0OO0O00O00O00O .obj )#line:110
+    def getparent (OO00OO0OOO0OOO000 ):#line:112
+        return None #line:113
+    def __str__ (OO000O0000O0OO00O ):#line:115
+        return str (OO000O0000O0OO00O .obj )#line:116
+    def __unicode__ (O0OOOO000OOOOOO00 ):#line:118
+        return str (O0OOOO000OOOOOO00 .obj )#line:119
+    def __len__ (OOO00OOO00O0O0000 ):#line:121
+        return len (OOO00OOO00O0O0000 .obj )#line:122
+class TreeWalker (base .NonRecursiveTreeWalker ):#line:125
+    def __init__ (OOO0O0OOOOOOO00O0 ,OO0000OO00O0OO0O0 ):#line:126
+        if isinstance (OO0000OO00O0OO0O0 ,list ):#line:128
+            OOO0O0OOOOOOO00O0 .fragmentChildren =set (OO0000OO00O0OO0O0 )#line:129
+            OO0000OO00O0OO0O0 =FragmentRoot (OO0000OO00O0OO0O0 )#line:130
+        else :#line:131
+            OOO0O0OOOOOOO00O0 .fragmentChildren =set ()#line:132
+            OO0000OO00O0OO0O0 =Root (OO0000OO00O0OO0O0 )#line:133
+        base .NonRecursiveTreeWalker .__init__ (OOO0O0OOOOOOO00O0 ,OO0000OO00O0OO0O0 )#line:134
+        OOO0O0OOOOOOO00O0 .filter =_ihatexml .InfosetFilter ()#line:135
+    def getNodeDetails (OOOO0O0OOOO0O00O0 ,OOO00OO0OO0OOO00O ):#line:137
+        if isinstance (OOO00OO0OO0OOO00O ,tuple ):#line:138
+            OOO00OO0OO0OOO00O ,OOO00O0OOOOO0OO00 =OOO00OO0OO0OOO00O #line:139
+            assert OOO00O0OOOOO0OO00 in ("text","tail"),"Text nodes are text or tail, found %s"%OOO00O0OOOOO0OO00 #line:140
+            return base .TEXT ,ensure_str (getattr (OOO00OO0OO0OOO00O ,OOO00O0OOOOO0OO00 ))#line:141
+        elif isinstance (OOO00OO0OO0OOO00O ,Root ):#line:143
+            return (base .DOCUMENT ,)#line:144
+        elif isinstance (OOO00OO0OO0OOO00O ,Doctype ):#line:146
+            return base .DOCTYPE ,OOO00OO0OO0OOO00O .name ,OOO00OO0OO0OOO00O .public_id ,OOO00OO0OO0OOO00O .system_id #line:147
+        elif isinstance (OOO00OO0OO0OOO00O ,FragmentWrapper )and not hasattr (OOO00OO0OO0OOO00O ,"tag"):#line:149
+            return base .TEXT ,ensure_str (OOO00OO0OO0OOO00O .obj )#line:150
+        elif OOO00OO0OO0OOO00O .tag ==etree .Comment :#line:152
+            return base .COMMENT ,ensure_str (OOO00OO0OO0OOO00O .text )#line:153
+        elif OOO00OO0OO0OOO00O .tag ==etree .Entity :#line:155
+            return base .ENTITY ,ensure_str (OOO00OO0OO0OOO00O .text )[1 :-1 ]#line:156
+        else :#line:158
+            OOOOOO0OO00OOOO00 =tag_regexp .match (ensure_str (OOO00OO0OO0OOO00O .tag ))#line:160
+            if OOOOOO0OO00OOOO00 :#line:161
+                OO00O0OO0O0OO0OO0 ,OOOO0OOO000OO0O0O =OOOOOO0OO00OOOO00 .groups ()#line:162
+            else :#line:163
+                OO00O0OO0O0OO0OO0 =None #line:164
+                OOOO0OOO000OO0O0O =ensure_str (OOO00OO0OO0OOO00O .tag )#line:165
+            OOO0OOO0O0000OO00 ={}#line:166
+            for OO0O000OOO0OO0OO0 ,O0OO0OO0000OOO00O in list (OOO00OO0OO0OOO00O .attrib .items ()):#line:167
+                OO0O000OOO0OO0OO0 =ensure_str (OO0O000OOO0OO0OO0 )#line:168
+                O0OO0OO0000OOO00O =ensure_str (O0OO0OO0000OOO00O )#line:169
+                OOOOOO0OO00OOOO00 =tag_regexp .match (OO0O000OOO0OO0OO0 )#line:170
+                if OOOOOO0OO00OOOO00 :#line:171
+                    OOO0OOO0O0000OO00 [(OOOOOO0OO00OOOO00 .group (1 ),OOOOOO0OO00OOOO00 .group (2 ))]=O0OO0OO0000OOO00O #line:172
+                else :#line:173
+                    OOO0OOO0O0000OO00 [(None ,OO0O000OOO0OO0OO0 )]=O0OO0OO0000OOO00O #line:174
+            return (base .ELEMENT ,OO00O0OO0O0OO0OO0 ,OOOO0O0OOOO0O00O0 .filter .fromXmlName (OOOO0OOO000OO0O0O ),OOO0OOO0O0000OO00 ,len (OOO00OO0OO0OOO00O )>0 or OOO00OO0OO0OOO00O .text )#line:176
+    def getFirstChild (O000O000000O0OO0O ,OO000OOOOO00O0OOO ):#line:178
+        assert not isinstance (OO000OOOOO00O0OOO ,tuple ),"Text nodes have no children"#line:179
+        assert len (OO000OOOOO00O0OOO )or OO000OOOOO00O0OOO .text ,"Node has no children"#line:181
+        if OO000OOOOO00O0OOO .text :#line:182
+            return (OO000OOOOO00O0OOO ,"text")#line:183
+        else :#line:184
+            return OO000OOOOO00O0OOO [0 ]#line:185
+    def getNextSibling (OO0O000O000O0OO00 ,O0OOOOOO0O00O0OO0 ):#line:187
+        if isinstance (O0OOOOOO0O00O0OO0 ,tuple ):#line:188
+            O0OOOOOO0O00O0OO0 ,O000O00OO0O0OO000 =O0OOOOOO0O00O0OO0 #line:189
+            assert O000O00OO0O0OO000 in ("text","tail"),"Text nodes are text or tail, found %s"%O000O00OO0O0OO000 #line:190
+            if O000O00OO0O0OO000 =="text":#line:191
+                if len (O0OOOOOO0O00O0OO0 ):#line:194
+                    return O0OOOOOO0O00O0OO0 [0 ]#line:195
+                else :#line:196
+                    return None #line:197
+            else :#line:198
+                return O0OOOOOO0O00O0OO0 .getnext ()#line:199
+        return (O0OOOOOO0O00O0OO0 ,"tail")if O0OOOOOO0O00O0OO0 .tail else O0OOOOOO0O00O0OO0 .getnext ()#line:201
+    def getParentNode (O0OO000O0OOOO0OOO ,O000OOOO0O0OO00O0 ):#line:203
+        if isinstance (O000OOOO0O0OO00O0 ,tuple ):#line:204
+            O000OOOO0O0OO00O0 ,O0O000O0OO00O00O0 =O000OOOO0O0OO00O0 #line:205
+            assert O0O000O0OO00O00O0 in ("text","tail"),"Text nodes are text or tail, found %s"%O0O000O0OO00O00O0 #line:206
+            if O0O000O0OO00O00O0 =="text":#line:207
+                return O000OOOO0O0OO00O0 #line:208
+        elif O000OOOO0O0OO00O0 in O0OO000O0OOOO0OOO .fragmentChildren :#line:210
+            return None #line:211
+        return O000OOOO0O0OO00O0 .getparent ()#line:213

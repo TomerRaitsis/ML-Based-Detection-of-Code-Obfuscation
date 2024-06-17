@@ -1,0 +1,283 @@
+__license__ ="MIT"#line:2:__license__ = "MIT"
+__all__ =['HTML5TreeBuilder',]#line:6:]
+import warnings #line:8:import warnings
+import re #line:9:import re
+from bs4 .builder import (PERMISSIVE ,HTML ,HTML_5 ,HTMLTreeBuilder ,)#line:15:)
+from bs4 .element import (NamespacedAttribute ,nonwhitespace_re ,)#line:19:)
+import html5lib #line:20:import html5lib
+from html5lib .constants import (namespaces ,prefixes ,)#line:24:)
+from bs4 .element import (Comment ,Doctype ,NavigableString ,Tag ,)#line:30:)
+try :#line:32:try:
+    from html5lib .treebuilders import _base as treebuilder_base #line:34:from html5lib.treebuilders import _base as treebuilder_base
+    OOO00O0O00O000OO0 =False #line:35:new_html5lib = False
+except ImportError as OOOO0O000OOO00OO0 :#line:36:except ImportError as e:
+    from html5lib .treebuilders import base as treebuilder_base #line:38:from html5lib.treebuilders import base as treebuilder_base
+    OOO00O0O00O000OO0 =True #line:39:new_html5lib = True
+class HTML5TreeBuilder (HTMLTreeBuilder ):#line:41:class HTML5TreeBuilder(HTMLTreeBuilder):
+    ""#line:53:"""
+    NAME ="html5lib"#line:55:NAME = "html5lib"
+    features =[NAME ,PERMISSIVE ,HTML_5 ,HTML ]#line:57:features = [NAME, PERMISSIVE, HTML_5, HTML]
+    TRACKS_LINE_NUMBERS =True #line:61:TRACKS_LINE_NUMBERS = True
+    def prepare_markup (OOOOO0O00OO00000O ,O0OOOO000000OOO00 ,O0OOO000OO0OOOOO0 ,document_declared_encoding =None ,exclude_encodings =None ):#line:64:document_declared_encoding=None, exclude_encodings=None):
+        OOOOO0O00OO00000O .user_specified_encoding =O0OOO000OO0OOOOO0 #line:66:self.user_specified_encoding = user_specified_encoding
+        if exclude_encodings :#line:71:if exclude_encodings:
+            warnings .warn ("You provided a value for exclude_encoding, but the html5lib tree builder doesn't support exclude_encoding.")#line:72:warnings.warn("You provided a value for exclude_encoding, but the html5lib tree builder doesn't support exclude_encoding.")
+        yield (O0OOOO000000OOO00 ,None ,None ,False )#line:73:yield (markup, None, None, False)
+    def feed (OO0OO0OO0OOO00O00 ,OOOOOOO000OO0OOO0 ):#line:76:def feed(self, markup):
+        if OO0OO0OO0OOO00O00 .soup .parse_only is not None :#line:77:if self.soup.parse_only is not None:
+            warnings .warn ("You provided a value for parse_only, but the html5lib tree builder doesn't support parse_only. The entire document will be parsed.")#line:78:warnings.warn("You provided a value for parse_only, but the html5lib tree builder doesn't support parse_only. The entire document will be parsed.")
+        OOOOOO0OOOO0OO00O =html5lib .HTMLParser (tree =OO0OO0OO0OOO00O00 .create_treebuilder )#line:79:parser = html5lib.HTMLParser(tree=self.create_treebuilder)
+        OO0OO0OO0OOO00O00 .underlying_builder .parser =OOOOOO0OOOO0OO00O #line:80:self.underlying_builder.parser = parser
+        OO0OO0000000O00OO =dict ()#line:81:extra_kwargs = dict()
+        if not isinstance (OOOOOOO000OO0OOO0 ,str ):#line:82:if not isinstance(markup, str):
+            if OOO00O0O00O000OO0 :#line:83:if new_html5lib:
+                OO0OO0000000O00OO ['override_encoding']=OO0OO0OO0OOO00O00 .user_specified_encoding #line:84:extra_kwargs['override_encoding'] = self.user_specified_encoding
+            else :#line:85:else:
+                OO0OO0000000O00OO ['encoding']=OO0OO0OO0OOO00O00 .user_specified_encoding #line:86:extra_kwargs['encoding'] = self.user_specified_encoding
+        OOOOOOO0OOO0O00OO =OOOOOO0OOOO0OO00O .parse (OOOOOOO000OO0OOO0 ,**OO0OO0000000O00OO )#line:87:doc = parser.parse(markup, **extra_kwargs)
+        if isinstance (OOOOOOO000OO0OOO0 ,str ):#line:90:if isinstance(markup, str):
+            OOOOOOO0OOO0O00OO .original_encoding =None #line:93:doc.original_encoding = None
+        else :#line:94:else:
+            O0OO000OOOOOOOOOO =OOOOOO0OOOO0OO00O .tokenizer .stream .charEncoding [0 ]#line:95:original_encoding = parser.tokenizer.stream.charEncoding[0]
+            if not isinstance (O0OO000OOOOOOOOOO ,str ):#line:96:if not isinstance(original_encoding, str):
+                O0OO000OOOOOOOOOO =O0OO000OOOOOOOOOO .name #line:100:original_encoding = original_encoding.name
+            OOOOOOO0OOO0O00OO .original_encoding =O0OO000OOOOOOOOOO #line:101:doc.original_encoding = original_encoding
+        OO0OO0OO0OOO00O00 .underlying_builder .parser =None #line:102:self.underlying_builder.parser = None
+    def create_treebuilder (O00O0OOO0OOOO00O0 ,O0O0O00000O00O000 ):#line:104:def create_treebuilder(self, namespaceHTMLElements):
+        O00O0OOO0OOOO00O0 .underlying_builder =O00O0000OO0O000O0 (O0O0O00000O00O000 ,O00O0OOO0OOOO00O0 .soup ,store_line_numbers =O00O0OOO0OOOO00O0 .store_line_numbers )#line:108:)
+        return O00O0OOO0OOOO00O0 .underlying_builder #line:109:return self.underlying_builder
+    def test_fragment_to_document (OOOO0O0O0O0OO00OO ,O0O000O0O00OOOO00 ):#line:111:def test_fragment_to_document(self, fragment):
+        ""#line:112:"""See `TreeBuilder`."""
+        return '<html><head></head><body>%s</body></html>'%O0O000O0O00OOOO00 #line:113:return '<html><head></head><body>%s</body></html>' % fragment
+class O00O0000OO0O000O0 (treebuilder_base .TreeBuilder ):#line:116:class TreeBuilderForHtml5lib(treebuilder_base.TreeBuilder):
+    def __init__ (O00OO0O0OOO000O00 ,OO0000OO00OO00O0O ,soup =None ,store_line_numbers =True ,**OO000O00O0OOOOOO0 ):#line:119:store_line_numbers=True, **kwargs):
+        if soup :#line:120:if soup:
+            O00OO0O0OOO000O00 .soup =soup #line:121:self.soup = soup
+        else :#line:122:else:
+            from bs4 import BeautifulSoup #line:123:from bs4 import BeautifulSoup
+            O00OO0O0OOO000O00 .soup =BeautifulSoup ("","html.parser",store_line_numbers =store_line_numbers ,**OO000O00O0OOOOOO0 )#line:129:)
+        super (O00O0000OO0O000O0 ,O00OO0O0OOO000O00 ).__init__ (OO0000OO00OO00O0O )#line:133:super(TreeBuilderForHtml5lib, self).__init__(namespaceHTMLElements)
+        O00OO0O0OOO000O00 .parser =None #line:137:self.parser = None
+        O00OO0O0OOO000O00 .store_line_numbers =store_line_numbers #line:138:self.store_line_numbers = store_line_numbers
+    def documentClass (OO000O00O000000OO ):#line:140:def documentClass(self):
+        OO000O00O000000OO .soup .reset ()#line:141:self.soup.reset()
+        return OO000OO0O0O000O00 (OO000O00O000000OO .soup ,OO000O00O000000OO .soup ,None )#line:142:return Element(self.soup, self.soup, None)
+    def insertDoctype (OO0O0000O0OOOOO00 ,O0O00OOO0OO0O0000 ):#line:144:def insertDoctype(self, token):
+        OOO0O00O0O00OO000 =O0O00OOO0OO0O0000 ["name"]#line:145:name = token["name"]
+        O00O000O0OOO00O00 =O0O00OOO0OO0O0000 ["publicId"]#line:146:publicId = token["publicId"]
+        O00OOOO0OO00OO0OO =O0O00OOO0OO0O0000 ["systemId"]#line:147:systemId = token["systemId"]
+        O00O0OO0O0000OOO0 =Doctype .for_name_and_ids (OOO0O00O0O00OO000 ,O00O000O0OOO00O00 ,O00OOOO0OO00OO0OO )#line:149:doctype = Doctype.for_name_and_ids(name, publicId, systemId)
+        OO0O0000O0OOOOO00 .soup .object_was_parsed (O00O0OO0O0000OOO0 )#line:150:self.soup.object_was_parsed(doctype)
+    def elementClass (OO0O000O0OO0O00OO ,O000O00OO0O00000O ,O0OOO0O00000O0O0O ):#line:152:def elementClass(self, name, namespace):
+        O0OOO0000OO0O00OO ={}#line:153:kwargs = {}
+        if OO0O000O0OO0O00OO .parser and OO0O000O0OO0O00OO .store_line_numbers :#line:154:if self.parser and self.store_line_numbers:
+            O000O0000OOO0O0O0 ,OOO0000OO00O0000O =OO0O000O0OO0O00OO .parser .tokenizer .stream .position ()#line:158:sourceline, sourcepos = self.parser.tokenizer.stream.position()
+            O0OOO0000OO0O00OO ['sourceline']=O000O0000OOO0O0O0 #line:159:kwargs['sourceline'] = sourceline
+            O0OOO0000OO0O00OO ['sourcepos']=OOO0000OO00O0000O -1 #line:160:kwargs['sourcepos'] = sourcepos-1
+        O0O0OOO0OOO000OOO =OO0O000O0OO0O00OO .soup .new_tag (O000O00OO0O00000O ,O0OOO0O00000O0O0O ,**O0OOO0000OO0O00OO )#line:161:tag = self.soup.new_tag(name, namespace, **kwargs)
+        return OO000OO0O0O000O00 (O0O0OOO0OOO000OOO ,OO0O000O0OO0O00OO .soup ,O0OOO0O00000O0O0O )#line:163:return Element(tag, self.soup, namespace)
+    def commentClass (OO0OOO0O00OO00000 ,O00OOO0O0OO0OO00O ):#line:165:def commentClass(self, data):
+        return OO000O0O0O000OOOO (Comment (O00OOO0O0OO0OO00O ),OO0OOO0O00OO00000 .soup )#line:166:return TextNode(Comment(data), self.soup)
+    def fragmentClass (O0000000OO000O000 ):#line:168:def fragmentClass(self):
+        from bs4 import BeautifulSoup #line:169:from bs4 import BeautifulSoup
+        O0000000OO000O000 .soup =BeautifulSoup ("","html.parser")#line:172:self.soup = BeautifulSoup("", "html.parser")
+        O0000000OO000O000 .soup .name ="[document_fragment]"#line:173:self.soup.name = "[document_fragment]"
+        return OO000OO0O0O000O00 (O0000000OO000O000 .soup ,O0000000OO000O000 .soup ,None )#line:174:return Element(self.soup, self.soup, None)
+    def appendChild (OO0000O0O0OOOOO0O ,OO0OO00OOO000OO0O ):#line:176:def appendChild(self, node):
+        OO0000O0O0OOOOO0O .soup .append (OO0OO00OOO000OO0O .element )#line:178:self.soup.append(node.element)
+    def getDocument (O00O00000OOO0O00O ):#line:180:def getDocument(self):
+        return O00O00000OOO0O00O .soup #line:181:return self.soup
+    def getFragment (O0O00O0O000OO0OO0 ):#line:183:def getFragment(self):
+        return treebuilder_base .TreeBuilder .getFragment (O0O00O0O000OO0OO0 ).element #line:184:return treebuilder_base.TreeBuilder.getFragment(self).element
+    def testSerializer (O00O0O0OO0000OOO0 ,OOO0OOOOO00O0OOOO ):#line:186:def testSerializer(self, element):
+        from bs4 import BeautifulSoup #line:187:from bs4 import BeautifulSoup
+        OOOO0O0OOO00O0000 =[]#line:188:rv = []
+        O00O0O0O0OO0O0OO0 =re .compile (r'^(.*?)(?: PUBLIC "(.*?)"(?: "(.*?)")?| SYSTEM "(.*?)")?$')#line:189:doctype_re = re.compile(r'^(.*?)(?: PUBLIC "(.*?)"(?: "(.*?)")?| SYSTEM "(.*?)")?$')
+        def O00OO00OO00OOO000 (O000OOO0OO000O00O ,indent =0 ):#line:191:def serializeElement(element, indent=0):
+            if isinstance (O000OOO0OO000O00O ,BeautifulSoup ):#line:192:if isinstance(element, BeautifulSoup):
+                pass #line:193:pass
+            if isinstance (O000OOO0OO000O00O ,Doctype ):#line:194:if isinstance(element, Doctype):
+                OOO0OO00O000OO0O0 =O00O0O0O0OO0O0OO0 .match (O000OOO0OO000O00O )#line:195:m = doctype_re.match(element)
+                if OOO0OO00O000OO0O0 :#line:196:if m:
+                    O00OOOOO0OO00O00O =OOO0OO00O000OO0O0 .group (1 )#line:197:name = m.group(1)
+                    if OOO0OO00O000OO0O0 .lastindex >1 :#line:198:if m.lastindex > 1:
+                        O00OO00OO0O00OOOO =OOO0OO00O000OO0O0 .group (2 )or ""#line:199:publicId = m.group(2) or ""
+                        O0O0OOOO000O00O0O =OOO0OO00O000OO0O0 .group (3 )or OOO0OO00O000OO0O0 .group (4 )or ""#line:200:systemId = m.group(3) or m.group(4) or ""
+                        OOOO0O0OOO00O0000 .append ("""|%s<!DOCTYPE %s "%s" "%s">"""%(' '*indent ,O00OOOOO0OO00O00O ,O00OO00OO0O00OOOO ,O0O0OOOO000O00O0O ))#line:202:(' ' * indent, name, publicId, systemId))
+                    else :#line:203:else:
+                        OOOO0O0OOO00O0000 .append ("|%s<!DOCTYPE %s>"%(' '*indent ,O00OOOOO0OO00O00O ))#line:204:rv.append("|%s<!DOCTYPE %s>" % (' ' * indent, name))
+                else :#line:205:else:
+                    OOOO0O0OOO00O0000 .append ("|%s<!DOCTYPE >"%(' '*indent ,))#line:206:rv.append("|%s<!DOCTYPE >" % (' ' * indent,))
+            elif isinstance (O000OOO0OO000O00O ,Comment ):#line:207:elif isinstance(element, Comment):
+                OOOO0O0OOO00O0000 .append ("|%s<!-- %s -->"%(' '*indent ,O000OOO0OO000O00O ))#line:208:rv.append("|%s<!-- %s -->" % (' ' * indent, element))
+            elif isinstance (O000OOO0OO000O00O ,NavigableString ):#line:209:elif isinstance(element, NavigableString):
+                OOOO0O0OOO00O0000 .append ("|%s\"%s\""%(' '*indent ,O000OOO0OO000O00O ))#line:210:rv.append("|%s\"%s\"" % (' ' * indent, element))
+            else :#line:211:else:
+                if O000OOO0OO000O00O .namespace :#line:212:if element.namespace:
+                    O00OOOOO0OO00O00O ="%s %s"%(prefixes [O000OOO0OO000O00O .namespace ],O000OOO0OO000O00O .name )#line:214:element.name)
+                else :#line:215:else:
+                    O00OOOOO0OO00O00O =O000OOO0OO000O00O .name #line:216:name = element.name
+                OOOO0O0OOO00O0000 .append ("|%s<%s>"%(' '*indent ,O00OOOOO0OO00O00O ))#line:217:rv.append("|%s<%s>" % (' ' * indent, name))
+                if O000OOO0OO000O00O .attrs :#line:218:if element.attrs:
+                    OOO000O0000000000 =[]#line:219:attributes = []
+                    for O00OOOOO0OO00O00O ,O00O0O0O0O00O00O0 in list (O000OOO0OO000O00O .attrs .items ()):#line:220:for name, value in list(element.attrs.items()):
+                        if isinstance (O00OOOOO0OO00O00O ,NamespacedAttribute ):#line:221:if isinstance(name, NamespacedAttribute):
+                            O00OOOOO0OO00O00O ="%s %s"%(prefixes [O00OOOOO0OO00O00O .namespace ],O00OOOOO0OO00O00O .name )#line:222:name = "%s %s" % (prefixes[name.namespace], name.name)
+                        if isinstance (O00O0O0O0O00O00O0 ,list ):#line:223:if isinstance(value, list):
+                            O00O0O0O0O00O00O0 =" ".join (O00O0O0O0O00O00O0 )#line:224:value = " ".join(value)
+                        OOO000O0000000000 .append ((O00OOOOO0OO00O00O ,O00O0O0O0O00O00O0 ))#line:225:attributes.append((name, value))
+                    for O00OOOOO0OO00O00O ,O00O0O0O0O00O00O0 in sorted (OOO000O0000000000 ):#line:227:for name, value in sorted(attributes):
+                        OOOO0O0OOO00O0000 .append ('|%s%s="%s"'%(' '*(indent +2 ),O00OOOOO0OO00O00O ,O00O0O0O0O00O00O0 ))#line:228:rv.append('|%s%s="%s"' % (' ' * (indent + 2), name, value))
+                indent +=2 #line:229:indent += 2
+                for O0O0000O00O000OO0 in O000OOO0OO000O00O .children :#line:230:for child in element.children:
+                    O00OO00OO00OOO000 (O0O0000O00O000OO0 ,indent )#line:231:serializeElement(child, indent)
+        O00OO00OO00OOO000 (OOO0OOOOO00O0OOOO ,0 )#line:232:serializeElement(element, 0)
+        return "\n".join (OOOO0O0OOO00O0000 )#line:234:return "\n".join(rv)
+class OO0O00OO0OO0O0O0O (object ):#line:236:class AttrList(object):
+    def __init__ (O000OO0O0O00OO0O0 ,O0000O00O0OOO0O0O ):#line:237:def __init__(self, element):
+        O000OO0O0O00OO0O0 .element =O0000O00O0OOO0O0O #line:238:self.element = element
+        O000OO0O0O00OO0O0 .attrs =dict (O000OO0O0O00OO0O0 .element .attrs )#line:239:self.attrs = dict(self.element.attrs)
+    def __iter__ (OO00000000O0O0OO0 ):#line:240:def __iter__(self):
+        return list (OO00000000O0O0OO0 .attrs .items ()).__iter__ ()#line:241:return list(self.attrs.items()).__iter__()
+    def __setitem__ (O000000OOO00O0OO0 ,OO000O00OO00OO0OO ,OOO0OOOOOOOO0OOO0 ):#line:242:def __setitem__(self, name, value):
+        O0OO0O0O0OO0O00OO =O000000OOO00O0OO0 .element .cdata_list_attributes #line:245:list_attr = self.element.cdata_list_attributes
+        if (OO000O00OO00OO0OO in O0OO0O0O0OO0O00OO ['*']or (O000000OOO00O0OO0 .element .name in O0OO0O0O0OO0O00OO and OO000O00OO00OO0OO in O0OO0O0O0OO0O00OO [O000000OOO00O0OO0 .element .name ])):#line:248:and name in list_attr[self.element.name])):
+            if not isinstance (OOO0OOOOOOOO0OOO0 ,list ):#line:251:if not isinstance(value, list):
+                OOO0OOOOOOOO0OOO0 =nonwhitespace_re .findall (OOO0OOOOOOOO0OOO0 )#line:252:value = nonwhitespace_re.findall(value)
+        O000000OOO00O0OO0 .element [OO000O00OO00OO0OO ]=OOO0OOOOOOOO0OOO0 #line:253:self.element[name] = value
+    def items (OO00000OOO00000O0 ):#line:254:def items(self):
+        return list (OO00000OOO00000O0 .attrs .items ())#line:255:return list(self.attrs.items())
+    def keys (O00O00O0000OO0OOO ):#line:256:def keys(self):
+        return list (O00O00O0000OO0OOO .attrs .keys ())#line:257:return list(self.attrs.keys())
+    def __len__ (OOO000OO00OOO00O0 ):#line:258:def __len__(self):
+        return len (OOO000OO00OOO00O0 .attrs )#line:259:return len(self.attrs)
+    def __getitem__ (OO000O0O00O0000OO ,O0O0O000O000OO000 ):#line:260:def __getitem__(self, name):
+        return OO000O0O00O0000OO .attrs [O0O0O000O000OO000 ]#line:261:return self.attrs[name]
+    def __contains__ (OO0OO0OOO0O000OO0 ,O00OO0O00O0O0O0O0 ):#line:262:def __contains__(self, name):
+        return O00OO0O00O0O0O0O0 in list (OO0OO0OOO0O000OO0 .attrs .keys ())#line:263:return name in list(self.attrs.keys())
+class OO000OO0O0O000O00 (treebuilder_base .Node ):#line:266:class Element(treebuilder_base.Node):
+    def __init__ (OOOO00O00000OO00O ,OO00O00OO000OO00O ,OO0O0000OOO0OOOOO ,OOO0O0O000OO000OO ):#line:267:def __init__(self, element, soup, namespace):
+        treebuilder_base .Node .__init__ (OOOO00O00000OO00O ,OO00O00OO000OO00O .name )#line:268:treebuilder_base.Node.__init__(self, element.name)
+        OOOO00O00000OO00O .element =OO00O00OO000OO00O #line:269:self.element = element
+        OOOO00O00000OO00O .soup =OO0O0000OOO0OOOOO #line:270:self.soup = soup
+        OOOO00O00000OO00O .namespace =OOO0O0O000OO000OO #line:271:self.namespace = namespace
+    def appendChild (OOOO0OO00OO00OO00 ,O00OO0O00OO000O0O ):#line:273:def appendChild(self, node):
+        OO00O0OOO0OOOOOO0 =O00O0O00OOOOO0OOO =None #line:274:string_child = child = None
+        if isinstance (O00OO0O00OO000O0O ,str ):#line:275:if isinstance(node, str):
+            OO00O0OOO0OOOOOO0 =O00O0O00OOOOO0OOO =O00OO0O00OO000O0O #line:279:string_child = child = node
+        elif isinstance (O00OO0O00OO000O0O ,Tag ):#line:280:elif isinstance(node, Tag):
+            O00O0O00OOOOO0OOO =O00OO0O00OO000O0O #line:284:child = node
+        elif O00OO0O00OO000O0O .element .__class__ ==NavigableString :#line:285:elif node.element.__class__ == NavigableString:
+            OO00O0OOO0OOOOOO0 =O00O0O00OOOOO0OOO =O00OO0O00OO000O0O .element #line:286:string_child = child = node.element
+            O00OO0O00OO000O0O .parent =OOOO0OO00OO00OO00 #line:287:node.parent = self
+        else :#line:288:else:
+            O00O0O00OOOOO0OOO =O00OO0O00OO000O0O .element #line:289:child = node.element
+            O00OO0O00OO000O0O .parent =OOOO0OO00OO00OO00 #line:290:node.parent = self
+        if not isinstance (O00O0O00OOOOO0OOO ,str )and O00O0O00OOOOO0OOO .parent is not None :#line:292:if not isinstance(child, str) and child.parent is not None:
+            O00OO0O00OO000O0O .element .extract ()#line:293:node.element.extract()
+        if (OO00O0OOO0OOOOOO0 is not None and OOOO0OO00OO00OO00 .element .contents and OOOO0OO00OO00OO00 .element .contents [-1 ].__class__ ==NavigableString ):#line:296:and self.element.contents[-1].__class__ == NavigableString):
+            OO00O0OO00O000O00 =OOOO0OO00OO00OO00 .element .contents [-1 ]#line:300:old_element = self.element.contents[-1]
+            OO00000OOOO00OO00 =OOOO0OO00OO00OO00 .soup .new_string (OO00O0OO00O000O00 +OO00O0OOO0OOOOOO0 )#line:301:new_element = self.soup.new_string(old_element + string_child)
+            OO00O0OO00O000O00 .replace_with (OO00000OOOO00OO00 )#line:302:old_element.replace_with(new_element)
+            OOOO0OO00OO00OO00 .soup ._most_recent_element =OO00000OOOO00OO00 #line:303:self.soup._most_recent_element = new_element
+        else :#line:304:else:
+            if isinstance (O00OO0O00OO000O0O ,str ):#line:305:if isinstance(node, str):
+                O00O0O00OOOOO0OOO =OOOO0OO00OO00OO00 .soup .new_string (O00OO0O00OO000O0O )#line:307:child = self.soup.new_string(node)
+            if OOOO0OO00OO00OO00 .element .contents :#line:312:if self.element.contents:
+                OO00OO000O000000O =OOOO0OO00OO00OO00 .element ._last_descendant (False )#line:313:most_recent_element = self.element._last_descendant(False)
+            elif OOOO0OO00OO00OO00 .element .next_element is not None :#line:314:elif self.element.next_element is not None:
+                OO00OO000O000000O =OOOO0OO00OO00OO00 .soup ._last_descendant ()#line:319:most_recent_element = self.soup._last_descendant()
+            else :#line:320:else:
+                OO00OO000O000000O =OOOO0OO00OO00OO00 .element #line:321:most_recent_element = self.element
+            OOOO0OO00OO00OO00 .soup .object_was_parsed (O00O0O00OOOOO0OOO ,parent =OOOO0OO00OO00OO00 .element ,most_recent_element =OO00OO000O000000O )#line:325:most_recent_element=most_recent_element)
+    def getAttributes (O000OO00O0OO00000 ):#line:327:def getAttributes(self):
+        if isinstance (O000OO00O0OO00000 .element ,Comment ):#line:328:if isinstance(self.element, Comment):
+            return {}#line:329:return {}
+        return OO0O00OO0OO0O0O0O (O000OO00O0OO00000 .element )#line:330:return AttrList(self.element)
+    def setAttributes (OO0OO0O0O00OOOO00 ,OO0OOO0OOOO0O00OO ):#line:332:def setAttributes(self, attributes):
+        if OO0OOO0OOOO0O00OO is not None and len (OO0OOO0OOOO0O00OO )>0 :#line:333:if attributes is not None and len(attributes) > 0:
+            O00O000OOO0000OOO =[]#line:334:converted_attributes = []
+            for OOO00O00O0O000O00 ,OOOO00OO0O000OOO0 in list (OO0OOO0OOOO0O00OO .items ()):#line:335:for name, value in list(attributes.items()):
+                if isinstance (OOO00O00O0O000O00 ,tuple ):#line:336:if isinstance(name, tuple):
+                    O0OOOOOOOO0OOO00O =NamespacedAttribute (*OOO00O00O0O000O00 )#line:337:new_name = NamespacedAttribute(*name)
+                    del OO0OOO0OOOO0O00OO [OOO00O00O0O000O00 ]#line:338:del attributes[name]
+                    OO0OOO0OOOO0O00OO [O0OOOOOOOO0OOO00O ]=OOOO00OO0O000OOO0 #line:339:attributes[new_name] = value
+            OO0OO0O0O00OOOO00 .soup .builder ._replace_cdata_list_attribute_values (OO0OO0O0O00OOOO00 .name ,OO0OOO0OOOO0O00OO )#line:342:self.name, attributes)
+            for OOO00O00O0O000O00 ,OOOO00OO0O000OOO0 in list (OO0OOO0OOOO0O00OO .items ()):#line:343:for name, value in list(attributes.items()):
+                OO0OO0O0O00OOOO00 .element [OOO00O00O0O000O00 ]=OOOO00OO0O000OOO0 #line:344:self.element[name] = value
+            OO0OO0O0O00OOOO00 .soup .builder .set_up_substitutions (OO0OO0O0O00OOOO00 .element )#line:351:self.soup.builder.set_up_substitutions(self.element)
+    attributes =property (getAttributes ,setAttributes )#line:352:attributes = property(getAttributes, setAttributes)
+    def insertText (O00O0000OO0OOOOOO ,O00OOOOO0O0OO00OO ,insertBefore =None ):#line:354:def insertText(self, data, insertBefore=None):
+        OOOOO00OO0OOO0OO0 =OO000O0O0O000OOOO (O00O0000OO0OOOOOO .soup .new_string (O00OOOOO0O0OO00OO ),O00O0000OO0OOOOOO .soup )#line:355:text = TextNode(self.soup.new_string(data), self.soup)
+        if insertBefore :#line:356:if insertBefore:
+            O00O0000OO0OOOOOO .insertBefore (OOOOO00OO0OOO0OO0 ,insertBefore )#line:357:self.insertBefore(text, insertBefore)
+        else :#line:358:else:
+            O00O0000OO0OOOOOO .appendChild (OOOOO00OO0OOO0OO0 )#line:359:self.appendChild(text)
+    def insertBefore (OO00O00OOO000OO00 ,OO0000OOO000OO0O0 ,OO00OO0O000OOO0O0 ):#line:361:def insertBefore(self, node, refNode):
+        O0O00OO0O00OOO00O =OO00O00OOO000OO00 .element .index (OO00OO0O000OOO0O0 .element )#line:362:index = self.element.index(refNode.element)
+        if (OO0000OOO000OO0O0 .element .__class__ ==NavigableString and OO00O00OOO000OO00 .element .contents and OO00O00OOO000OO00 .element .contents [O0O00OO0O00OOO00O -1 ].__class__ ==NavigableString ):#line:364:and self.element.contents[index-1].__class__ == NavigableString):
+            O00OO00OO0O00O0O0 =OO00O00OOO000OO00 .element .contents [O0O00OO0O00OOO00O -1 ]#line:366:old_node = self.element.contents[index-1]
+            OOOOO0OOO00O0OOO0 =OO00O00OOO000OO00 .soup .new_string (O00OO00OO0O00O0O0 +OO0000OOO000OO0O0 .element )#line:367:new_str = self.soup.new_string(old_node + node.element)
+            O00OO00OO0O00O0O0 .replace_with (OOOOO0OOO00O0OOO0 )#line:368:old_node.replace_with(new_str)
+        else :#line:369:else:
+            OO00O00OOO000OO00 .element .insert (O0O00OO0O00OOO00O ,OO0000OOO000OO0O0 .element )#line:370:self.element.insert(index, node.element)
+            OO0000OOO000OO0O0 .parent =OO00O00OOO000OO00 #line:371:node.parent = self
+    def removeChild (OO00O000OOOO00O00 ,O0OOOO00O0O0O0OO0 ):#line:373:def removeChild(self, node):
+        O0OOOO00O0O0O0OO0 .element .extract ()#line:374:node.element.extract()
+    def reparentChildren (OOOO00OO00O0O000O ,OO0OOOO00O0O00O00 ):#line:376:def reparentChildren(self, new_parent):
+        ""#line:377:"""Move all of this tag's children into another tag."""
+        O00O0O000OO00O0OO =OOOO00OO00O0O000O .element #line:382:element = self.element
+        OOOO000OOO0OOO00O =OO0OOOO00O0O00O00 .element #line:383:new_parent_element = new_parent.element
+        OOOO00OO0O0000O00 =O00O0O000OO00O0OO .next_sibling #line:386:final_next_element = element.next_sibling
+        OO0O0OOO0OO00O0OO =OOOO000OOO0OOO00O ._last_descendant (False ,False )#line:388:new_parents_last_descendant = new_parent_element._last_descendant(False, False)
+        if len (OOOO000OOO0OOO00O .contents )>0 :#line:389:if len(new_parent_element.contents) > 0:
+            OO000000O00OO0OO0 =OOOO000OOO0OOO00O .contents [-1 ]#line:392:new_parents_last_child = new_parent_element.contents[-1]
+            O000000000O0O0O00 =OO0O0OOO0OO00O0OO .next_element #line:393:new_parents_last_descendant_next_element = new_parents_last_descendant.next_element
+        else :#line:394:else:
+            OO000000O00OO0OO0 =None #line:396:new_parents_last_child = None
+            O000000000O0O0O00 =OOOO000OOO0OOO00O .next_element #line:397:new_parents_last_descendant_next_element = new_parent_element.next_element
+        O0OO00OOO00OOO0OO =O00O0O000OO00O0OO .contents #line:399:to_append = element.contents
+        if len (O0OO00OOO00OOO0OO )>0 :#line:400:if len(to_append) > 0:
+            OO0000O000OOOOO00 =O0OO00OOO00OOO0OO [0 ]#line:403:first_child = to_append[0]
+            if OO0O0OOO0OO00O0OO is not None :#line:404:if new_parents_last_descendant is not None:
+                OO0000O000OOOOO00 .previous_element =OO0O0OOO0OO00O0OO #line:405:first_child.previous_element = new_parents_last_descendant
+            else :#line:406:else:
+                OO0000O000OOOOO00 .previous_element =OOOO000OOO0OOO00O #line:407:first_child.previous_element = new_parent_element
+            OO0000O000OOOOO00 .previous_sibling =OO000000O00OO0OO0 #line:408:first_child.previous_sibling = new_parents_last_child
+            if OO0O0OOO0OO00O0OO is not None :#line:409:if new_parents_last_descendant is not None:
+                OO0O0OOO0OO00O0OO .next_element =OO0000O000OOOOO00 #line:410:new_parents_last_descendant.next_element = first_child
+            else :#line:411:else:
+                OOOO000OOO0OOO00O .next_element =OO0000O000OOOOO00 #line:412:new_parent_element.next_element = first_child
+            if OO000000O00OO0OO0 is not None :#line:413:if new_parents_last_child is not None:
+                OO000000O00OO0OO0 .next_sibling =OO0000O000OOOOO00 #line:414:new_parents_last_child.next_sibling = first_child
+            O0000OO0O0O000000 =O0OO00OOO00OOO0OO [-1 ]._last_descendant (False ,True )#line:420:last_childs_last_descendant = to_append[-1]._last_descendant(False, True)
+            O0000OO0O0O000000 .next_element =O000000000O0O0O00 #line:422:last_childs_last_descendant.next_element = new_parents_last_descendant_next_element
+            if O000000000O0O0O00 is not None :#line:423:if new_parents_last_descendant_next_element is not None:
+                O000000000O0O0O00 .previous_element =O0000OO0O0O000000 #line:427:new_parents_last_descendant_next_element.previous_element = last_childs_last_descendant
+            O0000OO0O0O000000 .next_sibling =None #line:428:last_childs_last_descendant.next_sibling = None
+        for O00OOO00000O0O00O in O0OO00OOO00OOO0OO :#line:430:for child in to_append:
+            O00OOO00000O0O00O .parent =OOOO000OOO0OOO00O #line:431:child.parent = new_parent_element
+            OOOO000OOO0OOO00O .contents .append (O00OOO00000O0O00O )#line:432:new_parent_element.contents.append(child)
+        O00O0O000OO00O0OO .contents =[]#line:435:element.contents = []
+        O00O0O000OO00O0OO .next_element =OOOO00OO0O0000O00 #line:436:element.next_element = final_next_element
+    def cloneNode (O00OO0OO0OOOO000O ):#line:442:def cloneNode(self):
+        O00OO0O000O0O00O0 =O00OO0OO0OOOO000O .soup .new_tag (O00OO0OO0OOOO000O .element .name ,O00OO0OO0OOOO000O .namespace )#line:443:tag = self.soup.new_tag(self.element.name, self.namespace)
+        O0O0OOOOOOOOO0O00 =OO000OO0O0O000O00 (O00OO0O000O0O00O0 ,O00OO0OO0OOOO000O .soup ,O00OO0OO0OOOO000O .namespace )#line:444:node = Element(tag, self.soup, self.namespace)
+        for OOO0OO0000O0OOOOO ,OO0OOO0O0OO0OO000 in O00OO0OO0OOOO000O .attributes :#line:445:for key,value in self.attributes:
+            O0O0OOOOOOOOO0O00 .attributes [OOO0OO0000O0OOOOO ]=OO0OOO0O0OO0OO000 #line:446:node.attributes[key] = value
+        return O0O0OOOOOOOOO0O00 #line:447:return node
+    def hasContent (OO0OO0O00000OO000 ):#line:449:def hasContent(self):
+        return OO0OO0O00000OO000 .element .contents #line:450:return self.element.contents
+    def getNameTuple (O00OOO0OOO0O0OO00 ):#line:452:def getNameTuple(self):
+        if O00OOO0OOO0O0OO00 .namespace ==None :#line:453:if self.namespace == None:
+            return namespaces ["html"],O00OOO0OOO0O0OO00 .name #line:454:return namespaces["html"], self.name
+        else :#line:455:else:
+            return O00OOO0OOO0O0OO00 .namespace ,O00OOO0OOO0O0OO00 .name #line:456:return self.namespace, self.name
+    nameTuple =property (getNameTuple )#line:458:nameTuple = property(getNameTuple)
+class OO000O0O0O000OOOO (OO000OO0O0O000O00 ):#line:460:class TextNode(Element):
+    def __init__ (O00O0OO0OO0000O00 ,O0O00O00OO0OO0O00 ,OOO0O000OO0000OOO ):#line:461:def __init__(self, element, soup):
+        treebuilder_base .Node .__init__ (O00O0OO0OO0000O00 ,None )#line:462:treebuilder_base.Node.__init__(self, None)
+        O00O0OO0OO0000O00 .element =O0O00O00OO0OO0O00 #line:463:self.element = element
+        O00O0OO0OO0000O00 .soup =OOO0O000OO0000OOO #line:464:self.soup = soup
+    def cloneNode (OOOO0OO0O00O0O0OO ):#line:466:def cloneNode(self):
+        raise NotImplementedError #line:467:raise NotImplementedError

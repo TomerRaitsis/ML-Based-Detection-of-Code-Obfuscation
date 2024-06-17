@@ -1,0 +1,119 @@
+""#line:1
+import warnings #line:3
+try :#line:5
+    from bs4 .builder import HTML5TreeBuilder #line:6
+    HTML5LIB_PRESENT =True #line:7
+except ImportError as e :#line:8
+    HTML5LIB_PRESENT =False #line:9
+from bs4 .element import SoupStrainer #line:10
+from bs4 .testing import (HTML5TreeBuilderSmokeTest ,SoupTest ,skipIf ,)#line:15
+@skipIf (not HTML5LIB_PRESENT ,"html5lib seems not to be present, not testing its tree builder.")#line:19
+class HTML5LibBuilderSmokeTest (SoupTest ,HTML5TreeBuilderSmokeTest ):#line:20
+    ""#line:21
+    @property #line:23
+    def default_builder (O00OO000000OO0O00 ):#line:24
+        return HTML5TreeBuilder #line:25
+    def test_soupstrainer (OOO0000O0O0OOO00O ):#line:27
+        O000O0O0O0O00OO0O =SoupStrainer ("b")#line:29
+        OO000O0OOO0000O00 ="<p>A <b>bold</b> statement.</p>"#line:30
+        with warnings .catch_warnings (record =True )as O0OOO0OOO000OO00O :#line:31
+            OOOOOOO00O00OO0OO =OOO0000O0O0OOO00O .soup (OO000O0OOO0000O00 ,parse_only =O000O0O0O0O00OO0O )#line:32
+        OOO0000O0O0OOO00O .assertEqual (OOOOOOO00O00OO0OO .decode (),OOO0000O0O0OOO00O .document_for (OO000O0OOO0000O00 ))#line:34
+        OOO0000O0O0OOO00O .assertTrue ("the html5lib tree builder doesn't support parse_only"in str (O0OOO0OOO000OO00O [0 ].message ))#line:38
+    def test_correctly_nested_tables (O0O0O0O00OOOO0O00 ):#line:40
+        ""#line:41
+        O000OOOOOO0000O0O =('<table id="1">' '<tr>' "<td>Here's another table:" '<table id="2">' '<tr><td>foo</td></tr>' '</table></td>')#line:47
+        O0O0O0O00OOOO0O00 .assertSoupEquals (O000OOOOOO0000O0O ,'<table id="1"><tbody><tr><td>Here\'s another table:' '<table id="2"><tbody><tr><td>foo</td></tr></tbody></table>' '</td></tr></tbody></table>')#line:53
+        O0O0O0O00OOOO0O00 .assertSoupEquals ("<table><thead><tr><td>Foo</td></tr></thead>" "<tbody><tr><td>Bar</td></tr></tbody>" "<tfoot><tr><td>Baz</td></tr></tfoot></table>")#line:58
+    def test_xml_declaration_followed_by_doctype (OOOO00OO0OOO0O000 ):#line:60
+        O0OOO00OO000OO0OO ='''<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+   <p>foo</p>
+  </body>
+</html>'''#line:69
+        OOOO0000OOO00O0OO =OOOO00OO0OOO0O000 .soup (O0OOO00OO000OO0OO )#line:70
+        OOOO00OO0OOO0O000 .assertEqual (b"<p>foo</p>",OOOO0000OOO00O0OO .p .encode ())#line:72
+    def test_reparented_markup (O000OOOOO0OO00000 ):#line:74
+        OOO0O00OOOOOO0O0O ='<p><em>foo</p>\n<p>bar<a></a></em></p>'#line:75
+        O00O0000OO000OOOO =O000OOOOO0OO00000 .soup (OOO0O00OOOOOO0O0O )#line:76
+        O000OOOOO0OO00000 .assertEqual ("<body><p><em>foo</em></p><em>\n</em><p><em>bar<a></a></em></p></body>",O00O0000OO000OOOO .body .decode ())#line:77
+        O000OOOOO0OO00000 .assertEqual (2 ,len (O00O0000OO000OOOO .find_all ('p')))#line:78
+    def test_reparented_markup_ends_with_whitespace (OOO00O0O0OOO00OO0 ):#line:81
+        O00O000O0OOO0OO00 ='<p><em>foo</p>\n<p>bar<a></a></em></p>\n'#line:82
+        OO00000OOO000O00O =OOO00O0O0OOO00OO0 .soup (O00O000O0OOO0OO00 )#line:83
+        OOO00O0O0OOO00OO0 .assertEqual ("<body><p><em>foo</em></p><em>\n</em><p><em>bar<a></a></em></p>\n</body>",OO00000OOO000O00O .body .decode ())#line:84
+        OOO00O0O0OOO00OO0 .assertEqual (2 ,len (OO00000OOO000O00O .find_all ('p')))#line:85
+    def test_reparented_markup_containing_identical_whitespace_nodes (O0O0OO0OOOO00O0O0 ):#line:87
+        ""#line:90
+        OO00OOOOOO000O000 ='<table> <tbody><tbody><ims></tbody> </table>'#line:91
+        O0O0O0000OO0OO00O =O0O0OO0OOOO00O0O0 .soup (OO00OOOOOO000O000 )#line:92
+        O000O0000O000OOO0 ,OO0OO00O00O000O0O =O0O0O0000OO0OO00O .find_all (string =' ')#line:93
+        OO0000O00O0000OOO ,O0OO0O00OOO00OOO0 =O0O0O0000OO0OO00O .find_all ('tbody')#line:94
+        assert O000O0000O000OOO0 .next_element is OO0000O00O0000OOO #line:95
+        assert O0OO0O00OOO00OOO0 .next_element is OO0OO00O00O000O0O #line:96
+    def test_reparented_markup_containing_children (O0O000OO00O000O0O ):#line:98
+        O0O00OO00OOOOOO0O ='<div><a>aftermath<p><noscript>target</noscript>aftermath</a></p></div>'#line:99
+        O000OO0O0OOO0O000 =O0O000OO00O000O0O .soup (O0O00OO00OOOOOO0O )#line:100
+        O0O0O000OOO0OO0OO =O000OO0O0OOO0O000 .noscript #line:101
+        O0O000OO00O000O0O .assertEqual ("target",O0O0O000OOO0OO0OO .next_element )#line:102
+        O000OO0O0OOOOOO0O =O000OO0O0OOO0O000 .find (string ='target')#line:103
+        OO0O000O00OO0O000 =O000OO0O0OOO0O000 .find_all (string ='aftermath')[-1 ]#line:106
+        O0O000OO00O000O0O .assertEqual (OO0O000O00OO0O000 ,O000OO0O0OOOOOO0O .next_element )#line:111
+        O0O000OO00O000O0O .assertEqual (O000OO0O0OOOOOO0O ,OO0O000O00OO0O000 .previous_element )#line:112
+    def test_processing_instruction (OOO0OO00OOO0OO0O0 ):#line:114
+        ""#line:115
+        OO00000O00O0O0O0O =b"""<?PITarget PIContent?>"""#line:116
+        OOO000OO000O0000O =OOO0OO00OOO0OO0O0 .soup (OO00000O00O0O0O0O )#line:117
+        assert str (OOO000OO000O0000O ).startswith ("<!--?PITarget PIContent?-->")#line:118
+    def test_cloned_multivalue_node (OOO0O0OOOO00O0000 ):#line:120
+        O000O000O0O0000OO =b"""<a class="my_class"><p></a>"""#line:121
+        O00OOOOO0000O00O0 =OOO0O0OOOO00O0000 .soup (O000O000O0O0000OO )#line:122
+        OO0O00O00OOO0O00O ,O00O00000O0000OOO =O00OOOOO0000O00O0 .find_all ('a')#line:123
+        OOO0O0OOOO00O0000 .assertEqual (OO0O00O00OOO0O00O ,O00O00000O0000OOO )#line:124
+        assert OO0O00O00OOO0O00O is not O00O00000O0000OOO #line:125
+    def test_foster_parenting (OOOO0O0000OO0O0O0 ):#line:127
+        O0O0O0OOO00OO00O0 =b"""<table><td></tbody>A"""#line:128
+        OOOOO00000OO00O00 =OOOO0O0000OO0O0O0 .soup (O0O0O0OOO00OO00O0 )#line:129
+        OOOO0O0000OO0O0O0 .assertEqual ("<body>A<table><tbody><tr><td></td></tr></tbody></table></body>",OOOOO00000OO00O00 .body .decode ())#line:130
+    def test_extraction (OOO0O0O0O0OOOO0OO ):#line:132
+        ""#line:137
+        OO0O000OO00OOO0O0 ="""
+<html><head></head>
+<style>
+</style><script></script><body><p>hello</p></body></html>
+"""#line:143
+        OO0O00O000O0000O0 =OOO0O0O0O0OOOO0OO .soup (OO0O000OO00OOO0O0 )#line:144
+        [O00O00O00O00OO00O .extract ()for O00O00O00O00OO00O in OO0O00O000O0000O0 ('script')]#line:145
+        [O00000OO0O00O00O0 .extract ()for O00000OO0O00O00O0 in OO0O00O000O0000O0 ('style')]#line:146
+        OOO0O0O0O0OOOO0OO .assertEqual (len (OO0O00O000O0000O0 .find_all ("p")),1 )#line:148
+    def test_empty_comment (OO0OO00000O0O0O00 ):#line:150
+        ""#line:155
+        OO0O0OOO0OO0OO0O0 ="""
+<html>
+<body>
+<form>
+<!----><input type="text">
+</form>
+</body>
+</html>
+"""#line:165
+        O0OO000O00OO000OO =OO0OO00000O0O0O00 .soup (OO0O0OOO0OO0OO0O0 )#line:166
+        OOOOO0OOOO00O0000 =[]#line:167
+        for O0OOO0OOOOO0O0OO0 in O0OO000O00OO000OO .find_all ('form'):#line:168
+            OOOOO0OOOO00O0000 .extend (O0OOO0OOOOO0O0OO0 .find_all ('input'))#line:169
+        OO0OO00000O0O0O00 .assertEqual (len (OOOOO0OOOO00O0000 ),1 )#line:170
+    def test_tracking_line_numbers (OOOO0OO000O000000 ):#line:172
+        O0OOOO0O0O0O000O0 ="\n   <p>\n\n<sourceline>\n<b>text</b></sourceline><sourcepos></p>"#line:175
+        O0OO0O0OO00OO0O00 =OOOO0OO000O000000 .soup (O0OOOO0O0O0O000O0 )#line:176
+        OOOO0OO000O000000 .assertEqual (2 ,O0OO0O0OO00OO0O00 .p .sourceline )#line:177
+        OOOO0OO000O000000 .assertEqual (5 ,O0OO0O0OO00OO0O00 .p .sourcepos )#line:178
+        OOOO0OO000O000000 .assertEqual ("sourceline",O0OO0O0OO00OO0O00 .p .find ('sourceline').name )#line:179
+        O0OO0O0OO00OO0O00 =OOOO0OO000O000000 .soup (O0OOOO0O0O0O000O0 ,store_line_numbers =False )#line:182
+        OOOO0OO000O000000 .assertEqual ("sourceline",O0OO0O0OO00OO0O00 .p .sourceline .name )#line:183
+        OOOO0OO000O000000 .assertEqual ("sourcepos",O0OO0O0OO00OO0O00 .p .sourcepos .name )#line:184
+    def test_special_string_containers (OO0O0OO0O00OOOO00 ):#line:186
+        pass #line:190

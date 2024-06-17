@@ -1,0 +1,220 @@
+import copy #line:1:import copy
+import os #line:2:import os
+import re #line:3:import re
+from .core import Argument #line:5:from .core import Argument
+from .core import MultiCommand #line:6:from .core import MultiCommand
+from .core import Option #line:7:from .core import Option
+from .parser import split_arg_string #line:8:from .parser import split_arg_string
+from .types import Choice #line:9:from .types import Choice
+from .utils import echo #line:10:from .utils import echo
+try :#line:12:try:
+    from collections import abc #line:13:from collections import abc
+except ImportError :#line:14:except ImportError:
+    import collections as abc #line:15:import collections as abc
+WORDBREAK ="="#line:17:WORDBREAK = "="
+COMPLETION_SCRIPT_BASH ="""
+%(complete_func)s() {
+    local IFS=$'\n'
+    COMPREPLY=( $( env COMP_WORDS="${COMP_WORDS[*]}" \\
+                   COMP_CWORD=$COMP_CWORD \\
+                   %(autocomplete_var)s=complete $1 ) )
+    return 0
+}
+
+%(complete_func)setup() {
+    local COMPLETION_OPTIONS=""
+    local BASH_VERSION_ARR=(${BASH_VERSION//./ })
+    # Only BASH version 4.4 and later have the nosort option.
+    if [ ${BASH_VERSION_ARR[0]} -gt 4 ] || ([ ${BASH_VERSION_ARR[0]} -eq 4 ] \
+&& [ ${BASH_VERSION_ARR[1]} -ge 4 ]); then
+        COMPLETION_OPTIONS="-o nosort"
+    fi
+
+    complete $COMPLETION_OPTIONS -F %(complete_func)s %(script_names)s
+}
+
+%(complete_func)setup
+"""#line:42:"""
+COMPLETION_SCRIPT_ZSH ="""
+#compdef %(script_names)s
+
+%(complete_func)s() {
+    local -a completions
+    local -a completions_with_descriptions
+    local -a response
+    (( ! $+commands[%(script_names)s] )) && return 1
+
+    response=("${(@f)$( env COMP_WORDS=\"${words[*]}\" \\
+                        COMP_CWORD=$((CURRENT-1)) \\
+                        %(autocomplete_var)s=\"complete_zsh\" \\
+                        %(script_names)s )}")
+
+    for key descr in ${(kv)response}; do
+      if [[ "$descr" == "_" ]]; then
+          completions+=("$key")
+      else
+          completions_with_descriptions+=("$key":"$descr")
+      fi
+    done
+
+    if [ -n "$completions_with_descriptions" ]; then
+        _describe -V unsorted completions_with_descriptions -U
+    fi
+
+    if [ -n "$completions" ]; then
+        compadd -U -V unsorted -a completions
+    fi
+    compstate[insert]="automenu"
+}
+
+compdef %(complete_func)s %(script_names)s
+"""#line:77:"""
+COMPLETION_SCRIPT_FISH =("complete --no-files --command %(script_names)s --arguments" ' "(env %(autocomplete_var)s=complete_fish' " COMP_WORDS=(commandline -cp) COMP_CWORD=(commandline -t)" ' %(script_names)s)"')#line:84:)
+_OO0O00O0OO0O0OOOO ={"bash":COMPLETION_SCRIPT_BASH ,"zsh":COMPLETION_SCRIPT_ZSH ,"fish":COMPLETION_SCRIPT_FISH ,}#line:90:}
+_O0OOO00O00OOOO000 =re .compile (r"[^a-zA-Z0-9_]")#line:92:_invalid_ident_char_re = re.compile(r"[^a-zA-Z0-9_]")
+def get_completion_script (O0OO0O0OO0O0000O0 ,O00O0OOO0O0O00O0O ,OOOOO00O0OO0OOO00 ):#line:95:def get_completion_script(prog_name, complete_var, shell):
+    O00O0OO0OOO0OO0OO =_O0OOO00O00OOOO000 .sub ("",O0OO0O0OO0O0000O0 .replace ("-","_"))#line:96:cf_name = _invalid_ident_char_re.sub("", prog_name.replace("-", "_"))
+    O000O0O00OOO00OO0 =_OO0O00O0OO0O0OOOO .get (OOOOO00O0OO0OOO00 ,COMPLETION_SCRIPT_BASH )#line:97:script = _completion_scripts.get(shell, COMPLETION_SCRIPT_BASH)
+    return (O000O0O00OOO00OO0 %{"complete_func":"_{}_completion".format (O00O0OO0OOO0OO0OO ),"script_names":O0OO0O0OO0O0000O0 ,"autocomplete_var":O00O0OOO0O0O00O0O ,}).strip ()+";"#line:105:).strip() + ";"
+def resolve_ctx (OO00OOOO000OO0O00 ,O000000O0O0O00OOO ,O0OO00O0000000OOO ):#line:108:def resolve_ctx(cli, prog_name, args):
+    ""#line:116:"""
+    OO0O0OO0O0OO0O0OO =OO00OOOO000OO0O00 .make_context (O000000O0O0O00OOO ,O0OO00O0000000OOO ,resilient_parsing =True )#line:117:ctx = cli.make_context(prog_name, args, resilient_parsing=True)
+    O0OO00O0000000OOO =OO0O0OO0O0OO0O0OO .protected_args +OO0O0OO0O0OO0O0OO .args #line:118:args = ctx.protected_args + ctx.args
+    while O0OO00O0000000OOO :#line:119:while args:
+        if isinstance (OO0O0OO0O0OO0O0OO .command ,MultiCommand ):#line:120:if isinstance(ctx.command, MultiCommand):
+            if not OO0O0OO0O0OO0O0OO .command .chain :#line:121:if not ctx.command.chain:
+                O000OOO000OOOO00O ,O0O000OO0O0OOO0OO ,O0OO00O0000000OOO =OO0O0OO0O0OO0O0OO .command .resolve_command (OO0O0OO0O0OO0O0OO ,O0OO00O0000000OOO )#line:122:cmd_name, cmd, args = ctx.command.resolve_command(ctx, args)
+                if O0O000OO0O0OOO0OO is None :#line:123:if cmd is None:
+                    return OO0O0OO0O0OO0O0OO #line:124:return ctx
+                OO0O0OO0O0OO0O0OO =O0O000OO0O0OOO0OO .make_context (O000OOO000OOOO00O ,O0OO00O0000000OOO ,parent =OO0O0OO0O0OO0O0OO ,resilient_parsing =True )#line:127:)
+                O0OO00O0000000OOO =OO0O0OO0O0OO0O0OO .protected_args +OO0O0OO0O0OO0O0OO .args #line:128:args = ctx.protected_args + ctx.args
+            else :#line:129:else:
+                while O0OO00O0000000OOO :#line:131:while args:
+                    O000OOO000OOOO00O ,O0O000OO0O0OOO0OO ,O0OO00O0000000OOO =OO0O0OO0O0OO0O0OO .command .resolve_command (OO0O0OO0O0OO0O0OO ,O0OO00O0000000OOO )#line:132:cmd_name, cmd, args = ctx.command.resolve_command(ctx, args)
+                    if O0O000OO0O0OOO0OO is None :#line:133:if cmd is None:
+                        return OO0O0OO0O0OO0O0OO #line:134:return ctx
+                    OO0O000O0O0O00O00 =O0O000OO0O0OOO0OO .make_context (O000OOO000OOOO00O ,O0OO00O0000000OOO ,parent =OO0O0OO0O0OO0O0OO ,allow_extra_args =True ,allow_interspersed_args =False ,resilient_parsing =True ,)#line:142:)
+                    O0OO00O0000000OOO =OO0O000O0O0O00O00 .args #line:143:args = sub_ctx.args
+                OO0O0OO0O0OO0O0OO =OO0O000O0O0O00O00 #line:144:ctx = sub_ctx
+                O0OO00O0000000OOO =OO0O000O0O0O00O00 .protected_args +OO0O000O0O0O00O00 .args #line:145:args = sub_ctx.protected_args + sub_ctx.args
+        else :#line:146:else:
+            break #line:147:break
+    return OO0O0OO0O0OO0O0OO #line:148:return ctx
+def start_of_option (OOO0OOO00O0OO00O0 ):#line:151:def start_of_option(param_str):
+    ""#line:156:"""
+    return OOO0OOO00O0OO00O0 and OOO0OOO00O0OO00O0 [:1 ]=="-"#line:157:return param_str and param_str[:1] == "-"
+def is_incomplete_option (OOOOO0O0000OO0000 ,OOO000000O00OO0O0 ):#line:160:def is_incomplete_option(all_args, cmd_param):
+    ""#line:168:"""
+    if not isinstance (OOO000000O00OO0O0 ,Option ):#line:169:if not isinstance(cmd_param, Option):
+        return False #line:170:return False
+    if OOO000000O00OO0O0 .is_flag :#line:171:if cmd_param.is_flag:
+        return False #line:172:return False
+    O0000OO00OOO0O000 =None #line:173:last_option = None
+    for O00O00OO000O0OO0O ,OO000OO0O0O0O00O0 in enumerate (reversed ([OO00O0O00OOOOO00O for OO00O0O00OOOOO00O in OOOOO0O0000OO0000 if OO00O0O00OOOOO00O !=WORDBREAK ])):#line:176:):
+        if O00O00OO000O0OO0O +1 >OOO000000O00OO0O0 .nargs :#line:177:if index + 1 > cmd_param.nargs:
+            break #line:178:break
+        if start_of_option (OO000OO0O0O0O00O0 ):#line:179:if start_of_option(arg_str):
+            O0000OO00OOO0O000 =OO000OO0O0O0O00O0 #line:180:last_option = arg_str
+    return True if O0000OO00OOO0O000 and O0000OO00OOO0O000 in OOO000000O00OO0O0 .opts else False #line:182:return True if last_option and last_option in cmd_param.opts else False
+def is_incomplete_argument (OO00O0OO0O00O0OOO ,O0OOO0OO0OOOOO00O ):#line:185:def is_incomplete_argument(current_params, cmd_param):
+    ""#line:193:"""
+    if not isinstance (O0OOO0OO0OOOOO00O ,Argument ):#line:194:if not isinstance(cmd_param, Argument):
+        return False #line:195:return False
+    O000O0OO0OO0O000O =OO00O0OO0O00O0OOO [O0OOO0OO0OOOOO00O .name ]#line:196:current_param_values = current_params[cmd_param.name]
+    if O000O0OO0OO0O000O is None :#line:197:if current_param_values is None:
+        return True #line:198:return True
+    if O0OOO0OO0OOOOO00O .nargs ==-1 :#line:199:if cmd_param.nargs == -1:
+        return True #line:200:return True
+    if (isinstance (O000O0OO0OO0O000O ,abc .Iterable )and O0OOO0OO0OOOOO00O .nargs >1 and len (O000O0OO0OO0O000O )<O0OOO0OO0OOOOO00O .nargs ):#line:205:):
+        return True #line:206:return True
+    return False #line:207:return False
+def get_user_autocompletions (O0O00OOOOO000OOOO ,O00O000OO0000OO0O ,O00OOO00OOO0O00OO ,OOOOO0OO0OO0O00OO ):#line:210:def get_user_autocompletions(ctx, args, incomplete, cmd_param):
+    ""#line:217:"""
+    O00OO0O0000OO00OO =[]#line:218:results = []
+    if isinstance (OOOOO0OO0OO0O00OO .type ,Choice ):#line:219:if isinstance(cmd_param.type, Choice):
+        O00OO0O0000OO00OO =[(OOOO0OOOO0O000O0O ,None )for OOOO0OOOO0O000O0O in OOOOO0OO0OO0O00OO .type .choices if str (OOOO0OOOO0O000O0O ).startswith (O00OOO00OOO0O00OO )]#line:223:]
+    elif OOOOO0OO0OO0O00OO .autocompletion is not None :#line:224:elif cmd_param.autocompletion is not None:
+        OOOO0OO0OOO00O0O0 =OOOOO0OO0OO0O00OO .autocompletion (ctx =O0O00OOOOO000OOOO ,args =O00O000OO0000OO0O ,incomplete =O00OOO00OOO0O00OO )#line:227:)
+        O00OO0O0000OO00OO =[OOOO0OO000O0O0OOO if isinstance (OOOO0OO000O0O0OOO ,tuple )else (OOOO0OO000O0O0OOO ,None )for OOOO0OO000O0O0OOO in OOOO0OO0OOO00O0O0 ]#line:230:]
+    return O00OO0O0000OO00OO #line:231:return results
+def get_visible_commands_starting_with (O000OO0000000O0O0 ,OO00O0OO0OOO0000O ):#line:234:def get_visible_commands_starting_with(ctx, starts_with):
+    ""#line:239:"""
+    for O000OO0OOO0OO0OOO in O000OO0000000O0O0 .command .list_commands (O000OO0000000O0O0 ):#line:240:for c in ctx.command.list_commands(ctx):
+        if O000OO0OOO0OO0OOO .startswith (OO00O0OO0OOO0000O ):#line:241:if c.startswith(starts_with):
+            OOOOOOOOO0OOOO00O =O000OO0000000O0O0 .command .get_command (O000OO0000000O0O0 ,O000OO0OOO0OO0OOO )#line:242:command = ctx.command.get_command(ctx, c)
+            if not OOOOOOOOO0OOOO00O .hidden :#line:243:if not command.hidden:
+                yield OOOOOOOOO0OOOO00O #line:244:yield command
+def add_subcommand_completions (O00O00O0O00O00000 ,O00O0000OOO0OO0OO ,O0O000OOOO0O000O0 ):#line:247:def add_subcommand_completions(ctx, incomplete, completions_out):
+    if isinstance (O00O00O0O00O00000 .command ,MultiCommand ):#line:249:if isinstance(ctx.command, MultiCommand):
+        O0O000OOOO0O000O0 .extend ([(OO00000000000O0O0 .name ,OO00000000000O0O0 .get_short_help_str ())for OO00000000000O0O0 in get_visible_commands_starting_with (O00O00O0O00O00000 ,O00O0000OOO0OO0OO )])#line:255:)
+    while O00O00O0O00O00000 .parent is not None :#line:259:while ctx.parent is not None:
+        O00O00O0O00O00000 =O00O00O0O00O00000 .parent #line:260:ctx = ctx.parent
+        if isinstance (O00O00O0O00O00000 .command ,MultiCommand )and O00O00O0O00O00000 .command .chain :#line:261:if isinstance(ctx.command, MultiCommand) and ctx.command.chain:
+            OOO00O00OO0O0OO0O =[OO0000O0O00000OO0 for OO0000O0O00000OO0 in get_visible_commands_starting_with (O00O00O0O00O00000 ,O00O0000OOO0OO0OO )if OO0000O0O00000OO0 .name not in O00O00O0O00O00000 .protected_args ]#line:266:]
+            O0O000OOOO0O000O0 .extend ([(OOOOOO00O00OO00O0 .name ,OOOOOO00O00OO00O0 .get_short_help_str ())for OOOOOO00O00OO00O0 in OOO00O00OO0O0OO0O ])#line:269:)
+def get_choices (OO0O0O00O0O0000O0 ,OO0OO000OOOOOO00O ,OOO00OOOOOOO00O0O ,OOO0OOOOOOOO00OOO ):#line:272:def get_choices(cli, prog_name, args, incomplete):
+    ""#line:279:"""
+    OOOO00OOOO0OOOOOO =copy .deepcopy (OOO00OOOOOOO00O0O )#line:280:all_args = copy.deepcopy(args)
+    O00O0O000O000O000 =resolve_ctx (OO0O0O00O0O0000O0 ,OO0OO000OOOOOO00O ,OOO00OOOOOOO00O0O )#line:282:ctx = resolve_ctx(cli, prog_name, args)
+    if O00O0O000O000O000 is None :#line:283:if ctx is None:
+        return []#line:284:return []
+    O0O00OO00O0OOO0OO ="--"in OOOO00OOOO0OOOOOO #line:286:has_double_dash = "--" in all_args
+    if start_of_option (OOO0OOOOOOOO00OOO )and WORDBREAK in OOO0OOOOOOOO00OOO :#line:290:if start_of_option(incomplete) and WORDBREAK in incomplete:
+        OO00OOO00OOOO0OO0 =OOO0OOOOOOOO00OOO .partition (WORDBREAK )#line:291:partition_incomplete = incomplete.partition(WORDBREAK)
+        OOOO00OOOO0OOOOOO .append (OO00OOO00OOOO0OO0 [0 ])#line:292:all_args.append(partition_incomplete[0])
+        OOO0OOOOOOOO00OOO =OO00OOO00OOOO0OO0 [2 ]#line:293:incomplete = partition_incomplete[2]
+    elif OOO0OOOOOOOO00OOO ==WORDBREAK :#line:294:elif incomplete == WORDBREAK:
+        OOO0OOOOOOOO00OOO =""#line:295:incomplete = ""
+    OOOO00O000000OOOO =[]#line:297:completions = []
+    if not O0O00OO00O0OOO0OO and start_of_option (OOO0OOOOOOOO00OOO ):#line:298:if not has_double_dash and start_of_option(incomplete):
+        for O0O0O0OO0000O000O in O00O0O000O000O000 .command .params :#line:300:for param in ctx.command.params:
+            if isinstance (O0O0O0OO0000O000O ,Option )and not O0O0O0OO0000O000O .hidden :#line:301:if isinstance(param, Option) and not param.hidden:
+                O000O00O0OOO000OO =[O0OOOO00OO0O0OO0O for O0OOOO00OO0O0OO0O in O0O0O0OO0000O000O .opts +O0O0O0OO0000O000O .secondary_opts if O0OOOO00OO0O0OO0O not in OOOO00OOOO0OOOOOO or O0O0O0OO0000O000O .multiple ]#line:306:]
+                OOOO00O000000OOOO .extend ([(O00O0OO00O00OOOO0 ,O0O0O0OO0000O000O .help )for O00O0OO00O00OOOO0 in O000O00O0OOO000OO if O00O0OO00O00OOOO0 .startswith (OOO0OOOOOOOO00OOO )])#line:309:)
+        return OOOO00O000000OOOO #line:310:return completions
+    for O0O0O0OO0000O000O in O00O0O000O000O000 .command .params :#line:312:for param in ctx.command.params:
+        if is_incomplete_option (OOOO00OOOO0OOOOOO ,O0O0O0OO0000O000O ):#line:313:if is_incomplete_option(all_args, param):
+            return get_user_autocompletions (O00O0O000O000O000 ,OOOO00OOOO0OOOOOO ,OOO0OOOOOOOO00OOO ,O0O0O0OO0000O000O )#line:314:return get_user_autocompletions(ctx, all_args, incomplete, param)
+    for O0O0O0OO0000O000O in O00O0O000O000O000 .command .params :#line:316:for param in ctx.command.params:
+        if is_incomplete_argument (O00O0O000O000O000 .params ,O0O0O0OO0000O000O ):#line:317:if is_incomplete_argument(ctx.params, param):
+            return get_user_autocompletions (O00O0O000O000O000 ,OOOO00OOOO0OOOOOO ,OOO0OOOOOOOO00OOO ,O0O0O0OO0000O000O )#line:318:return get_user_autocompletions(ctx, all_args, incomplete, param)
+    add_subcommand_completions (O00O0O000O000O000 ,OOO0OOOOOOOO00OOO ,OOOO00O000000OOOO )#line:320:add_subcommand_completions(ctx, incomplete, completions)
+    return sorted (OOOO00O000000OOOO )#line:322:return sorted(completions)
+def do_complete (OOOOO00OOOO000OO0 ,O0OOOO00O0O0O00O0 ,O00000OO00O000O0O ):#line:325:def do_complete(cli, prog_name, include_descriptions):
+    OO00OO0OO0OOO0O0O =split_arg_string (os .environ ["COMP_WORDS"])#line:326:cwords = split_arg_string(os.environ["COMP_WORDS"])
+    O00O0O0O0O000O0OO =int (os .environ ["COMP_CWORD"])#line:327:cword = int(os.environ["COMP_CWORD"])
+    O0OO0O0OOO0O0000O =OO00OO0OO0OOO0O0O [1 :O00O0O0O0O000O0OO ]#line:328:args = cwords[1:cword]
+    try :#line:329:try:
+        O0OOO0O0O00O0OO0O =OO00OO0OO0OOO0O0O [O00O0O0O0O000O0OO ]#line:330:incomplete = cwords[cword]
+    except IndexError :#line:331:except IndexError:
+        O0OOO0O0O00O0OO0O =""#line:332:incomplete = ""
+    for O0OOO0O0000000O00 in get_choices (OOOOO00OOOO000OO0 ,O0OOOO00O0O0O00O0 ,O0OO0O0OOO0O0000O ,O0OOO0O0O00O0OO0O ):#line:334:for item in get_choices(cli, prog_name, args, incomplete):
+        echo (O0OOO0O0000000O00 [0 ])#line:335:echo(item[0])
+        if O00000OO00O000O0O :#line:336:if include_descriptions:
+            echo (O0OOO0O0000000O00 [1 ]if O0OOO0O0000000O00 [1 ]else "_")#line:340:echo(item[1] if item[1] else "_")
+    return True #line:342:return True
+def do_complete_fish (OOO00O00OOO0O00OO ,O00OO0000O00OO0O0 ):#line:345:def do_complete_fish(cli, prog_name):
+    OOOO0OO000O0OO0OO =split_arg_string (os .environ ["COMP_WORDS"])#line:346:cwords = split_arg_string(os.environ["COMP_WORDS"])
+    OOOO0OO0OO00O00O0 =os .environ ["COMP_CWORD"]#line:347:incomplete = os.environ["COMP_CWORD"]
+    OOOOO0OOO0OO0O0O0 =OOOO0OO000O0OO0OO [1 :]#line:348:args = cwords[1:]
+    for O00O00OO0000O0O00 in get_choices (OOO00O00OOO0O00OO ,O00OO0000O00OO0O0 ,OOOOO0OOO0OO0O0O0 ,OOOO0OO0OO00O00O0 ):#line:350:for item in get_choices(cli, prog_name, args, incomplete):
+        if O00O00OO0000O0O00 [1 ]:#line:351:if item[1]:
+            echo ("{arg}\t{desc}".format (arg =O00O00OO0000O0O00 [0 ],desc =O00O00OO0000O0O00 [1 ]))#line:352:echo("{arg}\t{desc}".format(arg=item[0], desc=item[1]))
+        else :#line:353:else:
+            echo (O00O00OO0000O0O00 [0 ])#line:354:echo(item[0])
+    return True #line:356:return True
+def bashcomplete (O0000OOO0OOO0000O ,OOOO000OOO000000O ,O000OO0OOOO0OOO00 ,OOOO0O000O0O00OOO ):#line:359:def bashcomplete(cli, prog_name, complete_var, complete_instr):
+    if "_"in OOOO0O000O0O00OOO :#line:360:if "_" in complete_instr:
+        OO0O0OOO00O00O0OO ,OO0OOO0O000OO0O00 =OOOO0O000O0O00OOO .split ("_",1 )#line:361:command, shell = complete_instr.split("_", 1)
+    else :#line:362:else:
+        OO0O0OOO00O00O0OO =OOOO0O000O0O00OOO #line:363:command = complete_instr
+        OO0OOO0O000OO0O00 ="bash"#line:364:shell = "bash"
+    if OO0O0OOO00O00O0OO =="source":#line:366:if command == "source":
+        echo (get_completion_script (OOOO000OOO000000O ,O000OO0OOOO0OOO00 ,OO0OOO0O000OO0O00 ))#line:367:echo(get_completion_script(prog_name, complete_var, shell))
+        return True #line:368:return True
+    elif OO0O0OOO00O00O0OO =="complete":#line:369:elif command == "complete":
+        if OO0OOO0O000OO0O00 =="fish":#line:370:if shell == "fish":
+            return do_complete_fish (O0000OOO0OOO0000O ,OOOO000OOO000000O )#line:371:return do_complete_fish(cli, prog_name)
+        elif OO0OOO0O000OO0O00 in {"bash","zsh"}:#line:372:elif shell in {"bash", "zsh"}:
+            return do_complete (O0000OOO0OOO0000O ,OOOO000OOO000000O ,OO0OOO0O000OO0O00 =="zsh")#line:373:return do_complete(cli, prog_name, shell == "zsh")
+    return False #line:375:return False

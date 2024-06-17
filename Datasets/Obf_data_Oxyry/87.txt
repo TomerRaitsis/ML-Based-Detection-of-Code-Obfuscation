@@ -1,0 +1,198 @@
+import random #line:1:import random
+suits =("Hearts","Diamonds","Spades","Clubs")#line:4:suits = ("Hearts", "Diamonds", "Spades", "Clubs")
+ranks =("Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Jack","Queen","King","Ace",)#line:19:)
+values ={"Two":2 ,"Three":3 ,"Four":4 ,"Five":5 ,"Six":6 ,"Seven":7 ,"Eight":8 ,"Nine":9 ,"Ten":10 ,"Jack":10 ,"Queen":10 ,"King":10 ,"Ace":11 ,}#line:34:}
+chips =100 #line:35:chips = 100
+game_num =0 #line:36:game_num = 0
+game_on =True #line:37:game_on = True
+class Card :#line:40:class Card:
+    def __init__ (O00O0O000O000OO0O ,O0O000O0O00OO00OO ,OOOO0O00000OO00O0 ):#line:41:def __init__(self, suit, rank):
+        O00O0O000O000OO0O .suit =O0O000O0O00OO00OO #line:42:self.suit = suit
+        O00O0O000O000OO0O .rank =OOOO0O00000OO00O0 #line:43:self.rank = rank
+        O00O0O000O000OO0O .value =values [OOOO0O00000OO00O0 ]#line:44:self.value = values[rank]
+    def __str__ (OO0O0O0OO000O00O0 ):#line:46:def __str__(self):
+        return OO0O0O0OO000O00O0 .rank +" of "+OO0O0O0OO000O00O0 .suit #line:47:return self.rank + " of " + self.suit
+class Deck :#line:50:class Deck:
+    def __init__ (OO000O00O00000OO0 ):#line:51:def __init__(self):
+        OO000O00O00000OO0 .all_cards =[]#line:52:self.all_cards = []
+        for O0OO00O00O000O000 in suits :#line:53:for suit in suits:
+            for O0O0O0000O0O0O000 in ranks :#line:54:for rank in ranks:
+                OO000O00O00000OO0 .all_cards .append (Card (O0OO00O00O000O000 ,O0O0O0000O0O0O000 ))#line:56:self.all_cards.append(Card(suit, rank))
+    def shuffle (O00OOO00OO000OOO0 ):#line:58:def shuffle(self):
+        random .shuffle (O00OOO00OO000OOO0 .all_cards )#line:59:random.shuffle(self.all_cards)
+    def deal_one (O00O00O0OO00000O0 ):#line:61:def deal_one(self):
+        return O00O00O0OO00000O0 .all_cards .pop ()#line:63:return self.all_cards.pop()
+def check_ace (OO000OOOO000OO0OO ):#line:66:def check_ace(card):
+    ""#line:69:"""
+    if OO000OOOO000OO0OO .rank =="Ace":#line:70:if card.rank == "Ace":
+        while True :#line:71:while True:
+            OO00000OO00O00000 =int (input ("\nWhat value do you want to consider for Ace (1/11)? :"))#line:74:)
+            if OO00000OO00O00000 ==1 :#line:76:if ace_val == 1:
+                values ["Ace"]=1 #line:77:values["Ace"] = 1
+                break #line:79:break
+            elif OO00000OO00O00000 ==11 :#line:80:elif ace_val == 11:
+                values ["Ace"]=11 #line:81:values["Ace"] = 11
+                break #line:83:break
+            else :#line:84:else:
+                print ("choose valid value.")#line:85:print("choose valid value.")
+                continue #line:86:continue
+print ("\n"*100 )#line:89:print("\n" * 100)  # clears up the terminal for a cleaner look
+print ("""
+██████╗░██╗░░░░░░█████╗░░█████╗░██╗░░██╗░░░░░██╗░█████╗░░█████╗░██╗░░██╗
+██╔══██╗██║░░░░░██╔══██╗██╔══██╗██║░██╔╝░░░░░██║██╔══██╗██╔══██╗██║░██╔╝
+██████╦╝██║░░░░░███████║██║░░╚═╝█████═╝░░░░░░██║███████║██║░░╚═╝█████═╝░
+██╔══██╗██║░░░░░██╔══██║██║░░██╗██╔═██╗░██╗░░██║██╔══██║██║░░██╗██╔═██╗░
+██████╦╝███████╗██║░░██║╚█████╔╝██║░╚██╗╚█████╔╝██║░░██║╚█████╔╝██║░╚██╗
+╚═════╝░╚══════╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝""")#line:99:)
+print ("""
+BlackJack is very popular card game mainly played in casinos around the world.
+Let's imagine this program as a virtual casino with computer as the Dealer.
+The purpose of this game is to beat the Dealer, which can be done in various ways.
+
+---------------------------------------------------------------------------------------------------------------
+Both the player and the dealer are given 2 cards at the beginning , but one of the dealer's card is kept hidden.
+
+Each card holds a certain value. 
+Numbered cards contain value identical to their number.
+All face cards hold a value of 10
+Ace can either hold a value of 1 or 11 depending on the situation.
+
+BlackJack means 21. Whoever gets a total value of 21 with their cards immediately wins!
+(winning through blackjack results in 3x the money)
+If the value of cards goes over 21, it's called a BUST, which results in an immediate loss...
+If both the players get the same value of cards , it's a TIE and the bet money is returned.
+
+If none of the above cases are met ,the person with closer value to 21 wins.
+(winning like this returns 2x the bet money)
+---------------------------------------------------------------------------------------------------------------
+
+Let the game begin!""")#line:125:)
+while game_on :#line:127:while game_on:
+    try :#line:128:try:
+        new_deck =Deck ()#line:129:new_deck = Deck()  # new deck will be created and shuffled each round
+        new_deck .shuffle ()#line:130:new_deck.shuffle()
+        game_num +=1 #line:132:game_num += 1
+        print (f"\nGame Round number : {game_num}")#line:133:print(f"\nGame Round number : {game_num}")
+        print (f"Chips remaining = {chips}")#line:134:print(f"Chips remaining = {chips}")
+        while True :#line:136:while True:
+            bet =int (input ("\nEnter the amount of chips you want to bet:"))#line:137:bet = int(input("\nEnter the amount of chips you want to bet:"))
+            if bet >chips :#line:138:if bet > chips:
+                print ("You dont have enough chips.")#line:139:print("You dont have enough chips.")
+                print ("Enter a valid amount. \n")#line:140:print("Enter a valid amount. \n")
+            elif bet <=0 :#line:141:elif bet <= 0:  # To prevent betting a negative value
+                print ("Invalid Bet")#line:142:print("Invalid Bet")
+            else :#line:143:else:
+                chips -=bet #line:144:chips -= bet
+                break #line:145:break
+        player_table_cards =[]#line:147:player_table_cards = []  # cards on table will be replaced each round
+        dealer_table_cards =[]#line:148:dealer_table_cards = []
+        [player_table_cards .append (new_deck .deal_one ())for O0O000O0O00OOOOO0 in range (2 )]#line:151:[player_table_cards.append(new_deck.deal_one()) for i in range(2)]
+        [dealer_table_cards .append (new_deck .deal_one ())for OOO000OOO0OO0000O in range (2 )]#line:153:[dealer_table_cards.append(new_deck.deal_one()) for i in range(2)]
+        print (f"\nPlayer cards are {player_table_cards[0]} and {player_table_cards[1]}")#line:155:print(f"\nPlayer cards are {player_table_cards[0]} and {player_table_cards[1]}")
+        print (f"Dealer cards are {dealer_table_cards[0]} and Hidden.")#line:156:print(f"Dealer cards are {dealer_table_cards[0]} and Hidden.")
+        check_ace (player_table_cards [0 ])#line:159:check_ace(player_table_cards[0])
+        check_ace (player_table_cards [1 ])#line:160:check_ace(player_table_cards[1])
+        while True :#line:162:while True:
+            hit_or_stand =input ("Do you want to hit or stand? :").lower ()#line:163:hit_or_stand = input("Do you want to hit or stand? :").lower()
+            if hit_or_stand =="hit":#line:165:if hit_or_stand == "hit":
+                player_table_cards .append (new_deck .deal_one ())#line:166:player_table_cards.append(new_deck.deal_one())
+                check_ace (player_table_cards [-1 ])#line:167:check_ace(player_table_cards[-1])
+                print (f"\nThe player hits card : {player_table_cards[-1]}")#line:169:print(f"\nThe player hits card : {player_table_cards[-1]}")
+                print ("\nPlayer's hand :")#line:171:print("\nPlayer's hand :")
+                [print (OOOO0OOO00O000OO0 )for OOOO0OOO00O000OO0 in player_table_cards ]#line:173:[print(i) for i in player_table_cards]
+                print ()#line:174:print()
+                player_cards_val =0 #line:176:player_cards_val = 0
+                for i in player_table_cards :#line:178:for i in player_table_cards:
+                    player_cards_val +=i .value #line:179:player_cards_val += i.value
+                if player_cards_val ==21 :#line:181:if player_cards_val == 21:
+                    print ("You got a blackjack!")#line:182:print("You got a blackjack!")
+                    break #line:183:break
+                elif player_cards_val <21 :#line:185:elif player_cards_val < 21:  # looping the options again
+                    continue #line:186:continue
+                else :#line:188:else:
+                    print ("YOU BUSTED!")#line:189:print("YOU BUSTED!")
+                    break #line:190:break
+            elif hit_or_stand =="stand":#line:192:elif hit_or_stand == "stand":
+                player_cards_val =0 #line:193:player_cards_val = 0
+                for i in player_table_cards :#line:194:for i in player_table_cards:
+                    player_cards_val +=i .value #line:195:player_cards_val += i.value
+                print ("\nPlayer has decided to stand.")#line:197:print("\nPlayer has decided to stand.")
+                print ("\nPlayer's hand:")#line:199:print("\nPlayer's hand:")
+                [print (O0OOO0000000O00O0 )for O0OOO0000000O00O0 in player_table_cards ]#line:200:[print(i) for i in player_table_cards]
+                print ()#line:201:print()
+                if player_cards_val ==21 :#line:203:if player_cards_val == 21:
+                    print ("Player got a blackjack!")#line:204:print("Player got a blackjack!")
+                    break #line:205:break
+                break #line:207:break
+            else :#line:209:else:
+                print ("Enter a valid option. \n")#line:210:print("Enter a valid option. \n")
+                continue #line:211:continue
+        no_of_hits =0 #line:214:no_of_hits = 0
+        while True :#line:216:while True:
+            dealer_cards_val =0 #line:217:dealer_cards_val = 0
+            for i in dealer_table_cards :#line:219:for i in dealer_table_cards:  # updating value of dealer's cards
+                dealer_cards_val +=i .value #line:220:dealer_cards_val += i.value
+            if dealer_cards_val <17 :#line:222:if dealer_cards_val < 17:
+                no_of_hits +=1 #line:223:no_of_hits += 1
+                dealer_table_cards .append (new_deck .deal_one ())#line:224:dealer_table_cards.append(new_deck.deal_one())
+                continue #line:225:continue
+            elif 17 <=dealer_cards_val <21 :#line:227:elif 17 <= dealer_cards_val < 21:
+                print (f"The Dealer has hit {no_of_hits} times.")#line:228:print(f"The Dealer has hit {no_of_hits} times.")
+                print ("\nDealer's hand :")#line:229:print("\nDealer's hand :")
+                [print (OO0O000OO000O0OO0 )for OO0O000OO000O0OO0 in dealer_table_cards ]#line:230:[print(i) for i in dealer_table_cards]
+                break #line:231:break
+            elif dealer_cards_val ==21 :#line:233:elif dealer_cards_val == 21:
+                print (f"The Dealer has hit {no_of_hits} times.")#line:234:print(f"The Dealer has hit {no_of_hits} times.")
+                print ("The Dealer got a blackjack!")#line:235:print("The Dealer got a blackjack!")
+                print ("\nDealer's hand :")#line:236:print("\nDealer's hand :")
+                [print (O00OOOOO00OO0O0O0 )for O00OOOOO00OO0O0O0 in dealer_table_cards ]#line:237:[print(i) for i in dealer_table_cards]
+                break #line:238:break
+            elif dealer_cards_val >21 :#line:240:elif dealer_cards_val > 21:
+                if not (player_cards_val >21 ):#line:242:if not (player_cards_val > 21):
+                    print (f"The Dealer has hit {no_of_hits} times.")#line:243:print(f"The Dealer has hit {no_of_hits} times.")
+                    print ("The Dealer busted!")#line:244:print("The Dealer busted!")
+                    print ("\nDealer's hand :")#line:245:print("\nDealer's hand :")
+                    [print (O000O0O0O00O000OO )for O000O0O0O00O000OO in dealer_table_cards ]#line:246:[print(i) for i in dealer_table_cards]
+                    break #line:247:break
+                else :#line:249:else:
+                    break #line:250:break
+        if player_cards_val >21 :#line:253:if player_cards_val > 21:
+            print ("\nSince the Player busted , the round is lost.\nPlayer lost the bet money")#line:256:)
+        elif dealer_cards_val >21 :#line:258:elif dealer_cards_val > 21:
+            print ("\n Since the Dealer busted , Player won the round! \nPlayer got twice the money bet.")#line:261:)
+            chips +=bet *2 #line:262:chips += bet * 2
+        elif player_cards_val ==21 :#line:265:elif player_cards_val == 21:
+            print ("\nPlayer won with a blackjack! \nPlayer got thrice the money bet.")#line:266:print("\nPlayer won with a blackjack! \nPlayer got thrice the money bet.")
+            chips +=bet *3 #line:267:chips += bet * 3
+        elif 21 -player_cards_val >21 -dealer_cards_val :#line:270:elif 21 - player_cards_val > 21 - dealer_cards_val:
+            print ("\nDealer won the round. \nPlayer lost the bet money")#line:271:print("\nDealer won the round. \nPlayer lost the bet money")
+        elif 21 -dealer_cards_val >21 -player_cards_val :#line:273:elif 21 - dealer_cards_val > 21 - player_cards_val:
+            print ("\nPlayer won the round. \nPlayer got twice the money bet.")#line:274:print("\nPlayer won the round. \nPlayer got twice the money bet.")
+            chips +=bet *2 #line:275:chips += bet * 2
+        else :#line:278:else:
+            print ("\nIt's a tie. \nBet money was returned.")#line:279:print("\nIt's a tie. \nBet money was returned.")
+            chips +=bet #line:280:chips += bet
+        if chips ==0 :#line:282:if chips == 0:
+            print ("\nYou are out of chips , Game over.")#line:283:print("\nYou are out of chips , Game over.")
+            break #line:284:break
+        else :#line:286:else:
+            cont =input ("Do you want to continue? (y/n) :")#line:287:cont = input("Do you want to continue? (y/n) :")
+            check =cont .upper ()#line:288:check = cont.upper()  ###So a capital or lowercase value can be entered
+            if check =="Y":#line:290:if check == "Y":
+                print ("\n"*100 )#line:291:print("\n" * 100)
+                print ("""
+██████╗░██╗░░░░░░█████╗░░█████╗░██╗░░██╗░░░░░██╗░█████╗░░█████╗░██╗░░██╗
+██╔══██╗██║░░░░░██╔══██╗██╔══██╗██║░██╔╝░░░░░██║██╔══██╗██╔══██╗██║░██╔╝
+██████╦╝██║░░░░░███████║██║░░╚═╝█████═╝░░░░░░██║███████║██║░░╚═╝█████═╝░
+██╔══██╗██║░░░░░██╔══██║██║░░██╗██╔═██╗░██╗░░██║██╔══██║██║░░██╗██╔═██╗░
+██████╦╝███████╗██║░░██║╚█████╔╝██║░╚██╗╚█████╔╝██║░░██║╚█████╔╝██║░╚██╗
+╚═════╝░╚══════╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝""")#line:301:)
+                continue #line:303:continue
+            else :#line:305:else:
+                print (f"\nTotal amount of chips left with the player = {chips}")#line:306:print(f"\nTotal amount of chips left with the player = {chips}")
+                print (input ("Press Enter to exit the terminal..."))#line:307:print(input("Press Enter to exit the terminal..."))
+                break #line:308:break
+    except Exception as error :#line:310:except Exception as error:
+        print (f"Following error occurred : {error} \nPlease try again.")#line:311:print(f"Following error occurred : {error} \nPlease try again.")
+        game_num -=1 #line:312:game_num -= 1  # round with error won't be counted
+        continue #line:313:continue

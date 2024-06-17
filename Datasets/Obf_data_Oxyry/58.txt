@@ -1,0 +1,1025 @@
+__license__ ="MIT"#line:2:__license__ = "MIT"
+try :#line:4:try:
+    from collections .abc import Callable #line:5:from collections.abc import Callable # Python 3.6
+except ImportError as e :#line:6:except ImportError as e:
+    from collections import Callable #line:7:from collections import Callable
+import re #line:8:import re
+import sys #line:9:import sys
+import warnings #line:10:import warnings
+try :#line:11:try:
+    import soupsieve #line:12:import soupsieve
+except ImportError as e :#line:13:except ImportError as e:
+    soupsieve =None #line:14:soupsieve = None
+    warnings .warn ('The soupsieve package is not installed. CSS selectors cannot be used.')#line:17:)
+from bs4 .formatter import (Formatter ,HTMLFormatter ,XMLFormatter ,)#line:23:)
+DEFAULT_OUTPUT_ENCODING ="utf-8"#line:25:DEFAULT_OUTPUT_ENCODING = "utf-8"
+PY3K =(sys .version_info [0 ]>2 )#line:26:PY3K = (sys.version_info[0] > 2)
+nonwhitespace_re =re .compile (r"\S+")#line:28:nonwhitespace_re = re.compile(r"\S+")
+whitespace_re =re .compile (r"\s+")#line:32:whitespace_re = re.compile(r"\s+")
+def _OOOOO0OO000O00OOO (OOO0O000O000000OO ):#line:34:def _alias(attr):
+    ""#line:35:"""Alias one attribute name to another for backward compatibility"""
+    @property #line:36:@property
+    def OOOOO000O0OOOO00O (O000OOOO00O0O0OOO ):#line:37:def alias(self):
+        return getattr (O000OOOO00O0O0OOO ,OOO0O000O000000OO )#line:38:return getattr(self, attr)
+    @OOOOO000O0OOOO00O .setter #line:40:@alias.setter
+    def OOOOO000O0OOOO00O (O00000OOOO0OO000O ):#line:41:def alias(self):
+        return setattr (O00000OOOO0OO000O ,OOO0O000O000000OO )#line:42:return setattr(self, attr)
+    return OOOOO000O0OOOO00O #line:43:return alias
+PYTHON_SPECIFIC_ENCODINGS =set (["idna","mbcs","oem","palmos","punycode","raw_unicode_escape","undefined","unicode_escape","raw-unicode-escape","unicode-escape","string-escape","string_escape",])#line:72:])
+class NamespacedAttribute (str ):#line:75:class NamespacedAttribute(str):
+    ""#line:78:"""
+    def __new__ (OO0OOOO0OOOO00OOO ,OOOOO0OOO0O0OOOOO ,name =None ,namespace =None ):#line:80:def __new__(cls, prefix, name=None, namespace=None):
+        if not name :#line:81:if not name:
+            name =None #line:84:name = None
+        if name is None :#line:86:if name is None:
+            O0OO0OOOOOOO0OO0O =str .__new__ (OO0OOOO0OOOO00OOO ,OOOOO0OOO0O0OOOOO )#line:87:obj = str.__new__(cls, prefix)
+        elif OOOOO0OOO0O0OOOOO is None :#line:88:elif prefix is None:
+            O0OO0OOOOOOO0OO0O =str .__new__ (OO0OOOO0OOOO00OOO ,name )#line:90:obj = str.__new__(cls, name)
+        else :#line:91:else:
+            O0OO0OOOOOOO0OO0O =str .__new__ (OO0OOOO0OOOO00OOO ,OOOOO0OOO0O0OOOOO +":"+name )#line:92:obj = str.__new__(cls, prefix + ":" + name)
+        O0OO0OOOOOOO0OO0O .prefix =OOOOO0OOO0O0OOOOO #line:93:obj.prefix = prefix
+        O0OO0OOOOOOO0OO0O .name =name #line:94:obj.name = name
+        O0OO0OOOOOOO0OO0O .namespace =namespace #line:95:obj.namespace = namespace
+        return O0OO0OOOOOOO0OO0O #line:96:return obj
+class AttributeValueWithCharsetSubstitution (str ):#line:98:class AttributeValueWithCharsetSubstitution(str):
+    ""#line:99:"""A stand-in object for a character encoding specified in HTML."""
+class CharsetMetaAttributeValue (AttributeValueWithCharsetSubstitution ):#line:101:class CharsetMetaAttributeValue(AttributeValueWithCharsetSubstitution):
+    ""#line:106:"""
+    def __new__ (O00O0OOO000OO00O0 ,O0OO0O00000OO0OOO ):#line:108:def __new__(cls, original_value):
+        O0O00OO00000O00O0 =str .__new__ (O00O0OOO000OO00O0 ,O0OO0O00000OO0OOO )#line:109:obj = str.__new__(cls, original_value)
+        O0O00OO00000O00O0 .original_value =O0OO0O00000OO0OOO #line:110:obj.original_value = original_value
+        return O0O00OO00000O00O0 #line:111:return obj
+    def encode (O0000OOO00OO00O00 ,OOOOO00O0OO0O0O00 ):#line:113:def encode(self, encoding):
+        ""#line:116:"""
+        if OOOOO00O0OO0O0O00 in PYTHON_SPECIFIC_ENCODINGS :#line:117:if encoding in PYTHON_SPECIFIC_ENCODINGS:
+            return ''#line:118:return ''
+        return OOOOO00O0OO0O0O00 #line:119:return encoding
+class ContentMetaAttributeValue (AttributeValueWithCharsetSubstitution ):#line:122:class ContentMetaAttributeValue(AttributeValueWithCharsetSubstitution):
+    ""#line:129:"""
+    CHARSET_RE =re .compile (r"((^|;)\s*charset=)([^;]*)",re .M )#line:131:CHARSET_RE = re.compile(r"((^|;)\s*charset=)([^;]*)", re.M)
+    def __new__ (OO00O0O0OOOOO00OO ,O0O0OOOO0O0OOOOO0 ):#line:133:def __new__(cls, original_value):
+        O0OOOO0OO000OO0OO =OO00O0O0OOOOO00OO .CHARSET_RE .search (O0O0OOOO0O0OOOOO0 )#line:134:match = cls.CHARSET_RE.search(original_value)
+        if O0OOOO0OO000OO0OO is None :#line:135:if match is None:
+            return str .__new__ (str ,O0O0OOOO0O0OOOOO0 )#line:137:return str.__new__(str, original_value)
+        OOO0OO0O00O00OOOO =str .__new__ (OO00O0O0OOOOO00OO ,O0O0OOOO0O0OOOOO0 )#line:139:obj = str.__new__(cls, original_value)
+        OOO0OO0O00O00OOOO .original_value =O0O0OOOO0O0OOOOO0 #line:140:obj.original_value = original_value
+        return OOO0OO0O00O00OOOO #line:141:return obj
+    def encode (O000OOOO0O000OOO0 ,OOOOO00O0000O00O0 ):#line:143:def encode(self, encoding):
+        if OOOOO00O0000O00O0 in PYTHON_SPECIFIC_ENCODINGS :#line:144:if encoding in PYTHON_SPECIFIC_ENCODINGS:
+            return ''#line:145:return ''
+        def O0OO000000O0O0O0O (O000O00O0000O0O0O ):#line:146:def rewrite(match):
+            return O000O00O0000O0O0O .group (1 )+OOOOO00O0000O00O0 #line:147:return match.group(1) + encoding
+        return O000OOOO0O000OOO0 .CHARSET_RE .sub (O0OO000000O0O0O0O ,O000OOOO0O000OOO0 .original_value )#line:148:return self.CHARSET_RE.sub(rewrite, self.original_value)
+class PageElement (object ):#line:151:class PageElement(object):
+    ""#line:156:"""
+    def setup (O0000O0OO0O00O0OO ,parent =None ,previous_element =None ,next_element =None ,previous_sibling =None ,next_sibling =None ):#line:159:previous_sibling=None, next_sibling=None):
+        ""#line:176:"""
+        O0000O0OO0O00O0OO .parent =parent #line:177:self.parent = parent
+        O0000O0OO0O00O0OO .previous_element =previous_element #line:179:self.previous_element = previous_element
+        if previous_element is not None :#line:180:if previous_element is not None:
+            O0000O0OO0O00O0OO .previous_element .next_element =O0000O0OO0O00O0OO #line:181:self.previous_element.next_element = self
+        O0000O0OO0O00O0OO .next_element =next_element #line:183:self.next_element = next_element
+        if O0000O0OO0O00O0OO .next_element is not None :#line:184:if self.next_element is not None:
+            O0000O0OO0O00O0OO .next_element .previous_element =O0000O0OO0O00O0OO #line:185:self.next_element.previous_element = self
+        O0000O0OO0O00O0OO .next_sibling =next_sibling #line:187:self.next_sibling = next_sibling
+        if O0000O0OO0O00O0OO .next_sibling is not None :#line:188:if self.next_sibling is not None:
+            O0000O0OO0O00O0OO .next_sibling .previous_sibling =O0000O0OO0O00O0OO #line:189:self.next_sibling.previous_sibling = self
+        if (previous_sibling is None and O0000O0OO0O00O0OO .parent is not None and O0000O0OO0O00O0OO .parent .contents ):#line:192:and self.parent is not None and self.parent.contents):
+            previous_sibling =O0000O0OO0O00O0OO .parent .contents [-1 ]#line:193:previous_sibling = self.parent.contents[-1]
+        O0000O0OO0O00O0OO .previous_sibling =previous_sibling #line:195:self.previous_sibling = previous_sibling
+        if previous_sibling is not None :#line:196:if previous_sibling is not None:
+            O0000O0OO0O00O0OO .previous_sibling .next_sibling =O0000O0OO0O00O0OO #line:197:self.previous_sibling.next_sibling = self
+    def format_string (O00O00OO0OO0OO00O ,OO00OO00O000O00O0 ,OO000OO0O000O0OOO ):#line:199:def format_string(self, s, formatter):
+        ""#line:204:"""
+        if OO000OO0O000O0OOO is None :#line:205:if formatter is None:
+            return OO00OO00O000O00O0 #line:206:return s
+        if not isinstance (OO000OO0O000O0OOO ,Formatter ):#line:207:if not isinstance(formatter, Formatter):
+            OO000OO0O000O0OOO =O00O00OO0OO0OO00O .formatter_for_name (OO000OO0O000O0OOO )#line:208:formatter = self.formatter_for_name(formatter)
+        OO0O00O00O0OOOOO0 =OO000OO0O000O0OOO .substitute (OO00OO00O000O00O0 )#line:209:output = formatter.substitute(s)
+        return OO0O00O00O0OOOOO0 #line:210:return output
+    def formatter_for_name (O00OOOOO000000O00 ,O000OOO0OO0OO0000 ):#line:212:def formatter_for_name(self, formatter):
+        ""#line:221:"""
+        if isinstance (O000OOO0OO0OO0000 ,Formatter ):#line:222:if isinstance(formatter, Formatter):
+            return O000OOO0OO0OO0000 #line:223:return formatter
+        if O00OOOOO000000O00 ._is_xml :#line:224:if self._is_xml:
+            O0OOOO000O0O00O00 =XMLFormatter #line:225:c = XMLFormatter
+        else :#line:226:else:
+            O0OOOO000O0O00O00 =HTMLFormatter #line:227:c = HTMLFormatter
+        if isinstance (O000OOO0OO0OO0000 ,Callable ):#line:228:if isinstance(formatter, Callable):
+            return O0OOOO000O0O00O00 (entity_substitution =O000OOO0OO0OO0000 )#line:229:return c(entity_substitution=formatter)
+        return O0OOOO000O0O00O00 .REGISTRY [O000OOO0OO0OO0000 ]#line:230:return c.REGISTRY[formatter]
+    @property #line:232:@property
+    def _is_xml (OO0OOOO000O000OO0 ):#line:233:def _is_xml(self):
+        ""#line:239:"""
+        if OO0OOOO000O000OO0 .known_xml is not None :#line:240:if self.known_xml is not None:
+            return OO0OOOO000O000OO0 .known_xml #line:243:return self.known_xml
+        if OO0OOOO000O000OO0 .parent is None :#line:248:if self.parent is None:
+            return getattr (OO0OOOO000O000OO0 ,'is_xml',False )#line:252:return getattr(self, 'is_xml', False)
+        return OO0OOOO000O000OO0 .parent ._is_xml #line:253:return self.parent._is_xml
+    nextSibling =_OOOOO0OO000O00OOO ("next_sibling")#line:255:nextSibling = _alias("next_sibling")  # BS3
+    previousSibling =_OOOOO0OO000O00OOO ("previous_sibling")#line:256:previousSibling = _alias("previous_sibling")  # BS3
+    def replace_with (O0OOOO00OO0O00OO0 ,O0OOO00000OO0000O ):#line:258:def replace_with(self, replace_with):
+        ""#line:264:"""
+        if O0OOOO00OO0O00OO0 .parent is None :#line:265:if self.parent is None:
+            raise ValueError ("Cannot replace one element with another when the " "element to be replaced is not part of a tree.")#line:268:"element to be replaced is not part of a tree.")
+        if O0OOO00000OO0000O is O0OOOO00OO0O00OO0 :#line:269:if replace_with is self:
+            return #line:270:return
+        if O0OOO00000OO0000O is O0OOOO00OO0O00OO0 .parent :#line:271:if replace_with is self.parent:
+            raise ValueError ("Cannot replace a Tag with its parent.")#line:272:raise ValueError("Cannot replace a Tag with its parent.")
+        O0OO00O0OO00O0OO0 =O0OOOO00OO0O00OO0 .parent #line:273:old_parent = self.parent
+        OO0OO0OO0OOO000OO =O0OOOO00OO0O00OO0 .parent .index (O0OOOO00OO0O00OO0 )#line:274:my_index = self.parent.index(self)
+        O0OOOO00OO0O00OO0 .extract (_self_index =OO0OO0OO0OOO000OO )#line:275:self.extract(_self_index=my_index)
+        O0OO00O0OO00O0OO0 .insert (OO0OO0OO0OOO000OO ,O0OOO00000OO0000O )#line:276:old_parent.insert(my_index, replace_with)
+        return O0OOOO00OO0O00OO0 #line:277:return self
+    replaceWith =replace_with #line:278:replaceWith = replace_with  # BS3
+    def unwrap (OO00O000000OO0OOO ):#line:280:def unwrap(self):
+        ""#line:284:"""
+        O00000O000OO00000 =OO00O000000OO0OOO .parent #line:285:my_parent = self.parent
+        if OO00O000000OO0OOO .parent is None :#line:286:if self.parent is None:
+            raise ValueError ("Cannot replace an element with its contents when that" "element is not part of a tree.")#line:289:"element is not part of a tree.")
+        OO0O0O0OOOO0O0O00 =OO00O000000OO0OOO .parent .index (OO00O000000OO0OOO )#line:290:my_index = self.parent.index(self)
+        OO00O000000OO0OOO .extract (_self_index =OO0O0O0OOOO0O0O00 )#line:291:self.extract(_self_index=my_index)
+        for O0OOO0OOO00O0O0O0 in reversed (OO00O000000OO0OOO .contents [:]):#line:292:for child in reversed(self.contents[:]):
+            O00000O000OO00000 .insert (OO0O0O0OOOO0O0O00 ,O0OOO0OOO00O0O0O0 )#line:293:my_parent.insert(my_index, child)
+        return OO00O000000OO0OOO #line:294:return self
+    replace_with_children =unwrap #line:295:replace_with_children = unwrap
+    replaceWithChildren =unwrap #line:296:replaceWithChildren = unwrap  # BS3
+    def wrap (OO0000000O0O000OO ,OOOOO000O0OOOO0OO ):#line:298:def wrap(self, wrap_inside):
+        ""#line:304:"""
+        OOOOOO000O000000O =OO0000000O0O000OO .replace_with (OOOOO000O0OOOO0OO )#line:305:me = self.replace_with(wrap_inside)
+        OOOOO000O0OOOO0OO .append (OOOOOO000O000000O )#line:306:wrap_inside.append(me)
+        return OOOOO000O0OOOO0OO #line:307:return wrap_inside
+    def extract (O0OO00OOO00O00O00 ,_self_index =None ):#line:309:def extract(self, _self_index=None):
+        ""#line:317:"""
+        if O0OO00OOO00O00O00 .parent is not None :#line:318:if self.parent is not None:
+            if _self_index is None :#line:319:if _self_index is None:
+                _self_index =O0OO00OOO00O00O00 .parent .index (O0OO00OOO00O00O00 )#line:320:_self_index = self.parent.index(self)
+            del O0OO00OOO00O00O00 .parent .contents [_self_index ]#line:321:del self.parent.contents[_self_index]
+        O0O000O0000O00OOO =O0OO00OOO00O00O00 ._last_descendant ()#line:326:last_child = self._last_descendant()
+        OOO0OOO00O0O0OOOO =O0O000O0000O00OOO .next_element #line:327:next_element = last_child.next_element
+        if (O0OO00OOO00O00O00 .previous_element is not None and O0OO00OOO00O00O00 .previous_element is not OOO0OOO00O0O0OOOO ):#line:330:self.previous_element is not next_element):
+            O0OO00OOO00O00O00 .previous_element .next_element =OOO0OOO00O0O0OOOO #line:331:self.previous_element.next_element = next_element
+        if OOO0OOO00O0O0OOOO is not None and OOO0OOO00O0O0OOOO is not O0OO00OOO00O00O00 .previous_element :#line:332:if next_element is not None and next_element is not self.previous_element:
+            OOO0OOO00O0O0OOOO .previous_element =O0OO00OOO00O00O00 .previous_element #line:333:next_element.previous_element = self.previous_element
+        O0OO00OOO00O00O00 .previous_element =None #line:334:self.previous_element = None
+        O0O000O0000O00OOO .next_element =None #line:335:last_child.next_element = None
+        O0OO00OOO00O00O00 .parent =None #line:337:self.parent = None
+        if (O0OO00OOO00O00O00 .previous_sibling is not None and O0OO00OOO00O00O00 .previous_sibling is not O0OO00OOO00O00O00 .next_sibling ):#line:339:and self.previous_sibling is not self.next_sibling):
+            O0OO00OOO00O00O00 .previous_sibling .next_sibling =O0OO00OOO00O00O00 .next_sibling #line:340:self.previous_sibling.next_sibling = self.next_sibling
+        if (O0OO00OOO00O00O00 .next_sibling is not None and O0OO00OOO00O00O00 .next_sibling is not O0OO00OOO00O00O00 .previous_sibling ):#line:342:and self.next_sibling is not self.previous_sibling):
+            O0OO00OOO00O00O00 .next_sibling .previous_sibling =O0OO00OOO00O00O00 .previous_sibling #line:343:self.next_sibling.previous_sibling = self.previous_sibling
+        O0OO00OOO00O00O00 .previous_sibling =O0OO00OOO00O00O00 .next_sibling =None #line:344:self.previous_sibling = self.next_sibling = None
+        return O0OO00OOO00O00O00 #line:345:return self
+    def _last_descendant (OOOOO0O00O0O00O0O ,is_initialized =True ,accept_self =True ):#line:347:def _last_descendant(self, is_initialized=True, accept_self=True):
+        ""#line:353:"""
+        if is_initialized and OOOOO0O00O0O00O0O .next_sibling is not None :#line:354:if is_initialized and self.next_sibling is not None:
+            O00OOOOOO000O0000 =OOOOO0O00O0O00O0O .next_sibling .previous_element #line:355:last_child = self.next_sibling.previous_element
+        else :#line:356:else:
+            O00OOOOOO000O0000 =OOOOO0O00O0O00O0O #line:357:last_child = self
+            while isinstance (O00OOOOOO000O0000 ,Tag )and O00OOOOOO000O0000 .contents :#line:358:while isinstance(last_child, Tag) and last_child.contents:
+                O00OOOOOO000O0000 =O00OOOOOO000O0000 .contents [-1 ]#line:359:last_child = last_child.contents[-1]
+        if not accept_self and O00OOOOOO000O0000 is OOOOO0O00O0O00O0O :#line:360:if not accept_self and last_child is self:
+            O00OOOOOO000O0000 =None #line:361:last_child = None
+        return O00OOOOOO000O0000 #line:362:return last_child
+    _lastRecursiveChild =_last_descendant #line:364:_lastRecursiveChild = _last_descendant
+    def insert (O000O0O0OO00OO000 ,O0000000OOOO0O0O0 ,O0O0OOOO00O000O0O ):#line:366:def insert(self, position, new_child):
+        ""#line:374:"""
+        if O0O0OOOO00O000O0O is None :#line:375:if new_child is None:
+            raise ValueError ("Cannot insert None into a tag.")#line:376:raise ValueError("Cannot insert None into a tag.")
+        if O0O0OOOO00O000O0O is O000O0O0OO00OO000 :#line:377:if new_child is self:
+            raise ValueError ("Cannot insert a tag into itself.")#line:378:raise ValueError("Cannot insert a tag into itself.")
+        if (isinstance (O0O0OOOO00O000O0O ,str )and not isinstance (O0O0OOOO00O000O0O ,NavigableString )):#line:380:and not isinstance(new_child, NavigableString)):
+            O0O0OOOO00O000O0O =NavigableString (O0O0OOOO00O000O0O )#line:381:new_child = NavigableString(new_child)
+        from bs4 import BeautifulSoup #line:383:from bs4 import BeautifulSoup
+        if isinstance (O0O0OOOO00O000O0O ,BeautifulSoup ):#line:384:if isinstance(new_child, BeautifulSoup):
+            for O0000OO00OO0OO0O0 in list (O0O0OOOO00O000O0O .contents ):#line:387:for subchild in list(new_child.contents):
+                O000O0O0OO00OO000 .insert (O0000000OOOO0O0O0 ,O0000OO00OO0OO0O0 )#line:388:self.insert(position, subchild)
+                O0000000OOOO0O0O0 +=1 #line:389:position += 1
+            return #line:390:return
+        O0000000OOOO0O0O0 =min (O0000000OOOO0O0O0 ,len (O000O0O0OO00OO000 .contents ))#line:391:position = min(position, len(self.contents))
+        if hasattr (O0O0OOOO00O000O0O ,'parent')and O0O0OOOO00O000O0O .parent is not None :#line:392:if hasattr(new_child, 'parent') and new_child.parent is not None:
+            if O0O0OOOO00O000O0O .parent is O000O0O0OO00OO000 :#line:395:if new_child.parent is self:
+                OOOO000O0OO0O00O0 =O000O0O0OO00OO000 .index (O0O0OOOO00O000O0O )#line:396:current_index = self.index(new_child)
+                if OOOO000O0OO0O00O0 <O0000000OOOO0O0O0 :#line:397:if current_index < position:
+                    O0000000OOOO0O0O0 -=1 #line:402:position -= 1
+            O0O0OOOO00O000O0O .extract ()#line:403:new_child.extract()
+        O0O0OOOO00O000O0O .parent =O000O0O0OO00OO000 #line:405:new_child.parent = self
+        OO00OOO0O00OOOO00 =None #line:406:previous_child = None
+        if O0000000OOOO0O0O0 ==0 :#line:407:if position == 0:
+            O0O0OOOO00O000O0O .previous_sibling =None #line:408:new_child.previous_sibling = None
+            O0O0OOOO00O000O0O .previous_element =O000O0O0OO00OO000 #line:409:new_child.previous_element = self
+        else :#line:410:else:
+            OO00OOO0O00OOOO00 =O000O0O0OO00OO000 .contents [O0000000OOOO0O0O0 -1 ]#line:411:previous_child = self.contents[position - 1]
+            O0O0OOOO00O000O0O .previous_sibling =OO00OOO0O00OOOO00 #line:412:new_child.previous_sibling = previous_child
+            O0O0OOOO00O000O0O .previous_sibling .next_sibling =O0O0OOOO00O000O0O #line:413:new_child.previous_sibling.next_sibling = new_child
+            O0O0OOOO00O000O0O .previous_element =OO00OOO0O00OOOO00 ._last_descendant (False )#line:414:new_child.previous_element = previous_child._last_descendant(False)
+        if O0O0OOOO00O000O0O .previous_element is not None :#line:415:if new_child.previous_element is not None:
+            O0O0OOOO00O000O0O .previous_element .next_element =O0O0OOOO00O000O0O #line:416:new_child.previous_element.next_element = new_child
+        O000O0O00OOOOO00O =O0O0OOOO00O000O0O ._last_descendant (False )#line:418:new_childs_last_element = new_child._last_descendant(False)
+        if O0000000OOOO0O0O0 >=len (O000O0O0OO00OO000 .contents ):#line:420:if position >= len(self.contents):
+            O0O0OOOO00O000O0O .next_sibling =None #line:421:new_child.next_sibling = None
+            O00000OOOO000OO0O =O000O0O0OO00OO000 #line:423:parent = self
+            OOOOO00O0OOO0OOOO =None #line:424:parents_next_sibling = None
+            while OOOOO00O0OOO0OOOO is None and O00000OOOO000OO0O is not None :#line:425:while parents_next_sibling is None and parent is not None:
+                OOOOO00O0OOO0OOOO =O00000OOOO000OO0O .next_sibling #line:426:parents_next_sibling = parent.next_sibling
+                O00000OOOO000OO0O =O00000OOOO000OO0O .parent #line:427:parent = parent.parent
+                if OOOOO00O0OOO0OOOO is not None :#line:428:if parents_next_sibling is not None:
+                    break #line:430:break
+            if OOOOO00O0OOO0OOOO is not None :#line:431:if parents_next_sibling is not None:
+                O000O0O00OOOOO00O .next_element =OOOOO00O0OOO0OOOO #line:432:new_childs_last_element.next_element = parents_next_sibling
+            else :#line:433:else:
+                O000O0O00OOOOO00O .next_element =None #line:436:new_childs_last_element.next_element = None
+        else :#line:437:else:
+            OO0O00OOOOOOO00O0 =O000O0O0OO00OO000 .contents [O0000000OOOO0O0O0 ]#line:438:next_child = self.contents[position]
+            O0O0OOOO00O000O0O .next_sibling =OO0O00OOOOOOO00O0 #line:439:new_child.next_sibling = next_child
+            if O0O0OOOO00O000O0O .next_sibling is not None :#line:440:if new_child.next_sibling is not None:
+                O0O0OOOO00O000O0O .next_sibling .previous_sibling =O0O0OOOO00O000O0O #line:441:new_child.next_sibling.previous_sibling = new_child
+            O000O0O00OOOOO00O .next_element =OO0O00OOOOOOO00O0 #line:442:new_childs_last_element.next_element = next_child
+        if O000O0O00OOOOO00O .next_element is not None :#line:444:if new_childs_last_element.next_element is not None:
+            O000O0O00OOOOO00O .next_element .previous_element =O000O0O00OOOOO00O #line:445:new_childs_last_element.next_element.previous_element = new_childs_last_element
+        O000O0O0OO00OO000 .contents .insert (O0000000OOOO0O0O0 ,O0O0OOOO00O000O0O )#line:446:self.contents.insert(position, new_child)
+    def append (OO0O0O00O0OOO0OO0 ,OOOO00000000O00OO ):#line:448:def append(self, tag):
+        ""#line:452:"""
+        OO0O0O00O0OOO0OO0 .insert (len (OO0O0O00O0OOO0OO0 .contents ),OOOO00000000O00OO )#line:453:self.insert(len(self.contents), tag)
+    def extend (O0O000000O0000OO0 ,O000O0OOOO00OOO0O ):#line:455:def extend(self, tags):
+        ""#line:459:"""
+        for O0OOOO000OOO0O0OO in O000O0OOOO00OOO0O :#line:460:for tag in tags:
+            O0O000000O0000OO0 .append (O0OOOO000OOO0O0OO )#line:461:self.append(tag)
+    def insert_before (O0O0OO000OO00OO0O ,*O0O00O00OO00O0OOO ):#line:463:def insert_before(self, *args):
+        ""#line:470:"""
+        O000000O000O0OOO0 =O0O0OO000OO00OO0O .parent #line:471:parent = self.parent
+        if O000000O000O0OOO0 is None :#line:472:if parent is None:
+            raise ValueError ("Element has no parent, so 'before' has no meaning.")#line:474:"Element has no parent, so 'before' has no meaning.")
+        if any (O0OO0000O000OO0OO is O0O0OO000OO00OO0O for O0OO0000O000OO0OO in O0O00O00OO00O0OOO ):#line:475:if any(x is self for x in args):
+                raise ValueError ("Can't insert an element before itself.")#line:476:raise ValueError("Can't insert an element before itself.")
+        for OOO0OOO00OOOOOO00 in O0O00O00OO00O0OOO :#line:477:for predecessor in args:
+            if isinstance (OOO0OOO00OOOOOO00 ,PageElement ):#line:480:if isinstance(predecessor, PageElement):
+                OOO0OOO00OOOOOO00 .extract ()#line:481:predecessor.extract()
+            OOO0O0O00O0OOOOOO =O000000O000O0OOO0 .index (O0O0OO000OO00OO0O )#line:482:index = parent.index(self)
+            O000000O000O0OOO0 .insert (OOO0O0O00O0OOOOOO ,OOO0OOO00OOOOOO00 )#line:483:parent.insert(index, predecessor)
+    def insert_after (OO0O0OO0O0O0O0OOO ,*O0O00OOO00OO00O0O ):#line:485:def insert_after(self, *args):
+        ""#line:492:"""
+        O00OO0000O000O0O0 =OO0O0OO0O0O0O0OOO .parent #line:494:parent = self.parent
+        if O00OO0000O000O0O0 is None :#line:495:if parent is None:
+            raise ValueError ("Element has no parent, so 'after' has no meaning.")#line:497:"Element has no parent, so 'after' has no meaning.")
+        if any (O0OO0000O0OOO00OO is OO0O0OO0O0O0O0OOO for O0OO0000O0OOO00OO in O0O00OOO00OO00O0O ):#line:498:if any(x is self for x in args):
+            raise ValueError ("Can't insert an element after itself.")#line:499:raise ValueError("Can't insert an element after itself.")
+        OO000000O0O00O00O =0 #line:501:offset = 0
+        for O0OO0O0O0O0O0O000 in O0O00OOO00OO00O0O :#line:502:for successor in args:
+            if isinstance (O0OO0O0O0O0O0O000 ,PageElement ):#line:505:if isinstance(successor, PageElement):
+                O0OO0O0O0O0O0O000 .extract ()#line:506:successor.extract()
+            OO00O0OO0O0OO0000 =O00OO0000O000O0O0 .index (OO0O0OO0O0O0O0OOO )#line:507:index = parent.index(self)
+            O00OO0000O000O0O0 .insert (OO00O0OO0O0OO0000 +1 +OO000000O0O00O00O ,O0OO0O0O0O0O0O000 )#line:508:parent.insert(index+1+offset, successor)
+            OO000000O0O00O00O +=1 #line:509:offset += 1
+    def find_next (OO00OOO000OO000OO ,name =None ,attrs ={},text =None ,**O000OO00O00OOO000 ):#line:511:def find_next(self, name=None, attrs={}, text=None, **kwargs):
+        ""#line:524:"""
+        return OO00OOO000OO000OO ._find_one (OO00OOO000OO000OO .find_all_next ,name ,attrs ,text ,**O000OO00O00OOO000 )#line:525:return self._find_one(self.find_all_next, name, attrs, text, **kwargs)
+    findNext =find_next #line:526:findNext = find_next  # BS3
+    def find_all_next (OO00OOO0O00OOO0OO ,name =None ,attrs ={},text =None ,limit =None ,**O0OOO0OO00OO0O0O0 ):#line:529:**kwargs):
+        ""#line:542:"""
+        return OO00OOO0O00OOO0OO ._find_all (name ,attrs ,text ,limit ,OO00OOO0O00OOO0OO .next_elements ,**O0OOO0OO00OO0O0O0 )#line:544:**kwargs)
+    findAllNext =find_all_next #line:545:findAllNext = find_all_next  # BS3
+    def find_next_sibling (OO0O000O00O000OO0 ,name =None ,attrs ={},text =None ,**O00OO00OO0OO0OOO0 ):#line:547:def find_next_sibling(self, name=None, attrs={}, text=None, **kwargs):
+        ""#line:560:"""
+        return OO0O000O00O000OO0 ._find_one (OO0O000O00O000OO0 .find_next_siblings ,name ,attrs ,text ,**O00OO00OO0OO0OOO0 )#line:562:**kwargs)
+    findNextSibling =find_next_sibling #line:563:findNextSibling = find_next_sibling  # BS3
+    def find_next_siblings (OOOO0O000OO0O0OO0 ,name =None ,attrs ={},text =None ,limit =None ,**OO00O000OOOOO0O0O ):#line:566:**kwargs):
+        ""#line:580:"""
+        return OOOO0O000OO0O0OO0 ._find_all (name ,attrs ,text ,limit ,OOOO0O000OO0O0OO0 .next_siblings ,**OO00O000OOOOO0O0O )#line:582:self.next_siblings, **kwargs)
+    findNextSiblings =find_next_siblings #line:583:findNextSiblings = find_next_siblings   # BS3
+    fetchNextSiblings =find_next_siblings #line:584:fetchNextSiblings = find_next_siblings  # BS2
+    def find_previous (OOOO0O00OOO0OOO00 ,name =None ,attrs ={},text =None ,**O0OOO0000O000O0O0 ):#line:586:def find_previous(self, name=None, attrs={}, text=None, **kwargs):
+        ""#line:599:"""
+        return OOOO0O00OOO0OOO00 ._find_one (OOOO0O00OOO0OOO00 .find_all_previous ,name ,attrs ,text ,**O0OOO0000O000O0O0 )#line:601:self.find_all_previous, name, attrs, text, **kwargs)
+    findPrevious =find_previous #line:602:findPrevious = find_previous  # BS3
+    def find_all_previous (OOOO0OO0O0OO000O0 ,name =None ,attrs ={},text =None ,limit =None ,**OO0O0000O00OO0O0O ):#line:605:**kwargs):
+        ""#line:619:"""
+        return OOOO0OO0O0OO000O0 ._find_all (name ,attrs ,text ,limit ,OOOO0OO0O0OO000O0 .previous_elements ,**OO0O0000O00OO0O0O )#line:621:**kwargs)
+    findAllPrevious =find_all_previous #line:622:findAllPrevious = find_all_previous  # BS3
+    fetchPrevious =find_all_previous #line:623:fetchPrevious = find_all_previous    # BS2
+    def find_previous_sibling (OOOO0OO0OO0OO0OO0 ,name =None ,attrs ={},text =None ,**OO0O0OO0O0O0O00O0 ):#line:625:def find_previous_sibling(self, name=None, attrs={}, text=None, **kwargs):
+        ""#line:638:"""
+        return OOOO0OO0OO0OO0OO0 ._find_one (OOOO0OO0OO0OO0OO0 .find_previous_siblings ,name ,attrs ,text ,**OO0O0OO0O0O0O00O0 )#line:640:**kwargs)
+    findPreviousSibling =find_previous_sibling #line:641:findPreviousSibling = find_previous_sibling  # BS3
+    def find_previous_siblings (O0OO000OO0O0O0OOO ,name =None ,attrs ={},text =None ,limit =None ,**OO000OO0O0OO00OO0 ):#line:644:limit=None, **kwargs):
+        ""#line:658:"""
+        return O0OO000OO0O0O0OOO ._find_all (name ,attrs ,text ,limit ,O0OO000OO0O0O0OOO .previous_siblings ,**OO000OO0O0OO00OO0 )#line:660:self.previous_siblings, **kwargs)
+    findPreviousSiblings =find_previous_siblings #line:661:findPreviousSiblings = find_previous_siblings   # BS3
+    fetchPreviousSiblings =find_previous_siblings #line:662:fetchPreviousSiblings = find_previous_siblings  # BS2
+    def find_parent (OOO00O00000OO0O0O ,name =None ,attrs ={},**O0O000O0O0O00OOOO ):#line:664:def find_parent(self, name=None, attrs={}, **kwargs):
+        ""#line:677:"""
+        OOO0OOOOO0O00OO0O =None #line:680:r = None
+        OOOO00OO000O0O0OO =OOO00O00000OO0O0O .find_parents (name ,attrs ,1 ,**O0O000O0O0O00OOOO )#line:681:l = self.find_parents(name, attrs, 1, **kwargs)
+        if OOOO00OO000O0O0OO :#line:682:if l:
+            OOO0OOOOO0O00OO0O =OOOO00OO000O0O0OO [0 ]#line:683:r = l[0]
+        return OOO0OOOOO0O00OO0O #line:684:return r
+    findParent =find_parent #line:685:findParent = find_parent  # BS3
+    def find_parents (O00O0O0O00000O00O ,name =None ,attrs ={},limit =None ,**OOO0OOO0O0O0OO000 ):#line:687:def find_parents(self, name=None, attrs={}, limit=None, **kwargs):
+        ""#line:700:"""
+        return O00O0O0O00000O00O ._find_all (name ,attrs ,None ,limit ,O00O0O0O00000O00O .parents ,**OOO0OOO0O0O0OO000 )#line:702:**kwargs)
+    findParents =find_parents #line:703:findParents = find_parents   # BS3
+    fetchParents =find_parents #line:704:fetchParents = find_parents  # BS2
+    @property #line:706:@property
+    def next (O000O00000OO00OOO ):#line:707:def next(self):
+        ""#line:712:"""
+        return O000O00000OO00OOO .next_element #line:713:return self.next_element
+    @property #line:715:@property
+    def previous (O000000OO0OO00000 ):#line:716:def previous(self):
+        ""#line:721:"""
+        return O000000OO0OO00000 .previous_element #line:722:return self.previous_element
+    def _find_one (O00O000O000O00O00 ,O0O00OO0000O0OOO0 ,O00OO00000O0O0OOO ,O0OO0OO000O00OOOO ,O000O0O00O000000O ,**O0O000O000O00O00O ):#line:726:def _find_one(self, method, name, attrs, text, **kwargs):
+        OO0O0OOOO000OO0O0 =None #line:727:r = None
+        O0O0OOOO0O0O00OO0 =O0O00OO0000O0OOO0 (O00OO00000O0O0OOO ,O0OO0OO000O00OOOO ,O000O0O00O000000O ,1 ,**O0O000O000O00O00O )#line:728:l = method(name, attrs, text, 1, **kwargs)
+        if O0O0OOOO0O0O00OO0 :#line:729:if l:
+            OO0O0OOOO000OO0O0 =O0O0OOOO0O0O00OO0 [0 ]#line:730:r = l[0]
+        return OO0O0OOOO000OO0O0 #line:731:return r
+    def _find_all (OOOO00OO0O0O0OOO0 ,OOO000OOO0000OO0O ,OOO0OO0O00O0OOOO0 ,O000O000OOOOOO000 ,OOOO00000O0000000 ,OO0O00O0O0O00000O ,**OO0OO0O00OO0O0OOO ):#line:733:def _find_all(self, name, attrs, text, limit, generator, **kwargs):
+        ""#line:734:"Iterates over a generator looking for things that match."
+        if O000O000OOOOOO000 is None and 'string'in OO0OO0O00OO0O0OOO :#line:736:if text is None and 'string' in kwargs:
+            O000O000OOOOOO000 =OO0OO0O00OO0O0OOO ['string']#line:737:text = kwargs['string']
+            del OO0OO0O00OO0O0OOO ['string']#line:738:del kwargs['string']
+        if isinstance (OOO000OOO0000OO0O ,SoupStrainer ):#line:740:if isinstance(name, SoupStrainer):
+            O000O00000OO00O00 =OOO000OOO0000OO0O #line:741:strainer = name
+        else :#line:742:else:
+            O000O00000OO00O00 =SoupStrainer (OOO000OOO0000OO0O ,OOO0OO0O00O0OOOO0 ,O000O000OOOOOO000 ,**OO0OO0O00OO0O0OOO )#line:743:strainer = SoupStrainer(name, attrs, text, **kwargs)
+        if O000O000OOOOOO000 is None and not OOOO00000O0000000 and not OOO0OO0O00O0OOOO0 and not OO0OO0O00OO0O0OOO :#line:745:if text is None and not limit and not attrs and not kwargs:
+            if OOO000OOO0000OO0O is True or OOO000OOO0000OO0O is None :#line:746:if name is True or name is None:
+                OO0OO00OO0OO00O0O =(OOO0OOOO0O0OOOO0O for OOO0OOOO0O0OOOO0O in OO0O00O0O0O00000O if isinstance (OOO0OOOO0O0OOOO0O ,Tag ))#line:749:if isinstance(element, Tag))
+                return ResultSet (O000O00000OO00O00 ,OO0OO00OO0OO00O0O )#line:750:return ResultSet(strainer, result)
+            elif isinstance (OOO000OOO0000OO0O ,str ):#line:751:elif isinstance(name, str):
+                if OOO000OOO0000OO0O .count (':')==1 :#line:753:if name.count(':') == 1:
+                    OOOO0O00000O0O00O ,O0OO00O000OO0O0OO =OOO000OOO0000OO0O .split (':',1 )#line:757:prefix, local_name = name.split(':', 1)
+                else :#line:758:else:
+                    OOOO0O00000O0O00O =None #line:759:prefix = None
+                    O0OO00O000OO0O0OO =OOO000OOO0000OO0O #line:760:local_name = name
+                OO0OO00OO0OO00O0O =(OO0O0O00O0O0O00O0 for OO0O0O00O0O0O00O0 in OO0O00O0O0O00000O if isinstance (OO0O0O00O0O0O00O0 ,Tag )and (OO0O0O00O0O0O00O0 .name ==OOO000OOO0000OO0O )or (OO0O0O00O0O0O00O0 .name ==O0OO00O000OO0O0OO and (OOOO0O00000O0O00O is None or OO0O0O00O0O0O00O0 .prefix ==OOOO0O00000O0O00O )))#line:769:)
+                return ResultSet (O000O00000OO00O00 ,OO0OO00OO0OO00O0O )#line:770:return ResultSet(strainer, result)
+        OO0O00O00OO000OO0 =ResultSet (O000O00000OO00O00 )#line:771:results = ResultSet(strainer)
+        while True :#line:772:while True:
+            try :#line:773:try:
+                O00OO0OOOOO00O00O =next (OO0O00O0O0O00000O )#line:774:i = next(generator)
+            except StopIteration :#line:775:except StopIteration:
+                break #line:776:break
+            if O00OO0OOOOO00O00O :#line:777:if i:
+                OOOO00OO00OOO0000 =O000O00000OO00O00 .search (O00OO0OOOOO00O00O )#line:778:found = strainer.search(i)
+                if OOOO00OO00OOO0000 :#line:779:if found:
+                    OO0O00O00OO000OO0 .append (OOOO00OO00OOO0000 )#line:780:results.append(found)
+                    if OOOO00000O0000000 and len (OO0O00O00OO000OO0 )>=OOOO00000O0000000 :#line:781:if limit and len(results) >= limit:
+                        break #line:782:break
+        return OO0O00O00OO000OO0 #line:783:return results
+    @property #line:787:@property
+    def next_elements (OO00O00O0O0O0000O ):#line:788:def next_elements(self):
+        ""#line:792:"""
+        O0OOO00OO0O00O00O =OO00O00O0O0O0000O .next_element #line:793:i = self.next_element
+        while O0OOO00OO0O00O00O is not None :#line:794:while i is not None:
+            yield O0OOO00OO0O00O00O #line:795:yield i
+            O0OOO00OO0O00O00O =O0OOO00OO0O00O00O .next_element #line:796:i = i.next_element
+    @property #line:798:@property
+    def next_siblings (O0OOO0OO0O00OO0OO ):#line:799:def next_siblings(self):
+        ""#line:804:"""
+        OO0OO000OOOO0OOO0 =O0OOO0OO0O00OO0OO .next_sibling #line:805:i = self.next_sibling
+        while OO0OO000OOOO0OOO0 is not None :#line:806:while i is not None:
+            yield OO0OO000OOOO0OOO0 #line:807:yield i
+            OO0OO000OOOO0OOO0 =OO0OO000OOOO0OOO0 .next_sibling #line:808:i = i.next_sibling
+    @property #line:810:@property
+    def previous_elements (O00OOOOO00O0OOO0O ):#line:811:def previous_elements(self):
+        ""#line:815:"""
+        O0OO000000OOO00O0 =O00OOOOO00O0OOO0O .previous_element #line:816:i = self.previous_element
+        while O0OO000000OOO00O0 is not None :#line:817:while i is not None:
+            yield O0OO000000OOO00O0 #line:818:yield i
+            O0OO000000OOO00O0 =O0OO000000OOO00O0 .previous_element #line:819:i = i.previous_element
+    @property #line:821:@property
+    def previous_siblings (OOO000OOO000O0OO0 ):#line:822:def previous_siblings(self):
+        ""#line:827:"""
+        OO00O0O00O00O0O0O =OOO000OOO000O0OO0 .previous_sibling #line:828:i = self.previous_sibling
+        while OO00O0O00O00O0O0O is not None :#line:829:while i is not None:
+            yield OO00O0O00O00O0O0O #line:830:yield i
+            OO00O0O00O00O0O0O =OO00O0O00O00O0O0O .previous_sibling #line:831:i = i.previous_sibling
+    @property #line:833:@property
+    def parents (OO00OO00O0000OO0O ):#line:834:def parents(self):
+        ""#line:838:"""
+        OO0OOOOO00O0OOOO0 =OO00OO00O0000OO0O .parent #line:839:i = self.parent
+        while OO0OOOOO00O0OOOO0 is not None :#line:840:while i is not None:
+            yield OO0OOOOO00O0OOOO0 #line:841:yield i
+            OO0OOOOO00O0OOOO0 =OO0OOOOO00O0OOOO0 .parent #line:842:i = i.parent
+    @property #line:844:@property
+    def decomposed (OOO0OOOO0O00O0OOO ):#line:845:def decomposed(self):
+        ""#line:849:"""
+        return getattr (OOO0OOOO0O00O0OOO ,'_decomposed',False )or False #line:850:return getattr(self, '_decomposed', False) or False
+    def nextGenerator (O0O0O0O00O0O000OO ):#line:854:def nextGenerator(self):
+        return O0O0O0O00O0O000OO .next_elements #line:855:return self.next_elements
+    def nextSiblingGenerator (OO0OOO0O0O00O000O ):#line:857:def nextSiblingGenerator(self):
+        return OO0OOO0O0O00O000O .next_siblings #line:858:return self.next_siblings
+    def previousGenerator (OOO00OOO00O00O0O0 ):#line:860:def previousGenerator(self):
+        return OOO00OOO00O00O0O0 .previous_elements #line:861:return self.previous_elements
+    def previousSiblingGenerator (O00OO00OOO00OO000 ):#line:863:def previousSiblingGenerator(self):
+        return O00OO00OOO00OO000 .previous_siblings #line:864:return self.previous_siblings
+    def parentGenerator (O000000000000O00O ):#line:866:def parentGenerator(self):
+        return O000000000000O00O .parents #line:867:return self.parents
+class NavigableString (str ,PageElement ):#line:870:class NavigableString(str, PageElement):
+    ""#line:875:"""
+    PREFIX =''#line:877:PREFIX = ''
+    SUFFIX =''#line:878:SUFFIX = ''
+    known_xml =None #line:883:known_xml = None
+    def __new__ (OOO0OO000000O0O0O ,O0000O0O00OOOO000 ):#line:885:def __new__(cls, value):
+        ""#line:892:"""
+        if isinstance (O0000O0O00OOOO000 ,str ):#line:893:if isinstance(value, str):
+            O0OO0O00OOOO000OO =str .__new__ (OOO0OO000000O0O0O ,O0000O0O00OOOO000 )#line:894:u = str.__new__(cls, value)
+        else :#line:895:else:
+            O0OO0O00OOOO000OO =str .__new__ (OOO0OO000000O0O0O ,O0000O0O00OOOO000 ,DEFAULT_OUTPUT_ENCODING )#line:896:u = str.__new__(cls, value, DEFAULT_OUTPUT_ENCODING)
+        O0OO0O00OOOO000OO .setup ()#line:897:u.setup()
+        return O0OO0O00OOOO000OO #line:898:return u
+    def __copy__ (O00OOOOO0OOO000OO ):#line:900:def __copy__(self):
+        ""#line:903:"""
+        return type (O00OOOOO0OOO000OO )(O00OOOOO0OOO000OO )#line:904:return type(self)(self)
+    def __getnewargs__ (OOOO00OOOO000000O ):#line:906:def __getnewargs__(self):
+        return (str (OOOO00OOOO000000O ),)#line:907:return (str(self),)
+    def __getattr__ (OOOOOOO000OOOOOOO ,OOO0OOOOOO00OOO00 ):#line:909:def __getattr__(self, attr):
+        ""#line:912:get the string without the CData wrapper."""
+        if OOO0OOOOOO00OOO00 =='string':#line:913:if attr == 'string':
+            return OOOOOOO000OOOOOOO #line:914:return self
+        else :#line:915:else:
+            raise AttributeError ("'%s' object has no attribute '%s'"%(OOOOOOO000OOOOOOO .__class__ .__name__ ,OOO0OOOOOO00OOO00 ))#line:918:self.__class__.__name__, attr))
+    def output_ready (O0000OO0OO0O0O000 ,formatter ="minimal"):#line:920:def output_ready(self, formatter="minimal"):
+        ""#line:924:"""
+        O0000OO0O0O0OOO0O =O0000OO0OO0O0O000 .format_string (O0000OO0OO0O0O000 ,formatter )#line:925:output = self.format_string(self, formatter)
+        return O0000OO0OO0O0O000 .PREFIX +O0000OO0O0O0OOO0O +O0000OO0OO0O0O000 .SUFFIX #line:926:return self.PREFIX + output + self.SUFFIX
+    @property #line:928:@property
+    def name (OO0O0OO0OOO00OO0O ):#line:929:def name(self):
+        ""#line:935:"""
+        return None #line:936:return None
+    @name .setter #line:938:@name.setter
+    def name (OOO000O00OOO0O0OO ,O0OO00OOOOOO000OO ):#line:939:def name(self, name):
+        ""#line:940:"""Prevent NavigableString.name from ever being set."""
+        raise AttributeError ("A NavigableString cannot be given a name.")#line:941:raise AttributeError("A NavigableString cannot be given a name.")
+class PreformattedString (NavigableString ):#line:944:class PreformattedString(NavigableString):
+    ""#line:950:"""
+    PREFIX =''#line:952:PREFIX = ''
+    SUFFIX =''#line:953:SUFFIX = ''
+    def output_ready (O00OOO00OO00O0OO0 ,formatter =None ):#line:955:def output_ready(self, formatter=None):
+        ""#line:966:"""
+        if formatter is not None :#line:967:if formatter is not None:
+            O000OOOOOO00OOOO0 =O00OOO00OO00O0OO0 .format_string (O00OOO00OO00O0OO0 ,formatter )#line:968:ignore = self.format_string(self, formatter)
+        return O00OOO00OO00O0OO0 .PREFIX +O00OOO00OO00O0OO0 +O00OOO00OO00O0OO0 .SUFFIX #line:969:return self.PREFIX + self + self.SUFFIX
+class CData (PreformattedString ):#line:971:class CData(PreformattedString):
+    ""#line:972:"""A CDATA block."""
+    PREFIX ='<![CDATA['#line:973:PREFIX = '<![CDATA['
+    SUFFIX =']]>'#line:974:SUFFIX = ']]>'
+class ProcessingInstruction (PreformattedString ):#line:976:class ProcessingInstruction(PreformattedString):
+    ""#line:977:"""A SGML processing instruction."""
+    PREFIX ='<?'#line:979:PREFIX = '<?'
+    SUFFIX ='>'#line:980:SUFFIX = '>'
+class XMLProcessingInstruction (ProcessingInstruction ):#line:982:class XMLProcessingInstruction(ProcessingInstruction):
+    ""#line:983:"""An XML processing instruction."""
+    PREFIX ='<?'#line:984:PREFIX = '<?'
+    SUFFIX ='?>'#line:985:SUFFIX = '?>'
+class Comment (PreformattedString ):#line:987:class Comment(PreformattedString):
+    ""#line:988:"""An HTML or XML comment."""
+    PREFIX ='<!--'#line:989:PREFIX = '<!--'
+    SUFFIX ='-->'#line:990:SUFFIX = '-->'
+class Declaration (PreformattedString ):#line:993:class Declaration(PreformattedString):
+    ""#line:994:"""An XML declaration."""
+    PREFIX ='<?'#line:995:PREFIX = '<?'
+    SUFFIX ='?>'#line:996:SUFFIX = '?>'
+class Doctype (PreformattedString ):#line:999:class Doctype(PreformattedString):
+    ""#line:1000:"""A document type declaration."""
+    @classmethod #line:1001:@classmethod
+    def for_name_and_ids (O0O00OO0OO00OO0OO ,O0OO000OO0O00OO00 ,OOOO0OOOO0000OOOO ,OO00000OOOOOO0OOO ):#line:1002:def for_name_and_ids(cls, name, pub_id, system_id):
+        ""#line:1013:"""
+        O00OOOO0O0O0OO0OO =O0OO000OO0O00OO00 or ''#line:1014:value = name or ''
+        if OOOO0OOOO0000OOOO is not None :#line:1015:if pub_id is not None:
+            O00OOOO0O0O0OO0OO +=' PUBLIC "%s"'%OOOO0OOOO0000OOOO #line:1016:value += ' PUBLIC "%s"' % pub_id
+            if OO00000OOOOOO0OOO is not None :#line:1017:if system_id is not None:
+                O00OOOO0O0O0OO0OO +=' "%s"'%OO00000OOOOOO0OOO #line:1018:value += ' "%s"' % system_id
+        elif OO00000OOOOOO0OOO is not None :#line:1019:elif system_id is not None:
+            O00OOOO0O0O0OO0OO +=' SYSTEM "%s"'%OO00000OOOOOO0OOO #line:1020:value += ' SYSTEM "%s"' % system_id
+        return Doctype (O00OOOO0O0O0OO0OO )#line:1022:return Doctype(value)
+    PREFIX ='<!DOCTYPE '#line:1024:PREFIX = '<!DOCTYPE '
+    SUFFIX ='>\n'#line:1025:SUFFIX = '>\n'
+class Stylesheet (NavigableString ):#line:1028:class Stylesheet(NavigableString):
+    ""#line:1033:"""
+    pass #line:1034:pass
+class Script (NavigableString ):#line:1037:class Script(NavigableString):
+    ""#line:1042:"""
+    pass #line:1043:pass
+class TemplateString (NavigableString ):#line:1046:class TemplateString(NavigableString):
+    ""#line:1051:"""
+    pass #line:1052:pass
+class Tag (PageElement ):#line:1055:class Tag(PageElement):
+    ""#line:1061:"""
+    def __init__ (O0OOOOO0OO000O0OO ,parser =None ,builder =None ,name =None ,namespace =None ,prefix =None ,attrs =None ,parent =None ,previous =None ,is_xml =None ,sourceline =None ,sourcepos =None ,can_be_empty_element =None ,cdata_list_attributes =None ,preserve_whitespace_tags =None ):#line:1068:):
+        ""#line:1093:"""
+        if parser is None :#line:1094:if parser is None:
+            O0OOOOO0OO000O0OO .parser_class =None #line:1095:self.parser_class = None
+        else :#line:1096:else:
+            O0OOOOO0OO000O0OO .parser_class =parser .__class__ #line:1099:self.parser_class = parser.__class__
+        if name is None :#line:1100:if name is None:
+            raise ValueError ("No value provided for new tag's name.")#line:1101:raise ValueError("No value provided for new tag's name.")
+        O0OOOOO0OO000O0OO .name =name #line:1102:self.name = name
+        O0OOOOO0OO000O0OO .namespace =namespace #line:1103:self.namespace = namespace
+        O0OOOOO0OO000O0OO .prefix =prefix #line:1104:self.prefix = prefix
+        if ((not builder or builder .store_line_numbers )and (sourceline is not None or sourcepos is not None )):#line:1106:and (sourceline is not None or sourcepos is not None)):
+            O0OOOOO0OO000O0OO .sourceline =sourceline #line:1107:self.sourceline = sourceline
+            O0OOOOO0OO000O0OO .sourcepos =sourcepos #line:1108:self.sourcepos = sourcepos
+        if attrs is None :#line:1109:if attrs is None:
+            attrs ={}#line:1110:attrs = {}
+        elif attrs :#line:1111:elif attrs:
+            if builder is not None and builder .cdata_list_attributes :#line:1112:if builder is not None and builder.cdata_list_attributes:
+                attrs =builder ._replace_cdata_list_attribute_values (O0OOOOO0OO000O0OO .name ,attrs )#line:1114:self.name, attrs)
+            else :#line:1115:else:
+                attrs =dict (attrs )#line:1116:attrs = dict(attrs)
+        else :#line:1117:else:
+            attrs =dict (attrs )#line:1118:attrs = dict(attrs)
+        if builder :#line:1122:if builder:
+            O0OOOOO0OO000O0OO .known_xml =builder .is_xml #line:1123:self.known_xml = builder.is_xml
+        else :#line:1124:else:
+            O0OOOOO0OO000O0OO .known_xml =is_xml #line:1125:self.known_xml = is_xml
+        O0OOOOO0OO000O0OO .attrs =attrs #line:1126:self.attrs = attrs
+        O0OOOOO0OO000O0OO .contents =[]#line:1127:self.contents = []
+        O0OOOOO0OO000O0OO .setup (parent ,previous )#line:1128:self.setup(parent, previous)
+        O0OOOOO0OO000O0OO .hidden =False #line:1129:self.hidden = False
+        if builder is None :#line:1131:if builder is None:
+            O0OOOOO0OO000O0OO .can_be_empty_element =can_be_empty_element #line:1135:self.can_be_empty_element = can_be_empty_element
+            O0OOOOO0OO000O0OO .cdata_list_attributes =cdata_list_attributes #line:1136:self.cdata_list_attributes = cdata_list_attributes
+            O0OOOOO0OO000O0OO .preserve_whitespace_tags =preserve_whitespace_tags #line:1137:self.preserve_whitespace_tags = preserve_whitespace_tags
+        else :#line:1138:else:
+            builder .set_up_substitutions (O0OOOOO0OO000O0OO )#line:1140:builder.set_up_substitutions(self)
+            O0OOOOO0OO000O0OO .can_be_empty_element =builder .can_be_empty_element (name )#line:1143:self.can_be_empty_element = builder.can_be_empty_element(name)
+            O0OOOOO0OO000O0OO .cdata_list_attributes =builder .cdata_list_attributes #line:1153:self.cdata_list_attributes = builder.cdata_list_attributes
+            O0OOOOO0OO000O0OO .preserve_whitespace_tags =builder .preserve_whitespace_tags #line:1157:self.preserve_whitespace_tags = builder.preserve_whitespace_tags
+    parserClass =_OOOOO0OO000O00OOO ("parser_class")#line:1159:parserClass = _alias("parser_class")  # BS3
+    def __copy__ (OO000O0OOOO0000OO ):#line:1161:def __copy__(self):
+        ""#line:1164:"""
+        O000OO0O0O0O00OO0 =type (OO000O0OOOO0000OO )(None ,OO000O0OOOO0000OO .builder ,OO000O0OOOO0000OO .name ,OO000O0OOOO0000OO .namespace ,OO000O0OOOO0000OO .prefix ,OO000O0OOOO0000OO .attrs ,is_xml =OO000O0OOOO0000OO ._is_xml ,sourceline =OO000O0OOOO0000OO .sourceline ,sourcepos =OO000O0OOOO0000OO .sourcepos ,can_be_empty_element =OO000O0OOOO0000OO .can_be_empty_element ,cdata_list_attributes =OO000O0OOOO0000OO .cdata_list_attributes ,preserve_whitespace_tags =OO000O0OOOO0000OO .preserve_whitespace_tags )#line:1172:)
+        for OOOOOOO00OOOOOO0O in ('can_be_empty_element','hidden'):#line:1173:for attr in ('can_be_empty_element', 'hidden'):
+            setattr (O000OO0O0O0O00OO0 ,OOOOOOO00OOOOOO0O ,getattr (OO000O0OOOO0000OO ,OOOOOOO00OOOOOO0O ))#line:1174:setattr(clone, attr, getattr(self, attr))
+        for O000O00000000OOO0 in OO000O0OOOO0000OO .contents :#line:1175:for child in self.contents:
+            O000OO0O0O0O00OO0 .append (O000O00000000OOO0 .__copy__ ())#line:1176:clone.append(child.__copy__())
+        return O000OO0O0O0O00OO0 #line:1177:return clone
+    @property #line:1179:@property
+    def is_empty_element (OOO0OOOOO00O00OOO ):#line:1180:def is_empty_element(self):
+        ""#line:1193:"""
+        return len (OOO0OOOOO00O00OOO .contents )==0 and OOO0OOOOO00O00OOO .can_be_empty_element #line:1194:return len(self.contents) == 0 and self.can_be_empty_element
+    isSelfClosing =is_empty_element #line:1195:isSelfClosing = is_empty_element  # BS3
+    @property #line:1197:@property
+    def string (O00000000O0O0OO0O ):#line:1198:def string(self):
+        ""#line:1210:"""
+        if len (O00000000O0O0OO0O .contents )!=1 :#line:1211:if len(self.contents) != 1:
+            return None #line:1212:return None
+        OOO00O0000OO0O0OO =O00000000O0O0OO0O .contents [0 ]#line:1213:child = self.contents[0]
+        if isinstance (OOO00O0000OO0O0OO ,NavigableString ):#line:1214:if isinstance(child, NavigableString):
+            return OOO00O0000OO0O0OO #line:1215:return child
+        return OOO00O0000OO0O0OO .string #line:1216:return child.string
+    @string .setter #line:1218:@string.setter
+    def string (OOO0O0O000OOO0OO0 ,O0O000O0O0O0O00O0 ):#line:1219:def string(self, string):
+        ""#line:1220:"""Replace this PageElement's contents with `string`."""
+        OOO0O0O000OOO0OO0 .clear ()#line:1221:self.clear()
+        OOO0O0O000OOO0OO0 .append (O0O000O0O0O0O00O0 .__class__ (O0O000O0O0O0O00O0 ))#line:1222:self.append(string.__class__(string))
+    def _all_strings (O0OOOO00OO000000O ,strip =False ,types =(NavigableString ,CData )):#line:1224:def _all_strings(self, strip=False, types=(NavigableString, CData)):
+        ""#line:1237:"""
+        for OOO000000OOOOOO0O in O0OOOO00OO000000O .descendants :#line:1238:for descendant in self.descendants:
+            if ((types is None and not isinstance (OOO000000OOOOOO0O ,NavigableString ))or (types is not None and type (OOO000000OOOOOO0O )not in types )):#line:1242:(types is not None and type(descendant) not in types)):
+                continue #line:1243:continue
+            if strip :#line:1244:if strip:
+                OOO000000OOOOOO0O =OOO000000OOOOOO0O .strip ()#line:1245:descendant = descendant.strip()
+                if len (OOO000000OOOOOO0O )==0 :#line:1246:if len(descendant) == 0:
+                    continue #line:1247:continue
+            yield OOO000000OOOOOO0O #line:1248:yield descendant
+    strings =property (_all_strings )#line:1250:strings = property(_all_strings)
+    @property #line:1252:@property
+    def stripped_strings (OO0000OOOO0O00O00 ):#line:1253:def stripped_strings(self):
+        ""#line:1257:"""
+        for OO0O00O0O0OOO0O00 in OO0000OOOO0O00O00 ._all_strings (True ):#line:1258:for string in self._all_strings(True):
+            yield OO0O00O0O0OOO0O00 #line:1259:yield string
+    def get_text (OOOO0OO00O0O0O00O ,separator ="",strip =False ,types =(NavigableString ,CData )):#line:1262:types=(NavigableString, CData)):
+        ""#line:1277:"""
+        return separator .join ([OO0OOO00OOO0O0O00 for OO0OOO00OOO0O0O00 in OOOO0OO00O0O0O00O ._all_strings (strip ,types =types )])#line:1279:strip, types=types)])
+    getText =get_text #line:1280:getText = get_text
+    text =property (get_text )#line:1281:text = property(get_text)
+    def decompose (OO0O0OOOOO00O000O ):#line:1283:def decompose(self):
+        ""#line:1293:"""
+        OO0O0OOOOO00O000O .extract ()#line:1294:self.extract()
+        OO0OO00O0O0000OOO =OO0O0OOOOO00O000O #line:1295:i = self
+        while OO0OO00O0O0000OOO is not None :#line:1296:while i is not None:
+            OOOO0OO0O00O00000 =OO0OO00O0O0000OOO .next_element #line:1297:n = i.next_element
+            OO0OO00O0O0000OOO .__dict__ .clear ()#line:1298:i.__dict__.clear()
+            OO0OO00O0O0000OOO .contents =[]#line:1299:i.contents = []
+            OO0OO00O0O0000OOO ._decomposed =True #line:1300:i._decomposed = True
+            OO0OO00O0O0000OOO =OOOO0OO0O00O00000 #line:1301:i = n
+    def clear (O000OO0O00O0000O0 ,decompose =False ):#line:1303:def clear(self, decompose=False):
+        ""#line:1309:"""
+        if decompose :#line:1310:if decompose:
+            for OO00O00OOO00OOO00 in O000OO0O00O0000O0 .contents [:]:#line:1311:for element in self.contents[:]:
+                if isinstance (OO00O00OOO00OOO00 ,Tag ):#line:1312:if isinstance(element, Tag):
+                    OO00O00OOO00OOO00 .decompose ()#line:1313:element.decompose()
+                else :#line:1314:else:
+                    OO00O00OOO00OOO00 .extract ()#line:1315:element.extract()
+        else :#line:1316:else:
+            for OO00O00OOO00OOO00 in O000OO0O00O0000O0 .contents [:]:#line:1317:for element in self.contents[:]:
+                OO00O00OOO00OOO00 .extract ()#line:1318:element.extract()
+    def smooth (OOOO0O00O0OO00O00 ):#line:1320:def smooth(self):
+        ""#line:1326:"""
+        OO00O0OO0OOOOO000 =[]#line:1331:marked = []
+        for O00OO000OO00OOO00 ,O0000OOO0OOO0000O in enumerate (OOOO0O00O0OO00O00 .contents ):#line:1332:for i, a in enumerate(self.contents):
+            if isinstance (O0000OOO0OOO0000O ,Tag ):#line:1333:if isinstance(a, Tag):
+                O0000OOO0OOO0000O .smooth ()#line:1335:a.smooth()
+            if O00OO000OO00OOO00 ==len (OOOO0O00O0OO00O00 .contents )-1 :#line:1336:if i == len(self.contents)-1:
+                continue #line:1339:continue
+            OOOO0OO0O0OOOOOOO =OOOO0O00O0OO00O00 .contents [O00OO000OO00OOO00 +1 ]#line:1340:b = self.contents[i+1]
+            if (isinstance (O0000OOO0OOO0000O ,NavigableString )and isinstance (OOOO0OO0O0OOOOOOO ,NavigableString )and not isinstance (O0000OOO0OOO0000O ,PreformattedString )and not isinstance (OOOO0OO0O0OOOOOOO ,PreformattedString )):#line:1345:):
+                OO00O0OO0OOOOO000 .append (O00OO000OO00OOO00 )#line:1346:marked.append(i)
+        for O00OO000OO00OOO00 in reversed (OO00O0OO0OOOOO000 ):#line:1351:for i in reversed(marked):
+            O0000OOO0OOO0000O =OOOO0O00O0OO00O00 .contents [O00OO000OO00OOO00 ]#line:1352:a = self.contents[i]
+            OOOO0OO0O0OOOOOOO =OOOO0O00O0OO00O00 .contents [O00OO000OO00OOO00 +1 ]#line:1353:b = self.contents[i+1]
+            OOOO0OO0O0OOOOOOO .extract ()#line:1354:b.extract()
+            O00O0OOOO00000O0O =NavigableString (O0000OOO0OOO0000O +OOOO0OO0O0OOOOOOO )#line:1355:n = NavigableString(a+b)
+            O0000OOO0OOO0000O .replace_with (O00O0OOOO00000O0O )#line:1356:a.replace_with(n)
+    def index (OO0O0OOOO0O0O0O0O ,O0000OOO00O00000O ):#line:1358:def index(self, element):
+        ""#line:1365:"""
+        for OOOO0O0O0O0O0000O ,OOOO00000OOOOOOOO in enumerate (OO0O0OOOO0O0O0O0O .contents ):#line:1366:for i, child in enumerate(self.contents):
+            if OOOO00000OOOOOOOO is O0000OOO00O00000O :#line:1367:if child is element:
+                return OOOO0O0O0O0O0000O #line:1368:return i
+        raise ValueError ("Tag.index: element not in tag")#line:1369:raise ValueError("Tag.index: element not in tag")
+    def get (OO0O0O0O000000000 ,O00OO000OO0O0O000 ,default =None ):#line:1371:def get(self, key, default=None):
+        ""#line:1374:attribute."""
+        return OO0O0O0O000000000 .attrs .get (O00OO000OO0O0O000 ,default )#line:1375:return self.attrs.get(key, default)
+    def get_attribute_list (O0OOO00O0O0OOO000 ,O0OOOO0OO000O0O0O ,default =None ):#line:1377:def get_attribute_list(self, key, default=None):
+        ""#line:1385:"""
+        O0OO00OO0O0000OO0 =O0OOO00O0O0OOO000 .get (O0OOOO0OO000O0O0O ,default )#line:1386:value = self.get(key, default)
+        if not isinstance (O0OO00OO0O0000OO0 ,list ):#line:1387:if not isinstance(value, list):
+            O0OO00OO0O0000OO0 =[O0OO00OO0O0000OO0 ]#line:1388:value = [value]
+        return O0OO00OO0O0000OO0 #line:1389:return value
+    def has_attr (O0000OOO0OOOOO00O ,O0O0OOO0O000O00OO ):#line:1391:def has_attr(self, key):
+        ""#line:1392:"""Does this PageElement have an attribute with the given name?"""
+        return O0O0OOO0O000O00OO in O0000OOO0OOOOO00O .attrs #line:1393:return key in self.attrs
+    def __hash__ (O0O0O000OOOOO00O0 ):#line:1395:def __hash__(self):
+        return str (O0O0O000OOOOO00O0 ).__hash__ ()#line:1396:return str(self).__hash__()
+    def __getitem__ (O0OOOO0O0O0O0OO00 ,O0OO00000O0000O0O ):#line:1398:def __getitem__(self, key):
+        ""#line:1400:and throws an exception if it's not there."""
+        return O0OOOO0O0O0O0OO00 .attrs [O0OO00000O0000O0O ]#line:1401:return self.attrs[key]
+    def __iter__ (O00OOO000OO0O000O ):#line:1403:def __iter__(self):
+        ""#line:1404:"Iterating over a Tag iterates over its contents."
+        return iter (O00OOO000OO0O000O .contents )#line:1405:return iter(self.contents)
+    def __len__ (OO0000000OO0OOO00 ):#line:1407:def __len__(self):
+        ""#line:1408:"The length of a Tag is the length of its list of contents."
+        return len (OO0000000OO0OOO00 .contents )#line:1409:return len(self.contents)
+    def __contains__ (O0O0OO0O00O0000O0 ,O00O0OO000OO0000O ):#line:1411:def __contains__(self, x):
+        return O00O0OO000OO0000O in O0O0OO0O00O0000O0 .contents #line:1412:return x in self.contents
+    def __bool__ (O0O000OOO0O00O000 ):#line:1414:def __bool__(self):
+        ""#line:1415:"A tag is non-None even if it has no contents."
+        return True #line:1416:return True
+    def __setitem__ (O0OO00O0OOOOOO0OO ,OOOOO0O0O00OOO0O0 ,OO000O0OOOO00OOOO ):#line:1418:def __setitem__(self, key, value):
+        ""#line:1420:tag."""
+        O0OO00O0OOOOOO0OO .attrs [OOOOO0O0O00OOO0O0 ]=OO000O0OOOO00OOOO #line:1421:self.attrs[key] = value
+    def __delitem__ (O00OOOOOO00000OO0 ,O00OO0O00O0OOOOO0 ):#line:1423:def __delitem__(self, key):
+        ""#line:1424:"Deleting tag[key] deletes all 'key' attributes for the tag."
+        O00OOOOOO00000OO0 .attrs .pop (O00OO0O00O0OOOOO0 ,None )#line:1425:self.attrs.pop(key, None)
+    def __call__ (O0OO000O0OO0O0O00 ,*O000O00O000O00O00 ,**OOOO0OOOO0O000O0O ):#line:1427:def __call__(self, *args, **kwargs):
+        ""#line:1430:found within this tag."""
+        return O0OO000O0OO0O0O00 .find_all (*O000O00O000O00O00 ,**OOOO0OOOO0O000O0O )#line:1431:return self.find_all(*args, **kwargs)
+    def __getattr__ (OOOO0O0O000OOO00O ,OO0000OOOOOOO00O0 ):#line:1433:def __getattr__(self, tag):
+        ""#line:1434:"""Calling tag.subtag is the same as calling tag.find(name="subtag")"""
+        if len (OO0000OOOOOOO00O0 )>3 and OO0000OOOOOOO00O0 .endswith ('Tag'):#line:1436:if len(tag) > 3 and tag.endswith('Tag'):
+            OOO00O0O0OO0O000O =OO0000OOOOOOO00O0 [:-3 ]#line:1438:tag_name = tag[:-3]
+            warnings .warn ('.%(name)sTag is deprecated, use .find("%(name)s") instead. If you really were looking for a tag called %(name)sTag, use .find("%(name)sTag")'%dict (name =OOO00O0O0OO0O000O ))#line:1443:)
+            return OOOO0O0O000OOO00O .find (OOO00O0O0OO0O000O )#line:1444:return self.find(tag_name)
+        elif not OO0000OOOOOOO00O0 .startswith ("__")and not OO0000OOOOOOO00O0 =="contents":#line:1446:elif not tag.startswith("__") and not tag == "contents":
+            return OOOO0O0O000OOO00O .find (OO0000OOOOOOO00O0 )#line:1447:return self.find(tag)
+        raise AttributeError ("'%s' object has no attribute '%s'"%(OOOO0O0O000OOO00O .__class__ ,OO0000OOOOOOO00O0 ))#line:1449:"'%s' object has no attribute '%s'" % (self.__class__, tag))
+    def __eq__ (O0OO000000O0000O0 ,O0000O0000O00O0O0 ):#line:1451:def __eq__(self, other):
+        ""#line:1453:and the same contents (recursively) as `other`."""
+        if O0OO000000O0000O0 is O0000O0000O00O0O0 :#line:1454:if self is other:
+            return True #line:1455:return True
+        if (not hasattr (O0000O0000O00O0O0 ,'name')or not hasattr (O0000O0000O00O0O0 ,'attrs')or not hasattr (O0000O0000O00O0O0 ,'contents')or O0OO000000O0000O0 .name !=O0000O0000O00O0O0 .name or O0OO000000O0000O0 .attrs !=O0000O0000O00O0O0 .attrs or len (O0OO000000O0000O0 )!=len (O0000O0000O00O0O0 )):#line:1461:len(self) != len(other)):
+            return False #line:1462:return False
+        for O00OO0OO0OO00OO00 ,O0OO0O00OOOO00000 in enumerate (O0OO000000O0000O0 .contents ):#line:1463:for i, my_child in enumerate(self.contents):
+            if O0OO0O00OOOO00000 !=O0000O0000O00O0O0 .contents [O00OO0OO0OO00OO00 ]:#line:1464:if my_child != other.contents[i]:
+                return False #line:1465:return False
+        return True #line:1466:return True
+    def __ne__ (OOO00O0OO0O00OOO0 ,OO00OO00O0O00O0O0 ):#line:1468:def __ne__(self, other):
+        ""#line:1470:as defined in __eq__."""
+        return not OOO00O0OO0O00OOO0 ==OO00OO00O0O00O0O0 #line:1471:return not self == other
+    def __repr__ (OOOO00O0OO0OO0000 ,encoding ="unicode-escape"):#line:1473:def __repr__(self, encoding="unicode-escape"):
+        ""#line:1479:"""
+        if PY3K :#line:1480:if PY3K:
+            return OOOO00O0OO0OO0000 .decode ()#line:1482:return self.decode()
+        else :#line:1483:else:
+            return OOOO00O0OO0OO0000 .encode (encoding )#line:1487:return self.encode(encoding)
+    def __unicode__ (OO0OOOOO00OOO00OO ):#line:1489:def __unicode__(self):
+        ""#line:1490:"""Renders this PageElement as a Unicode string."""
+        return OO0OOOOO00OOO00OO .decode ()#line:1491:return self.decode()
+    def __str__ (O0O0O0OOO00O00O0O ):#line:1493:def __str__(self):
+        ""#line:1498:"""
+        if PY3K :#line:1499:if PY3K:
+            return O0O0O0OOO00O00O0O .decode ()#line:1500:return self.decode()
+        else :#line:1501:else:
+            return O0O0O0OOO00O00O0O .encode ()#line:1502:return self.encode()
+    if PY3K :#line:1504:if PY3K:
+        __str__ =__repr__ =__unicode__ #line:1505:__str__ = __repr__ = __unicode__
+    def encode (OO0O0O0OOO000000O ,encoding =DEFAULT_OUTPUT_ENCODING ,indent_level =None ,formatter ="minimal",errors ="xmlcharrefreplace"):#line:1509:errors="xmlcharrefreplace"):
+        ""#line:1525:"""
+        OO00OO00OO000O0O0 =OO0O0O0OOO000000O .decode (indent_level ,encoding ,formatter )#line:1528:u = self.decode(indent_level, encoding, formatter)
+        return OO00OO00OO000O0O0 .encode (encoding ,errors )#line:1529:return u.encode(encoding, errors)
+    def decode (O0OOOOOOO0OO000OO ,indent_level =None ,eventual_encoding =DEFAULT_OUTPUT_ENCODING ,formatter ="minimal"):#line:1533:formatter="minimal"):
+        ""#line:1548:"""
+        if not isinstance (formatter ,Formatter ):#line:1553:if not isinstance(formatter, Formatter):
+            formatter =O0OOOOOOO0OO000OO .formatter_for_name (formatter )#line:1554:formatter = self.formatter_for_name(formatter)
+        OO0OOO0000OO0O00O =formatter .attributes (O0OOOOOOO0OO000OO )#line:1555:attributes = formatter.attributes(self)
+        OO0OOO00O0OO0O0OO =[]#line:1556:attrs = []
+        for OOO00OOO0O0O00O00 ,O00OO00OOOO0O0OO0 in OO0OOO0000OO0O00O :#line:1557:for key, val in attributes:
+            if O00OO00OOOO0O0OO0 is None :#line:1558:if val is None:
+                O0OOOOOOO0O0O0O00 =OOO00OOO0O0O00O00 #line:1559:decoded = key
+            else :#line:1560:else:
+                if isinstance (O00OO00OOOO0O0OO0 ,list )or isinstance (O00OO00OOOO0O0OO0 ,tuple ):#line:1561:if isinstance(val, list) or isinstance(val, tuple):
+                    O00OO00OOOO0O0OO0 =' '.join (O00OO00OOOO0O0OO0 )#line:1562:val = ' '.join(val)
+                elif not isinstance (O00OO00OOOO0O0OO0 ,str ):#line:1563:elif not isinstance(val, str):
+                    O00OO00OOOO0O0OO0 =str (O00OO00OOOO0O0OO0 )#line:1564:val = str(val)
+                elif (isinstance (O00OO00OOOO0O0OO0 ,AttributeValueWithCharsetSubstitution )and eventual_encoding is not None ):#line:1568:):
+                    O00OO00OOOO0O0OO0 =O00OO00OOOO0O0OO0 .encode (eventual_encoding )#line:1569:val = val.encode(eventual_encoding)
+                O00OOO00O0000O00O =formatter .attribute_value (O00OO00OOOO0O0OO0 )#line:1571:text = formatter.attribute_value(val)
+                O0OOOOOOO0O0O0O00 =(str (OOO00OOO0O0O00O00 )+'='+formatter .quoted_attribute_value (O00OOO00O0000O00O ))#line:1574:+ formatter.quoted_attribute_value(text))
+            OO0OOO00O0OO0O0OO .append (O0OOOOOOO0O0O0O00 )#line:1575:attrs.append(decoded)
+        OO00OO0OOOO0OO00O =''#line:1576:close = ''
+        O0OO0O0O000OOO0O0 =''#line:1577:closeTag = ''
+        OO0000OO0OO00OO0O =''#line:1579:prefix = ''
+        if O0OOOOOOO0OO000OO .prefix :#line:1580:if self.prefix:
+            OO0000OO0OO00OO0O =O0OOOOOOO0OO000OO .prefix +":"#line:1581:prefix = self.prefix + ":"
+        if O0OOOOOOO0OO000OO .is_empty_element :#line:1583:if self.is_empty_element:
+            OO00OO0OOOO0OO00O =formatter .void_element_close_prefix or ''#line:1584:close = formatter.void_element_close_prefix or ''
+        else :#line:1585:else:
+            O0OO0O0O000OOO0O0 ='</%s%s>'%(OO0000OO0OO00OO0O ,O0OOOOOOO0OO000OO .name )#line:1586:closeTag = '</%s%s>' % (prefix, self.name)
+        OOO0OOO000OO000OO =O0OOOOOOO0OO000OO ._should_pretty_print (indent_level )#line:1588:pretty_print = self._should_pretty_print(indent_level)
+        O0O000O0O000O0O0O =''#line:1589:space = ''
+        OO00O0O0O000O0OOO =''#line:1590:indent_space = ''
+        if indent_level is not None :#line:1591:if indent_level is not None:
+            OO00O0O0O000O0OOO =(' '*(indent_level -1 ))#line:1592:indent_space = (' ' * (indent_level - 1))
+        if OOO0OOO000OO000OO :#line:1593:if pretty_print:
+            O0O000O0O000O0O0O =OO00O0O0O000O0OOO #line:1594:space = indent_space
+            O0OO0OOO0O00O0O00 =indent_level +1 #line:1595:indent_contents = indent_level + 1
+        else :#line:1596:else:
+            O0OO0OOO0O00O0O00 =None #line:1597:indent_contents = None
+        OOOOO0OOO00OOO0O0 =O0OOOOOOO0OO000OO .decode_contents (O0OO0OOO0O00O0O00 ,eventual_encoding ,formatter )#line:1600:)
+        if O0OOOOOOO0OO000OO .hidden :#line:1602:if self.hidden:
+            O000O0OOOO0O0O0OO =OOOOO0OOO00OOO0O0 #line:1604:s = contents
+        else :#line:1605:else:
+            O000O0OOOO0O0O0OO =[]#line:1606:s = []
+            OO000O0OO0OO0O0O0 =''#line:1607:attribute_string = ''
+            if OO0OOO00O0OO0O0OO :#line:1608:if attrs:
+                OO000O0OO0OO0O0O0 =' '+' '.join (OO0OOO00O0OO0O0OO )#line:1609:attribute_string = ' ' + ' '.join(attrs)
+            if indent_level is not None :#line:1610:if indent_level is not None:
+                O000O0OOOO0O0O0OO .append (OO00O0O0O000O0OOO )#line:1613:s.append(indent_space)
+            O000O0OOOO0O0O0OO .append ('<%s%s%s%s>'%(OO0000OO0OO00OO0O ,O0OOOOOOO0OO000OO .name ,OO000O0OO0OO0O0O0 ,OO00OO0OOOO0OO00O ))#line:1615:prefix, self.name, attribute_string, close))
+            if OOO0OOO000OO000OO :#line:1616:if pretty_print:
+                O000O0OOOO0O0O0OO .append ("\n")#line:1617:s.append("\n")
+            O000O0OOOO0O0O0OO .append (OOOOO0OOO00OOO0O0 )#line:1618:s.append(contents)
+            if OOO0OOO000OO000OO and OOOOO0OOO00OOO0O0 and OOOOO0OOO00OOO0O0 [-1 ]!="\n":#line:1619:if pretty_print and contents and contents[-1] != "\n":
+                O000O0OOOO0O0O0OO .append ("\n")#line:1620:s.append("\n")
+            if OOO0OOO000OO000OO and O0OO0O0O000OOO0O0 :#line:1621:if pretty_print and closeTag:
+                O000O0OOOO0O0O0OO .append (O0O000O0O000O0O0O )#line:1622:s.append(space)
+            O000O0OOOO0O0O0OO .append (O0OO0O0O000OOO0O0 )#line:1623:s.append(closeTag)
+            if indent_level is not None and O0OO0O0O000OOO0O0 and O0OOOOOOO0OO000OO .next_sibling :#line:1624:if indent_level is not None and closeTag and self.next_sibling:
+                O000O0OOOO0O0O0OO .append ("\n")#line:1628:s.append("\n")
+            O000O0OOOO0O0O0OO =''.join (O000O0OOOO0O0O0OO )#line:1629:s = ''.join(s)
+        return O000O0OOOO0O0O0OO #line:1630:return s
+    def _should_pretty_print (O00O0OOO0O0OO0OOO ,O0O0O00OOOOOO0000 ):#line:1632:def _should_pretty_print(self, indent_level):
+        ""#line:1637:"""
+        return (O0O0O00OOOOOO0000 is not None and (not O00O0OOO0O0OO0OOO .preserve_whitespace_tags or O00O0OOO0O0OO0OOO .name not in O00O0OOO0O0OO0OOO .preserve_whitespace_tags ))#line:1644:)
+    def prettify (O0OO00OOO0O0O0OO0 ,encoding =None ,formatter ="minimal"):#line:1646:def prettify(self, encoding=None, formatter="minimal"):
+        ""#line:1655:"""
+        if encoding is None :#line:1656:if encoding is None:
+            return O0OO00OOO0O0O0OO0 .decode (True ,formatter =formatter )#line:1657:return self.decode(True, formatter=formatter)
+        else :#line:1658:else:
+            return O0OO00OOO0O0O0OO0 .encode (encoding ,True ,formatter =formatter )#line:1659:return self.encode(encoding, True, formatter=formatter)
+    def decode_contents (OOO00OO0000O00O00 ,indent_level =None ,eventual_encoding =DEFAULT_OUTPUT_ENCODING ,formatter ="minimal"):#line:1663:formatter="minimal"):
+        ""#line:1679:"""
+        if not isinstance (formatter ,Formatter ):#line:1682:if not isinstance(formatter, Formatter):
+            formatter =OOO00OO0000O00O00 .formatter_for_name (formatter )#line:1683:formatter = self.formatter_for_name(formatter)
+        O00OO0O0OOOO00O0O =(indent_level is not None )#line:1685:pretty_print = (indent_level is not None)
+        OO0O00O00OOOOO0O0 =[]#line:1686:s = []
+        for O0OO0O0OOO00OO00O in OOO00OO0000O00O00 :#line:1687:for c in self:
+            OO0O00O00OO0OO0OO =None #line:1688:text = None
+            if isinstance (O0OO0O0OOO00OO00O ,NavigableString ):#line:1689:if isinstance(c, NavigableString):
+                OO0O00O00OO0OO0OO =O0OO0O0OOO00OO00O .output_ready (formatter )#line:1690:text = c.output_ready(formatter)
+            elif isinstance (O0OO0O0OOO00OO00O ,Tag ):#line:1691:elif isinstance(c, Tag):
+                OO0O00O00OOOOO0O0 .append (O0OO0O0OOO00OO00O .decode (indent_level ,eventual_encoding ,formatter ))#line:1693:formatter))
+            OOO0OOOO00OO000O0 =(OOO00OO0000O00O00 .preserve_whitespace_tags and OOO00OO0000O00O00 .name in OOO00OO0000O00O00 .preserve_whitespace_tags )#line:1696:)
+            if OO0O00O00OO0OO0OO and indent_level and not OOO0OOOO00OO000O0 :#line:1697:if text and indent_level and not preserve_whitespace:
+                OO0O00O00OO0OO0OO =OO0O00O00OO0OO0OO .strip ()#line:1698:text = text.strip()
+            if OO0O00O00OO0OO0OO :#line:1699:if text:
+                if O00OO0O0OOOO00O0O and not OOO0OOOO00OO000O0 :#line:1700:if pretty_print and not preserve_whitespace:
+                    OO0O00O00OOOOO0O0 .append (" "*(indent_level -1 ))#line:1701:s.append(" " * (indent_level - 1))
+                OO0O00O00OOOOO0O0 .append (OO0O00O00OO0OO0OO )#line:1702:s.append(text)
+                if O00OO0O0OOOO00O0O and not OOO0OOOO00OO000O0 :#line:1703:if pretty_print and not preserve_whitespace:
+                    OO0O00O00OOOOO0O0 .append ("\n")#line:1704:s.append("\n")
+        return ''.join (OO0O00O00OOOOO0O0 )#line:1705:return ''.join(s)
+    def encode_contents (O00OO0OOOO0O00OOO ,indent_level =None ,encoding =DEFAULT_OUTPUT_ENCODING ,formatter ="minimal"):#line:1709:formatter="minimal"):
+        ""#line:1722:"""
+        OO0OO0O0OO00O00O0 =O00OO0OOOO0O00OOO .decode_contents (indent_level ,encoding ,formatter )#line:1723:contents = self.decode_contents(indent_level, encoding, formatter)
+        return OO0OO0O0OO00O00O0 .encode (encoding )#line:1724:return contents.encode(encoding)
+    def renderContents (O00O00OO00OO00O0O ,encoding =DEFAULT_OUTPUT_ENCODING ,prettyPrint =False ,indentLevel =0 ):#line:1728:prettyPrint=False, indentLevel=0):
+        ""#line:1729:"""Deprecated method for BS3 compatibility."""
+        if not prettyPrint :#line:1730:if not prettyPrint:
+            indentLevel =None #line:1731:indentLevel = None
+        return O00O00OO00OO00O0O .encode_contents (indent_level =indentLevel ,encoding =encoding )#line:1733:indent_level=indentLevel, encoding=encoding)
+    def find (O0OO000O000O0O000 ,name =None ,attrs ={},recursive =True ,text =None ,**O00O0OO0000OO0O00 ):#line:1738:**kwargs):
+        ""#line:1754:"""
+        OO0O00O0OO00OOOOO =None #line:1755:r = None
+        O0O000OO0O0O000O0 =O0OO000O000O0O000 .find_all (name ,attrs ,recursive ,text ,1 ,**O00O0OO0000OO0O00 )#line:1756:l = self.find_all(name, attrs, recursive, text, 1, **kwargs)
+        if O0O000OO0O0O000O0 :#line:1757:if l:
+            OO0O00O0OO00OOOOO =O0O000OO0O0O000O0 [0 ]#line:1758:r = l[0]
+        return OO0O00O0OO00OOOOO #line:1759:return r
+    findChild =find #line:1760:findChild = find #BS2
+    def find_all (O00OO0OOO0OO0O0OO ,name =None ,attrs ={},recursive =True ,text =None ,limit =None ,**O0000OO0O0OO0O0O0 ):#line:1763:limit=None, **kwargs):
+        ""#line:1779:"""
+        O0OOO0O000OO0OOO0 =O00OO0OOO0OO0O0OO .descendants #line:1780:generator = self.descendants
+        if not recursive :#line:1781:if not recursive:
+            O0OOO0O000OO0OOO0 =O00OO0OOO0OO0O0OO .children #line:1782:generator = self.children
+        return O00OO0OOO0OO0O0OO ._find_all (name ,attrs ,text ,limit ,O0OOO0O000OO0OOO0 ,**O0000OO0O0OO0O0O0 )#line:1783:return self._find_all(name, attrs, text, limit, generator, **kwargs)
+    findAll =find_all #line:1784:findAll = find_all       # BS3
+    findChildren =find_all #line:1785:findChildren = find_all  # BS2
+    @property #line:1788:@property
+    def children (OOO0O00OO00O00O00 ):#line:1789:def children(self):
+        ""#line:1793:"""
+        return iter (OOO0O00OO00O00O00 .contents )#line:1795:return iter(self.contents)  # XXX This seems to be untested.
+    @property #line:1797:@property
+    def descendants (O0O0OO0OO0O0OO000 ):#line:1798:def descendants(self):
+        ""#line:1803:"""
+        if not len (O0O0OO0OO0O0OO000 .contents ):#line:1804:if not len(self.contents):
+            return #line:1805:return
+        O0OOOOO0O00000O00 =O0O0OO0OO0O0OO000 ._last_descendant ().next_element #line:1806:stopNode = self._last_descendant().next_element
+        OO0OOO0O00OOO00OO =O0O0OO0OO0O0OO000 .contents [0 ]#line:1807:current = self.contents[0]
+        while OO0OOO0O00OOO00OO is not O0OOOOO0O00000O00 :#line:1808:while current is not stopNode:
+            yield OO0OOO0O00OOO00OO #line:1809:yield current
+            OO0OOO0O00OOO00OO =OO0OOO0O00OOO00OO .next_element #line:1810:current = current.next_element
+    def select_one (O0O0OOO00OO0O0O00 ,OOOO0O0OO00OOO0O0 ,namespaces =None ,**OO000O000OOO0OOO0 ):#line:1813:def select_one(self, selector, namespaces=None, **kwargs):
+        ""#line:1828:"""
+        OO0O0000OOOOO00O0 =O0O0OOO00OO0O0O00 .select (OOOO0O0OO00OOO0O0 ,namespaces ,1 ,**OO000O000OOO0OOO0 )#line:1829:value = self.select(selector, namespaces, 1, **kwargs)
+        if OO0O0000OOOOO00O0 :#line:1830:if value:
+            return OO0O0000OOOOO00O0 [0 ]#line:1831:return value[0]
+        return None #line:1832:return None
+    def select (OO0O0O00O0O00OO0O ,OO00O0OO0OOOO0O0O ,namespaces =None ,limit =None ,**O00OO0O0OOOO0O00O ):#line:1834:def select(self, selector, namespaces=None, limit=None, **kwargs):
+        ""#line:1853:"""
+        if namespaces is None :#line:1854:if namespaces is None:
+            namespaces =OO0O0O00O0O00OO0O ._namespaces #line:1855:namespaces = self._namespaces
+        if limit is None :#line:1857:if limit is None:
+            limit =0 #line:1858:limit = 0
+        if soupsieve is None :#line:1859:if soupsieve is None:
+            raise NotImplementedError ("Cannot execute CSS selectors because the soupsieve package is not installed.")#line:1862:)
+        O0OO000OOO0OOO0O0 =soupsieve .select (OO00O0OO0OOOO0O0O ,OO0O0O00O0O00OO0O ,namespaces ,limit ,**O00OO0O0OOOO0O00O )#line:1864:results = soupsieve.select(selector, self, namespaces, limit, **kwargs)
+        return ResultSet (None ,O0OO000OOO0OOO0O0 )#line:1868:return ResultSet(None, results)
+    def childGenerator (O0OOO0O00OO00000O ):#line:1871:def childGenerator(self):
+        ""#line:1872:"""Deprecated generator."""
+        return O0OOO0O00OO00000O .children #line:1873:return self.children
+    def recursiveChildGenerator (O0O0OO00OO000O0OO ):#line:1875:def recursiveChildGenerator(self):
+        ""#line:1876:"""Deprecated generator."""
+        return O0O0OO00OO000O0OO .descendants #line:1877:return self.descendants
+    def has_key (OO0OO0O0O0OOO0O0O ,O0OO000000O0OO00O ):#line:1879:def has_key(self, key):
+        ""#line:1884:"""
+        warnings .warn ('has_key is deprecated. Use has_attr("%s") instead.'%(O0OO000000O0OO00O ))#line:1886:key))
+        return OO0OO0O0O0OOO0O0O .has_attr (O0OO000000O0OO00O )#line:1887:return self.has_attr(key)
+class SoupStrainer (object ):#line:1890:class SoupStrainer(object):
+    ""#line:1898:"""
+    def __init__ (O0OO0OO000OOOO0OO ,name =None ,attrs ={},text =None ,**O0O0O0OO0OOO0OOO0 ):#line:1900:def __init__(self, name=None, attrs={}, text=None, **kwargs):
+        ""#line:1911:"""
+        O0OO0OO000OOOO0OO .name =O0OO0OO000OOOO0OO ._normalize_search_value (name )#line:1912:self.name = self._normalize_search_value(name)
+        if not isinstance (attrs ,dict ):#line:1913:if not isinstance(attrs, dict):
+            O0O0O0OO0OOO0OOO0 ['class']=attrs #line:1916:kwargs['class'] = attrs
+            attrs =None #line:1917:attrs = None
+        if 'class_'in O0O0O0OO0OOO0OOO0 :#line:1919:if 'class_' in kwargs:
+            O0O0O0OO0OOO0OOO0 ['class']=O0O0O0OO0OOO0OOO0 ['class_']#line:1922:kwargs['class'] = kwargs['class_']
+            del O0O0O0OO0OOO0OOO0 ['class_']#line:1923:del kwargs['class_']
+        if O0O0O0OO0OOO0OOO0 :#line:1925:if kwargs:
+            if attrs :#line:1926:if attrs:
+                attrs =attrs .copy ()#line:1927:attrs = attrs.copy()
+                attrs .update (O0O0O0OO0OOO0OOO0 )#line:1928:attrs.update(kwargs)
+            else :#line:1929:else:
+                attrs =O0O0O0OO0OOO0OOO0 #line:1930:attrs = kwargs
+        O0O000OO0O000OO00 ={}#line:1931:normalized_attrs = {}
+        for O000O00O0000OO000 ,O0O00O000OO0OOO00 in list (attrs .items ()):#line:1932:for key, value in list(attrs.items()):
+            O0O000OO0O000OO00 [O000O00O0000OO000 ]=O0OO0OO000OOOO0OO ._normalize_search_value (O0O00O000OO0OOO00 )#line:1933:normalized_attrs[key] = self._normalize_search_value(value)
+        O0OO0OO000OOOO0OO .attrs =O0O000OO0O000OO00 #line:1935:self.attrs = normalized_attrs
+        O0OO0OO000OOOO0OO .text =O0OO0OO000OOOO0OO ._normalize_search_value (text )#line:1936:self.text = self._normalize_search_value(text)
+    def _normalize_search_value (O0O000O0O0O0OO0OO ,O0OO0O00O00O0O00O ):#line:1938:def _normalize_search_value(self, value):
+        if (isinstance (O0OO0O00O00O0O00O ,str )or isinstance (O0OO0O00O00O0O00O ,Callable )or hasattr (O0OO0O00O00O0O00O ,'match')or isinstance (O0OO0O00O00O0O00O ,bool )or O0OO0O00O00O0O00O is None ):#line:1942:or isinstance(value, bool) or value is None):
+            return O0OO0O00O00O0O00O #line:1943:return value
+        if isinstance (O0OO0O00O00O0O00O ,bytes ):#line:1946:if isinstance(value, bytes):
+            return O0OO0O00O00O0O00O .decode ("utf8")#line:1947:return value.decode("utf8")
+        if hasattr (O0OO0O00O00O0O00O ,'__iter__'):#line:1950:if hasattr(value, '__iter__'):
+            O000O0OOO00O0O00O =[]#line:1951:new_value = []
+            for OO0OOOO000O0OOO0O in O0OO0O00O00O0O00O :#line:1952:for v in value:
+                if (hasattr (OO0OOOO000O0OOO0O ,'__iter__')and not isinstance (OO0OOOO000O0OOO0O ,bytes )and not isinstance (OO0OOOO000O0OOO0O ,str )):#line:1954:and not isinstance(v, str)):
+                    O000O0OOO00O0O00O .append (OO0OOOO000O0OOO0O )#line:1958:new_value.append(v)
+                else :#line:1959:else:
+                    O000O0OOO00O0O00O .append (O0O000O0O0O0OO0OO ._normalize_search_value (OO0OOOO000O0OOO0O ))#line:1960:new_value.append(self._normalize_search_value(v))
+            return O000O0OOO00O0O00O #line:1961:return new_value
+        return str (str (O0OO0O00O00O0O00O ))#line:1966:return str(str(value))
+    def __str__ (O000000000OO00O0O ):#line:1968:def __str__(self):
+        ""#line:1969:"""A human-readable representation of this SoupStrainer."""
+        if O000000000OO00O0O .text :#line:1970:if self.text:
+            return O000000000OO00O0O .text #line:1971:return self.text
+        else :#line:1972:else:
+            return "%s|%s"%(O000000000OO00O0O .name ,O000000000OO00O0O .attrs )#line:1973:return "%s|%s" % (self.name, self.attrs)
+    def search_tag (OO00OOO00000000OO ,markup_name =None ,markup_attrs ={}):#line:1975:def search_tag(self, markup_name=None, markup_attrs={}):
+        ""#line:1987:"""
+        O00O000OO00OOOO00 =None #line:1988:found = None
+        OOO000O00O000OO00 =None #line:1989:markup = None
+        if isinstance (markup_name ,Tag ):#line:1990:if isinstance(markup_name, Tag):
+            OOO000O00O000OO00 =markup_name #line:1991:markup = markup_name
+            markup_attrs =OOO000O00O000OO00 #line:1992:markup_attrs = markup
+        OO000O0OOO00O0000 =(isinstance (OO00OOO00000000OO .name ,Callable )and not isinstance (markup_name ,Tag ))#line:1995:and not isinstance(markup_name, Tag))
+        if ((not OO00OOO00000000OO .name )or OO000O0OOO00O0000 or (OOO000O00O000OO00 and OO00OOO00000000OO ._matches (OOO000O00O000OO00 ,OO00OOO00000000OO .name ))or (not OOO000O00O000OO00 and OO00OOO00000000OO ._matches (markup_name ,OO00OOO00000000OO .name ))):#line:2000:or (not markup and self._matches(markup_name, self.name))):
+            if OO000O0OOO00O0000 :#line:2001:if call_function_with_tag_data:
+                O0OOO000OOO0OO000 =OO00OOO00000000OO .name (markup_name ,markup_attrs )#line:2002:match = self.name(markup_name, markup_attrs)
+            else :#line:2003:else:
+                O0OOO000OOO0OO000 =True #line:2004:match = True
+                OOO000O0OOO000OOO =None #line:2005:markup_attr_map = None
+                for O0000000O0OO0OO0O ,OOOO0OOOO0000000O in list (OO00OOO00000000OO .attrs .items ()):#line:2006:for attr, match_against in list(self.attrs.items()):
+                    if not OOO000O0OOO000OOO :#line:2007:if not markup_attr_map:
+                        if hasattr (markup_attrs ,'get'):#line:2008:if hasattr(markup_attrs, 'get'):
+                            OOO000O0OOO000OOO =markup_attrs #line:2009:markup_attr_map = markup_attrs
+                        else :#line:2010:else:
+                            OOO000O0OOO000OOO ={}#line:2011:markup_attr_map = {}
+                            for OOO0OOO000O0OOO00 ,OOOOOO000OO0O0000 in markup_attrs :#line:2012:for k, v in markup_attrs:
+                                OOO000O0OOO000OOO [OOO0OOO000O0OOO00 ]=OOOOOO000OO0O0000 #line:2013:markup_attr_map[k] = v
+                    O0OO000OOOOOO0O0O =OOO000O0OOO000OOO .get (O0000000O0OO0OO0O )#line:2014:attr_value = markup_attr_map.get(attr)
+                    if not OO00OOO00000000OO ._matches (O0OO000OOOOOO0O0O ,OOOO0OOOO0000000O ):#line:2015:if not self._matches(attr_value, match_against):
+                        O0OOO000OOO0OO000 =False #line:2016:match = False
+                        break #line:2017:break
+            if O0OOO000OOO0OO000 :#line:2018:if match:
+                if OOO000O00O000OO00 :#line:2019:if markup:
+                    O00O000OO00OOOO00 =OOO000O00O000OO00 #line:2020:found = markup
+                else :#line:2021:else:
+                    O00O000OO00OOOO00 =markup_name #line:2022:found = markup_name
+        if O00O000OO00OOOO00 and OO00OOO00000000OO .text and not OO00OOO00000000OO ._matches (O00O000OO00OOOO00 .string ,OO00OOO00000000OO .text ):#line:2023:if found and self.text and not self._matches(found.string, self.text):
+            O00O000OO00OOOO00 =None #line:2024:found = None
+        return O00O000OO00OOOO00 #line:2025:return found
+    searchTag =search_tag #line:2028:searchTag = search_tag
+    def search (OO0OO00O0O00OO000 ,O00O0OOOOOO0OO00O ):#line:2030:def search(self, markup):
+        ""#line:2037:"""
+        O00O0OO0000OO000O =None #line:2039:found = None
+        if hasattr (O00O0OOOOOO0OO00O ,'__iter__')and not isinstance (O00O0OOOOOO0OO00O ,(Tag ,str )):#line:2042:if hasattr(markup, '__iter__') and not isinstance(markup, (Tag, str)):
+            for O0O0OO0OO00OO0OOO in O00O0OOOOOO0OO00O :#line:2043:for element in markup:
+                if isinstance (O0O0OO0OO00OO0OOO ,NavigableString )and OO0OO00O0O00OO000 .search (O0O0OO0OO00OO0OOO ):#line:2045:and self.search(element):
+                    O00O0OO0000OO000O =O0O0OO0OO00OO0OOO #line:2046:found = element
+                    break #line:2047:break
+        elif isinstance (O00O0OOOOOO0OO00O ,Tag ):#line:2050:elif isinstance(markup, Tag):
+            if not OO0OO00O0O00OO000 .text or OO0OO00O0O00OO000 .name or OO0OO00O0O00OO000 .attrs :#line:2051:if not self.text or self.name or self.attrs:
+                O00O0OO0000OO000O =OO0OO00O0O00OO000 .search_tag (O00O0OOOOOO0OO00O )#line:2052:found = self.search_tag(markup)
+        elif isinstance (O00O0OOOOOO0OO00O ,NavigableString )or isinstance (O00O0OOOOOO0OO00O ,str ):#line:2055:isinstance(markup, str):
+            if not OO0OO00O0O00OO000 .name and not OO0OO00O0O00OO000 .attrs and OO0OO00O0O00OO000 ._matches (O00O0OOOOOO0OO00O ,OO0OO00O0O00OO000 .text ):#line:2056:if not self.name and not self.attrs and self._matches(markup, self.text):
+                O00O0OO0000OO000O =O00O0OOOOOO0OO00O #line:2057:found = markup
+        else :#line:2058:else:
+            raise Exception ("I don't know how to match against a %s"%O00O0OOOOOO0OO00O .__class__ )#line:2060:"I don't know how to match against a %s" % markup.__class__)
+        return O00O0OO0000OO000O #line:2061:return found
+    def _matches (OOOO00OOO00O0O0O0 ,OOO0OO0000000O000 ,OO0O0O000OO0OO00O ,already_tried =None ):#line:2063:def _matches(self, markup, match_against, already_tried=None):
+        O0O0000OO0O0OOO00 =False #line:2065:result = False
+        if isinstance (OOO0OO0000000O000 ,list )or isinstance (OOO0OO0000000O000 ,tuple ):#line:2066:if isinstance(markup, list) or isinstance(markup, tuple):
+            for OOO0O00OOO00OOOO0 in OOO0OO0000000O000 :#line:2069:for item in markup:
+                if OOOO00OOO00O0O0O0 ._matches (OOO0O00OOO00OOOO0 ,OO0O0O000OO0OO00O ):#line:2070:if self._matches(item, match_against):
+                    return True #line:2071:return True
+            if OOOO00OOO00O0O0O0 ._matches (' '.join (OOO0OO0000000O000 ),OO0O0O000OO0OO00O ):#line:2075:if self._matches(' '.join(markup), match_against):
+                return True #line:2076:return True
+            return False #line:2077:return False
+        if OO0O0O000OO0OO00O is True :#line:2079:if match_against is True:
+            return OOO0OO0000000O000 is not None #line:2081:return markup is not None
+        if isinstance (OO0O0O000OO0OO00O ,Callable ):#line:2083:if isinstance(match_against, Callable):
+            return OO0O0O000OO0OO00O (OOO0OO0000000O000 )#line:2084:return match_against(markup)
+        OOOOO0O000OOO00O0 =OOO0OO0000000O000 #line:2088:original_markup = markup
+        if isinstance (OOO0OO0000000O000 ,Tag ):#line:2089:if isinstance(markup, Tag):
+            OOO0OO0000000O000 =OOO0OO0000000O000 .name #line:2090:markup = markup.name
+        OOO0OO0000000O000 =OOOO00OOO00O0O0O0 ._normalize_search_value (OOO0OO0000000O000 )#line:2093:markup = self._normalize_search_value(markup)
+        if OOO0OO0000000O000 is None :#line:2095:if markup is None:
+            return not OO0O0O000OO0OO00O #line:2097:return not match_against
+        if (hasattr (OO0O0O000OO0OO00O ,'__iter__')and not isinstance (OO0O0O000OO0OO00O ,str )):#line:2100:and not isinstance(match_against, str)):
+            if not already_tried :#line:2107:if not already_tried:
+                already_tried =set ()#line:2108:already_tried = set()
+            for OOO0O00OOO00OOOO0 in OO0O0O000OO0OO00O :#line:2109:for item in match_against:
+                if OOO0O00OOO00OOOO0 .__hash__ :#line:2110:if item.__hash__:
+                    O0O0OO00O000OO000 =OOO0O00OOO00OOOO0 #line:2111:key = item
+                else :#line:2112:else:
+                    O0O0OO00O000OO000 =id (OOO0O00OOO00OOOO0 )#line:2113:key = id(item)
+                if O0O0OO00O000OO000 in already_tried :#line:2114:if key in already_tried:
+                    continue #line:2115:continue
+                else :#line:2116:else:
+                    already_tried .add (O0O0OO00O000OO000 )#line:2117:already_tried.add(key)
+                    if OOOO00OOO00O0O0O0 ._matches (OOOOO0O000OOO00O0 ,OOO0O00OOO00OOOO0 ,already_tried ):#line:2118:if self._matches(original_markup, item, already_tried):
+                        return True #line:2119:return True
+            else :#line:2120:else:
+                return False #line:2121:return False
+        OO0OOO0O0OO0OOOO0 =False #line:2125:match = False
+        if not OO0OOO0O0OO0OOOO0 and isinstance (OO0O0O000OO0OO00O ,str ):#line:2127:if not match and isinstance(match_against, str):
+            OO0OOO0O0OO0OOOO0 =OOO0OO0000000O000 ==OO0O0O000OO0OO00O #line:2129:match = markup == match_against
+        if not OO0OOO0O0OO0OOOO0 and hasattr (OO0O0O000OO0OO00O ,'search'):#line:2131:if not match and hasattr(match_against, 'search'):
+            return OO0O0O000OO0OO00O .search (OOO0OO0000000O000 )#line:2133:return match_against.search(markup)
+        if (not OO0OOO0O0OO0OOOO0 and isinstance (OOOOO0O000OOO00O0 ,Tag )and OOOOO0O000OOO00O0 .prefix ):#line:2137:and original_markup.prefix):
+            return OOOO00OOO00O0O0O0 ._matches (OOOOO0O000OOO00O0 .prefix +':'+OOOOO0O000OOO00O0 .name ,OO0O0O000OO0OO00O )#line:2141:)
+        return OO0OOO0O0OO0OOOO0 #line:2143:return match
+class ResultSet (list ):#line:2146:class ResultSet(list):
+    ""#line:2148:that created it."""
+    def __init__ (OOO00OO00OOO0000O ,O00OO00OOOOOO0O00 ,result =()):#line:2149:def __init__(self, source, result=()):
+        ""#line:2154:"""
+        super (ResultSet ,OOO00OO00OOO0000O ).__init__ (result )#line:2155:super(ResultSet, self).__init__(result)
+        OOO00OO00OOO0000O .source =O00OO00OOOOOO0O00 #line:2156:self.source = source
+    def __getattr__ (OOO000O00OOOO0OOO ,OO000OO0O0OOO00O0 ):#line:2158:def __getattr__(self, key):
+        ""#line:2159:"""Raise a helpful exception to explain a common code fix."""
+        raise AttributeError ("ResultSet object has no attribute '%s'. You're probably treating a list of elements like a single element. Did you call find_all() when you meant to call find()?"%OO000OO0O0OOO00O0 )#line:2162:)

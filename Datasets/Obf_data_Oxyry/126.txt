@@ -1,0 +1,172 @@
+""#line:1
+import copyreg #line:2
+from collections .abc import Hashable ,Mapping #line:3
+__all__ =('Selector','SelectorNull','SelectorTag','SelectorAttribute','SelectorContains','SelectorNth','SelectorLang','SelectorList','Namespaces','CustomSelectors')#line:16
+OOO0O000O0OOO0OO0 =0x1 #line:19
+O000000O0O0O00OOO =0x2 #line:20
+OO0OOOO0O0OO0OOOO =0x4 #line:21
+OOOOO0O0OO00O00O0 =0x8 #line:22
+O000O00OOOOO00OOO =0x10 #line:23
+OO00O00O000OOO0O0 =0x20 #line:24
+O0OO00O000OO000OO =0x40 #line:25
+OO0000O000000OOO0 =0x80 #line:26
+O0O000O000O0O0OO0 =0x100 #line:27
+OOOOO0O00O0OO0O00 =0x200 #line:28
+O0O00O000OO00OO00 =0x400 #line:29
+class O0O0O00OOOO00OOO0 (object ):#line:32
+    ""#line:33
+    __slots__ =('_hash',)#line:35
+    def __init__ (OO000O0O0OOO00OO0 ,**O0000O000OO0O000O ):#line:37
+        ""#line:38
+        OO00OO00O0O00O00O =[]#line:40
+        for O00OOO00000OOO000 ,O00O0O00O0000O0OO in O0000O000OO0O000O .items ():#line:41
+            OO00OO00O0O00O00O .append (type (O00O0O00O0000O0OO ))#line:42
+            OO00OO00O0O00O00O .append (O00O0O00O0000O0OO )#line:43
+            super (O0O0O00OOOO00OOO0 ,OO000O0O0OOO00OO0 ).__setattr__ (O00OOO00000OOO000 ,O00O0O00O0000O0OO )#line:44
+        super (O0O0O00OOOO00OOO0 ,OO000O0O0OOO00OO0 ).__setattr__ ('_hash',hash (tuple (OO00OO00O0O00O00O )))#line:45
+    @classmethod #line:47
+    def __base__ (O0OO0OO0OO00O00OO ):#line:48
+        ""#line:49
+        return O0OO0OO0OO00O00OO #line:51
+    def __eq__ (OO00OO00OO0OO00OO ,O00O00O0OOOOOOOOO ):#line:53
+        ""#line:54
+        return (isinstance (O00O00O0OOOOOOOOO ,OO00OO00OO0OO00OO .__base__ ())and all ([getattr (O00O00O0OOOOOOOOO ,O000000O0O0000O00 )==getattr (OO00OO00OO0OO00OO ,O000000O0O0000O00 )for O000000O0O0000O00 in OO00OO00OO0OO00OO .__slots__ if O000000O0O0000O00 !='_hash']))#line:59
+    def __ne__ (OOO00O0O00O000OOO ,OOO0OO000O00O00OO ):#line:61
+        ""#line:62
+        return (not isinstance (OOO0OO000O00O00OO ,OOO00O0O00O000OOO .__base__ ())or any ([getattr (OOO0OO000O00O00OO ,OOOO00O000000OO0O )!=getattr (OOO00O0O00O000OOO ,OOOO00O000000OO0O )for OOOO00O000000OO0O in OOO00O0O00O000OOO .__slots__ if OOOO00O000000OO0O !='_hash']))#line:67
+    def __hash__ (O00O00OO0O00O0OOO ):#line:69
+        ""#line:70
+        return O00O00OO0O00O0OOO ._hash #line:72
+    def __setattr__ (O0OO0O0O00OO0000O ,O0OO0O0O00000O0OO ,OOOOOO0O0O0O00OOO ):#line:74
+        ""#line:75
+        raise AttributeError ("'{}' is immutable".format (O0OO0O0O00OO0000O .__class__ .__name__ ))#line:77
+    def __repr__ (OO0OO0OO00O0000OO ):#line:79
+        ""#line:80
+        return "{}({})".format (OO0OO0OO00O0000OO .__base__ (),', '.join (["{}={!r}".format (OO0OO0OOO0O0OOOOO ,getattr (OO0OO0OO00O0000OO ,OO0OO0OOO0O0OOOOO ))for OO0OO0OOO0O0OOOOO in OO0OO0OO00O0000OO .__slots__ [:-1 ]]))#line:84
+    __str__ =__repr__ #line:86
+class O0OOO000O000O0OO0 (Mapping ):#line:89
+    ""#line:90
+    def __init__ (OOOO000O0O00OO0O0 ,*OOOOOO0000OO0O0OO ,**O00OOOOO000000000 ):#line:92
+        ""#line:93
+        OO000OO0O000000OO =OOOOOO0000OO0O0OO [0 ]if OOOOOO0000OO0O0OO else O00OOOOO000000000 #line:95
+        O0OO00O0O0OOO0OOO =isinstance (OO000OO0O000000OO ,dict )#line:96
+        if (O0OO00O0O0OOO0OOO and not all ([isinstance (OOOOOO0OO00O0OO00 ,Hashable )for OOOOOO0OO00O0OO00 in OO000OO0O000000OO .values ()])or not O0OO00O0O0OOO0OOO and not all ([isinstance (OOO00OOOOOOOOO0OO ,Hashable )and isinstance (O0O000O00O0OOO00O ,Hashable )for OOO00OOOOOOOOO0OO ,O0O000O00O0OOO00O in OO000OO0O000000OO ])):#line:100
+            raise TypeError ('All values must be hashable')#line:101
+        OOOO000O0O00OO0O0 ._d =dict (*OOOOOO0000OO0O0OO ,**O00OOOOO000000000 )#line:103
+        OOOO000O0O00OO0O0 ._hash =hash (tuple ([(type (O00OO0OO000000O0O ),O00OO0OO000000O0O ,type (O0OOOO000O00O0000 ),O0OOOO000O00O0000 )for O00OO0OO000000O0O ,O0OOOO000O00O0000 in sorted (OOOO000O0O00OO0O0 ._d .items ())]))#line:104
+    def __iter__ (O0OOOO0O00OO00OOO ):#line:106
+        ""#line:107
+        return iter (O0OOOO0O00OO00OOO ._d )#line:109
+    def __len__ (OO000O0000OOOO00O ):#line:111
+        ""#line:112
+        return len (OO000O0000OOOO00O ._d )#line:114
+    def __getitem__ (OOO0O0OO0OO0OOOOO ,OOO00OOO00O000O00 ):#line:116
+        ""#line:117
+        return OOO0O0OO0OO0OOOOO ._d [OOO00OOO00O000O00 ]#line:118
+    def __hash__ (OOO0000O00OOO00O0 ):#line:120
+        ""#line:121
+        return OOO0000O00OOO00O0 ._hash #line:123
+    def __repr__ (O0000O0OO0O0O0O00 ):#line:125
+        ""#line:126
+        return "{!r}".format (O0000O0OO0O0O0O00 ._d )#line:128
+    __str__ =__repr__ #line:130
+class Namespaces (O0OOO000O000O0OO0 ):#line:133
+    ""#line:134
+    def __init__ (OO0O0OOO000OOO000 ,*OO0O0OOO0OOOO0000 ,**OO0O00OOO0O000000 ):#line:136
+        ""#line:137
+        O0000OOOO000OOO00 =OO0O0OOO0OOOO0000 [0 ]if OO0O0OOO0OOOO0000 else OO0O00OOO0O000000 #line:142
+        O0O0OOO0O00OO000O =isinstance (O0000OOOO000OOO00 ,dict )#line:143
+        if O0O0OOO0O00OO000O and not all ([isinstance (O0OOOOO0000O0O000 ,str )and isinstance (OOOOOO00000O0O0O0 ,str )for O0OOOOO0000O0O000 ,OOOOOO00000O0O0O0 in O0000OOOO000OOO00 .items ()]):#line:144
+            raise TypeError ('Namespace keys and values must be Unicode strings')#line:145
+        elif not O0O0OOO0O00OO000O and not all ([isinstance (O0OOO000OO0OOO0O0 ,str )and isinstance (OO00O00OO00000OOO ,str )for O0OOO000OO0OOO0O0 ,OO00O00OO00000OOO in O0000OOOO000OOO00 ]):#line:146
+            raise TypeError ('Namespace keys and values must be Unicode strings')#line:147
+        super (Namespaces ,OO0O0OOO000OOO000 ).__init__ (*OO0O0OOO0OOOO0000 ,**OO0O00OOO0O000000 )#line:149
+class CustomSelectors (O0OOO000O000O0OO0 ):#line:152
+    ""#line:153
+    def __init__ (O0O00OO000000OO0O ,*OO00O0OOO0OO0OOOO ,**O0OO0OOOO00OOO0OO ):#line:155
+        ""#line:156
+        OO000OO0OO0OO0O00 =OO00O0OOO0OO0OOOO [0 ]if OO00O0OOO0OO0OOOO else O0OO0OOOO00OOO0OO #line:161
+        OOO00O0O000000OO0 =isinstance (OO000OO0OO0OO0O00 ,dict )#line:162
+        if OOO00O0O000000OO0 and not all ([isinstance (OOO00O000O0O000O0 ,str )and isinstance (O0O00OO0O0OO00000 ,str )for OOO00O000O0O000O0 ,O0O00OO0O0OO00000 in OO000OO0OO0OO0O00 .items ()]):#line:163
+            raise TypeError ('CustomSelectors keys and values must be Unicode strings')#line:164
+        elif not OOO00O0O000000OO0 and not all ([isinstance (O00000OOOO00O000O ,str )and isinstance (OOO0O0O0OO00OOOOO ,str )for O00000OOOO00O000O ,OOO0O0O0OO00OOOOO in OO000OO0OO0OO0O00 ]):#line:165
+            raise TypeError ('CustomSelectors keys and values must be Unicode strings')#line:166
+        super (CustomSelectors ,O0O00OO000000OO0O ).__init__ (*OO00O0OOO0OO0OOOO ,**O0OO0OOOO00OOO0OO )#line:168
+class Selector (O0O0O00OOOO00OOO0 ):#line:171
+    ""#line:172
+    __slots__ =('tag','ids','classes','attributes','nth','selectors','relation','rel_type','contains','lang','flags','_hash')#line:177
+    def __init__ (O0000O000O00000OO ,O0O00000OOOO00OOO ,OOOOO0O0OO0OO000O ,O0OO0O0OO0O00O000 ,O0OOOOO00O0OO00O0 ,OO0OOOOO00O000000 ,OOO0O000O00O0O0O0 ,O0000O00OOOOOOOOO ,O0O00OOO00O0O00O0 ,O00O000OOO00OO0O0 ,OO0OOO00O0OOOO000 ,OO00O00OOO0OOOOO0 ):#line:182
+        ""#line:183
+        super (Selector ,O0000O000O00000OO ).__init__ (tag =O0O00000OOOO00OOO ,ids =OOOOO0O0OO0OO000O ,classes =O0OO0O0OO0O00O000 ,attributes =O0OOOOO00O0OO00O0 ,nth =OO0OOOOO00O000000 ,selectors =OOO0O000O00O0O0O0 ,relation =O0000O00OOOOOOOOO ,rel_type =O0O00OOO00O0O00O0 ,contains =O00O000OOO00OO0O0 ,lang =OO0OOO00O0OOOO000 ,flags =OO00O00OOO0OOOOO0 )#line:197
+class SelectorNull (O0O0O00OOOO00OOO0 ):#line:200
+    ""#line:201
+    def __init__ (OOOO00OOO00OOO00O ):#line:203
+        ""#line:204
+        super (SelectorNull ,OOOO00OOO00OOO00O ).__init__ ()#line:206
+class SelectorTag (O0O0O00OOOO00OOO0 ):#line:209
+    ""#line:210
+    __slots__ =("name","prefix","_hash")#line:212
+    def __init__ (O00O000O00O0000O0 ,OO0O0O0000OO00OO0 ,OOO0O00O0OOO00000 ):#line:214
+        ""#line:215
+        super (SelectorTag ,O00O000O00O0000O0 ).__init__ (name =OO0O0O0000OO00OO0 ,prefix =OOO0O00O0OOO00000 )#line:220
+class SelectorAttribute (O0O0O00OOOO00OOO0 ):#line:223
+    ""#line:224
+    __slots__ =("attribute","prefix","pattern","xml_type_pattern","_hash")#line:226
+    def __init__ (OOO0OO00OOO0O0O00 ,OO000O00O00OO0O0O ,O0O00O0OO000OO000 ,OO000O000000O0OOO ,O00O0O0O00O0OO000 ):#line:228
+        ""#line:229
+        super (SelectorAttribute ,OOO0OO00OOO0O0O00 ).__init__ (attribute =OO000O00O00OO0O0O ,prefix =O0O00O0OO000OO000 ,pattern =OO000O000000O0OOO ,xml_type_pattern =O00O0O0O00O0OO000 )#line:236
+class SelectorContains (O0O0O00OOOO00OOO0 ):#line:239
+    ""#line:240
+    __slots__ =("text","_hash")#line:242
+    def __init__ (O00O00O000O0OO000 ,OOOO0000OOO000OO0 ):#line:244
+        ""#line:245
+        super (SelectorContains ,O00O00O000O0OO000 ).__init__ (text =OOOO0000OOO000OO0 )#line:249
+class SelectorNth (O0O0O00OOOO00OOO0 ):#line:252
+    ""#line:253
+    __slots__ =("a","n","b","of_type","last","selectors","_hash")#line:255
+    def __init__ (OO00OO0O00O0O0O0O ,O0O0OOO000OO00OOO ,OOO0O000000OOO0OO ,O00O0O0O00O0O0O0O ,O000OOOOO0OOOOOOO ,OO0O0000OO0O00000 ,OO00OO0OOOO0O00O0 ):#line:257
+        ""#line:258
+        super (SelectorNth ,OO00OO0O00O0O0O0O ).__init__ (a =O0O0OOO000OO00OOO ,n =OOO0O000000OOO0OO ,b =O00O0O0O00O0O0O0O ,of_type =O000OOOOO0OOOOOOO ,last =OO0O0000OO0O00000 ,selectors =OO00OO0OOOO0O00O0 )#line:267
+class SelectorLang (O0O0O00OOOO00OOO0 ):#line:270
+    ""#line:271
+    __slots__ =("languages","_hash",)#line:273
+    def __init__ (OOO0OOOO0O00O0000 ,OOOOO0OOO000OO00O ):#line:275
+        ""#line:276
+        super (SelectorLang ,OOO0OOOO0O00O0000 ).__init__ (languages =tuple (OOOOO0OOO000OO00O ))#line:280
+    def __iter__ (OO0OOO0OO000OOOO0 ):#line:282
+        ""#line:283
+        return iter (OO0OOO0OO000OOOO0 .languages )#line:285
+    def __len__ (O0OO00OO00OOO0O00 ):#line:287
+        ""#line:288
+        return len (O0OO00OO00OOO0O00 .languages )#line:290
+    def __getitem__ (O00O0OO00O00000O0 ,OO0OO00O000000O0O ):#line:292
+        ""#line:293
+        return O00O0OO00O00000O0 .languages [OO0OO00O000000O0O ]#line:295
+class SelectorList (O0O0O00OOOO00OOO0 ):#line:298
+    ""#line:299
+    __slots__ =("selectors","is_not","is_html","_hash")#line:301
+    def __init__ (OO00O0O0000O00O0O ,selectors =tuple (),is_not =False ,is_html =False ):#line:303
+        ""#line:304
+        super (SelectorList ,OO00O0O0000O00O0O ).__init__ (selectors =tuple (selectors ),is_not =is_not ,is_html =is_html )#line:310
+    def __iter__ (O0O0OO00000O00000 ):#line:312
+        ""#line:313
+        return iter (O0O0OO00000O00000 .selectors )#line:315
+    def __len__ (OOO0OOOOO0OOOO00O ):#line:317
+        ""#line:318
+        return len (OOO0OOOOO0OOOO00O .selectors )#line:320
+    def __getitem__ (O0O0OO0O0OO0OO00O ,O0O0000OO000O0O00 ):#line:322
+        ""#line:323
+        return O0O0OO0O0OO0OO00O .selectors [O0O0000OO000O0O00 ]#line:325
+def _O0OOOO00OOOOO0O0O (OOOOO00OOO00000OO ):#line:328
+    return OOOOO00OOO00000OO .__base__ (),tuple ([getattr (OOOOO00OOO00000OO ,OOO0OOO0O0OO0OOOO )for OOO0OOO0O0OO0OOOO in OOOOO00OOO00000OO .__slots__ [:-1 ]])#line:329
+def O0OOO0O0000O000O0 (OOO000OO000OO00O0 ):#line:332
+    ""#line:333
+    copyreg .pickle (OOO000OO000OO00O0 ,_O0OOOO00OOOOO0O0O )#line:335
+O0OOO0O0000O000O0 (Selector )#line:338
+O0OOO0O0000O000O0 (SelectorNull )#line:339
+O0OOO0O0000O000O0 (SelectorTag )#line:340
+O0OOO0O0000O000O0 (SelectorAttribute )#line:341
+O0OOO0O0000O000O0 (SelectorContains )#line:342
+O0OOO0O0000O000O0 (SelectorNth )#line:343
+O0OOO0O0000O000O0 (SelectorLang )#line:344
+O0OOO0O0000O000O0 (SelectorList )#line:345

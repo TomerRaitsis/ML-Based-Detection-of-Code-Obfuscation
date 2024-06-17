@@ -1,0 +1,138 @@
+import re #line:2
+import sys #line:3
+import os #line:4
+from .ansi import AnsiFore ,AnsiBack ,AnsiStyle ,Style #line:6
+from .winterm import WinTerm ,WinColor ,WinStyle #line:7
+from .win32 import windll ,winapi_test #line:8
+winterm =None #line:11
+if windll is not None :#line:12
+    winterm =WinTerm ()#line:13
+class StreamWrapper (object ):#line:16
+    ""#line:21
+    def __init__ (O00000O00O000O0O0 ,OO0O0O0O0OO0000OO ,OOO000O000000000O ):#line:22
+        O00000O00O000O0O0 .__O000000000O0OO0O0 =OO0O0O0O0OO0000OO #line:25
+        O00000O00O000O0O0 .__OOO0OOOO0OO0OOO00 =OOO000O000000000O #line:26
+    def __getattr__ (O0O00OOO000OOOOO0 ,O0OOOO0000O0OO0O0 ):#line:28
+        return getattr (O0O00OOO000OOOOO0 .__O000000000O0OO0O0 ,O0OOOO0000O0OO0O0 )#line:29
+    def __enter__ (O000OO0O0OOO0O0OO ,*O00O0OOO0OO00OOO0 ,**OOOO000OOO0OOOO00 ):#line:31
+        return O000OO0O0OOO0O0OO .__O000000000O0OO0O0 .__enter__ (*O00O0OOO0OO00OOO0 ,**OOOO000OOO0OOOO00 )#line:35
+    def __exit__ (OO00OOO0O0O0O0OO0 ,*OOOOO0OO0OO00OO0O ,**OO00OOOO000OO0OO0 ):#line:37
+        return OO00OOO0O0O0O0OO0 .__O000000000O0OO0O0 .__exit__ (*OOOOO0OO0OO00OO0O ,**OO00OOOO000OO0OO0 )#line:38
+    def write (O0OO0O000O000OOO0 ,OOO0OOO0O00OOO000 ):#line:40
+        O0OO0O000O000OOO0 .__OOO0OOOO0OO0OOO00 .write (OOO0OOO0O00OOO000 )#line:41
+    def isatty (O00O0O00OOO000000 ):#line:43
+        OO00OO0O00O00000O =O00O0O00OOO000000 .__O000000000O0OO0O0 #line:44
+        if 'PYCHARM_HOSTED'in os .environ :#line:45
+            if OO00OO0O00O00000O is not None and (OO00OO0O00O00000O is sys .__stdout__ or OO00OO0O00O00000O is sys .__stderr__ ):#line:46
+                return True #line:47
+        try :#line:48
+            OOO0000O00O00OO0O =OO00OO0O00O00000O .isatty #line:49
+        except AttributeError :#line:50
+            return False #line:51
+        else :#line:52
+            return OOO0000O00O00OO0O ()#line:53
+    @property #line:55
+    def closed (O0OO0O000O00000OO ):#line:56
+        OOOOO0OO0OOO000O0 =O0OO0O000O00000OO .__O000000000O0OO0O0 #line:57
+        try :#line:58
+            return OOOOO0OO0OOO000O0 .closed #line:59
+        except AttributeError :#line:60
+            return True #line:61
+class AnsiToWin32 (object ):#line:64
+    ""#line:69
+    ANSI_CSI_RE =re .compile ('\001?\033\\[((?:\\d|;)*)([a-zA-Z])\002?')#line:70
+    ANSI_OSC_RE =re .compile ('\001?\033\\]((?:.|;)*?)(\x07)\002?')#line:71
+    def __init__ (O0O0OO0O00OO0O00O ,OO0OO0OO000OO000O ,convert =None ,strip =None ,autoreset =False ):#line:73
+        O0O0OO0O00OO0O00O .wrapped =OO0OO0OO000OO000O #line:75
+        O0O0OO0O00OO0O00O .autoreset =autoreset #line:78
+        O0O0OO0O00OO0O00O .stream =StreamWrapper (OO0OO0OO000OO000O ,O0O0OO0O00OO0O00O )#line:81
+        O000O0OOO00O000O0 =os .name =='nt'#line:83
+        O000O000O00OOO000 =O000O0OOO00O000O0 and winapi_test ()#line:88
+        if strip is None :#line:91
+            strip =O000O000O00OOO000 or (not O0O0OO0O00OO0O00O .stream .closed and not O0O0OO0O00OO0O00O .stream .isatty ())#line:92
+        O0O0OO0O00OO0O00O .strip =strip #line:93
+        if convert is None :#line:96
+            convert =O000O000O00OOO000 and not O0O0OO0O00OO0O00O .stream .closed and O0O0OO0O00OO0O00O .stream .isatty ()#line:97
+        O0O0OO0O00OO0O00O .convert =convert #line:98
+        O0O0OO0O00OO0O00O .win32_calls =O0O0OO0O00OO0O00O .get_win32_calls ()#line:101
+        O0O0OO0O00OO0O00O .on_stderr =O0O0OO0O00OO0O00O .wrapped is sys .stderr #line:104
+    def should_wrap (OO000O0OO0000OO00 ):#line:106
+        ""#line:113
+        return OO000O0OO0000OO00 .convert or OO000O0OO0000OO00 .strip or OO000O0OO0000OO00 .autoreset #line:114
+    def get_win32_calls (OO0OO0OOO0O0OOOO0 ):#line:116
+        if OO0OO0OOO0O0OOOO0 .convert and winterm :#line:117
+            return {AnsiStyle .RESET_ALL :(winterm .reset_all ,),AnsiStyle .BRIGHT :(winterm .style ,WinStyle .BRIGHT ),AnsiStyle .DIM :(winterm .style ,WinStyle .NORMAL ),AnsiStyle .NORMAL :(winterm .style ,WinStyle .NORMAL ),AnsiFore .BLACK :(winterm .fore ,WinColor .BLACK ),AnsiFore .RED :(winterm .fore ,WinColor .RED ),AnsiFore .GREEN :(winterm .fore ,WinColor .GREEN ),AnsiFore .YELLOW :(winterm .fore ,WinColor .YELLOW ),AnsiFore .BLUE :(winterm .fore ,WinColor .BLUE ),AnsiFore .MAGENTA :(winterm .fore ,WinColor .MAGENTA ),AnsiFore .CYAN :(winterm .fore ,WinColor .CYAN ),AnsiFore .WHITE :(winterm .fore ,WinColor .GREY ),AnsiFore .RESET :(winterm .fore ,),AnsiFore .LIGHTBLACK_EX :(winterm .fore ,WinColor .BLACK ,True ),AnsiFore .LIGHTRED_EX :(winterm .fore ,WinColor .RED ,True ),AnsiFore .LIGHTGREEN_EX :(winterm .fore ,WinColor .GREEN ,True ),AnsiFore .LIGHTYELLOW_EX :(winterm .fore ,WinColor .YELLOW ,True ),AnsiFore .LIGHTBLUE_EX :(winterm .fore ,WinColor .BLUE ,True ),AnsiFore .LIGHTMAGENTA_EX :(winterm .fore ,WinColor .MAGENTA ,True ),AnsiFore .LIGHTCYAN_EX :(winterm .fore ,WinColor .CYAN ,True ),AnsiFore .LIGHTWHITE_EX :(winterm .fore ,WinColor .GREY ,True ),AnsiBack .BLACK :(winterm .back ,WinColor .BLACK ),AnsiBack .RED :(winterm .back ,WinColor .RED ),AnsiBack .GREEN :(winterm .back ,WinColor .GREEN ),AnsiBack .YELLOW :(winterm .back ,WinColor .YELLOW ),AnsiBack .BLUE :(winterm .back ,WinColor .BLUE ),AnsiBack .MAGENTA :(winterm .back ,WinColor .MAGENTA ),AnsiBack .CYAN :(winterm .back ,WinColor .CYAN ),AnsiBack .WHITE :(winterm .back ,WinColor .GREY ),AnsiBack .RESET :(winterm .back ,),AnsiBack .LIGHTBLACK_EX :(winterm .back ,WinColor .BLACK ,True ),AnsiBack .LIGHTRED_EX :(winterm .back ,WinColor .RED ,True ),AnsiBack .LIGHTGREEN_EX :(winterm .back ,WinColor .GREEN ,True ),AnsiBack .LIGHTYELLOW_EX :(winterm .back ,WinColor .YELLOW ,True ),AnsiBack .LIGHTBLUE_EX :(winterm .back ,WinColor .BLUE ,True ),AnsiBack .LIGHTMAGENTA_EX :(winterm .back ,WinColor .MAGENTA ,True ),AnsiBack .LIGHTCYAN_EX :(winterm .back ,WinColor .CYAN ,True ),AnsiBack .LIGHTWHITE_EX :(winterm .back ,WinColor .GREY ,True ),}#line:157
+        return dict ()#line:158
+    def write (O00OOOO0OO00OO00O ,O0OOOOOO000OO00O0 ):#line:160
+        if O00OOOO0OO00OO00O .strip or O00OOOO0OO00OO00O .convert :#line:161
+            O00OOOO0OO00OO00O .write_and_convert (O0OOOOOO000OO00O0 )#line:162
+        else :#line:163
+            O00OOOO0OO00OO00O .wrapped .write (O0OOOOOO000OO00O0 )#line:164
+            O00OOOO0OO00OO00O .wrapped .flush ()#line:165
+        if O00OOOO0OO00OO00O .autoreset :#line:166
+            O00OOOO0OO00OO00O .reset_all ()#line:167
+    def reset_all (OOO0000O0OOO000OO ):#line:170
+        if OOO0000O0OOO000OO .convert :#line:171
+            OOO0000O0OOO000OO .call_win32 ('m',(0 ,))#line:172
+        elif not OOO0000O0OOO000OO .strip and not OOO0000O0OOO000OO .stream .closed :#line:173
+            OOO0000O0OOO000OO .wrapped .write (Style .RESET_ALL )#line:174
+    def write_and_convert (OOOOO00OO00OOO00O ,O00OO00O0O000OO0O ):#line:177
+        ""#line:182
+        O0OOO00000O00OOO0 =0 #line:183
+        O00OO00O0O000OO0O =OOOOO00OO00OOO00O .convert_osc (O00OO00O0O000OO0O )#line:184
+        for O00O0O0OOOOO0O00O in OOOOO00OO00OOO00O .ANSI_CSI_RE .finditer (O00OO00O0O000OO0O ):#line:185
+            O000O00OO0OOOO00O ,O00O0O0O0O00OO00O =O00O0O0OOOOO0O00O .span ()#line:186
+            OOOOO00OO00OOO00O .write_plain_text (O00OO00O0O000OO0O ,O0OOO00000O00OOO0 ,O000O00OO0OOOO00O )#line:187
+            OOOOO00OO00OOO00O .convert_ansi (*O00O0O0OOOOO0O00O .groups ())#line:188
+            O0OOO00000O00OOO0 =O00O0O0O0O00OO00O #line:189
+        OOOOO00OO00OOO00O .write_plain_text (O00OO00O0O000OO0O ,O0OOO00000O00OOO0 ,len (O00OO00O0O000OO0O ))#line:190
+    def write_plain_text (O0O0O0OOOO0OO0OOO ,O0O0OOOOO0O00OOOO ,OO0O00OOO0OO0O0O0 ,OOOOOOO000O0O0OO0 ):#line:193
+        if OO0O00OOO0OO0O0O0 <OOOOOOO000O0O0OO0 :#line:194
+            O0O0O0OOOO0OO0OOO .wrapped .write (O0O0OOOOO0O00OOOO [OO0O00OOO0OO0O0O0 :OOOOOOO000O0O0OO0 ])#line:195
+            O0O0O0OOOO0OO0OOO .wrapped .flush ()#line:196
+    def convert_ansi (O00O0OOOO000O0000 ,OO0O0OO0OOOO0OOO0 ,O00OO0OOOOOOO00O0 ):#line:199
+        if O00O0OOOO000O0000 .convert :#line:200
+            OO0O00O00OO0OO0O0 =O00O0OOOO000O0000 .extract_params (O00OO0OOOOOOO00O0 ,OO0O0OO0OOOO0OOO0 )#line:201
+            O00O0OOOO000O0000 .call_win32 (O00OO0OOOOOOO00O0 ,OO0O00O00OO0OO0O0 )#line:202
+    def extract_params (O0O0000O00OOOO00O ,O0OOO000000OOOOO0 ,O0OOOO0O000OOO0O0 ):#line:205
+        if O0OOO000000OOOOO0 in 'Hf':#line:206
+            O0O0000000OOOOO0O =tuple (int (O00O00O000O0O0000 )if len (O00O00O000O0O0000 )!=0 else 1 for O00O00O000O0O0000 in O0OOOO0O000OOO0O0 .split (';'))#line:207
+            while len (O0O0000000OOOOO0O )<2 :#line:208
+                O0O0000000OOOOO0O =O0O0000000OOOOO0O +(1 ,)#line:210
+        else :#line:211
+            O0O0000000OOOOO0O =tuple (int (OO000O00OOOOO0O0O )for OO000O00OOOOO0O0O in O0OOOO0O000OOO0O0 .split (';')if len (OO000O00OOOOO0O0O )!=0 )#line:212
+            if len (O0O0000000OOOOO0O )==0 :#line:213
+                if O0OOO000000OOOOO0 in 'JKm':#line:215
+                    O0O0000000OOOOO0O =(0 ,)#line:216
+                elif O0OOO000000OOOOO0 in 'ABCD':#line:217
+                    O0O0000000OOOOO0O =(1 ,)#line:218
+        return O0O0000000OOOOO0O #line:220
+    def call_win32 (OO0OO00OOOOOO000O ,O0OOOOO0OOOOO000O ,O000OOOO00000O000 ):#line:223
+        if O0OOOOO0OOOOO000O =='m':#line:224
+            for OOO0000O0O000OO0O in O000OOOO00000O000 :#line:225
+                if OOO0000O0O000OO0O in OO0OO00OOOOOO000O .win32_calls :#line:226
+                    O0000O00OO0O0OOO0 =OO0OO00OOOOOO000O .win32_calls [OOO0000O0O000OO0O ]#line:227
+                    O00OOO0OOOOO0OO0O =O0000O00OO0O0OOO0 [0 ]#line:228
+                    O0OO0OO0000O000O0 =O0000O00OO0O0OOO0 [1 :]#line:229
+                    O000O0O0O00OO0OOO =dict (on_stderr =OO0OO00OOOOOO000O .on_stderr )#line:230
+                    O00OOO0OOOOO0OO0O (*O0OO0OO0000O000O0 ,**O000O0O0O00OO0OOO )#line:231
+        elif O0OOOOO0OOOOO000O in 'J':#line:232
+            winterm .erase_screen (O000OOOO00000O000 [0 ],on_stderr =OO0OO00OOOOOO000O .on_stderr )#line:233
+        elif O0OOOOO0OOOOO000O in 'K':#line:234
+            winterm .erase_line (O000OOOO00000O000 [0 ],on_stderr =OO0OO00OOOOOO000O .on_stderr )#line:235
+        elif O0OOOOO0OOOOO000O in 'Hf':#line:236
+            winterm .set_cursor_position (O000OOOO00000O000 ,on_stderr =OO0OO00OOOOOO000O .on_stderr )#line:237
+        elif O0OOOOO0OOOOO000O in 'ABCD':#line:238
+            O0OOO00000OO00OO0 =O000OOOO00000O000 [0 ]#line:239
+            O00O00OO0O0000OOO ,OOO0O0OO00O000OOO ={'A':(0 ,-O0OOO00000OO00OO0 ),'B':(0 ,O0OOO00000OO00OO0 ),'C':(O0OOO00000OO00OO0 ,0 ),'D':(-O0OOO00000OO00OO0 ,0 )}[O0OOOOO0OOOOO000O ]#line:241
+            winterm .cursor_adjust (O00O00OO0O0000OOO ,OOO0O0OO00O000OOO ,on_stderr =OO0OO00OOOOOO000O .on_stderr )#line:242
+    def convert_osc (O0O0000O00OOO000O ,OOO0OOOO00O0OOO0O ):#line:245
+        for O00O00O0O0OO0O000 in O0O0000O00OOO000O .ANSI_OSC_RE .finditer (OOO0OOOO00O0OOO0O ):#line:246
+            O00O0O00OO0O0OO00 ,O0O00O00O0000OOOO =O00O00O0O0OO0O000 .span ()#line:247
+            OOO0OOOO00O0OOO0O =OOO0OOOO00O0OOO0O [:O00O0O00OO0O0OO00 ]+OOO0OOOO00O0OOO0O [O0O00O00O0000OOOO :]#line:248
+            O0000O0O0000O00O0 ,O0000OOO0O00OO0OO =O00O00O0O0OO0O000 .groups ()#line:249
+            if O0000OOO0O00OO0OO in '\x07':#line:250
+                OOO00O0OO0O00OOO0 =O0000O0O0000O00O0 .split (";")#line:251
+                if OOO00O0OO0O00OOO0 [0 ]in '02':#line:255
+                    winterm .set_title (OOO00O0OO0O00OOO0 [1 ])#line:256
+        return OOO0OOOO00O0OOO0O #line:257

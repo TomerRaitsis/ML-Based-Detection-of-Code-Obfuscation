@@ -1,0 +1,121 @@
+from __future__ import absolute_import #line:1
+import collections #line:3
+import logging #line:4
+import os #line:5
+import re #line:6
+from pip ._vendor import six #line:8
+from pip ._vendor .packaging .utils import canonicalize_name #line:9
+from pip ._vendor .pkg_resources import RequirementParseError #line:10
+from pip ._internal .exceptions import BadCommand ,InstallationError #line:12
+from pip ._internal .req .constructors import (install_req_from_editable ,install_req_from_line ,)#line:15
+from pip ._internal .req .req_file import COMMENT_RE #line:16
+from pip ._internal .utils .misc import (dist_is_editable ,get_installed_distributions ,)#line:19
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:20
+if MYPY_CHECK_RUNNING :#line:22
+    from typing import (Iterator ,Optional ,List ,Container ,Set ,Dict ,Tuple ,Iterable ,Union )#line:25
+    from pip ._internal .cache import WheelCache #line:26
+    from pip ._vendor .pkg_resources import (Distribution ,Requirement )#line:29
+    RequirementInfo =Tuple [Optional [Union [str ,Requirement ]],bool ,List [str ]]#line:31
+logger =logging .getLogger (__name__ )#line:34
+def freeze (requirement =None ,find_links =None ,local_only =None ,user_only =None ,skip_regex =None ,isolated =False ,wheel_cache =None ,exclude_editable =False ,skip =()):#line:47
+    find_links =find_links or []#line:49
+    O0O0OOOOOOO0OOO0O =None #line:50
+    if skip_regex :#line:52
+        O0O0OOOOOOO0OOO0O =re .compile (skip_regex ).search #line:53
+    for OOOO000OOOO00OO00 in find_links :#line:55
+        yield '-f %s'%OOOO000OOOO00OO00 #line:56
+    O00O0OO000O0O00O0 ={}#line:57
+    for O0OO00000OOO000OO in get_installed_distributions (local_only =local_only ,skip =(),user_only =user_only ):#line:60
+        try :#line:61
+            OOO0O000OO0OO000O =FrozenRequirement .from_dist (O0OO00000OOO000OO )#line:62
+        except RequirementParseError :#line:63
+            logger .warning ("Could not parse requirement: %s",O0OO00000OOO000OO .project_name )#line:67
+            continue #line:68
+        if exclude_editable and OOO0O000OO0OO000O .editable :#line:69
+            continue #line:70
+        O00O0OO000O0O00O0 [OOO0O000OO0OO000O .name ]=OOO0O000OO0OO000O #line:71
+    if requirement :#line:73
+        O0O0OO000OO00O0OO =set ()#line:78
+        O0000OOO0OO0O0OOO =collections .defaultdict (list )#line:81
+        for O0OOO0O00OO000O0O in requirement :#line:82
+            with open (O0OOO0O00OO000O0O )as O00000O0OOOO0O0O0 :#line:83
+                for O0OO00O0OOO00O0OO in O00000O0OOOO0O0O0 :#line:84
+                    if (not O0OO00O0OOO00O0OO .strip ()or O0OO00O0OOO00O0OO .strip ().startswith ('#')or (O0O0OOOOOOO0OOO0O and O0O0OOOOOOO0OOO0O (O0OO00O0OOO00O0OO ))or O0OO00O0OOO00O0OO .startswith (('-r','--requirement','-Z','--always-unzip','-f','--find-links','-i','--index-url','--pre','--trusted-host','--process-dependency-links','--extra-index-url'))):#line:96
+                        O0OO00O0OOO00O0OO =O0OO00O0OOO00O0OO .rstrip ()#line:97
+                        if O0OO00O0OOO00O0OO not in O0O0OO000OO00O0OO :#line:98
+                            O0O0OO000OO00O0OO .add (O0OO00O0OOO00O0OO )#line:99
+                            yield O0OO00O0OOO00O0OO #line:100
+                        continue #line:101
+                    if O0OO00O0OOO00O0OO .startswith ('-e')or O0OO00O0OOO00O0OO .startswith ('--editable'):#line:103
+                        if O0OO00O0OOO00O0OO .startswith ('-e'):#line:104
+                            O0OO00O0OOO00O0OO =O0OO00O0OOO00O0OO [2 :].strip ()#line:105
+                        else :#line:106
+                            O0OO00O0OOO00O0OO =O0OO00O0OOO00O0OO [len ('--editable'):].strip ().lstrip ('=')#line:107
+                        OO0O00O0000O00OOO =install_req_from_editable (O0OO00O0OOO00O0OO ,isolated =isolated ,wheel_cache =wheel_cache ,)#line:112
+                    else :#line:113
+                        OO0O00O0000O00OOO =install_req_from_line (COMMENT_RE .sub ('',O0OO00O0OOO00O0OO ).strip (),isolated =isolated ,wheel_cache =wheel_cache ,)#line:118
+                    if not OO0O00O0000O00OOO .name :#line:120
+                        logger .info ("Skipping line in requirement file [%s] because " "it's not clear what it would install: %s",O0OOO0O00OO000O0O ,O0OO00O0OOO00O0OO .strip (),)#line:125
+                        logger .info ("  (add #egg=PackageName to the URL to avoid" " this warning)")#line:129
+                    elif OO0O00O0000O00OOO .name not in O00O0OO000O0O00O0 :#line:130
+                        if not O0000OOO0OO0O0OOO [OO0O00O0000O00OOO .name ]:#line:133
+                            logger .warning ("Requirement file [%s] contains %s, but " "package %r is not installed",O0OOO0O00OO000O0O ,COMMENT_RE .sub ('',O0OO00O0OOO00O0OO ).strip (),OO0O00O0000O00OOO .name )#line:139
+                        else :#line:140
+                            O0000OOO0OO0O0OOO [OO0O00O0000O00OOO .name ].append (O0OOO0O00OO000O0O )#line:141
+                    else :#line:142
+                        yield str (O00O0OO000O0O00O0 [OO0O00O0000O00OOO .name ]).rstrip ()#line:143
+                        del O00O0OO000O0O00O0 [OO0O00O0000O00OOO .name ]#line:144
+                        O0000OOO0OO0O0OOO [OO0O00O0000O00OOO .name ].append (O0OOO0O00OO000O0O )#line:145
+        for O0OO0O00OOO00O0O0 ,O0O0000O000OOO0OO in six .iteritems (O0000OOO0OO0O0OOO ):#line:149
+            if len (O0O0000O000OOO0OO )>1 :#line:150
+                logger .warning ("Requirement %s included multiple times [%s]",O0OO0O00OOO00O0O0 ,', '.join (sorted (set (O0O0000O000OOO0OO ))))#line:152
+        yield ('## The following requirements were added by ' 'pip freeze:')#line:157
+    for O0O0OOO0OOO00000O in sorted (O00O0OO000O0O00O0 .values (),key =lambda O00OO000O00OO0OOO :O00OO000O00OO0OOO .name .lower ()):#line:159
+        if canonicalize_name (O0O0OOO0OOO00000O .name )not in skip :#line:160
+            yield str (O0O0OOO0OOO00000O ).rstrip ()#line:161
+def get_requirement_info (OOOO0OOOOOO0OO000 ):#line:164
+    ""#line:169
+    if not dist_is_editable (OOOO0OOOOOO0OO000 ):#line:170
+        return (None ,False ,[])#line:171
+    OO0O00OOO000OOOO0 =os .path .normcase (os .path .abspath (OOOO0OOOOOO0OO000 .location ))#line:173
+    from pip ._internal .vcs import vcs ,RemoteNotFoundError #line:175
+    OOOO0O0OOOO0O0O0O =vcs .get_backend_type (OO0O00OOO000OOOO0 )#line:176
+    if not OOOO0O0OOOO0O0O0O :#line:178
+        OO000OO0OO0OO0O0O =OOOO0OOOOOO0OO000 .as_requirement ()#line:179
+        logger .debug ('No VCS found for editable requirement {!r} in: {!r}',OO000OO0OO0OO0O0O ,OO0O00OOO000OOOO0 ,)#line:183
+        OOO0O0OO0OO000OO0 =['# Editable install with no version control ({})'.format (OO000OO0OO0OO0O0O )]#line:186
+        return (OO0O00OOO000OOOO0 ,True ,OOO0O0OO0OO000OO0 )#line:187
+    try :#line:189
+        OO000OO0OO0OO0O0O =OOOO0O0OOOO0O0O0O .get_src_requirement (OO0O00OOO000OOOO0 ,OOOO0OOOOOO0OO000 .project_name )#line:190
+    except RemoteNotFoundError :#line:191
+        OO000OO0OO0OO0O0O =OOOO0OOOOOO0OO000 .as_requirement ()#line:192
+        OOO0O0OO0OO000OO0 =['# Editable {} install with no remote ({})'.format (OOOO0O0OOOO0O0O0O .__name__ ,OO000OO0OO0OO0O0O ,)]#line:197
+        return (OO0O00OOO000OOOO0 ,True ,OOO0O0OO0OO000OO0 )#line:198
+    except BadCommand :#line:200
+        logger .warning ('cannot determine version of editable source in %s ' '(%s command not found in path)',OO0O00OOO000OOOO0 ,OOOO0O0OOOO0O0O0O .name ,)#line:206
+        return (None ,True ,[])#line:207
+    except InstallationError as OOOOOO00000000O0O :#line:209
+        logger .warning ("Error when trying to get requirement for VCS system %s, " "falling back to uneditable format",OOOOOO00000000O0O )#line:213
+    else :#line:214
+        if OO000OO0OO0OO0O0O is not None :#line:215
+            return (OO000OO0OO0OO0O0O ,True ,[])#line:216
+    logger .warning ('Could not determine repository location of %s',OO0O00OOO000OOOO0 )#line:220
+    OOO0O0OO0OO000OO0 =['## !! Could not determine repository location']#line:221
+    return (None ,False ,OOO0O0OO0OO000OO0 )#line:223
+class FrozenRequirement (object ):#line:226
+    def __init__ (OO0O0000O0000OOOO ,OOOO000000O0O0O0O ,OOO0000O0O000OO00 ,OO000OO00O0OO0000 ,comments =()):#line:227
+        OO0O0000O0000OOOO .name =OOOO000000O0O0O0O #line:229
+        OO0O0000O0000OOOO .req =OOO0000O0O000OO00 #line:230
+        OO0O0000O0000OOOO .editable =OO000OO00O0OO0000 #line:231
+        OO0O0000O0000OOOO .comments =comments #line:232
+    @classmethod #line:234
+    def from_dist (O00OOO000000000O0 ,O000000O00O000O00 ):#line:235
+        OOO0O0OOOOOO0O0O0 ,OO0OO0OO000O0OOOO ,O00O0O00O0OO0O0O0 =get_requirement_info (O000000O00O000O00 )#line:237
+        if OOO0O0OOOOOO0O0O0 is None :#line:238
+            OOO0O0OOOOOO0O0O0 =O000000O00O000O00 .as_requirement ()#line:239
+        return O00OOO000000000O0 (O000000O00O000O00 .project_name ,OOO0O0OOOOOO0O0O0 ,OO0OO0OO000O0OOOO ,comments =O00O0O00O0OO0O0O0 )#line:241
+    def __str__ (O00OO0O0O0O0O0OOO ):#line:243
+        O0000OO0OO0O0O0OO =O00OO0O0O0O0O0OOO .req #line:244
+        if O00OO0O0O0O0O0OOO .editable :#line:245
+            O0000OO0OO0O0O0OO ='-e %s'%O0000OO0OO0O0O0OO #line:246
+        return '\n'.join (list (O00OO0O0O0O0O0OOO .comments )+[str (O0000OO0OO0O0O0OO )])+'\n'#line:247

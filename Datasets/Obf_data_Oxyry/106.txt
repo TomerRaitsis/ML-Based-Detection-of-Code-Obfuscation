@@ -1,0 +1,196 @@
+from __future__ import absolute_import #line:1:from __future__ import absolute_import
+try :#line:2:try:
+    from collections .abc import Mapping ,MutableMapping #line:3:from collections.abc import Mapping, MutableMapping
+except ImportError :#line:4:except ImportError:
+    from collections import Mapping ,MutableMapping #line:5:from collections import Mapping, MutableMapping
+try :#line:6:try:
+    from threading import RLock #line:7:from threading import RLock
+except ImportError :#line:8:except ImportError:  # Platform-specific: No threads available
+    class RLock :#line:9:class RLock:
+        def __enter__ (OO0000000O0O0OO0O ):#line:10:def __enter__(self):
+            pass #line:11:pass
+        def __exit__ (OO000OOOOO00000O0 ,O00OO00000OOO0000 ,OOOOO0O00OO000O0O ,OO00OO000OOO000O0 ):#line:13:def __exit__(self, exc_type, exc_value, traceback):
+            pass #line:14:pass
+from collections import OrderedDict #line:17:from collections import OrderedDict
+from .exceptions import InvalidHeader #line:18:from .exceptions import InvalidHeader
+from .packages .six import iterkeys ,itervalues ,PY3 #line:19:from .packages.six import iterkeys, itervalues, PY3
+__all__ =['RecentlyUsedContainer','HTTPHeaderDict']#line:22:__all__ = ['RecentlyUsedContainer', 'HTTPHeaderDict']
+_OOOOO0O00OOOOO000 =object ()#line:25:_Null = object()
+class RecentlyUsedContainer (MutableMapping ):#line:28:class RecentlyUsedContainer(MutableMapping):
+    ""#line:40:"""
+    ContainerCls =OrderedDict #line:42:ContainerCls = OrderedDict
+    def __init__ (O0O0O0O00OOOOOO00 ,maxsize =10 ,dispose_func =None ):#line:44:def __init__(self, maxsize=10, dispose_func=None):
+        O0O0O0O00OOOOOO00 ._maxsize =maxsize #line:45:self._maxsize = maxsize
+        O0O0O0O00OOOOOO00 .dispose_func =dispose_func #line:46:self.dispose_func = dispose_func
+        O0O0O0O00OOOOOO00 ._container =O0O0O0O00OOOOOO00 .ContainerCls ()#line:48:self._container = self.ContainerCls()
+        O0O0O0O00OOOOOO00 .lock =RLock ()#line:49:self.lock = RLock()
+    def __getitem__ (OO0O00O0OOO0O0000 ,OO0O0O0O0OOOOOOO0 ):#line:51:def __getitem__(self, key):
+        with OO0O00O0OOO0O0000 .lock :#line:53:with self.lock:
+            OOOO0O0O0O00OO0O0 =OO0O00O0OOO0O0000 ._container .pop (OO0O0O0O0OOOOOOO0 )#line:54:item = self._container.pop(key)
+            OO0O00O0OOO0O0000 ._container [OO0O0O0O0OOOOOOO0 ]=OOOO0O0O0O00OO0O0 #line:55:self._container[key] = item
+            return OOOO0O0O0O00OO0O0 #line:56:return item
+    def __setitem__ (O0OO000OO0OO0OO00 ,OOO0OOO0000OOO0O0 ,OO000OOOO00O0000O ):#line:58:def __setitem__(self, key, value):
+        OO0O000O000000000 =_OOOOO0O00OOOOO000 #line:59:evicted_value = _Null
+        with O0OO000OO0OO0OO00 .lock :#line:60:with self.lock:
+            OO0O000O000000000 =O0OO000OO0OO0OO00 ._container .get (OOO0OOO0000OOO0O0 ,_OOOOO0O00OOOOO000 )#line:62:evicted_value = self._container.get(key, _Null)
+            O0OO000OO0OO0OO00 ._container [OOO0OOO0000OOO0O0 ]=OO000OOOO00O0000O #line:63:self._container[key] = value
+            if len (O0OO000OO0OO0OO00 ._container )>O0OO000OO0OO0OO00 ._maxsize :#line:67:if len(self._container) > self._maxsize:
+                _OO0O00O000O000O00 ,OO0O000O000000000 =O0OO000OO0OO0OO00 ._container .popitem (last =False )#line:68:_key, evicted_value = self._container.popitem(last=False)
+        if O0OO000OO0OO0OO00 .dispose_func and OO0O000O000000000 is not _OOOOO0O00OOOOO000 :#line:70:if self.dispose_func and evicted_value is not _Null:
+            O0OO000OO0OO0OO00 .dispose_func (OO0O000O000000000 )#line:71:self.dispose_func(evicted_value)
+    def __delitem__ (O0OO00OO00O000000 ,OOO00O0OOOOOOO000 ):#line:73:def __delitem__(self, key):
+        with O0OO00OO00O000000 .lock :#line:74:with self.lock:
+            O00OOO0OO0OO000OO =O0OO00OO00O000000 ._container .pop (OOO00O0OOOOOOO000 )#line:75:value = self._container.pop(key)
+        if O0OO00OO00O000000 .dispose_func :#line:77:if self.dispose_func:
+            O0OO00OO00O000000 .dispose_func (O00OOO0OO0OO000OO )#line:78:self.dispose_func(value)
+    def __len__ (OOO0O00OOO0O0O000 ):#line:80:def __len__(self):
+        with OOO0O00OOO0O0O000 .lock :#line:81:with self.lock:
+            return len (OOO0O00OOO0O0O000 ._container )#line:82:return len(self._container)
+    def __iter__ (OOOO0000O00O0OO0O ):#line:84:def __iter__(self):
+        raise NotImplementedError ('Iteration over this class is unlikely to be threadsafe.')#line:85:raise NotImplementedError('Iteration over this class is unlikely to be threadsafe.')
+    def clear (O00OOOO0000OOOO00 ):#line:87:def clear(self):
+        with O00OOOO0000OOOO00 .lock :#line:88:with self.lock:
+            O0O0OOOOO00OOO00O =list (itervalues (O00OOOO0000OOOO00 ._container ))#line:90:values = list(itervalues(self._container))
+            O00OOOO0000OOOO00 ._container .clear ()#line:91:self._container.clear()
+        if O00OOOO0000OOOO00 .dispose_func :#line:93:if self.dispose_func:
+            for O00000OO0O0OO00O0 in O0O0OOOOO00OOO00O :#line:94:for value in values:
+                O00OOOO0000OOOO00 .dispose_func (O00000OO0O0OO00O0 )#line:95:self.dispose_func(value)
+    def keys (O000OOOO0O0000OOO ):#line:97:def keys(self):
+        with O000OOOO0O0000OOO .lock :#line:98:with self.lock:
+            return list (iterkeys (O000OOOO0O0000OOO ._container ))#line:99:return list(iterkeys(self._container))
+class HTTPHeaderDict (MutableMapping ):#line:102:class HTTPHeaderDict(MutableMapping):
+    ""#line:134:"""
+    def __init__ (OOOOOO0OO00O000OO ,headers =None ,**O000OO0OO00O0O0O0 ):#line:136:def __init__(self, headers=None, **kwargs):
+        super (HTTPHeaderDict ,OOOOOO0OO00O000OO ).__init__ ()#line:137:super(HTTPHeaderDict, self).__init__()
+        OOOOOO0OO00O000OO ._container =OrderedDict ()#line:138:self._container = OrderedDict()
+        if headers is not None :#line:139:if headers is not None:
+            if isinstance (headers ,HTTPHeaderDict ):#line:140:if isinstance(headers, HTTPHeaderDict):
+                OOOOOO0OO00O000OO ._copy_from (headers )#line:141:self._copy_from(headers)
+            else :#line:142:else:
+                OOOOOO0OO00O000OO .extend (headers )#line:143:self.extend(headers)
+        if O000OO0OO00O0O0O0 :#line:144:if kwargs:
+            OOOOOO0OO00O000OO .extend (O000OO0OO00O0O0O0 )#line:145:self.extend(kwargs)
+    def __setitem__ (OO0OOO0OOOOOOOO00 ,O0OOOOOO0OOOO00OO ,O00OO0OOOO0000OO0 ):#line:147:def __setitem__(self, key, val):
+        OO0OOO0OOOOOOOO00 ._container [O0OOOOOO0OOOO00OO .lower ()]=[O0OOOOOO0OOOO00OO ,O00OO0OOOO0000OO0 ]#line:148:self._container[key.lower()] = [key, val]
+        return OO0OOO0OOOOOOOO00 ._container [O0OOOOOO0OOOO00OO .lower ()]#line:149:return self._container[key.lower()]
+    def __getitem__ (O0O0OOOOO0O00OO0O ,O000O0OO0O0O00000 ):#line:151:def __getitem__(self, key):
+        O000O0O0000O0OOO0 =O0O0OOOOO0O00OO0O ._container [O000O0OO0O0O00000 .lower ()]#line:152:val = self._container[key.lower()]
+        return ', '.join (O000O0O0000O0OOO0 [1 :])#line:153:return ', '.join(val[1:])
+    def __delitem__ (OO00O0O00000O000O ,OO0000O000OO0OO0O ):#line:155:def __delitem__(self, key):
+        del OO00O0O00000O000O ._container [OO0000O000OO0OO0O .lower ()]#line:156:del self._container[key.lower()]
+    def __contains__ (OOOOO00OOOO0O00O0 ,OOOO0O0OO000OO00O ):#line:158:def __contains__(self, key):
+        return OOOO0O0OO000OO00O .lower ()in OOOOO00OOOO0O00O0 ._container #line:159:return key.lower() in self._container
+    def __eq__ (O00OO0OO0OO000OOO ,O00OO00O000O00O0O ):#line:161:def __eq__(self, other):
+        if not isinstance (O00OO00O000O00O0O ,Mapping )and not hasattr (O00OO00O000O00O0O ,'keys'):#line:162:if not isinstance(other, Mapping) and not hasattr(other, 'keys'):
+            return False #line:163:return False
+        if not isinstance (O00OO00O000O00O0O ,type (O00OO0OO0OO000OOO )):#line:164:if not isinstance(other, type(self)):
+            O00OO00O000O00O0O =type (O00OO0OO0OO000OOO )(O00OO00O000O00O0O )#line:165:other = type(self)(other)
+        return (dict ((O0O0O0OOO0OO0OOO0 .lower (),O00O0O0OOO0O00000 )for O0O0O0OOO0OO0OOO0 ,O00O0O0OOO0O00000 in O00OO0OO0OO000OOO .itermerged ())==dict ((OOOOO0OO0OOOO0OO0 .lower (),OOO00O0000000OO00 )for OOOOO0OO0OOOO0OO0 ,OOO00O0000000OO00 in O00OO00O000O00O0O .itermerged ()))#line:167:dict((k.lower(), v) for k, v in other.itermerged()))
+    def __ne__ (OOO0000O000000O0O ,O0O000O0O0O0OO000 ):#line:169:def __ne__(self, other):
+        return not OOO0000O000000O0O .__eq__ (O0O000O0O0O0OO000 )#line:170:return not self.__eq__(other)
+    if not PY3 :#line:172:if not PY3:  # Python 2
+        iterkeys =MutableMapping .iterkeys #line:173:iterkeys = MutableMapping.iterkeys
+        itervalues =MutableMapping .itervalues #line:174:itervalues = MutableMapping.itervalues
+    __OOO0OO0OO000O000O =object ()#line:176:__marker = object()
+    def __len__ (OOOO0O00O00O0OO00 ):#line:178:def __len__(self):
+        return len (OOOO0O00O00O0OO00 ._container )#line:179:return len(self._container)
+    def __iter__ (OO0O0OO00OO00000O ):#line:181:def __iter__(self):
+        for O0O000OOO0O00OOOO in OO0O0OO00OO00000O ._container .values ():#line:183:for vals in self._container.values():
+            yield O0O000OOO0O00OOOO [0 ]#line:184:yield vals[0]
+    def pop (O0OO000O00000OO0O ,OO0O0OOOO0OOOO00O ,default =__OOO0OO0OO000O000O ):#line:186:def pop(self, key, default=__marker):
+        ""#line:189:'''
+        try :#line:193:try:
+            OOOO00OO000OO00OO =O0OO000O00000OO0O [OO0O0OOOO0OOOO00O ]#line:194:value = self[key]
+        except KeyError :#line:195:except KeyError:
+            if default is O0OO000O00000OO0O .__OOO0OO0OO000O000O :#line:196:if default is self.__marker:
+                raise #line:197:raise
+            return default #line:198:return default
+        else :#line:199:else:
+            del O0OO000O00000OO0O [OO0O0OOOO0OOOO00O ]#line:200:del self[key]
+            return OOOO00OO000OO00OO #line:201:return value
+    def discard (O00O000OO00OOOOO0 ,OO000O000O0OOOO0O ):#line:203:def discard(self, key):
+        try :#line:204:try:
+            del O00O000OO00OOOOO0 [OO000O000O0OOOO0O ]#line:205:del self[key]
+        except KeyError :#line:206:except KeyError:
+            pass #line:207:pass
+    def add (OOOO00OOO000OO00O ,O0OOO0O00O0O00O0O ,O00O0OOO00OO0OO00 ):#line:209:def add(self, key, val):
+        ""#line:217:"""
+        O000OOO0OO0O00O0O =O0OOO0O00O0O00O0O .lower ()#line:218:key_lower = key.lower()
+        O0O000O0OOOOOOOOO =[O0OOO0O00O0O00O0O ,O00O0OOO00OO0OO00 ]#line:219:new_vals = [key, val]
+        OO0OOO0000OO00O00 =OOOO00OOO000OO00O ._container .setdefault (O000OOO0OO0O00O0O ,O0O000O0OOOOOOOOO )#line:221:vals = self._container.setdefault(key_lower, new_vals)
+        if O0O000O0OOOOOOOOO is not OO0OOO0000OO00O00 :#line:222:if new_vals is not vals:
+            OO0OOO0000OO00O00 .append (O00O0OOO00OO0OO00 )#line:223:vals.append(val)
+    def extend (OOOOOOOOOOOO00000 ,*OO0OO0000O0OOOO0O ,**O00OOOOO0OOOO0000 ):#line:225:def extend(self, *args, **kwargs):
+        ""#line:229:"""
+        if len (OO0OO0000O0OOOO0O )>1 :#line:230:if len(args) > 1:
+            raise TypeError ("extend() takes at most 1 positional " "arguments ({0} given)".format (len (OO0OO0000O0OOOO0O )))#line:232:"arguments ({0} given)".format(len(args)))
+        O0OO0OOO000O000OO =OO0OO0000O0OOOO0O [0 ]if len (OO0OO0000O0OOOO0O )>=1 else ()#line:233:other = args[0] if len(args) >= 1 else ()
+        if isinstance (O0OO0OOO000O000OO ,HTTPHeaderDict ):#line:235:if isinstance(other, HTTPHeaderDict):
+            for O0OO0OO0OOOOOOOO0 ,OOOO0OOO0OOO0O000 in O0OO0OOO000O000OO .iteritems ():#line:236:for key, val in other.iteritems():
+                OOOOOOOOOOOO00000 .add (O0OO0OO0OOOOOOOO0 ,OOOO0OOO0OOO0O000 )#line:237:self.add(key, val)
+        elif isinstance (O0OO0OOO000O000OO ,Mapping ):#line:238:elif isinstance(other, Mapping):
+            for O0OO0OO0OOOOOOOO0 in O0OO0OOO000O000OO :#line:239:for key in other:
+                OOOOOOOOOOOO00000 .add (O0OO0OO0OOOOOOOO0 ,O0OO0OOO000O000OO [O0OO0OO0OOOOOOOO0 ])#line:240:self.add(key, other[key])
+        elif hasattr (O0OO0OOO000O000OO ,"keys"):#line:241:elif hasattr(other, "keys"):
+            for O0OO0OO0OOOOOOOO0 in O0OO0OOO000O000OO .keys ():#line:242:for key in other.keys():
+                OOOOOOOOOOOO00000 .add (O0OO0OO0OOOOOOOO0 ,O0OO0OOO000O000OO [O0OO0OO0OOOOOOOO0 ])#line:243:self.add(key, other[key])
+        else :#line:244:else:
+            for O0OO0OO0OOOOOOOO0 ,OO0OO0O0O0OO0O0O0 in O0OO0OOO000O000OO :#line:245:for key, value in other:
+                OOOOOOOOOOOO00000 .add (O0OO0OO0OOOOOOOO0 ,OO0OO0O0O0OO0O0O0 )#line:246:self.add(key, value)
+        for O0OO0OO0OOOOOOOO0 ,OO0OO0O0O0OO0O0O0 in O00OOOOO0OOOO0000 .items ():#line:248:for key, value in kwargs.items():
+            OOOOOOOOOOOO00000 .add (O0OO0OO0OOOOOOOO0 ,OO0OO0O0O0OO0O0O0 )#line:249:self.add(key, value)
+    def getlist (OOOOO00O0O0O0OOO0 ,OOOOO0O00OO0OO00O ,default =__OOO0OO0OO000O000O ):#line:251:def getlist(self, key, default=__marker):
+        ""#line:253:empty list if the key doesn't exist."""
+        try :#line:254:try:
+            OOO00OO00OO000O00 =OOOOO00O0O0O0OOO0 ._container [OOOOO0O00OO0OO00O .lower ()]#line:255:vals = self._container[key.lower()]
+        except KeyError :#line:256:except KeyError:
+            if default is OOOOO00O0O0O0OOO0 .__OOO0OO0OO000O000O :#line:257:if default is self.__marker:
+                return []#line:258:return []
+            return default #line:259:return default
+        else :#line:260:else:
+            return OOO00OO00OO000O00 [1 :]#line:261:return vals[1:]
+    getheaders =getlist #line:264:getheaders = getlist
+    getallmatchingheaders =getlist #line:265:getallmatchingheaders = getlist
+    iget =getlist #line:266:iget = getlist
+    get_all =getlist #line:269:get_all = getlist
+    def __repr__ (OO0O0OO00OOOO0OO0 ):#line:271:def __repr__(self):
+        return "%s(%s)"%(type (OO0O0OO00OOOO0OO0 ).__name__ ,dict (OO0O0OO00OOOO0OO0 .itermerged ()))#line:272:return "%s(%s)" % (type(self).__name__, dict(self.itermerged()))
+    def _copy_from (O0OOO000O00000OOO ,OOOOO000000O00O00 ):#line:274:def _copy_from(self, other):
+        for OOOOOOO0OOO00OOO0 in OOOOO000000O00O00 :#line:275:for key in other:
+            OOO0000OO0O0OO00O =OOOOO000000O00O00 .getlist (OOOOOOO0OOO00OOO0 )#line:276:val = other.getlist(key)
+            if isinstance (OOO0000OO0O0OO00O ,list ):#line:277:if isinstance(val, list):
+                OOO0000OO0O0OO00O =list (OOO0000OO0O0OO00O )#line:279:val = list(val)
+            O0OOO000O00000OOO ._container [OOOOOOO0OOO00OOO0 .lower ()]=[OOOOOOO0OOO00OOO0 ]+OOO0000OO0O0OO00O #line:280:self._container[key.lower()] = [key] + val
+    def copy (O0OOOO000OO00O0O0 ):#line:282:def copy(self):
+        OO0OO0OOO00OO00OO =type (O0OOOO000OO00O0O0 )()#line:283:clone = type(self)()
+        OO0OO0OOO00OO00OO ._copy_from (O0OOOO000OO00O0O0 )#line:284:clone._copy_from(self)
+        return OO0OO0OOO00OO00OO #line:285:return clone
+    def iteritems (O00O0O00O0O00000O ):#line:287:def iteritems(self):
+        ""#line:288:"""Iterate over all header lines, including duplicate ones."""
+        for O0OOOO000OO000OO0 in O00O0O00O0O00000O :#line:289:for key in self:
+            O00O0O0OOOOOOO00O =O00O0O00O0O00000O ._container [O0OOOO000OO000OO0 .lower ()]#line:290:vals = self._container[key.lower()]
+            for O0O0O00O000000O0O in O00O0O0OOOOOOO00O [1 :]:#line:291:for val in vals[1:]:
+                yield O00O0O0OOOOOOO00O [0 ],O0O0O00O000000O0O #line:292:yield vals[0], val
+    def itermerged (OO00OO0O0OO00O0O0 ):#line:294:def itermerged(self):
+        ""#line:295:"""Iterate over all headers, merging duplicate ones together."""
+        for OO00O00O0O000OO00 in OO00OO0O0OO00O0O0 :#line:296:for key in self:
+            O0O00OO000O00OOOO =OO00OO0O0OO00O0O0 ._container [OO00O00O0O000OO00 .lower ()]#line:297:val = self._container[key.lower()]
+            yield O0O00OO000O00OOOO [0 ],', '.join (O0O00OO000O00OOOO [1 :])#line:298:yield val[0], ', '.join(val[1:])
+    def items (O0OO0O0O0OOO000O0 ):#line:300:def items(self):
+        return list (O0OO0O0O0OOO000O0 .iteritems ())#line:301:return list(self.iteritems())
+    @classmethod #line:303:@classmethod
+    def from_httplib (O0O0OOO00OOOOOOO0 ,OOOO00OOOO0000O00 ):#line:304:def from_httplib(cls, message):  # Python 2
+        ""#line:305:"""Read headers from a Python 2 httplib message object."""
+        OOOOOO0O00OOOO0OO =(' ','\t')#line:309:obs_fold_continued_leaders = (' ', '\t')
+        O00OO0OOO0OOOO000 =[]#line:310:headers = []
+        for OOO0O0OO0O00O00OO in OOOO00OOOO0000O00 .headers :#line:312:for line in message.headers:
+            if OOO0O0OO0O00O00OO .startswith (OOOOOO0O00OOOO0OO ):#line:313:if line.startswith(obs_fold_continued_leaders):
+                if not O00OO0OOO0OOOO000 :#line:314:if not headers:
+                    raise InvalidHeader ('Header continuation with no previous header: %s'%OOO0O0OO0O00O00OO )#line:320:)
+                else :#line:321:else:
+                    O0OOOOOOO0O0OOO0O ,O00OO00OOO0O0O000 =O00OO0OOO0OOOO000 [-1 ]#line:322:key, value = headers[-1]
+                    O00OO0OOO0OOOO000 [-1 ]=(O0OOOOOOO0O0OOO0O ,O00OO00OOO0O0O000 +' '+OOO0O0OO0O00O00OO .strip ())#line:323:headers[-1] = (key, value + ' ' + line.strip())
+                    continue #line:324:continue
+            O0OOOOOOO0O0OOO0O ,O00OO00OOO0O0O000 =OOO0O0OO0O00O00OO .split (':',1 )#line:326:key, value = line.split(':', 1)
+            O00OO0OOO0OOOO000 .append ((O0OOOOOOO0O0OOO0O ,O00OO00OOO0O0O000 .strip ()))#line:327:headers.append((key, value.strip()))
+        return O0O0OOO00OOOOOOO0 (O00OO0OOO0OOOO000 )#line:329:return cls(headers)

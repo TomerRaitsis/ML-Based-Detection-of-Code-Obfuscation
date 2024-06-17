@@ -1,0 +1,476 @@
+from __future__ import absolute_import #line:1:from __future__ import absolute_import
+import cgi #line:3:import cgi
+import email .utils #line:4:import email.utils
+import getpass #line:5:import getpass
+import json #line:6:import json
+import logging #line:7:import logging
+import mimetypes #line:8:import mimetypes
+import os #line:9:import os
+import platform #line:10:import platform
+import re #line:11:import re
+import shutil #line:12:import shutil
+import sys #line:13:import sys
+from pip ._vendor import requests ,six ,urllib3 #line:15:from pip._vendor import requests, six, urllib3
+from pip ._vendor .cachecontrol import CacheControlAdapter #line:16:from pip._vendor.cachecontrol import CacheControlAdapter
+from pip ._vendor .cachecontrol .caches import FileCache #line:17:from pip._vendor.cachecontrol.caches import FileCache
+from pip ._vendor .lockfile import LockError #line:18:from pip._vendor.lockfile import LockError
+from pip ._vendor .requests .adapters import BaseAdapter ,HTTPAdapter #line:19:from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
+from pip ._vendor .requests .auth import AuthBase ,HTTPBasicAuth #line:20:from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip ._vendor .requests .models import CONTENT_CHUNK_SIZE ,Response #line:21:from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip ._vendor .requests .structures import CaseInsensitiveDict #line:22:from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip ._vendor .requests .utils import get_netrc_auth #line:23:from pip._vendor.requests.utils import get_netrc_auth
+from pip ._vendor .six .moves import xmlrpc_client #line:26:from pip._vendor.six.moves import xmlrpc_client  # type: ignore
+from pip ._vendor .six .moves .urllib import parse as urllib_parse #line:27:from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip ._vendor .six .moves .urllib import request as urllib_request #line:28:from pip._vendor.six.moves.urllib import request as urllib_request
+from pip ._vendor .urllib3 .util import IS_PYOPENSSL #line:29:from pip._vendor.urllib3.util import IS_PYOPENSSL
+import pip #line:31:import pip
+from pip ._internal .exceptions import HashMismatch ,InstallationError #line:32:from pip._internal.exceptions import HashMismatch, InstallationError
+from pip ._internal .locations import write_delete_marker_file #line:33:from pip._internal.locations import write_delete_marker_file
+from pip ._internal .models .index import PyPI #line:34:from pip._internal.models.index import PyPI
+from pip ._internal .utils .encoding import auto_decode #line:35:from pip._internal.utils.encoding import auto_decode
+from pip ._internal .utils .filesystem import check_path_owner #line:36:from pip._internal.utils.filesystem import check_path_owner
+from pip ._internal .utils .glibc import libc_ver #line:37:from pip._internal.utils.glibc import libc_ver
+from pip ._internal .utils .logging import indent_log #line:38:from pip._internal.utils.logging import indent_log
+from pip ._internal .utils .misc import (ARCHIVE_EXTENSIONS ,ask_path_exists ,backup_dir ,call_subprocess ,consume ,display_path ,format_size ,get_installed_version ,rmtree ,split_auth_from_netloc ,splitext ,unpack_file ,)#line:43:)
+from pip ._internal .utils .setuptools_build import SETUPTOOLS_SHIM #line:44:from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip ._internal .utils .temp_dir import TempDirectory #line:45:from pip._internal.utils.temp_dir import TempDirectory
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:46:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip ._internal .utils .ui import DownloadProgressProvider #line:47:from pip._internal.utils.ui import DownloadProgressProvider
+from pip ._internal .vcs import vcs #line:48:from pip._internal.vcs import vcs
+if MYPY_CHECK_RUNNING :#line:50:if MYPY_CHECK_RUNNING:
+    from typing import (Optional ,Tuple ,Dict ,IO ,Text ,Union )#line:53:)
+    from pip ._internal .models .link import Link #line:54:from pip._internal.models.link import Link  # noqa: F401
+    from pip ._internal .utils .hashes import Hashes #line:55:from pip._internal.utils.hashes import Hashes  # noqa: F401
+    from pip ._internal .vcs import AuthInfo #line:56:from pip._internal.vcs import AuthInfo  # noqa: F401
+try :#line:58:try:
+    import ssl #line:59:import ssl  # noqa
+except ImportError :#line:60:except ImportError:
+    ssl =None #line:61:ssl = None
+OOO0OO0OO000O00O0 =(ssl is not None )or IS_PYOPENSSL #line:63:HAS_TLS = (ssl is not None) or IS_PYOPENSSL
+__all__ =['get_file_content','is_url','url_to_path','path_to_url','is_archive_file','unpack_vcs_link','unpack_file_url','is_vcs_url','is_file_url','unpack_http_url','unpack_url']#line:69:'unpack_http_url', 'unpack_url']
+O000OOO000OOOO000 =logging .getLogger (__name__ )#line:72:logger = logging.getLogger(__name__)
+def O00O0O000O00OO0O0 ():#line:75:def user_agent():
+    ""#line:78:"""
+    OOOO0OOO00OOOOO00 ={"installer":{"name":"pip","version":pip .__version__ },"python":platform .python_version (),"implementation":{"name":platform .python_implementation (),},}#line:85:}
+    if OOOO0OOO00OOOOO00 ["implementation"]["name"]=='CPython':#line:87:if data["implementation"]["name"] == 'CPython':
+        OOOO0OOO00OOOOO00 ["implementation"]["version"]=platform .python_version ()#line:88:data["implementation"]["version"] = platform.python_version()
+    elif OOOO0OOO00OOOOO00 ["implementation"]["name"]=='PyPy':#line:89:elif data["implementation"]["name"] == 'PyPy':
+        if sys .pypy_version_info .releaselevel =='final':#line:90:if sys.pypy_version_info.releaselevel == 'final':
+            OOO0O0OOOO00O0OOO =sys .pypy_version_info [:3 ]#line:91:pypy_version_info = sys.pypy_version_info[:3]
+        else :#line:92:else:
+            OOO0O0OOOO00O0OOO =sys .pypy_version_info #line:93:pypy_version_info = sys.pypy_version_info
+        OOOO0OOO00OOOOO00 ["implementation"]["version"]=".".join ([str (O0OOO00OO000O00OO )for O0OOO00OO000O00OO in OOO0O0OOOO00O0OOO ])#line:96:)
+    elif OOOO0OOO00OOOOO00 ["implementation"]["name"]=='Jython':#line:97:elif data["implementation"]["name"] == 'Jython':
+        OOOO0OOO00OOOOO00 ["implementation"]["version"]=platform .python_version ()#line:99:data["implementation"]["version"] = platform.python_version()
+    elif OOOO0OOO00OOOOO00 ["implementation"]["name"]=='IronPython':#line:100:elif data["implementation"]["name"] == 'IronPython':
+        OOOO0OOO00OOOOO00 ["implementation"]["version"]=platform .python_version ()#line:102:data["implementation"]["version"] = platform.python_version()
+    if sys .platform .startswith ("linux"):#line:104:if sys.platform.startswith("linux"):
+        from pip ._vendor import distro #line:105:from pip._vendor import distro
+        OO00OOO00O000O0OO =dict (filter (lambda OO0O00OO0O00O0O00 :OO0O00OO0O00O0O00 [1 ],zip (["name","version","id"],distro .linux_distribution ()),))#line:109:))
+        O000O000O0OOOOOOO =dict (filter (lambda OO0O00O0O00OO00OO :OO0O00O0O00OO00OO [1 ],zip (["lib","version"],libc_ver ()),))#line:113:))
+        if O000O000O0OOOOOOO :#line:114:if libc:
+            OO00OOO00O000O0OO ["libc"]=O000O000O0OOOOOOO #line:115:distro_infos["libc"] = libc
+        if OO00OOO00O000O0OO :#line:116:if distro_infos:
+            OOOO0OOO00OOOOO00 ["distro"]=OO00OOO00O000O0OO #line:117:data["distro"] = distro_infos
+    if sys .platform .startswith ("darwin")and platform .mac_ver ()[0 ]:#line:119:if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
+        OOOO0OOO00OOOOO00 ["distro"]={"name":"macOS","version":platform .mac_ver ()[0 ]}#line:120:data["distro"] = {"name": "macOS", "version": platform.mac_ver()[0]}
+    if platform .system ():#line:122:if platform.system():
+        OOOO0OOO00OOOOO00 .setdefault ("system",{})["name"]=platform .system ()#line:123:data.setdefault("system", {})["name"] = platform.system()
+    if platform .release ():#line:125:if platform.release():
+        OOOO0OOO00OOOOO00 .setdefault ("system",{})["release"]=platform .release ()#line:126:data.setdefault("system", {})["release"] = platform.release()
+    if platform .machine ():#line:128:if platform.machine():
+        OOOO0OOO00OOOOO00 ["cpu"]=platform .machine ()#line:129:data["cpu"] = platform.machine()
+    if OOO0OO0OO000O00O0 :#line:131:if HAS_TLS:
+        OOOO0OOO00OOOOO00 ["openssl_version"]=ssl .OPENSSL_VERSION #line:132:data["openssl_version"] = ssl.OPENSSL_VERSION
+    OOOO0000O00O00O0O =get_installed_version ("setuptools")#line:134:setuptools_version = get_installed_version("setuptools")
+    if OOOO0000O00O00O0O is not None :#line:135:if setuptools_version is not None:
+        OOOO0OOO00OOOOO00 ["setuptools_version"]=OOOO0000O00O00O0O #line:136:data["setuptools_version"] = setuptools_version
+    return "{data[installer][name]}/{data[installer][version]} {json}".format (data =OOOO0OOO00OOOOO00 ,json =json .dumps (OOOO0OOO00OOOOO00 ,separators =(",",":"),sort_keys =True ),)#line:141:)
+class O000000OO0O0OOO00 (AuthBase ):#line:144:class MultiDomainBasicAuth(AuthBase):
+    def __init__ (OOO000000OO00OOO0 ,prompting =True ):#line:146:def __init__(self, prompting=True):
+        OOO000000OO00OOO0 .prompting =prompting #line:148:self.prompting = prompting
+        OOO000000OO00OOO0 .passwords ={}#line:149:self.passwords = {}  # type: Dict[str, AuthInfo]
+    def __call__ (OOO0OOOOOOO0000OO ,OO0OOO0O00O000O00 ):#line:151:def __call__(self, req):
+        OO0O00OO0OO0OO00O =urllib_parse .urlparse (OO0OOO0O00O000O00 .url )#line:152:parsed = urllib_parse.urlparse(req.url)
+        O0000O000OO000000 ,OOO00O00OOO0000OO =split_auth_from_netloc (OO0O00OO0OO0OO00O .netloc )#line:155:netloc, url_user_password = split_auth_from_netloc(parsed.netloc)
+        OO0OOO0O00O000O00 .url =urllib_parse .urlunparse (OO0O00OO0OO0OO00O [:1 ]+(O0000O000OO000000 ,)+OO0O00OO0OO0OO00O [2 :])#line:158:req.url = urllib_parse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
+        O000O00000O0OOO00 ,O000OOOOO0OO0OOO0 =OOO0OOOOOOO0000OO .passwords .get (O0000O000OO000000 ,(None ,None ))#line:161:username, password = self.passwords.get(netloc, (None, None))
+        if O000O00000O0OOO00 is None :#line:164:if username is None:
+            O000O00000O0OOO00 ,O000OOOOO0OO0OOO0 =OOO00O00OOO0000OO #line:165:username, password = url_user_password
+        if O000O00000O0OOO00 is None and O000OOOOO0OO0OOO0 is None :#line:168:if username is None and password is None:
+            O0O000OO00OOOOOOO =get_netrc_auth (OO0OOO0O00O000O00 .url )#line:169:netrc_auth = get_netrc_auth(req.url)
+            O000O00000O0OOO00 ,O000OOOOO0OO0OOO0 =O0O000OO00OOOOOOO if O0O000OO00OOOOOOO else (None ,None )#line:170:username, password = netrc_auth if netrc_auth else (None, None)
+        if O000O00000O0OOO00 or O000OOOOO0OO0OOO0 :#line:172:if username or password:
+            OOO0OOOOOOO0000OO .passwords [O0000O000OO000000 ]=(O000O00000O0OOO00 ,O000OOOOO0OO0OOO0 )#line:174:self.passwords[netloc] = (username, password)
+            OO0OOO0O00O000O00 =HTTPBasicAuth (O000O00000O0OOO00 or "",O000OOOOO0OO0OOO0 or "")(OO0OOO0O00O000O00 )#line:177:req = HTTPBasicAuth(username or "", password or "")(req)
+        OO0OOO0O00O000O00 .register_hook ("response",OOO0OOOOOOO0000OO .handle_401 )#line:180:req.register_hook("response", self.handle_401)
+        return OO0OOO0O00O000O00 #line:182:return req
+    def handle_401 (O0OOOO00OO0O0O0OO ,OOO0OO00O0O000OO0 ,**O0O000000O0O00000 ):#line:184:def handle_401(self, resp, **kwargs):
+        if OOO0OO00O0O000OO0 .status_code !=401 :#line:187:if resp.status_code != 401:
+            return OOO0OO00O0O000OO0 #line:188:return resp
+        if not O0OOOO00OO0O0O0OO .prompting :#line:191:if not self.prompting:
+            return OOO0OO00O0O000OO0 #line:192:return resp
+        OOO0000O00OO00O0O =urllib_parse .urlparse (OOO0OO00O0O000OO0 .url )#line:194:parsed = urllib_parse.urlparse(resp.url)
+        O000O0O0OO00OO0O0 =six .moves .input ("User for %s: "%OOO0000O00OO00O0O .netloc )#line:197:username = six.moves.input("User for %s: " % parsed.netloc)
+        O0O00O0O0O0O00000 =getpass .getpass ("Password: ")#line:198:password = getpass.getpass("Password: ")
+        if O000O0O0OO00OO0O0 or O0O00O0O0O0O00000 :#line:201:if username or password:
+            O0OOOO00OO0O0O0OO .passwords [OOO0000O00OO00O0O .netloc ]=(O000O0O0OO00OO0O0 ,O0O00O0O0O0O00000 )#line:202:self.passwords[parsed.netloc] = (username, password)
+        OOO0OO00O0O000OO0 .content #line:206:resp.content
+        OOO0OO00O0O000OO0 .raw .release_conn ()#line:207:resp.raw.release_conn()
+        O0O0OO0O00O0OOO00 =HTTPBasicAuth (O000O0O0OO00OO0O0 or "",O0O00O0O0O0O00000 or "")(OOO0OO00O0O000OO0 .request )#line:210:req = HTTPBasicAuth(username or "", password or "")(resp.request)
+        O0O0OO0O00O0OOO00 .register_hook ("response",O0OOOO00OO0O0O0OO .warn_on_401 )#line:211:req.register_hook("response", self.warn_on_401)
+        OO0OO0O0O0OOO0OOO =OOO0OO00O0O000OO0 .connection .send (O0O0OO0O00O0OOO00 ,**O0O000000O0O00000 )#line:214:new_resp = resp.connection.send(req, **kwargs)
+        OO0OO0O0O0OOO0OOO .history .append (OOO0OO00O0O000OO0 )#line:215:new_resp.history.append(resp)
+        return OO0OO0O0O0OOO0OOO #line:217:return new_resp
+    def warn_on_401 (OOOOOO0000OO0O0OO ,O00000OO000OO0000 ,**OO0O00OO0O000O00O ):#line:219:def warn_on_401(self, resp, **kwargs):
+        if O00000OO000OO0000 .status_code ==401 :#line:221:if resp.status_code == 401:
+            O000OOO000OOOO000 .warning ('401 Error, Credentials not correct for %s',O00000OO000OO0000 .request .url )#line:223:resp.request.url)
+class OOOO00OOOOO0O000O (BaseAdapter ):#line:226:class LocalFSAdapter(BaseAdapter):
+    def send (OOO0000O00OOOOOOO ,OO0O0OO00000O00O0 ,stream =None ,timeout =None ,verify =None ,cert =None ,proxies =None ):#line:229:proxies=None):
+        OOOOO00000O0OO0O0 =url_to_path (OO0O0OO00000O00O0 .url )#line:230:pathname = url_to_path(request.url)
+        O00OO0OO0OOOO00O0 =Response ()#line:232:resp = Response()
+        O00OO0OO0OOOO00O0 .status_code =200 #line:233:resp.status_code = 200
+        O00OO0OO0OOOO00O0 .url =OO0O0OO00000O00O0 .url #line:234:resp.url = request.url
+        try :#line:236:try:
+            OOOO0O00OO0OO0O0O =os .stat (OOOOO00000O0OO0O0 )#line:237:stats = os.stat(pathname)
+        except OSError as OOO00O0O0OO000OOO :#line:238:except OSError as exc:
+            O00OO0OO0OOOO00O0 .status_code =404 #line:239:resp.status_code = 404
+            O00OO0OO0OOOO00O0 .raw =OOO00O0O0OO000OOO #line:240:resp.raw = exc
+        else :#line:241:else:
+            O0O0O0OO00O0OOO0O =email .utils .formatdate (OOOO0O00OO0OO0O0O .st_mtime ,usegmt =True )#line:242:modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
+            O00OOOO0000OO0000 =mimetypes .guess_type (OOOOO00000O0OO0O0 )[0 ]or "text/plain"#line:243:content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
+            O00OO0OO0OOOO00O0 .headers =CaseInsensitiveDict ({"Content-Type":O00OOOO0000OO0000 ,"Content-Length":OOOO0O00OO0OO0O0O .st_size ,"Last-Modified":O0O0O0OO00O0OOO0O ,})#line:248:})
+            O00OO0OO0OOOO00O0 .raw =open (OOOOO00000O0OO0O0 ,"rb")#line:250:resp.raw = open(pathname, "rb")
+            O00OO0OO0OOOO00O0 .close =O00OO0OO0OOOO00O0 .raw .close #line:251:resp.close = resp.raw.close
+        return O00OO0OO0OOOO00O0 #line:253:return resp
+    def close (O0OOO0O00OO000OO0 ):#line:255:def close(self):
+        pass #line:256:pass
+class O0OOO0OO00OOOOO0O (FileCache ):#line:259:class SafeFileCache(FileCache):
+    ""#line:263:"""
+    def __init__ (OO0O0OO00OOO0O000 ,*O000OO0OO00OOOO0O ,**OOO0000OOO0000000 ):#line:265:def __init__(self, *args, **kwargs):
+        super (O0OOO0OO00OOOOO0O ,OO0O0OO00OOO0O000 ).__init__ (*O000OO0OO00OOOO0O ,**OOO0000OOO0000000 )#line:266:super(SafeFileCache, self).__init__(*args, **kwargs)
+        if not check_path_owner (OO0O0OO00OOO0O000 .directory ):#line:273:if not check_path_owner(self.directory):
+            O000OOO000OOOO000 .warning ("The directory '%s' or its parent directory is not owned by " "the current user and the cache has been disabled. Please " "check the permissions and owner of that directory. If " "executing pip with sudo, you may want sudo's -H flag.",OO0O0OO00OOO0O000 .directory ,)#line:280:)
+            OO0O0OO00OOO0O000 .directory =None #line:283:self.directory = None
+    def get (OOOO000OO0OO0OOOO ,*OOO000O000OOOOO00 ,**OOO0O00000OOO0O00 ):#line:285:def get(self, *args, **kwargs):
+        if OOOO000OO0OO0OOOO .directory is None :#line:287:if self.directory is None:
+            return #line:288:return
+        try :#line:290:try:
+            return super (O0OOO0OO00OOOOO0O ,OOOO000OO0OO0OOOO ).get (*OOO000O000OOOOO00 ,**OOO0O00000OOO0O00 )#line:291:return super(SafeFileCache, self).get(*args, **kwargs)
+        except (LockError ,OSError ,IOError ):#line:292:except (LockError, OSError, IOError):
+            pass #line:296:pass
+    def set (OOO000OOO000OOOOO ,*O0OOOOOOO0OOO0OOO ,**OO000OOOO000O0O00 ):#line:298:def set(self, *args, **kwargs):
+        if OOO000OOO000OOOOO .directory is None :#line:300:if self.directory is None:
+            return #line:301:return
+        try :#line:303:try:
+            return super (O0OOO0OO00OOOOO0O ,OOO000OOO000OOOOO ).set (*O0OOOOOOO0OOO0OOO ,**OO000OOOO000O0O00 )#line:304:return super(SafeFileCache, self).set(*args, **kwargs)
+        except (LockError ,OSError ,IOError ):#line:305:except (LockError, OSError, IOError):
+            pass #line:309:pass
+    def delete (OOO00O00OOOO0OOO0 ,*O0000O0O00O00O00O ,**OOOOOO0O0O00O000O ):#line:311:def delete(self, *args, **kwargs):
+        if OOO00O00OOOO0OOO0 .directory is None :#line:313:if self.directory is None:
+            return #line:314:return
+        try :#line:316:try:
+            return super (O0OOO0OO00OOOOO0O ,OOO00O00OOOO0OOO0 ).delete (*O0000O0O00O00O00O ,**OOOOOO0O0O00O000O )#line:317:return super(SafeFileCache, self).delete(*args, **kwargs)
+        except (LockError ,OSError ,IOError ):#line:318:except (LockError, OSError, IOError):
+            pass #line:322:pass
+class O0OO00O0O0O0O0OO0 (HTTPAdapter ):#line:325:class InsecureHTTPAdapter(HTTPAdapter):
+    def cert_verify (OOOOO0O0OO0O00000 ,O0OO0OOOOO000OOO0 ,OOO0O0000O00OOOOO ,O0O0OO00O00O00000 ,OOOO00OOOOOO00000 ):#line:327:def cert_verify(self, conn, url, verify, cert):
+        O0OO0OOOOO000OOO0 .cert_reqs ='CERT_NONE'#line:328:conn.cert_reqs = 'CERT_NONE'
+        O0OO0OOOOO000OOO0 .ca_certs =None #line:329:conn.ca_certs = None
+class O0000OOOOOO000OOO (requests .Session ):#line:332:class PipSession(requests.Session):
+    timeout =None #line:334:timeout = None  # type: Optional[int]
+    def __init__ (O0O0O00OO0O0OO000 ,*O0OO0O000OO00O00O ,**OOOO0O00O0O000O0O ):#line:336:def __init__(self, *args, **kwargs):
+        O0OO00O0OO000O000 =OOOO0O00O0O000O0O .pop ("retries",0 )#line:337:retries = kwargs.pop("retries", 0)
+        OOOO0OO0000OOO00O =OOOO0O00O0O000O0O .pop ("cache",None )#line:338:cache = kwargs.pop("cache", None)
+        OO00O0O00OOOOOOOO =OOOO0O00O0O000O0O .pop ("insecure_hosts",[])#line:339:insecure_hosts = kwargs.pop("insecure_hosts", [])
+        super (O0000OOOOOO000OOO ,O0O0O00OO0O0OO000 ).__init__ (*O0OO0O000OO00O00O ,**OOOO0O00O0O000O0O )#line:341:super(PipSession, self).__init__(*args, **kwargs)
+        O0O0O00OO0O0OO000 .headers ["User-Agent"]=O00O0O000O00OO0O0 ()#line:344:self.headers["User-Agent"] = user_agent()
+        O0O0O00OO0O0OO000 .auth =O000000OO0O0OOO00 ()#line:347:self.auth = MultiDomainBasicAuth()
+        O0OO00O0OO000O000 =urllib3 .Retry (total =O0OO00O0OO000O000 ,status_forcelist =[500 ,503 ,520 ,527 ],backoff_factor =0.25 ,)#line:367:)
+        if OOOO0OO0000OOO00O :#line:373:if cache:
+            OO0OO00OO0OOO0OOO =CacheControlAdapter (cache =O0OOO0OO00OOOOO0O (OOOO0OO0000OOO00O ,use_dir_lock =True ),max_retries =O0OO00O0OO000O000 ,)#line:377:)
+        else :#line:378:else:
+            OO0OO00OO0OOO0OOO =HTTPAdapter (max_retries =O0OO00O0OO000O000 )#line:379:secure_adapter = HTTPAdapter(max_retries=retries)
+        OO000OOO0OOOOO0O0 =O0OO00O0O0O0O0OO0 (max_retries =O0OO00O0OO000O000 )#line:385:insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        O0O0O00OO0O0OO000 .mount ("https://",OO0OO00OO0OOO0OOO )#line:387:self.mount("https://", secure_adapter)
+        O0O0O00OO0O0OO000 .mount ("http://",OO000OOO0OOOOO0O0 )#line:388:self.mount("http://", insecure_adapter)
+        O0O0O00OO0O0OO000 .mount ("file://",OOOO00OOOOO0O000O ())#line:391:self.mount("file://", LocalFSAdapter())
+        for OOO00OOOO00OO0OO0 in OO00O0O00OOOOOOOO :#line:395:for host in insecure_hosts:
+            O0O0O00OO0O0OO000 .mount ("https://{}/".format (OOO00OOOO00OO0OO0 ),OO000OOO0OOOOO0O0 )#line:396:self.mount("https://{}/".format(host), insecure_adapter)
+    def request (O0000OO00O00O0000 ,OOO00000O000O00OO ,OOOOOOOO00O0O0OO0 ,*OO0OO00000OOOO0O0 ,**OOOOO00OOOO0000OO ):#line:398:def request(self, method, url, *args, **kwargs):
+        OOOOO00OOOO0000OO .setdefault ("timeout",O0000OO00O00O0000 .timeout )#line:400:kwargs.setdefault("timeout", self.timeout)
+        return super (O0000OOOOOO000OOO ,O0000OO00O00O0000 ).request (OOO00000O000O00OO ,OOOOOOOO00O0O0OO0 ,*OO0OO00000OOOO0O0 ,**OOOOO00OOOO0000OO )#line:403:return super(PipSession, self).request(method, url, *args, **kwargs)
+def get_file_content (OO0OOOO000O00000O ,comes_from =None ,session =None ):#line:406:def get_file_content(url, comes_from=None, session=None):
+    ""#line:414:"""
+    if session is None :#line:415:if session is None:
+        raise TypeError ("get_file_content() missing 1 required keyword argument: 'session'")#line:418:)
+    OOO000OO0O000O000 =_OO0OO000OO00000O0 .search (OO0OOOO000O00000O )#line:420:match = _scheme_re.search(url)
+    if OOO000OO0O000O000 :#line:421:if match:
+        OOO0O00O000O0O000 =OOO000OO0O000O000 .group (1 ).lower ()#line:422:scheme = match.group(1).lower()
+        if (OOO0O00O000O0O000 =='file'and comes_from and comes_from .startswith ('http')):#line:424:comes_from.startswith('http')):
+            raise InstallationError ('Requirements file %s references URL %s, which is local'%(comes_from ,OO0OOOO000O00000O ))#line:427:% (comes_from, url))
+        if OOO0O00O000O0O000 =='file':#line:428:if scheme == 'file':
+            O00OO0O0000OO0O0O =OO0OOOO000O00000O .split (':',1 )[1 ]#line:429:path = url.split(':', 1)[1]
+            O00OO0O0000OO0O0O =O00OO0O0000OO0O0O .replace ('\\','/')#line:430:path = path.replace('\\', '/')
+            OOO000OO0O000O000 =_OO00O0OO0O00O0000 .match (O00OO0O0000OO0O0O )#line:431:match = _url_slash_drive_re.match(path)
+            if OOO000OO0O000O000 :#line:432:if match:
+                O00OO0O0000OO0O0O =OOO000OO0O000O000 .group (1 )+':'+O00OO0O0000OO0O0O .split ('|',1 )[1 ]#line:433:path = match.group(1) + ':' + path.split('|', 1)[1]
+            O00OO0O0000OO0O0O =urllib_parse .unquote (O00OO0O0000OO0O0O )#line:434:path = urllib_parse.unquote(path)
+            if O00OO0O0000OO0O0O .startswith ('/'):#line:435:if path.startswith('/'):
+                O00OO0O0000OO0O0O ='/'+O00OO0O0000OO0O0O .lstrip ('/')#line:436:path = '/' + path.lstrip('/')
+            OO0OOOO000O00000O =O00OO0O0000OO0O0O #line:437:url = path
+        else :#line:438:else:
+            O0O00O000O00OOOO0 =session .get (OO0OOOO000O00000O )#line:440:resp = session.get(url)
+            O0O00O000O00OOOO0 .raise_for_status ()#line:441:resp.raise_for_status()
+            return O0O00O000O00OOOO0 .url ,O0O00O000O00OOOO0 .text #line:442:return resp.url, resp.text
+    try :#line:443:try:
+        with open (OO0OOOO000O00000O ,'rb')as O0OO00O00000OO00O :#line:444:with open(url, 'rb') as f:
+            O0OO000OO00O000O0 =auto_decode (O0OO00O00000OO00O .read ())#line:445:content = auto_decode(f.read())
+    except IOError as OOOOO00OO00O00OOO :#line:446:except IOError as exc:
+        raise InstallationError ('Could not open requirements file: %s'%str (OOOOO00OO00O00OOO ))#line:449:)
+    return OO0OOOO000O00000O ,O0OO000OO00O000O0 #line:450:return url, content
+_OO0OO000OO00000O0 =re .compile (r'^(http|https|file):',re .I )#line:453:_scheme_re = re.compile(r'^(http|https|file):', re.I)
+_OO00O0OO0O00O0000 =re .compile (r'/*([a-z])\|',re .I )#line:454:_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+def is_url (OO000O0OOOO0OOOOO ):#line:457:def is_url(name):
+    ""#line:459:"""Returns true if the name looks like a URL"""
+    if ':'not in OO000O0OOOO0OOOOO :#line:460:if ':' not in name:
+        return False #line:461:return False
+    OOOO0OOOOO0OOO000 =OO000O0OOOO0OOOOO .split (':',1 )[0 ].lower ()#line:462:scheme = name.split(':', 1)[0].lower()
+    return OOOO0OOOOO0OOO000 in ['http','https','file','ftp']+vcs .all_schemes #line:463:return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
+def url_to_path (O0000OO00OOOOO000 ):#line:466:def url_to_path(url):
+    ""#line:470:"""
+    assert O0000OO00OOOOO000 .startswith ('file:'),("You can only turn file: urls into filenames (not %r)"%O0000OO00OOOOO000 )#line:472:"You can only turn file: urls into filenames (not %r)" % url)
+    _OOOO00O0OOO000000 ,O0O00O0O0OOOOOO0O ,OO00O0O0O00O00OO0 ,_OOOO00O0OOO000000 ,_OOOO00O0OOO000000 =urllib_parse .urlsplit (O0000OO00OOOOO000 )#line:474:_, netloc, path, _, _ = urllib_parse.urlsplit(url)
+    if O0O00O0O0OOOOOO0O :#line:477:if netloc:
+        O0O00O0O0OOOOOO0O ='\\\\'+O0O00O0O0OOOOOO0O #line:478:netloc = '\\\\' + netloc
+    OO00O0O0O00O00OO0 =urllib_request .url2pathname (O0O00O0O0OOOOOO0O +OO00O0O0O00O00OO0 )#line:480:path = urllib_request.url2pathname(netloc + path)
+    return OO00O0O0O00O00OO0 #line:481:return path
+def path_to_url (O0OOOO0OO0O0000O0 ):#line:484:def path_to_url(path):
+    ""#line:489:"""
+    O0OOOO0OO0O0000O0 =os .path .normpath (os .path .abspath (O0OOOO0OO0O0000O0 ))#line:490:path = os.path.normpath(os.path.abspath(path))
+    OOOOOOOOOO000O0OO =urllib_parse .urljoin ('file:',urllib_request .pathname2url (O0OOOO0OO0O0000O0 ))#line:491:url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return OOOOOOOOOO000O0OO #line:492:return url
+def is_archive_file (OOO00O000000O00OO ):#line:495:def is_archive_file(name):
+    ""#line:497:"""Return True if `name` is a considered as an archive file."""
+    O00OOO0O000OOO0O0 =splitext (OOO00O000000O00OO )[1 ].lower ()#line:498:ext = splitext(name)[1].lower()
+    if O00OOO0O000OOO0O0 in ARCHIVE_EXTENSIONS :#line:499:if ext in ARCHIVE_EXTENSIONS:
+        return True #line:500:return True
+    return False #line:501:return False
+def unpack_vcs_link (OO0O0O000O0OOOOOO ,OO0OO00O000OOO0O0 ):#line:504:def unpack_vcs_link(link, location):
+    O0000O0O000O0000O =_O000O00O0OO0O000O (OO0O0O000O0OOOOOO )#line:505:vcs_backend = _get_used_vcs_backend(link)
+    O0000O0O000O0000O .unpack (OO0OO00O000OOO0O0 )#line:506:vcs_backend.unpack(location)
+def _O000O00O0OO0O000O (O0O0OO0OOO000O0OO ):#line:509:def _get_used_vcs_backend(link):
+    for OOOOO000O0OO0O0O0 in vcs .backends :#line:510:for backend in vcs.backends:
+        if O0O0OO0OOO000O0OO .scheme in OOOOO000O0OO0O0O0 .schemes :#line:511:if link.scheme in backend.schemes:
+            O00O00OOOO0O0OOOO =OOOOO000O0OO0O0O0 (O0O0OO0OOO000O0OO .url )#line:512:vcs_backend = backend(link.url)
+            return O00O00OOOO0O0OOOO #line:513:return vcs_backend
+def is_vcs_url (OO0OOO0OO0OOOO0OO ):#line:516:def is_vcs_url(link):
+    return bool (_O000O00O0OO0O000O (OO0OOO0OO0OOOO0OO ))#line:518:return bool(_get_used_vcs_backend(link))
+def is_file_url (OO0O0OOOOO0OO000O ):#line:521:def is_file_url(link):
+    return OO0O0OOOOO0OO000O .url .lower ().startswith ('file:')#line:523:return link.url.lower().startswith('file:')
+def O0O00OO0OO00O0OO0 (OO0OOO0OOO0O00OOO ):#line:526:def is_dir_url(link):
+    ""#line:533:"""
+    OO0OOO00OO0O00OO0 =url_to_path (OO0OOO0OOO0O00OOO .url_without_fragment )#line:534:link_path = url_to_path(link.url_without_fragment)
+    return os .path .isdir (OO0OOO00OO0O00OO0 )#line:535:return os.path.isdir(link_path)
+def _OOOOO0OO00O0000O0 (OO00O0OO00OO00O0O ,*OOO0O0O0O0OOOOO0O ,**OO0OOOO0O0O0OO0OO ):#line:538:def _progress_indicator(iterable, *args, **kwargs):
+    return OO00O0OO00OO00O0O #line:539:return iterable
+def _O00O0OOO00O0OOOO0 (O0O00OOOO000000OO ,OOO00OOOO0OO00OO0 ,O000000OOO00OOO0O ,OO0OO00O00000OO0O ,O00OO0OOO0OO0OO00 ):#line:548:):
+    try :#line:550:try:
+        O00OOO0O000O000OO =int (O0O00OOOO000000OO .headers ['content-length'])#line:551:total_length = int(resp.headers['content-length'])
+    except (ValueError ,KeyError ,TypeError ):#line:552:except (ValueError, KeyError, TypeError):
+        O00OOO0O000O000OO =0 #line:553:total_length = 0
+    O00O0O0O00O0O0OOO =getattr (O0O00OOOO000000OO ,"from_cache",False )#line:555:cached_resp = getattr(resp, "from_cache", False)
+    if O000OOO000OOOO000 .getEffectiveLevel ()>logging .INFO :#line:556:if logger.getEffectiveLevel() > logging.INFO:
+        OOO000OO0OOO0O0OO =False #line:557:show_progress = False
+    elif O00O0O0O00O0O0OOO :#line:558:elif cached_resp:
+        OOO000OO0OOO0O0OO =False #line:559:show_progress = False
+    elif O00OOO0O000O000OO >(40 *1000 ):#line:560:elif total_length > (40 * 1000):
+        OOO000OO0OOO0O0OO =True #line:561:show_progress = True
+    elif not O00OOO0O000O000OO :#line:562:elif not total_length:
+        OOO000OO0OOO0O0OO =True #line:563:show_progress = True
+    else :#line:564:else:
+        OOO000OO0OOO0O0OO =False #line:565:show_progress = False
+    OOOOOO00OO0O0OOOO =OOO00OOOO0OO00OO0 .show_url #line:567:show_url = link.show_url
+    def OOO00000OOO0OOO00 (OOOOOOO0OO0OO0O0O ):#line:569:def resp_read(chunk_size):
+        try :#line:570:try:
+            for O0OOO00OOOOOOO0OO in O0O00OOOO000000OO .raw .stream (OOOOOOO0OO0OO0O0O ,decode_content =False ):#line:596:decode_content=False):
+                yield O0OOO00OOOOOOO0OO #line:597:yield chunk
+        except AttributeError :#line:598:except AttributeError:
+            while True :#line:600:while True:
+                O0OOO00OOOOOOO0OO =O0O00OOOO000000OO .raw .read (OOOOOOO0OO0OO0O0O )#line:601:chunk = resp.raw.read(chunk_size)
+                if not O0OOO00OOOOOOO0OO :#line:602:if not chunk:
+                    break #line:603:break
+                yield O0OOO00OOOOOOO0OO #line:604:yield chunk
+    def OO0O000OO0O0OOO00 (O0OO0O0OOOOOO00OO ):#line:606:def written_chunks(chunks):
+        for O0O0000O000OOO00O in O0OO0O0OOOOOO00OO :#line:607:for chunk in chunks:
+            O000000OOO00OOO0O .write (O0O0000O000OOO00O )#line:608:content_file.write(chunk)
+            yield O0O0000O000OOO00O #line:609:yield chunk
+    OO0O0OO0OOO00OOO0 =_OOOOO0OO00O0000O0 #line:611:progress_indicator = _progress_indicator
+    if OOO00OOOO0OO00OO0 .netloc ==PyPI .netloc :#line:613:if link.netloc == PyPI.netloc:
+        OO000O0O00O0000OO =OOOOOO00OO0O0OOOO #line:614:url = show_url
+    else :#line:615:else:
+        OO000O0O00O0000OO =OOO00OOOO0OO00OO0 .url_without_fragment #line:616:url = link.url_without_fragment
+    if OOO000OO0OOO0O0OO :#line:618:if show_progress:  # We don't show progress on cached responses
+        OO0O0OO0OOO00OOO0 =DownloadProgressProvider (O00OO0OOO0OO0OO00 ,max =O00OOO0O000O000OO )#line:620:max=total_length)
+        if O00OOO0O000O000OO :#line:621:if total_length:
+            O000OOO000OOOO000 .info ("Downloading %s (%s)",OO000O0O00O0000OO ,format_size (O00OOO0O000O000OO ))#line:622:logger.info("Downloading %s (%s)", url, format_size(total_length))
+        else :#line:623:else:
+            O000OOO000OOOO000 .info ("Downloading %s",OO000O0O00O0000OO )#line:624:logger.info("Downloading %s", url)
+    elif O00O0O0O00O0O0OOO :#line:625:elif cached_resp:
+        O000OOO000OOOO000 .info ("Using cached %s",OO000O0O00O0000OO )#line:626:logger.info("Using cached %s", url)
+    else :#line:627:else:
+        O000OOO000OOOO000 .info ("Downloading %s",OO000O0O00O0000OO )#line:628:logger.info("Downloading %s", url)
+    O000OOO000OOOO000 .debug ('Downloading from URL %s',OOO00OOOO0OO00OO0 )#line:630:logger.debug('Downloading from URL %s', link)
+    O0000O0OO00OO00O0 =OO0O000OO0O0OOO00 (OO0O0OO0OOO00OOO0 (OOO00000OOO0OOO00 (CONTENT_CHUNK_SIZE ),CONTENT_CHUNK_SIZE ))#line:637:)
+    if OO0OO00O00000OO0O :#line:638:if hashes:
+        OO0OO00O00000OO0O .check_against_chunks (O0000O0OO00OO00O0 )#line:639:hashes.check_against_chunks(downloaded_chunks)
+    else :#line:640:else:
+        consume (O0000O0OO00OO00O0 )#line:641:consume(downloaded_chunks)
+def _O0O0O00OOOO0O0000 (OO0O0O00O000OOO0O ,O000000O00OOOOOOO ,OO000000OO0000O00 ):#line:644:def _copy_file(filename, location, link):
+    O0OOO000OOOOO00OO =True #line:645:copy = True
+    O0O00OOO00000O000 =os .path .join (O000000O00OOOOOOO ,OO000000OO0000O00 .filename )#line:646:download_location = os.path.join(location, link.filename)
+    if os .path .exists (O0O00OOO00000O000 ):#line:647:if os.path.exists(download_location):
+        O0O000O00000000O0 =ask_path_exists ('The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort'%display_path (O0O00OOO00000O000 ),('i','w','b','a'))#line:650:display_path(download_location), ('i', 'w', 'b', 'a'))
+        if O0O000O00000000O0 =='i':#line:651:if response == 'i':
+            O0OOO000OOOOO00OO =False #line:652:copy = False
+        elif O0O000O00000000O0 =='w':#line:653:elif response == 'w':
+            O000OOO000OOOO000 .warning ('Deleting %s',display_path (O0O00OOO00000O000 ))#line:654:logger.warning('Deleting %s', display_path(download_location))
+            os .remove (O0O00OOO00000O000 )#line:655:os.remove(download_location)
+        elif O0O000O00000000O0 =='b':#line:656:elif response == 'b':
+            O0000OOOO00O0O00O =backup_dir (O0O00OOO00000O000 )#line:657:dest_file = backup_dir(download_location)
+            O000OOO000OOOO000 .warning ('Backing up %s to %s',display_path (O0O00OOO00000O000 ),display_path (O0000OOOO00O0O00O ),)#line:662:)
+            shutil .move (O0O00OOO00000O000 ,O0000OOOO00O0O00O )#line:663:shutil.move(download_location, dest_file)
+        elif O0O000O00000000O0 =='a':#line:664:elif response == 'a':
+            sys .exit (-1 )#line:665:sys.exit(-1)
+    if O0OOO000OOOOO00OO :#line:666:if copy:
+        shutil .copy (OO0O0O00O000OOO0O ,O0O00OOO00000O000 )#line:667:shutil.copy(filename, download_location)
+        O000OOO000OOOO000 .info ('Saved %s',display_path (O0O00OOO00000O000 ))#line:668:logger.info('Saved %s', display_path(download_location))
+def unpack_http_url (OOO0000O0O00000O0 ,O00OOO0O0O00O00OO ,download_dir =None ,session =None ,hashes =None ,progress_bar ="on"):#line:678:):
+    if session is None :#line:680:if session is None:
+        raise TypeError ("unpack_http_url() missing 1 required keyword argument: 'session'")#line:683:)
+    with TempDirectory (kind ="unpack")as O0000O000OOO00O00 :#line:685:with TempDirectory(kind="unpack") as temp_dir:
+        O0OO00OO00OOOO0OO =None #line:687:already_downloaded_path = None
+        if download_dir :#line:688:if download_dir:
+            O0OO00OO00OOOO0OO =_O000OOOO0O00OO000 (OOO0000O0O00000O0 ,download_dir ,hashes )#line:691:hashes)
+        if O0OO00OO00OOOO0OO :#line:693:if already_downloaded_path:
+            O00OO0O000OOOO00O =O0OO00OO00OOOO0OO #line:694:from_path = already_downloaded_path
+            O0OOOOO0000OO00O0 =mimetypes .guess_type (O00OO0O000OOOO00O )[0 ]#line:695:content_type = mimetypes.guess_type(from_path)[0]
+        else :#line:696:else:
+            O00OO0O000OOOO00O ,O0OOOOO0000OO00O0 =_O0O00O000OOO000OO (OOO0000O0O00000O0 ,session ,O0000O000OOO00O00 .path ,hashes ,progress_bar )#line:702:progress_bar)
+        unpack_file (O00OO0O000OOOO00O ,O00OOO0O0O00O00OO ,O0OOOOO0000OO00O0 ,OOO0000O0O00000O0 )#line:706:unpack_file(from_path, location, content_type, link)
+        if download_dir and not O0OO00OO00OOOO0OO :#line:709:if download_dir and not already_downloaded_path:
+            _O0O0O00OOOO0O0000 (O00OO0O000OOOO00O ,download_dir ,OOO0000O0O00000O0 )#line:710:_copy_file(from_path, download_dir, link)
+        if not O0OO00OO00OOOO0OO :#line:712:if not already_downloaded_path:
+            os .unlink (O00OO0O000OOOO00O )#line:713:os.unlink(from_path)
+def unpack_file_url (O0O0OO0O0O0OO0O0O ,O0O000O0O00O000OO ,download_dir =None ,hashes =None ):#line:721:):
+    ""#line:727:"""
+    OOOO0O000OO00OO0O =url_to_path (O0O0OO0O0O0OO0O0O .url_without_fragment )#line:728:link_path = url_to_path(link.url_without_fragment)
+    if O0O00OO0OO00O0OO0 (O0O0OO0O0O0OO0O0O ):#line:731:if is_dir_url(link):
+        if os .path .isdir (O0O000O0O00O000OO ):#line:732:if os.path.isdir(location):
+            rmtree (O0O000O0O00O000OO )#line:733:rmtree(location)
+        shutil .copytree (OOOO0O000OO00OO0O ,O0O000O0O00O000OO ,symlinks =True )#line:734:shutil.copytree(link_path, location, symlinks=True)
+        if download_dir :#line:735:if download_dir:
+            O000OOO000OOOO000 .info ('Link is a directory, ignoring download_dir')#line:736:logger.info('Link is a directory, ignoring download_dir')
+        return #line:737:return
+    if hashes :#line:744:if hashes:
+        hashes .check_against_path (OOOO0O000OO00OO0O )#line:745:hashes.check_against_path(link_path)
+    OOO0O00OOOO00OO0O =None #line:748:already_downloaded_path = None
+    if download_dir :#line:749:if download_dir:
+        OOO0O00OOOO00OO0O =_O000OOOO0O00OO000 (O0O0OO0O0O0OO0O0O ,download_dir ,hashes )#line:752:hashes)
+    if OOO0O00OOOO00OO0O :#line:754:if already_downloaded_path:
+        O0OO0O0O0OO00OOO0 =OOO0O00OOOO00OO0O #line:755:from_path = already_downloaded_path
+    else :#line:756:else:
+        O0OO0O0O0OO00OOO0 =OOOO0O000OO00OO0O #line:757:from_path = link_path
+    OOO0O0O0O00O0O000 =mimetypes .guess_type (O0OO0O0O0OO00OOO0 )[0 ]#line:759:content_type = mimetypes.guess_type(from_path)[0]
+    unpack_file (O0OO0O0O0OO00OOO0 ,O0O000O0O00O000OO ,OOO0O0O0O00O0O000 ,O0O0OO0O0O0OO0O0O )#line:763:unpack_file(from_path, location, content_type, link)
+    if download_dir and not OOO0O00OOOO00OO0O :#line:766:if download_dir and not already_downloaded_path:
+        _O0O0O00OOOO0O0000 (O0OO0O0O0OO00OOO0 ,download_dir ,O0O0OO0O0O0OO0O0O )#line:767:_copy_file(from_path, download_dir, link)
+def _OO000O0OOOO0O0O00 (O000O000000O0OO0O ,OOOOO0O00000O0OOO ):#line:770:def _copy_dist_from_dir(link_path, location):
+    ""#line:778:"""
+    if os .path .isdir (OOOOO0O00000O0OOO ):#line:785:if os.path.isdir(location):
+        rmtree (OOOOO0O00000O0OOO )#line:786:rmtree(location)
+    OO0O00000OOOOOO00 ='setup.py'#line:789:setup_py = 'setup.py'
+    O0OOOO000O00OO000 =[sys .executable ]#line:790:sdist_args = [sys.executable]
+    O0OOOO000O00OO000 .append ('-c')#line:791:sdist_args.append('-c')
+    O0OOOO000O00OO000 .append (SETUPTOOLS_SHIM %OO0O00000OOOOOO00 )#line:792:sdist_args.append(SETUPTOOLS_SHIM % setup_py)
+    O0OOOO000O00OO000 .append ('sdist')#line:793:sdist_args.append('sdist')
+    O0OOOO000O00OO000 +=['--dist-dir',OOOOO0O00000O0OOO ]#line:794:sdist_args += ['--dist-dir', location]
+    O000OOO000OOOO000 .info ('Running setup.py sdist for %s',O000O000000O0OO0O )#line:795:logger.info('Running setup.py sdist for %s', link_path)
+    with indent_log ():#line:797:with indent_log():
+        call_subprocess (O0OOOO000O00OO000 ,cwd =O000O000000O0OO0O ,show_stdout =False )#line:798:call_subprocess(sdist_args, cwd=link_path, show_stdout=False)
+    O00O00OO0O0OOOOO0 =os .path .join (OOOOO0O00000O0OOO ,os .listdir (OOOOO0O00000O0OOO )[0 ])#line:801:sdist = os.path.join(location, os.listdir(location)[0])
+    O000OOO000OOOO000 .info ('Unpacking sdist %s into %s',O00O00OO0O0OOOOO0 ,OOOOO0O00000O0OOO )#line:802:logger.info('Unpacking sdist %s into %s', sdist, location)
+    unpack_file (O00O00OO0O0OOOOO0 ,OOOOO0O00000O0OOO ,content_type =None ,link =None )#line:803:unpack_file(sdist, location, content_type=None, link=None)
+class O00OOO00000O0O000 (xmlrpc_client .Transport ):#line:806:class PipXmlrpcTransport(xmlrpc_client.Transport):
+    ""#line:809:"""
+    def __init__ (OO000OO0O0000O0O0 ,O0OO0OOO0OO00OOOO ,OO0OO000O0O0000OO ,use_datetime =False ):#line:811:def __init__(self, index_url, session, use_datetime=False):
+        xmlrpc_client .Transport .__init__ (OO000OO0O0000O0O0 ,use_datetime )#line:812:xmlrpc_client.Transport.__init__(self, use_datetime)
+        O0OOOO00O00O00O00 =urllib_parse .urlparse (O0OO0OOO0OO00OOOO )#line:813:index_parts = urllib_parse.urlparse(index_url)
+        OO000OO0O0000O0O0 ._scheme =O0OOOO00O00O00O00 .scheme #line:814:self._scheme = index_parts.scheme
+        OO000OO0O0000O0O0 ._session =OO0OO000O0O0000OO #line:815:self._session = session
+    def request (O0000OOO000O0OOOO ,OOOO0OOOOO000OO0O ,O0OOOOO000O00OOO0 ,OOOOO00O00O0O00O0 ,verbose =False ):#line:817:def request(self, host, handler, request_body, verbose=False):
+        OO000O0O0O0OOO000 =(O0000OOO000O0OOOO ._scheme ,OOOO0OOOOO000OO0O ,O0OOOOO000O00OOO0 ,None ,None ,None )#line:818:parts = (self._scheme, host, handler, None, None, None)
+        O0OO00O00OOO00000 =urllib_parse .urlunparse (OO000O0O0O0OOO000 )#line:819:url = urllib_parse.urlunparse(parts)
+        try :#line:820:try:
+            OOO000000O00OO0O0 ={'Content-Type':'text/xml'}#line:821:headers = {'Content-Type': 'text/xml'}
+            OO00OOO000000OO0O =O0000OOO000O0OOOO ._session .post (O0OO00O00OOO00000 ,data =OOOOO00O00O0O00O0 ,headers =OOO000000O00OO0O0 ,stream =True )#line:823:headers=headers, stream=True)
+            OO00OOO000000OO0O .raise_for_status ()#line:824:response.raise_for_status()
+            O0000OOO000O0OOOO .verbose =verbose #line:825:self.verbose = verbose
+            return O0000OOO000O0OOOO .parse_response (OO00OOO000000OO0O .raw )#line:826:return self.parse_response(response.raw)
+        except requests .HTTPError as OOO0O00OOO0OO0000 :#line:827:except requests.HTTPError as exc:
+            O000OOO000OOOO000 .critical ("HTTP error %s while getting %s",OOO0O00OOO0OO0000 .response .status_code ,O0OO00O00OOO00000 ,)#line:831:)
+            raise #line:832:raise
+def unpack_url (OO00O0OOOO000O0OO ,O000OO00OOO0OOOO0 ,download_dir =None ,only_download =False ,session =None ,hashes =None ,progress_bar ="on"):#line:843:):
+    ""#line:858:"""
+    if is_vcs_url (OO00O0OOOO000O0OO ):#line:860:if is_vcs_url(link):
+        unpack_vcs_link (OO00O0OOOO000O0OO ,O000OO00OOO0OOOO0 )#line:861:unpack_vcs_link(link, location)
+    elif is_file_url (OO00O0OOOO000O0OO ):#line:864:elif is_file_url(link):
+        unpack_file_url (OO00O0OOOO000O0OO ,O000OO00OOO0OOOO0 ,download_dir ,hashes =hashes )#line:865:unpack_file_url(link, location, download_dir, hashes=hashes)
+    else :#line:868:else:
+        if session is None :#line:869:if session is None:
+            session =O0000OOOOOO000OOO ()#line:870:session = PipSession()
+        unpack_http_url (OO00O0OOOO000O0OO ,O000OO00OOO0OOOO0 ,download_dir ,session ,hashes =hashes ,progress_bar =progress_bar )#line:879:)
+    if only_download :#line:880:if only_download:
+        write_delete_marker_file (O000OO00OOO0OOOO0 )#line:881:write_delete_marker_file(location)
+def _O0O00O000OOO000OO (OOO00O0OOO00OOOO0 ,O0OO0000000OOOO0O ,O0O00O00OO00O0OOO ,OOOOOO0O00OOOO00O ,O0OOO0OOOO0O0OOOO ):#line:890:):
+    ""#line:892:"""Download link url into temp_dir using provided session"""
+    O0O000O00OO00O0O0 =OOO00O0OOO00OOOO0 .url .split ('#',1 )[0 ]#line:893:target_url = link.url.split('#', 1)[0]
+    try :#line:894:try:
+        OOO0O0O0OOO00O0O0 =O0OO0000000OOOO0O .get (O0O000O00OO00O0O0 ,headers ={"Accept-Encoding":"identity"},stream =True ,)#line:918:)
+        OOO0O0O0OOO00O0O0 .raise_for_status ()#line:919:resp.raise_for_status()
+    except requests .HTTPError as OO0OOOOOO0O0OOO0O :#line:920:except requests.HTTPError as exc:
+        O000OOO000OOOO000 .critical ("HTTP error %s while getting %s",OO0OOOOOO0O0OOO0O .response .status_code ,OOO00O0OOO00OOOO0 ,)#line:923:)
+        raise #line:924:raise
+    O00O0O0000O0O0000 =OOO0O0O0OOO00O0O0 .headers .get ('content-type','')#line:926:content_type = resp.headers.get('content-type', '')
+    O0000OO0OOOO0O000 =OOO00O0OOO00OOOO0 .filename #line:927:filename = link.filename  # fallback
+    O00O00O0OOO00O0O0 =OOO0O0O0OOO00O0O0 .headers .get ('content-disposition')#line:929:content_disposition = resp.headers.get('content-disposition')
+    if O00O00O0OOO00O0O0 :#line:930:if content_disposition:
+        OO0O0O00O0OO00OOO ,OO00OOOO00000O00O =cgi .parse_header (O00O00O0OOO00O0O0 )#line:931:type, params = cgi.parse_header(content_disposition)
+        O0000OO0OOOO0O000 =OO00OOOO00000O00O .get ('filename')or O0000OO0OOOO0O000 #line:934:filename = params.get('filename') or filename
+    O0000000O0O00OO0O =splitext (O0000OO0OOOO0O000 )[1 ]#line:935:ext = splitext(filename)[1]
+    if not O0000000O0O00OO0O :#line:936:if not ext:
+        O0000000O0O00OO0O =mimetypes .guess_extension (O00O0O0000O0O0000 )#line:937:ext = mimetypes.guess_extension(content_type)
+        if O0000000O0O00OO0O :#line:938:if ext:
+            O0000OO0OOOO0O000 +=O0000000O0O00OO0O #line:939:filename += ext
+    if not O0000000O0O00OO0O and OOO00O0OOO00OOOO0 .url !=OOO0O0O0OOO00O0O0 .url :#line:940:if not ext and link.url != resp.url:
+        O0000000O0O00OO0O =os .path .splitext (OOO0O0O0OOO00O0O0 .url )[1 ]#line:941:ext = os.path.splitext(resp.url)[1]
+        if O0000000O0O00OO0O :#line:942:if ext:
+            O0000OO0OOOO0O000 +=O0000000O0O00OO0O #line:943:filename += ext
+    OO00000OOO00OOO00 =os .path .join (O0O00O00OO00O0OOO ,O0000OO0OOOO0O000 )#line:944:file_path = os.path.join(temp_dir, filename)
+    with open (OO00000OOO00OOO00 ,'wb')as O00OO00O0OOO0OOOO :#line:945:with open(file_path, 'wb') as content_file:
+        _O00O0OOO00O0OOOO0 (OOO0O0O0OOO00O0O0 ,OOO00O0OOO00OOOO0 ,O00OO00O0OOO0OOOO ,OOOOOO0O00OOOO00O ,O0OOO0OOOO0O0OOOO )#line:946:_download_url(resp, link, content_file, hashes, progress_bar)
+    return OO00000OOO00OOO00 ,O00O0O0000O0O0000 #line:947:return file_path, content_type
+def _O000OOOO0O00OO000 (O00OO0O0OO0O000OO ,O0OOOOO00000000OO ,OOO000OOOOOO0O0OO ):#line:950:def _check_download_dir(link, download_dir, hashes):
+    ""#line:954:"""
+    OO0O0O00000000OO0 =os .path .join (O0OOOOO00000000OO ,O00OO0O0OO0O000OO .filename )#line:955:download_path = os.path.join(download_dir, link.filename)
+    if os .path .exists (OO0O0O00000000OO0 ):#line:956:if os.path.exists(download_path):
+        O000OOO000OOOO000 .info ('File was already downloaded %s',OO0O0O00000000OO0 )#line:958:logger.info('File was already downloaded %s', download_path)
+        if OOO000OOOOOO0O0OO :#line:959:if hashes:
+            try :#line:960:try:
+                OOO000OOOOOO0O0OO .check_against_path (OO0O0O00000000OO0 )#line:961:hashes.check_against_path(download_path)
+            except HashMismatch :#line:962:except HashMismatch:
+                O000OOO000OOOO000 .warning ('Previously-downloaded file %s has bad hash. ' 'Re-downloading.',OO0O0O00000000OO0 )#line:967:)
+                os .unlink (OO0O0O00000000OO0 )#line:968:os.unlink(download_path)
+                return None #line:969:return None
+        return OO0O0O00000000OO0 #line:970:return download_path
+    return None #line:971:return None

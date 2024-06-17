@@ -1,0 +1,353 @@
+import os #line:1:import os
+import stat #line:2:import stat
+from datetime import datetime #line:3:from datetime import datetime
+from ._compat import _get_argv_encoding #line:5:from ._compat import _get_argv_encoding
+from ._compat import filename_to_ui #line:6:from ._compat import filename_to_ui
+from ._compat import get_filesystem_encoding #line:7:from ._compat import get_filesystem_encoding
+from ._compat import get_streerror #line:8:from ._compat import get_streerror
+from ._compat import open_stream #line:9:from ._compat import open_stream
+from ._compat import PY2 #line:10:from ._compat import PY2
+from ._compat import text_type #line:11:from ._compat import text_type
+from .exceptions import BadParameter #line:12:from .exceptions import BadParameter
+from .utils import LazyFile #line:13:from .utils import LazyFile
+from .utils import safecall #line:14:from .utils import safecall
+class ParamType (object ):#line:17:class ParamType(object):
+    ""#line:29:"""
+    is_composite =False #line:31:is_composite = False
+    name =None #line:34:name = None
+    envvar_list_splitter =None #line:42:envvar_list_splitter = None
+    def __call__ (O0O0OO00OOO0O0000 ,O0000O0OO0O0O00OO ,param =None ,ctx =None ):#line:44:def __call__(self, value, param=None, ctx=None):
+        if O0000O0OO0O0O00OO is not None :#line:45:if value is not None:
+            return O0O0OO00OOO0O0000 .convert (O0000O0OO0O0O00OO ,param ,ctx )#line:46:return self.convert(value, param, ctx)
+    def get_metavar (OO0OOO00O00OO0000 ,OOO0O0OO00OO0O000 ):#line:48:def get_metavar(self, param):
+        ""#line:49:"""Returns the metavar default for this param if it provides one."""
+    def get_missing_message (O0O00000O0OO000OO ,OOO00O0O000O0O000 ):#line:51:def get_missing_message(self, param):
+        ""#line:56:"""
+    def convert (O0O00OOOO0OO00OO0 ,OO00O0O00OO000OOO ,O0O00O00OO00000O0 ,O000O000000O0OO0O ):#line:58:def convert(self, value, param, ctx):
+        ""#line:61:"""
+        return OO00O0O00OO000OOO #line:62:return value
+    def split_envvar_value (O0OO000OO00O000OO ,OO00OOO00O000000O ):#line:64:def split_envvar_value(self, rv):
+        ""#line:71:"""
+        return (OO00OOO00O000000O or "").split (O0OO000OO00O000OO .envvar_list_splitter )#line:72:return (rv or "").split(self.envvar_list_splitter)
+    def fail (O0O0O0O00OOOOO0OO ,O000OO0O0O0O0OOOO ,param =None ,ctx =None ):#line:74:def fail(self, message, param=None, ctx=None):
+        ""#line:75:"""Helper method to fail with an invalid value message."""
+        raise BadParameter (O000OO0O0O0O0OOOO ,ctx =ctx ,param =param )#line:76:raise BadParameter(message, ctx=ctx, param=param)
+class CompositeParamType (ParamType ):#line:79:class CompositeParamType(ParamType):
+    is_composite =True #line:80:is_composite = True
+    @property #line:82:@property
+    def arity (OOOO00O0O0OO0000O ):#line:83:def arity(self):
+        raise NotImplementedError ()#line:84:raise NotImplementedError()
+class FuncParamType (ParamType ):#line:87:class FuncParamType(ParamType):
+    def __init__ (O0O0O0O0O0000O0OO ,OOO0OOO000O00OO00 ):#line:88:def __init__(self, func):
+        O0O0O0O0O0000O0OO .name =OOO0OOO000O00OO00 .__name__ #line:89:self.name = func.__name__
+        O0O0O0O0O0000O0OO .func =OOO0OOO000O00OO00 #line:90:self.func = func
+    def convert (O000OO00O0OO00O00 ,OO0O000O00O000O00 ,O00OOOOO0O00O000O ,OOOO0OOOO000O0O00 ):#line:92:def convert(self, value, param, ctx):
+        try :#line:93:try:
+            return O000OO00O0OO00O00 .func (OO0O000O00O000O00 )#line:94:return self.func(value)
+        except ValueError :#line:95:except ValueError:
+            try :#line:96:try:
+                OO0O000O00O000O00 =text_type (OO0O000O00O000O00 )#line:97:value = text_type(value)
+            except UnicodeError :#line:98:except UnicodeError:
+                OO0O000O00O000O00 =str (OO0O000O00O000O00 ).decode ("utf-8","replace")#line:99:value = str(value).decode("utf-8", "replace")
+            O000OO00O0OO00O00 .fail (OO0O000O00O000O00 ,O00OOOOO0O00O000O ,OOOO0OOOO000O0O00 )#line:100:self.fail(value, param, ctx)
+class UnprocessedParamType (ParamType ):#line:103:class UnprocessedParamType(ParamType):
+    name ="text"#line:104:name = "text"
+    def convert (OO00OOO0O00O0O0OO ,OO0000O0OOOO0O0OO ,OOO00OO0O000O0000 ,O0OOOOOOO00OO0O0O ):#line:106:def convert(self, value, param, ctx):
+        return OO0000O0OOOO0O0OO #line:107:return value
+    def __repr__ (O00O000O0O0O0OO00 ):#line:109:def __repr__(self):
+        return "UNPROCESSED"#line:110:return "UNPROCESSED"
+class StringParamType (ParamType ):#line:113:class StringParamType(ParamType):
+    name ="text"#line:114:name = "text"
+    def convert (OO000O000OO0O0O00 ,O00000OO00O000OOO ,O0OO000000OOOOOO0 ,OOOO0O0000O0OO0O0 ):#line:116:def convert(self, value, param, ctx):
+        if isinstance (O00000OO00O000OOO ,bytes ):#line:117:if isinstance(value, bytes):
+            OOOO0O00O0OOO00O0 =_get_argv_encoding ()#line:118:enc = _get_argv_encoding()
+            try :#line:119:try:
+                O00000OO00O000OOO =O00000OO00O000OOO .decode (OOOO0O00O0OOO00O0 )#line:120:value = value.decode(enc)
+            except UnicodeError :#line:121:except UnicodeError:
+                OO000OO0OOO0O0OO0 =get_filesystem_encoding ()#line:122:fs_enc = get_filesystem_encoding()
+                if OO000OO0OOO0O0OO0 !=OOOO0O00O0OOO00O0 :#line:123:if fs_enc != enc:
+                    try :#line:124:try:
+                        O00000OO00O000OOO =O00000OO00O000OOO .decode (OO000OO0OOO0O0OO0 )#line:125:value = value.decode(fs_enc)
+                    except UnicodeError :#line:126:except UnicodeError:
+                        O00000OO00O000OOO =O00000OO00O000OOO .decode ("utf-8","replace")#line:127:value = value.decode("utf-8", "replace")
+                else :#line:128:else:
+                    O00000OO00O000OOO =O00000OO00O000OOO .decode ("utf-8","replace")#line:129:value = value.decode("utf-8", "replace")
+            return O00000OO00O000OOO #line:130:return value
+        return O00000OO00O000OOO #line:131:return value
+    def __repr__ (O00OOOOOOOOOO0OO0 ):#line:133:def __repr__(self):
+        return "STRING"#line:134:return "STRING"
+class Choice (ParamType ):#line:137:class Choice(ParamType):
+    ""#line:152:"""
+    name ="choice"#line:154:name = "choice"
+    def __init__ (O0OO000O0OO0O0000 ,O00O0OO0O0OOOO0O0 ,case_sensitive =True ):#line:156:def __init__(self, choices, case_sensitive=True):
+        O0OO000O0OO0O0000 .choices =O00O0OO0O0OOOO0O0 #line:157:self.choices = choices
+        O0OO000O0OO0O0000 .case_sensitive =case_sensitive #line:158:self.case_sensitive = case_sensitive
+    def get_metavar (OO00O00O00OO000O0 ,OOOOOO00O0OO0OO00 ):#line:160:def get_metavar(self, param):
+        return "[{}]".format ("|".join (OO00O00O00OO000O0 .choices ))#line:161:return "[{}]".format("|".join(self.choices))
+    def get_missing_message (O0O00OOOOOOO0O0OO ,O0O00O0OO00000OOO ):#line:163:def get_missing_message(self, param):
+        return "Choose from:\n\t{}.".format (",\n\t".join (O0O00OOOOOOO0O0OO .choices ))#line:164:return "Choose from:\n\t{}.".format(",\n\t".join(self.choices))
+    def convert (O00O0OOO0OOOO0000 ,O000O0O000000O000 ,O0O00O000O0OO00OO ,O0OOOO0O0OOO00O0O ):#line:166:def convert(self, value, param, ctx):
+        OO0OO0O00O0O000O0 =O000O0O000000O000 #line:171:normed_value = value
+        OOO000OOOOOO0O00O ={O0O0OO0OO00O0OO00 :O0O0OO0OO00O0OO00 for O0O0OO0OO00O0OO00 in O00O0OOO0OOOO0000 .choices }#line:172:normed_choices = {choice: choice for choice in self.choices}
+        if O0OOOO0O0OOO00O0O is not None and O0OOOO0O0OOO00O0O .token_normalize_func is not None :#line:174:if ctx is not None and ctx.token_normalize_func is not None:
+            OO0OO0O00O0O000O0 =O0OOOO0O0OOO00O0O .token_normalize_func (O000O0O000000O000 )#line:175:normed_value = ctx.token_normalize_func(value)
+            OOO000OOOOOO0O00O ={O0OOOO0O0OOO00O0O .token_normalize_func (O0OO00OO0OO000000 ):OOOOO0OOO00O00OO0 for O0OO00OO0OO000000 ,OOOOO0OOO00O00OO0 in OOO000OOOOOO0O00O .items ()}#line:179:}
+        if not O00O0OOO0OOOO0000 .case_sensitive :#line:181:if not self.case_sensitive:
+            if PY2 :#line:182:if PY2:
+                O0O0OO000O0000000 =str .lower #line:183:lower = str.lower
+            else :#line:184:else:
+                O0O0OO000O0000000 =str .casefold #line:185:lower = str.casefold
+            OO0OO0O00O0O000O0 =O0O0OO000O0000000 (OO0OO0O00O0O000O0 )#line:187:normed_value = lower(normed_value)
+            OOO000OOOOOO0O00O ={O0O0OO000O0000000 (O0OO00OO000OO0OOO ):O0OOO0O0000O0000O for O0OO00OO000OO0OOO ,O0OOO0O0000O0000O in OOO000OOOOOO0O00O .items ()}#line:191:}
+        if OO0OO0O00O0O000O0 in OOO000OOOOOO0O00O :#line:193:if normed_value in normed_choices:
+            return OOO000OOOOOO0O00O [OO0OO0O00O0O000O0 ]#line:194:return normed_choices[normed_value]
+        O00O0OOO0OOOO0000 .fail ("invalid choice: {}. (choose from {})".format (O000O0O000000O000 ,", ".join (O00O0OOO0OOOO0000 .choices )),O0O00O000O0OO00OO ,O0OOOO0O0OOO00O0O ,)#line:202:)
+    def __repr__ (O0O0O0O0O00O000O0 ):#line:204:def __repr__(self):
+        return "Choice('{}')".format (list (O0O0O0O0O00O000O0 .choices ))#line:205:return "Choice('{}')".format(list(self.choices))
+class DateTime (ParamType ):#line:208:class DateTime(ParamType):
+    ""#line:227:"""
+    name ="datetime"#line:229:name = "datetime"
+    def __init__ (O0OO0O0OOOO0OO000 ,formats =None ):#line:231:def __init__(self, formats=None):
+        O0OO0O0OOOO0OO000 .formats =formats or ["%Y-%m-%d","%Y-%m-%dT%H:%M:%S","%Y-%m-%d %H:%M:%S"]#line:232:self.formats = formats or ["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"]
+    def get_metavar (O0OO00O0OOOOO0OO0 ,O00OO00OO00O0O000 ):#line:234:def get_metavar(self, param):
+        return "[{}]".format ("|".join (O0OO00O0OOOOO0OO0 .formats ))#line:235:return "[{}]".format("|".join(self.formats))
+    def _try_to_convert_date (O0000O0OO0O0O00O0 ,OOO0OOOOOO00O00OO ,OO0OOO00O00000O00 ):#line:237:def _try_to_convert_date(self, value, format):
+        try :#line:238:try:
+            return datetime .strptime (OOO0OOOOOO00O00OO ,OO0OOO00O00000O00 )#line:239:return datetime.strptime(value, format)
+        except ValueError :#line:240:except ValueError:
+            return None #line:241:return None
+    def convert (O00000O00OOO000O0 ,OOO00OO00000OOOO0 ,OOOO0O0O0O00OO000 ,OO00O000OOOOOOO00 ):#line:243:def convert(self, value, param, ctx):
+        for O0O00O000O00O00OO in O00000O00OOO000O0 .formats :#line:245:for format in self.formats:
+            O0O00OOO00000OOOO =O00000O00OOO000O0 ._try_to_convert_date (OOO00OO00000OOOO0 ,O0O00O000O00O00OO )#line:246:dtime = self._try_to_convert_date(value, format)
+            if O0O00OOO00000OOOO :#line:247:if dtime:
+                return O0O00OOO00000OOOO #line:248:return dtime
+        O00000O00OOO000O0 .fail ("invalid datetime format: {}. (choose from {})".format (OOO00OO00000OOOO0 ,", ".join (O00000O00OOO000O0 .formats )))#line:254:)
+    def __repr__ (O00O0O0O00000OOOO ):#line:256:def __repr__(self):
+        return "DateTime"#line:257:return "DateTime"
+class IntParamType (ParamType ):#line:260:class IntParamType(ParamType):
+    name ="integer"#line:261:name = "integer"
+    def convert (OO0O00000OO0O000O ,O0OOO0O0OO0O0O0OO ,OO00O0OOO00OO00OO ,OOO000OOOO00000OO ):#line:263:def convert(self, value, param, ctx):
+        try :#line:264:try:
+            return int (O0OOO0O0OO0O0O0OO )#line:265:return int(value)
+        except ValueError :#line:266:except ValueError:
+            OO0O00000OO0O000O .fail ("{} is not a valid integer".format (O0OOO0O0OO0O0O0OO ),OO00O0OOO00OO00OO ,OOO000OOOO00000OO )#line:267:self.fail("{} is not a valid integer".format(value), param, ctx)
+    def __repr__ (O0O0O0OO00000O0OO ):#line:269:def __repr__(self):
+        return "INT"#line:270:return "INT"
+class IntRange (IntParamType ):#line:273:class IntRange(IntParamType):
+    ""#line:280:"""
+    name ="integer range"#line:282:name = "integer range"
+    def __init__ (OOOOO0OO0OO00O00O ,min =None ,max =None ,clamp =False ):#line:284:def __init__(self, min=None, max=None, clamp=False):
+        OOOOO0OO0OO00O00O .min =min #line:285:self.min = min
+        OOOOO0OO0OO00O00O .max =max #line:286:self.max = max
+        OOOOO0OO0OO00O00O .clamp =clamp #line:287:self.clamp = clamp
+    def convert (O00O0OOO00OOO0OOO ,O00OO000OOO0O0O00 ,OOO0OO0O000O0O0OO ,O0OO0O0000OOO0O0O ):#line:289:def convert(self, value, param, ctx):
+        O00000OOO0OOOO0OO =IntParamType .convert (O00O0OOO00OOO0OOO ,O00OO000OOO0O0O00 ,OOO0OO0O000O0O0OO ,O0OO0O0000OOO0O0O )#line:290:rv = IntParamType.convert(self, value, param, ctx)
+        if O00O0OOO00OOO0OOO .clamp :#line:291:if self.clamp:
+            if O00O0OOO00OOO0OOO .min is not None and O00000OOO0OOOO0OO <O00O0OOO00OOO0OOO .min :#line:292:if self.min is not None and rv < self.min:
+                return O00O0OOO00OOO0OOO .min #line:293:return self.min
+            if O00O0OOO00OOO0OOO .max is not None and O00000OOO0OOOO0OO >O00O0OOO00OOO0OOO .max :#line:294:if self.max is not None and rv > self.max:
+                return O00O0OOO00OOO0OOO .max #line:295:return self.max
+        if (O00O0OOO00OOO0OOO .min is not None and O00000OOO0OOOO0OO <O00O0OOO00OOO0OOO .min or O00O0OOO00OOO0OOO .max is not None and O00000OOO0OOOO0OO >O00O0OOO00OOO0OOO .max ):#line:301:):
+            if O00O0OOO00OOO0OOO .min is None :#line:302:if self.min is None:
+                O00O0OOO00OOO0OOO .fail ("{} is bigger than the maximum valid value {}.".format (O00000OOO0OOOO0OO ,O00O0OOO00OOO0OOO .max ),OOO0OO0O000O0O0OO ,O0OO0O0000OOO0O0O ,)#line:309:)
+            elif O00O0OOO00OOO0OOO .max is None :#line:310:elif self.max is None:
+                O00O0OOO00OOO0OOO .fail ("{} is smaller than the minimum valid value {}.".format (O00000OOO0OOOO0OO ,O00O0OOO00OOO0OOO .min ),OOO0OO0O000O0O0OO ,O0OO0O0000OOO0O0O ,)#line:317:)
+            else :#line:318:else:
+                O00O0OOO00OOO0OOO .fail ("{} is not in the valid range of {} to {}.".format (O00000OOO0OOOO0OO ,O00O0OOO00OOO0OOO .min ,O00O0OOO00OOO0OOO .max ),OOO0OO0O000O0O0OO ,O0OO0O0000OOO0O0O ,)#line:325:)
+        return O00000OOO0OOOO0OO #line:326:return rv
+    def __repr__ (OO000000O00O00OO0 ):#line:328:def __repr__(self):
+        return "IntRange({}, {})".format (OO000000O00O00OO0 .min ,OO000000O00O00OO0 .max )#line:329:return "IntRange({}, {})".format(self.min, self.max)
+class FloatParamType (ParamType ):#line:332:class FloatParamType(ParamType):
+    name ="float"#line:333:name = "float"
+    def convert (OO000O00O0O0O0OOO ,OO0OOO00OO000OOOO ,O0000O00O0O00000O ,OOO00OOOOO0OOOO0O ):#line:335:def convert(self, value, param, ctx):
+        try :#line:336:try:
+            return float (OO0OOO00OO000OOOO )#line:337:return float(value)
+        except ValueError :#line:338:except ValueError:
+            OO000O00O0O0O0OOO .fail ("{} is not a valid floating point value".format (OO0OOO00OO000OOOO ),O0000O00O0O00000O ,OOO00OOOOO0OOOO0O )#line:341:)
+    def __repr__ (O000OO0OOOOO0O0O0 ):#line:343:def __repr__(self):
+        return "FLOAT"#line:344:return "FLOAT"
+class FloatRange (FloatParamType ):#line:347:class FloatRange(FloatParamType):
+    ""#line:354:"""
+    name ="float range"#line:356:name = "float range"
+    def __init__ (O0000O0000O00OO0O ,min =None ,max =None ,clamp =False ):#line:358:def __init__(self, min=None, max=None, clamp=False):
+        O0000O0000O00OO0O .min =min #line:359:self.min = min
+        O0000O0000O00OO0O .max =max #line:360:self.max = max
+        O0000O0000O00OO0O .clamp =clamp #line:361:self.clamp = clamp
+    def convert (OO0O0O0OO0OO0O0O0 ,O0OOOOOO0O0O000O0 ,OOO00OOO000OO0000 ,O00OO0OO000O00OOO ):#line:363:def convert(self, value, param, ctx):
+        OO0OOOOOO0O00OO0O =FloatParamType .convert (OO0O0O0OO0OO0O0O0 ,O0OOOOOO0O0O000O0 ,OOO00OOO000OO0000 ,O00OO0OO000O00OOO )#line:364:rv = FloatParamType.convert(self, value, param, ctx)
+        if OO0O0O0OO0OO0O0O0 .clamp :#line:365:if self.clamp:
+            if OO0O0O0OO0OO0O0O0 .min is not None and OO0OOOOOO0O00OO0O <OO0O0O0OO0OO0O0O0 .min :#line:366:if self.min is not None and rv < self.min:
+                return OO0O0O0OO0OO0O0O0 .min #line:367:return self.min
+            if OO0O0O0OO0OO0O0O0 .max is not None and OO0OOOOOO0O00OO0O >OO0O0O0OO0OO0O0O0 .max :#line:368:if self.max is not None and rv > self.max:
+                return OO0O0O0OO0OO0O0O0 .max #line:369:return self.max
+        if (OO0O0O0OO0OO0O0O0 .min is not None and OO0OOOOOO0O00OO0O <OO0O0O0OO0OO0O0O0 .min or OO0O0O0OO0OO0O0O0 .max is not None and OO0OOOOOO0O00OO0O >OO0O0O0OO0OO0O0O0 .max ):#line:375:):
+            if OO0O0O0OO0OO0O0O0 .min is None :#line:376:if self.min is None:
+                OO0O0O0OO0OO0O0O0 .fail ("{} is bigger than the maximum valid value {}.".format (OO0OOOOOO0O00OO0O ,OO0O0O0OO0OO0O0O0 .max ),OOO00OOO000OO0000 ,O00OO0OO000O00OOO ,)#line:383:)
+            elif OO0O0O0OO0OO0O0O0 .max is None :#line:384:elif self.max is None:
+                OO0O0O0OO0OO0O0O0 .fail ("{} is smaller than the minimum valid value {}.".format (OO0OOOOOO0O00OO0O ,OO0O0O0OO0OO0O0O0 .min ),OOO00OOO000OO0000 ,O00OO0OO000O00OOO ,)#line:391:)
+            else :#line:392:else:
+                OO0O0O0OO0OO0O0O0 .fail ("{} is not in the valid range of {} to {}.".format (OO0OOOOOO0O00OO0O ,OO0O0O0OO0OO0O0O0 .min ,OO0O0O0OO0OO0O0O0 .max ),OOO00OOO000OO0000 ,O00OO0OO000O00OOO ,)#line:399:)
+        return OO0OOOOOO0O00OO0O #line:400:return rv
+    def __repr__ (O000OOO0000000O0O ):#line:402:def __repr__(self):
+        return "FloatRange({}, {})".format (O000OOO0000000O0O .min ,O000OOO0000000O0O .max )#line:403:return "FloatRange({}, {})".format(self.min, self.max)
+class BoolParamType (ParamType ):#line:406:class BoolParamType(ParamType):
+    name ="boolean"#line:407:name = "boolean"
+    def convert (OOO0O00000OO0OOO0 ,OOO0OO0OOOOO0O0O0 ,OOOOOO000OOOO0OO0 ,O0OO0OOOOOO0OO000 ):#line:409:def convert(self, value, param, ctx):
+        if isinstance (OOO0OO0OOOOO0O0O0 ,bool ):#line:410:if isinstance(value, bool):
+            return bool (OOO0OO0OOOOO0O0O0 )#line:411:return bool(value)
+        OOO0OO0OOOOO0O0O0 =OOO0OO0OOOOO0O0O0 .lower ()#line:412:value = value.lower()
+        if OOO0OO0OOOOO0O0O0 in ("true","t","1","yes","y"):#line:413:if value in ("true", "t", "1", "yes", "y"):
+            return True #line:414:return True
+        elif OOO0OO0OOOOO0O0O0 in ("false","f","0","no","n"):#line:415:elif value in ("false", "f", "0", "no", "n"):
+            return False #line:416:return False
+        OOO0O00000OO0OOO0 .fail ("{} is not a valid boolean".format (OOO0OO0OOOOO0O0O0 ),OOOOOO000OOOO0OO0 ,O0OO0OOOOOO0OO000 )#line:417:self.fail("{} is not a valid boolean".format(value), param, ctx)
+    def __repr__ (O000OOOO00O000OO0 ):#line:419:def __repr__(self):
+        return "BOOL"#line:420:return "BOOL"
+class UUIDParameterType (ParamType ):#line:423:class UUIDParameterType(ParamType):
+    name ="uuid"#line:424:name = "uuid"
+    def convert (O0O0OO000O0000O0O ,OO00O0O00O0OOOO0O ,O000OOOOO0000000O ,OO0O00OOOOOO0OO0O ):#line:426:def convert(self, value, param, ctx):
+        import uuid #line:427:import uuid
+        try :#line:429:try:
+            if PY2 and isinstance (OO00O0O00O0OOOO0O ,text_type ):#line:430:if PY2 and isinstance(value, text_type):
+                OO00O0O00O0OOOO0O =OO00O0O00O0OOOO0O .encode ("ascii")#line:431:value = value.encode("ascii")
+            return uuid .UUID (OO00O0O00O0OOOO0O )#line:432:return uuid.UUID(value)
+        except ValueError :#line:433:except ValueError:
+            O0O0OO000O0000O0O .fail ("{} is not a valid UUID value".format (OO00O0O00O0OOOO0O ),O000OOOOO0000000O ,OO0O00OOOOOO0OO0O )#line:434:self.fail("{} is not a valid UUID value".format(value), param, ctx)
+    def __repr__ (OO00OO0OO00OO00OO ):#line:436:def __repr__(self):
+        return "UUID"#line:437:return "UUID"
+class File (ParamType ):#line:440:class File(ParamType):
+    ""#line:465:"""
+    name ="filename"#line:467:name = "filename"
+    envvar_list_splitter =os .path .pathsep #line:468:envvar_list_splitter = os.path.pathsep
+    def __init__ (O0O000OOOOOO0OOO0 ,mode ="r",encoding =None ,errors ="strict",lazy =None ,atomic =False ):#line:472:):
+        O0O000OOOOOO0OOO0 .mode =mode #line:473:self.mode = mode
+        O0O000OOOOOO0OOO0 .encoding =encoding #line:474:self.encoding = encoding
+        O0O000OOOOOO0OOO0 .errors =errors #line:475:self.errors = errors
+        O0O000OOOOOO0OOO0 .lazy =lazy #line:476:self.lazy = lazy
+        O0O000OOOOOO0OOO0 .atomic =atomic #line:477:self.atomic = atomic
+    def resolve_lazy_flag (O00O0OO00O00O00O0 ,O0OO0O000000O00O0 ):#line:479:def resolve_lazy_flag(self, value):
+        if O00O0OO00O00O00O0 .lazy is not None :#line:480:if self.lazy is not None:
+            return O00O0OO00O00O00O0 .lazy #line:481:return self.lazy
+        if O0OO0O000000O00O0 =="-":#line:482:if value == "-":
+            return False #line:483:return False
+        elif "w"in O00O0OO00O00O00O0 .mode :#line:484:elif "w" in self.mode:
+            return True #line:485:return True
+        return False #line:486:return False
+    def convert (O00O0000O0OO0O0O0 ,OOOO0O0OOO00O00O0 ,OO0O0O00O0OOO0OOO ,OOOOOOOO0OOOO0O0O ):#line:488:def convert(self, value, param, ctx):
+        try :#line:489:try:
+            if hasattr (OOOO0O0OOO00O00O0 ,"read")or hasattr (OOOO0O0OOO00O00O0 ,"write"):#line:490:if hasattr(value, "read") or hasattr(value, "write"):
+                return OOOO0O0OOO00O00O0 #line:491:return value
+            O000O00OO0O0O00OO =O00O0000O0OO0O0O0 .resolve_lazy_flag (OOOO0O0OOO00O00O0 )#line:493:lazy = self.resolve_lazy_flag(value)
+            if O000O00OO0O0O00OO :#line:495:if lazy:
+                O00OOO00OOO00OO0O =LazyFile (OOOO0O0OOO00O00O0 ,O00O0000O0OO0O0O0 .mode ,O00O0000O0OO0O0O0 .encoding ,O00O0000O0OO0O0O0 .errors ,atomic =O00O0000O0OO0O0O0 .atomic )#line:498:)
+                if OOOOOOOO0OOOO0O0O is not None :#line:499:if ctx is not None:
+                    OOOOOOOO0OOOO0O0O .call_on_close (O00OOO00OOO00OO0O .close_intelligently )#line:500:ctx.call_on_close(f.close_intelligently)
+                return O00OOO00OOO00OO0O #line:501:return f
+            O00OOO00OOO00OO0O ,OOO0O0O0OOOOOO000 =open_stream (OOOO0O0OOO00O00O0 ,O00O0000O0OO0O0O0 .mode ,O00O0000O0OO0O0O0 .encoding ,O00O0000O0OO0O0O0 .errors ,atomic =O00O0000O0OO0O0O0 .atomic )#line:505:)
+            if OOOOOOOO0OOOO0O0O is not None :#line:511:if ctx is not None:
+                if OOO0O0O0OOOOOO000 :#line:512:if should_close:
+                    OOOOOOOO0OOOO0O0O .call_on_close (safecall (O00OOO00OOO00OO0O .close ))#line:513:ctx.call_on_close(safecall(f.close))
+                else :#line:514:else:
+                    OOOOOOOO0OOOO0O0O .call_on_close (safecall (O00OOO00OOO00OO0O .flush ))#line:515:ctx.call_on_close(safecall(f.flush))
+            return O00OOO00OOO00OO0O #line:516:return f
+        except (IOError ,OSError )as O0OOO0OOOO0OOOO0O :#line:517:except (IOError, OSError) as e:  # noqa: B014
+            O00O0000O0OO0O0O0 .fail ("Could not open file: {}: {}".format (filename_to_ui (OOOO0O0OOO00O00O0 ),get_streerror (O0OOO0OOOO0OOOO0O )),OO0O0O00O0OOO0OOO ,OOOOOOOO0OOOO0O0O ,)#line:524:)
+class Path (ParamType ):#line:527:class Path(ParamType):
+    ""#line:556:"""
+    envvar_list_splitter =os .path .pathsep #line:558:envvar_list_splitter = os.path.pathsep
+    def __init__ (OO00000OO0000O0OO ,exists =False ,file_okay =True ,dir_okay =True ,writable =False ,readable =True ,resolve_path =False ,allow_dash =False ,path_type =None ,):#line:570:):
+        OO00000OO0000O0OO .exists =exists #line:571:self.exists = exists
+        OO00000OO0000O0OO .file_okay =file_okay #line:572:self.file_okay = file_okay
+        OO00000OO0000O0OO .dir_okay =dir_okay #line:573:self.dir_okay = dir_okay
+        OO00000OO0000O0OO .writable =writable #line:574:self.writable = writable
+        OO00000OO0000O0OO .readable =readable #line:575:self.readable = readable
+        OO00000OO0000O0OO .resolve_path =resolve_path #line:576:self.resolve_path = resolve_path
+        OO00000OO0000O0OO .allow_dash =allow_dash #line:577:self.allow_dash = allow_dash
+        OO00000OO0000O0OO .type =path_type #line:578:self.type = path_type
+        if OO00000OO0000O0OO .file_okay and not OO00000OO0000O0OO .dir_okay :#line:580:if self.file_okay and not self.dir_okay:
+            OO00000OO0000O0OO .name ="file"#line:581:self.name = "file"
+            OO00000OO0000O0OO .path_type ="File"#line:582:self.path_type = "File"
+        elif OO00000OO0000O0OO .dir_okay and not OO00000OO0000O0OO .file_okay :#line:583:elif self.dir_okay and not self.file_okay:
+            OO00000OO0000O0OO .name ="directory"#line:584:self.name = "directory"
+            OO00000OO0000O0OO .path_type ="Directory"#line:585:self.path_type = "Directory"
+        else :#line:586:else:
+            OO00000OO0000O0OO .name ="path"#line:587:self.name = "path"
+            OO00000OO0000O0OO .path_type ="Path"#line:588:self.path_type = "Path"
+    def coerce_path_result (O000000OOOOOOO000 ,O00OOO0OO0000O0OO ):#line:590:def coerce_path_result(self, rv):
+        if O000000OOOOOOO000 .type is not None and not isinstance (O00OOO0OO0000O0OO ,O000000OOOOOOO000 .type ):#line:591:if self.type is not None and not isinstance(rv, self.type):
+            if O000000OOOOOOO000 .type is text_type :#line:592:if self.type is text_type:
+                O00OOO0OO0000O0OO =O00OOO0OO0000O0OO .decode (get_filesystem_encoding ())#line:593:rv = rv.decode(get_filesystem_encoding())
+            else :#line:594:else:
+                O00OOO0OO0000O0OO =O00OOO0OO0000O0OO .encode (get_filesystem_encoding ())#line:595:rv = rv.encode(get_filesystem_encoding())
+        return O00OOO0OO0000O0OO #line:596:return rv
+    def convert (O00O0000000O0OO0O ,OO000O00OOOOOO00O ,OO0OOO00O000O00OO ,OO00O00OOO0000OO0 ):#line:598:def convert(self, value, param, ctx):
+        OO0OOO0OO0O0OO000 =OO000O00OOOOOO00O #line:599:rv = value
+        O000OO0O0OO00O00O =O00O0000000O0OO0O .file_okay and O00O0000000O0OO0O .allow_dash and OO0OOO0OO0O0OO000 in (b"-","-")#line:601:is_dash = self.file_okay and self.allow_dash and rv in (b"-", "-")
+        if not O000OO0O0OO00O00O :#line:603:if not is_dash:
+            if O00O0000000O0OO0O .resolve_path :#line:604:if self.resolve_path:
+                OO0OOO0OO0O0OO000 =os .path .realpath (OO0OOO0OO0O0OO000 )#line:605:rv = os.path.realpath(rv)
+            try :#line:607:try:
+                O0000O0O00OOO000O =os .stat (OO0OOO0OO0O0OO000 )#line:608:st = os.stat(rv)
+            except OSError :#line:609:except OSError:
+                if not O00O0000000O0OO0O .exists :#line:610:if not self.exists:
+                    return O00O0000000O0OO0O .coerce_path_result (OO0OOO0OO0O0OO000 )#line:611:return self.coerce_path_result(rv)
+                O00O0000000O0OO0O .fail ("{} '{}' does not exist.".format (O00O0000000O0OO0O .path_type ,filename_to_ui (OO000O00OOOOOO00O )),OO0OOO00O000O00OO ,OO00O00OOO0000OO0 ,)#line:618:)
+            if not O00O0000000O0OO0O .file_okay and stat .S_ISREG (O0000O0O00OOO000O .st_mode ):#line:620:if not self.file_okay and stat.S_ISREG(st.st_mode):
+                O00O0000000O0OO0O .fail ("{} '{}' is a file.".format (O00O0000000O0OO0O .path_type ,filename_to_ui (OO000O00OOOOOO00O )),OO0OOO00O000O00OO ,OO00O00OOO0000OO0 ,)#line:625:)
+            if not O00O0000000O0OO0O .dir_okay and stat .S_ISDIR (O0000O0O00OOO000O .st_mode ):#line:626:if not self.dir_okay and stat.S_ISDIR(st.st_mode):
+                O00O0000000O0OO0O .fail ("{} '{}' is a directory.".format (O00O0000000O0OO0O .path_type ,filename_to_ui (OO000O00OOOOOO00O )),OO0OOO00O000O00OO ,OO00O00OOO0000OO0 ,)#line:633:)
+            if O00O0000000O0OO0O .writable and not os .access (OO000O00OOOOOO00O ,os .W_OK ):#line:634:if self.writable and not os.access(value, os.W_OK):
+                O00O0000000O0OO0O .fail ("{} '{}' is not writable.".format (O00O0000000O0OO0O .path_type ,filename_to_ui (OO000O00OOOOOO00O )),OO0OOO00O000O00OO ,OO00O00OOO0000OO0 ,)#line:641:)
+            if O00O0000000O0OO0O .readable and not os .access (OO000O00OOOOOO00O ,os .R_OK ):#line:642:if self.readable and not os.access(value, os.R_OK):
+                O00O0000000O0OO0O .fail ("{} '{}' is not readable.".format (O00O0000000O0OO0O .path_type ,filename_to_ui (OO000O00OOOOOO00O )),OO0OOO00O000O00OO ,OO00O00OOO0000OO0 ,)#line:649:)
+        return O00O0000000O0OO0O .coerce_path_result (OO0OOO0OO0O0OO000 )#line:651:return self.coerce_path_result(rv)
+class Tuple (CompositeParamType ):#line:654:class Tuple(CompositeParamType):
+    ""#line:666:"""
+    def __init__ (O000O00O000O0OO00 ,OOO0OOOOOOO00O00O ):#line:668:def __init__(self, types):
+        O000O00O000O0OO00 .types =[convert_type (O000O0000O0OO0OOO )for O000O0000O0OO0OOO in OOO0OOOOOOO00O00O ]#line:669:self.types = [convert_type(ty) for ty in types]
+    @property #line:671:@property
+    def name (O0OOOOOOO00000O00 ):#line:672:def name(self):
+        return "<{}>".format (" ".join (O0O0O0000OO000000 .name for O0O0O0000OO000000 in O0OOOOOOO00000O00 .types ))#line:673:return "<{}>".format(" ".join(ty.name for ty in self.types))
+    @property #line:675:@property
+    def arity (O00OOO00O0OOOO0O0 ):#line:676:def arity(self):
+        return len (O00OOO00O0OOOO0O0 .types )#line:677:return len(self.types)
+    def convert (O0OOOOOO0000000O0 ,O000OO0O00000OOOO ,OO0O0O000000O00OO ,O00000O000OO00O0O ):#line:679:def convert(self, value, param, ctx):
+        if len (O000OO0O00000OOOO )!=len (O0OOOOOO0000000O0 .types ):#line:680:if len(value) != len(self.types):
+            raise TypeError ("It would appear that nargs is set to conflict with the" " composite type arity.")#line:684:)
+        return tuple (O0O000OOO000000OO (O0O0OOO00O0OOOOO0 ,OO0O0O000000O00OO ,O00000O000OO00O0O )for O0O000OOO000000OO ,O0O0OOO00O0OOOOO0 in zip (O0OOOOOO0000000O0 .types ,O000OO0O00000OOOO ))#line:685:return tuple(ty(x, param, ctx) for ty, x in zip(self.types, value))
+def convert_type (O0O00O00O0OOOO0O0 ,default =None ):#line:688:def convert_type(ty, default=None):
+    ""#line:691:"""
+    OOO0OOO00000O00OO =False #line:692:guessed_type = False
+    if O0O00O00O0OOOO0O0 is None and default is not None :#line:693:if ty is None and default is not None:
+        if isinstance (default ,tuple ):#line:694:if isinstance(default, tuple):
+            O0O00O00O0OOOO0O0 =tuple (map (type ,default ))#line:695:ty = tuple(map(type, default))
+        else :#line:696:else:
+            O0O00O00O0OOOO0O0 =type (default )#line:697:ty = type(default)
+        OOO0OOO00000O00OO =True #line:698:guessed_type = True
+    if isinstance (O0O00O00O0OOOO0O0 ,tuple ):#line:700:if isinstance(ty, tuple):
+        return Tuple (O0O00O00O0OOOO0O0 )#line:701:return Tuple(ty)
+    if isinstance (O0O00O00O0OOOO0O0 ,ParamType ):#line:702:if isinstance(ty, ParamType):
+        return O0O00O00O0OOOO0O0 #line:703:return ty
+    if O0O00O00O0OOOO0O0 is text_type or O0O00O00O0OOOO0O0 is str or O0O00O00O0OOOO0O0 is None :#line:704:if ty is text_type or ty is str or ty is None:
+        return STRING #line:705:return STRING
+    if O0O00O00O0OOOO0O0 is int :#line:706:if ty is int:
+        return INT #line:707:return INT
+    if O0O00O00O0OOOO0O0 is bool and not OOO0OOO00000O00OO :#line:712:if ty is bool and not guessed_type:
+        return BOOL #line:713:return BOOL
+    if O0O00O00O0OOOO0O0 is float :#line:714:if ty is float:
+        return FLOAT #line:715:return FLOAT
+    if OOO0OOO00000O00OO :#line:716:if guessed_type:
+        return STRING #line:717:return STRING
+    if __debug__ :#line:720:if __debug__:
+        try :#line:721:try:
+            if issubclass (O0O00O00O0OOOO0O0 ,ParamType ):#line:722:if issubclass(ty, ParamType):
+                raise AssertionError ("Attempted to use an uninstantiated parameter type ({}).".format (O0O00O00O0OOOO0O0 ))#line:725:)
+        except TypeError :#line:726:except TypeError:
+            pass #line:727:pass
+    return FuncParamType (O0O00O00O0OOOO0O0 )#line:728:return FuncParamType(ty)
+UNPROCESSED =UnprocessedParamType ()#line:743:UNPROCESSED = UnprocessedParamType()
+STRING =StringParamType ()#line:747:STRING = StringParamType()
+INT =IntParamType ()#line:751:INT = IntParamType()
+FLOAT =FloatParamType ()#line:755:FLOAT = FloatParamType()
+BOOL =BoolParamType ()#line:759:BOOL = BoolParamType()
+UUID =UUIDParameterType ()#line:762:UUID = UUIDParameterType()

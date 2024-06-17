@@ -1,0 +1,269 @@
+""#line:31:"""
+from __future__ import absolute_import #line:32:from __future__ import absolute_import
+import platform #line:34:import platform
+from ctypes .util import find_library #line:35:from ctypes.util import find_library
+from ctypes import (c_void_p ,c_int32 ,c_char_p ,c_size_t ,c_byte ,c_uint32 ,c_ulong ,c_long ,c_bool )#line:39:)
+from ctypes import CDLL ,POINTER ,CFUNCTYPE #line:40:from ctypes import CDLL, POINTER, CFUNCTYPE
+security_path =find_library ('Security')#line:43:security_path = find_library('Security')
+if not security_path :#line:44:if not security_path:
+    raise ImportError ('The library Security could not be found')#line:45:raise ImportError('The library Security could not be found')
+core_foundation_path =find_library ('CoreFoundation')#line:48:core_foundation_path = find_library('CoreFoundation')
+if not core_foundation_path :#line:49:if not core_foundation_path:
+    raise ImportError ('The library CoreFoundation could not be found')#line:50:raise ImportError('The library CoreFoundation could not be found')
+version =platform .mac_ver ()[0 ]#line:53:version = platform.mac_ver()[0]
+version_info =tuple (map (int ,version .split ('.')))#line:54:version_info = tuple(map(int, version.split('.')))
+if version_info <(10 ,8 ):#line:55:if version_info < (10, 8):
+    raise OSError ('Only OS X 10.8 and newer are supported, not %s.%s'%(version_info [0 ],version_info [1 ]))#line:60:)
+Security =CDLL (security_path ,use_errno =True )#line:62:Security = CDLL(security_path, use_errno=True)
+CoreFoundation =CDLL (core_foundation_path ,use_errno =True )#line:63:CoreFoundation = CDLL(core_foundation_path, use_errno=True)
+Boolean =c_bool #line:65:Boolean = c_bool
+CFIndex =c_long #line:66:CFIndex = c_long
+CFStringEncoding =c_uint32 #line:67:CFStringEncoding = c_uint32
+CFData =c_void_p #line:68:CFData = c_void_p
+CFString =c_void_p #line:69:CFString = c_void_p
+CFArray =c_void_p #line:70:CFArray = c_void_p
+CFMutableArray =c_void_p #line:71:CFMutableArray = c_void_p
+CFDictionary =c_void_p #line:72:CFDictionary = c_void_p
+CFError =c_void_p #line:73:CFError = c_void_p
+CFType =c_void_p #line:74:CFType = c_void_p
+CFTypeID =c_ulong #line:75:CFTypeID = c_ulong
+CFTypeRef =POINTER (CFType )#line:77:CFTypeRef = POINTER(CFType)
+CFAllocatorRef =c_void_p #line:78:CFAllocatorRef = c_void_p
+OSStatus =c_int32 #line:80:OSStatus = c_int32
+CFDataRef =POINTER (CFData )#line:82:CFDataRef = POINTER(CFData)
+CFStringRef =POINTER (CFString )#line:83:CFStringRef = POINTER(CFString)
+CFArrayRef =POINTER (CFArray )#line:84:CFArrayRef = POINTER(CFArray)
+CFMutableArrayRef =POINTER (CFMutableArray )#line:85:CFMutableArrayRef = POINTER(CFMutableArray)
+CFDictionaryRef =POINTER (CFDictionary )#line:86:CFDictionaryRef = POINTER(CFDictionary)
+CFArrayCallBacks =c_void_p #line:87:CFArrayCallBacks = c_void_p
+CFDictionaryKeyCallBacks =c_void_p #line:88:CFDictionaryKeyCallBacks = c_void_p
+CFDictionaryValueCallBacks =c_void_p #line:89:CFDictionaryValueCallBacks = c_void_p
+SecCertificateRef =POINTER (c_void_p )#line:91:SecCertificateRef = POINTER(c_void_p)
+SecExternalFormat =c_uint32 #line:92:SecExternalFormat = c_uint32
+SecExternalItemType =c_uint32 #line:93:SecExternalItemType = c_uint32
+SecIdentityRef =POINTER (c_void_p )#line:94:SecIdentityRef = POINTER(c_void_p)
+SecItemImportExportFlags =c_uint32 #line:95:SecItemImportExportFlags = c_uint32
+SecItemImportExportKeyParameters =c_void_p #line:96:SecItemImportExportKeyParameters = c_void_p
+SecKeychainRef =POINTER (c_void_p )#line:97:SecKeychainRef = POINTER(c_void_p)
+SSLProtocol =c_uint32 #line:98:SSLProtocol = c_uint32
+SSLCipherSuite =c_uint32 #line:99:SSLCipherSuite = c_uint32
+SSLContextRef =POINTER (c_void_p )#line:100:SSLContextRef = POINTER(c_void_p)
+SecTrustRef =POINTER (c_void_p )#line:101:SecTrustRef = POINTER(c_void_p)
+SSLConnectionRef =c_uint32 #line:102:SSLConnectionRef = c_uint32
+SecTrustResultType =c_uint32 #line:103:SecTrustResultType = c_uint32
+SecTrustOptionFlags =c_uint32 #line:104:SecTrustOptionFlags = c_uint32
+SSLProtocolSide =c_uint32 #line:105:SSLProtocolSide = c_uint32
+SSLConnectionType =c_uint32 #line:106:SSLConnectionType = c_uint32
+SSLSessionOption =c_uint32 #line:107:SSLSessionOption = c_uint32
+try :#line:110:try:
+    Security .SecItemImport .argtypes =[CFDataRef ,CFStringRef ,POINTER (SecExternalFormat ),POINTER (SecExternalItemType ),SecItemImportExportFlags ,POINTER (SecItemImportExportKeyParameters ),SecKeychainRef ,POINTER (CFArrayRef ),]#line:120:]
+    Security .SecItemImport .restype =OSStatus #line:121:Security.SecItemImport.restype = OSStatus
+    Security .SecCertificateGetTypeID .argtypes =[]#line:123:Security.SecCertificateGetTypeID.argtypes = []
+    Security .SecCertificateGetTypeID .restype =CFTypeID #line:124:Security.SecCertificateGetTypeID.restype = CFTypeID
+    Security .SecIdentityGetTypeID .argtypes =[]#line:126:Security.SecIdentityGetTypeID.argtypes = []
+    Security .SecIdentityGetTypeID .restype =CFTypeID #line:127:Security.SecIdentityGetTypeID.restype = CFTypeID
+    Security .SecKeyGetTypeID .argtypes =[]#line:129:Security.SecKeyGetTypeID.argtypes = []
+    Security .SecKeyGetTypeID .restype =CFTypeID #line:130:Security.SecKeyGetTypeID.restype = CFTypeID
+    Security .SecCertificateCreateWithData .argtypes =[CFAllocatorRef ,CFDataRef ]#line:135:]
+    Security .SecCertificateCreateWithData .restype =SecCertificateRef #line:136:Security.SecCertificateCreateWithData.restype = SecCertificateRef
+    Security .SecCertificateCopyData .argtypes =[SecCertificateRef ]#line:140:]
+    Security .SecCertificateCopyData .restype =CFDataRef #line:141:Security.SecCertificateCopyData.restype = CFDataRef
+    Security .SecCopyErrorMessageString .argtypes =[OSStatus ,c_void_p ]#line:146:]
+    Security .SecCopyErrorMessageString .restype =CFStringRef #line:147:Security.SecCopyErrorMessageString.restype = CFStringRef
+    Security .SecIdentityCreateWithCertificate .argtypes =[CFTypeRef ,SecCertificateRef ,POINTER (SecIdentityRef )]#line:153:]
+    Security .SecIdentityCreateWithCertificate .restype =OSStatus #line:154:Security.SecIdentityCreateWithCertificate.restype = OSStatus
+    Security .SecKeychainCreate .argtypes =[c_char_p ,c_uint32 ,c_void_p ,Boolean ,c_void_p ,POINTER (SecKeychainRef )]#line:163:]
+    Security .SecKeychainCreate .restype =OSStatus #line:164:Security.SecKeychainCreate.restype = OSStatus
+    Security .SecKeychainDelete .argtypes =[SecKeychainRef ]#line:168:]
+    Security .SecKeychainDelete .restype =OSStatus #line:169:Security.SecKeychainDelete.restype = OSStatus
+    Security .SecPKCS12Import .argtypes =[CFDataRef ,CFDictionaryRef ,POINTER (CFArrayRef )]#line:175:]
+    Security .SecPKCS12Import .restype =OSStatus #line:176:Security.SecPKCS12Import.restype = OSStatus
+    SSLReadFunc =CFUNCTYPE (OSStatus ,SSLConnectionRef ,c_void_p ,POINTER (c_size_t ))#line:178:SSLReadFunc = CFUNCTYPE(OSStatus, SSLConnectionRef, c_void_p, POINTER(c_size_t))
+    SSLWriteFunc =CFUNCTYPE (OSStatus ,SSLConnectionRef ,POINTER (c_byte ),POINTER (c_size_t ))#line:179:SSLWriteFunc = CFUNCTYPE(OSStatus, SSLConnectionRef, POINTER(c_byte), POINTER(c_size_t))
+    Security .SSLSetIOFuncs .argtypes =[SSLContextRef ,SSLReadFunc ,SSLWriteFunc ]#line:185:]
+    Security .SSLSetIOFuncs .restype =OSStatus #line:186:Security.SSLSetIOFuncs.restype = OSStatus
+    Security .SSLSetPeerID .argtypes =[SSLContextRef ,c_char_p ,c_size_t ]#line:192:]
+    Security .SSLSetPeerID .restype =OSStatus #line:193:Security.SSLSetPeerID.restype = OSStatus
+    Security .SSLSetCertificate .argtypes =[SSLContextRef ,CFArrayRef ]#line:198:]
+    Security .SSLSetCertificate .restype =OSStatus #line:199:Security.SSLSetCertificate.restype = OSStatus
+    Security .SSLSetCertificateAuthorities .argtypes =[SSLContextRef ,CFTypeRef ,Boolean ]#line:205:]
+    Security .SSLSetCertificateAuthorities .restype =OSStatus #line:206:Security.SSLSetCertificateAuthorities.restype = OSStatus
+    Security .SSLSetConnection .argtypes =[SSLContextRef ,SSLConnectionRef ]#line:211:]
+    Security .SSLSetConnection .restype =OSStatus #line:212:Security.SSLSetConnection.restype = OSStatus
+    Security .SSLSetPeerDomainName .argtypes =[SSLContextRef ,c_char_p ,c_size_t ]#line:218:]
+    Security .SSLSetPeerDomainName .restype =OSStatus #line:219:Security.SSLSetPeerDomainName.restype = OSStatus
+    Security .SSLHandshake .argtypes =[SSLContextRef ]#line:223:]
+    Security .SSLHandshake .restype =OSStatus #line:224:Security.SSLHandshake.restype = OSStatus
+    Security .SSLRead .argtypes =[SSLContextRef ,c_char_p ,c_size_t ,POINTER (c_size_t )]#line:231:]
+    Security .SSLRead .restype =OSStatus #line:232:Security.SSLRead.restype = OSStatus
+    Security .SSLWrite .argtypes =[SSLContextRef ,c_char_p ,c_size_t ,POINTER (c_size_t )]#line:239:]
+    Security .SSLWrite .restype =OSStatus #line:240:Security.SSLWrite.restype = OSStatus
+    Security .SSLClose .argtypes =[SSLContextRef ]#line:244:]
+    Security .SSLClose .restype =OSStatus #line:245:Security.SSLClose.restype = OSStatus
+    Security .SSLGetNumberSupportedCiphers .argtypes =[SSLContextRef ,POINTER (c_size_t )]#line:250:]
+    Security .SSLGetNumberSupportedCiphers .restype =OSStatus #line:251:Security.SSLGetNumberSupportedCiphers.restype = OSStatus
+    Security .SSLGetSupportedCiphers .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite ),POINTER (c_size_t )]#line:257:]
+    Security .SSLGetSupportedCiphers .restype =OSStatus #line:258:Security.SSLGetSupportedCiphers.restype = OSStatus
+    Security .SSLSetEnabledCiphers .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite ),c_size_t ]#line:264:]
+    Security .SSLSetEnabledCiphers .restype =OSStatus #line:265:Security.SSLSetEnabledCiphers.restype = OSStatus
+    Security .SSLGetNumberEnabledCiphers .argtype =[SSLContextRef ,POINTER (c_size_t )]#line:270:]
+    Security .SSLGetNumberEnabledCiphers .restype =OSStatus #line:271:Security.SSLGetNumberEnabledCiphers.restype = OSStatus
+    Security .SSLGetEnabledCiphers .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite ),POINTER (c_size_t )]#line:277:]
+    Security .SSLGetEnabledCiphers .restype =OSStatus #line:278:Security.SSLGetEnabledCiphers.restype = OSStatus
+    Security .SSLGetNegotiatedCipher .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite )]#line:283:]
+    Security .SSLGetNegotiatedCipher .restype =OSStatus #line:284:Security.SSLGetNegotiatedCipher.restype = OSStatus
+    Security .SSLGetNegotiatedProtocolVersion .argtypes =[SSLContextRef ,POINTER (SSLProtocol )]#line:289:]
+    Security .SSLGetNegotiatedProtocolVersion .restype =OSStatus #line:290:Security.SSLGetNegotiatedProtocolVersion.restype = OSStatus
+    Security .SSLCopyPeerTrust .argtypes =[SSLContextRef ,POINTER (SecTrustRef )]#line:295:]
+    Security .SSLCopyPeerTrust .restype =OSStatus #line:296:Security.SSLCopyPeerTrust.restype = OSStatus
+    Security .SecTrustSetAnchorCertificates .argtypes =[SecTrustRef ,CFArrayRef ]#line:301:]
+    Security .SecTrustSetAnchorCertificates .restype =OSStatus #line:302:Security.SecTrustSetAnchorCertificates.restype = OSStatus
+    Security .SecTrustSetAnchorCertificatesOnly .argstypes =[SecTrustRef ,Boolean ]#line:307:]
+    Security .SecTrustSetAnchorCertificatesOnly .restype =OSStatus #line:308:Security.SecTrustSetAnchorCertificatesOnly.restype = OSStatus
+    Security .SecTrustEvaluate .argtypes =[SecTrustRef ,POINTER (SecTrustResultType )]#line:313:]
+    Security .SecTrustEvaluate .restype =OSStatus #line:314:Security.SecTrustEvaluate.restype = OSStatus
+    Security .SecTrustGetCertificateCount .argtypes =[SecTrustRef ]#line:318:]
+    Security .SecTrustGetCertificateCount .restype =CFIndex #line:319:Security.SecTrustGetCertificateCount.restype = CFIndex
+    Security .SecTrustGetCertificateAtIndex .argtypes =[SecTrustRef ,CFIndex ]#line:324:]
+    Security .SecTrustGetCertificateAtIndex .restype =SecCertificateRef #line:325:Security.SecTrustGetCertificateAtIndex.restype = SecCertificateRef
+    Security .SSLCreateContext .argtypes =[CFAllocatorRef ,SSLProtocolSide ,SSLConnectionType ]#line:331:]
+    Security .SSLCreateContext .restype =SSLContextRef #line:332:Security.SSLCreateContext.restype = SSLContextRef
+    Security .SSLSetSessionOption .argtypes =[SSLContextRef ,SSLSessionOption ,Boolean ]#line:338:]
+    Security .SSLSetSessionOption .restype =OSStatus #line:339:Security.SSLSetSessionOption.restype = OSStatus
+    Security .SSLSetProtocolVersionMin .argtypes =[SSLContextRef ,SSLProtocol ]#line:344:]
+    Security .SSLSetProtocolVersionMin .restype =OSStatus #line:345:Security.SSLSetProtocolVersionMin.restype = OSStatus
+    Security .SSLSetProtocolVersionMax .argtypes =[SSLContextRef ,SSLProtocol ]#line:350:]
+    Security .SSLSetProtocolVersionMax .restype =OSStatus #line:351:Security.SSLSetProtocolVersionMax.restype = OSStatus
+    Security .SecCopyErrorMessageString .argtypes =[OSStatus ,c_void_p ]#line:356:]
+    Security .SecCopyErrorMessageString .restype =CFStringRef #line:357:Security.SecCopyErrorMessageString.restype = CFStringRef
+    Security .SSLReadFunc =SSLReadFunc #line:359:Security.SSLReadFunc = SSLReadFunc
+    Security .SSLWriteFunc =SSLWriteFunc #line:360:Security.SSLWriteFunc = SSLWriteFunc
+    Security .SSLContextRef =SSLContextRef #line:361:Security.SSLContextRef = SSLContextRef
+    Security .SSLProtocol =SSLProtocol #line:362:Security.SSLProtocol = SSLProtocol
+    Security .SSLCipherSuite =SSLCipherSuite #line:363:Security.SSLCipherSuite = SSLCipherSuite
+    Security .SecIdentityRef =SecIdentityRef #line:364:Security.SecIdentityRef = SecIdentityRef
+    Security .SecKeychainRef =SecKeychainRef #line:365:Security.SecKeychainRef = SecKeychainRef
+    Security .SecTrustRef =SecTrustRef #line:366:Security.SecTrustRef = SecTrustRef
+    Security .SecTrustResultType =SecTrustResultType #line:367:Security.SecTrustResultType = SecTrustResultType
+    Security .SecExternalFormat =SecExternalFormat #line:368:Security.SecExternalFormat = SecExternalFormat
+    Security .OSStatus =OSStatus #line:369:Security.OSStatus = OSStatus
+    Security .kSecImportExportPassphrase =CFStringRef .in_dll (Security ,'kSecImportExportPassphrase')#line:373:)
+    Security .kSecImportItemIdentity =CFStringRef .in_dll (Security ,'kSecImportItemIdentity')#line:376:)
+    CoreFoundation .CFRetain .argtypes =[CFTypeRef ]#line:381:]
+    CoreFoundation .CFRetain .restype =CFTypeRef #line:382:CoreFoundation.CFRetain.restype = CFTypeRef
+    CoreFoundation .CFRelease .argtypes =[CFTypeRef ]#line:386:]
+    CoreFoundation .CFRelease .restype =None #line:387:CoreFoundation.CFRelease.restype = None
+    CoreFoundation .CFGetTypeID .argtypes =[CFTypeRef ]#line:391:]
+    CoreFoundation .CFGetTypeID .restype =CFTypeID #line:392:CoreFoundation.CFGetTypeID.restype = CFTypeID
+    CoreFoundation .CFStringCreateWithCString .argtypes =[CFAllocatorRef ,c_char_p ,CFStringEncoding ]#line:398:]
+    CoreFoundation .CFStringCreateWithCString .restype =CFStringRef #line:399:CoreFoundation.CFStringCreateWithCString.restype = CFStringRef
+    CoreFoundation .CFStringGetCStringPtr .argtypes =[CFStringRef ,CFStringEncoding ]#line:404:]
+    CoreFoundation .CFStringGetCStringPtr .restype =c_char_p #line:405:CoreFoundation.CFStringGetCStringPtr.restype = c_char_p
+    CoreFoundation .CFStringGetCString .argtypes =[CFStringRef ,c_char_p ,CFIndex ,CFStringEncoding ]#line:412:]
+    CoreFoundation .CFStringGetCString .restype =c_bool #line:413:CoreFoundation.CFStringGetCString.restype = c_bool
+    CoreFoundation .CFDataCreate .argtypes =[CFAllocatorRef ,c_char_p ,CFIndex ]#line:419:]
+    CoreFoundation .CFDataCreate .restype =CFDataRef #line:420:CoreFoundation.CFDataCreate.restype = CFDataRef
+    CoreFoundation .CFDataGetLength .argtypes =[CFDataRef ]#line:424:]
+    CoreFoundation .CFDataGetLength .restype =CFIndex #line:425:CoreFoundation.CFDataGetLength.restype = CFIndex
+    CoreFoundation .CFDataGetBytePtr .argtypes =[CFDataRef ]#line:429:]
+    CoreFoundation .CFDataGetBytePtr .restype =c_void_p #line:430:CoreFoundation.CFDataGetBytePtr.restype = c_void_p
+    CoreFoundation .CFDictionaryCreate .argtypes =[CFAllocatorRef ,POINTER (CFTypeRef ),POINTER (CFTypeRef ),CFIndex ,CFDictionaryKeyCallBacks ,CFDictionaryValueCallBacks ]#line:439:]
+    CoreFoundation .CFDictionaryCreate .restype =CFDictionaryRef #line:440:CoreFoundation.CFDictionaryCreate.restype = CFDictionaryRef
+    CoreFoundation .CFDictionaryGetValue .argtypes =[CFDictionaryRef ,CFTypeRef ]#line:445:]
+    CoreFoundation .CFDictionaryGetValue .restype =CFTypeRef #line:446:CoreFoundation.CFDictionaryGetValue.restype = CFTypeRef
+    CoreFoundation .CFArrayCreate .argtypes =[CFAllocatorRef ,POINTER (CFTypeRef ),CFIndex ,CFArrayCallBacks ,]#line:453:]
+    CoreFoundation .CFArrayCreate .restype =CFArrayRef #line:454:CoreFoundation.CFArrayCreate.restype = CFArrayRef
+    CoreFoundation .CFArrayCreateMutable .argtypes =[CFAllocatorRef ,CFIndex ,CFArrayCallBacks ]#line:460:]
+    CoreFoundation .CFArrayCreateMutable .restype =CFMutableArrayRef #line:461:CoreFoundation.CFArrayCreateMutable.restype = CFMutableArrayRef
+    CoreFoundation .CFArrayAppendValue .argtypes =[CFMutableArrayRef ,c_void_p ]#line:466:]
+    CoreFoundation .CFArrayAppendValue .restype =None #line:467:CoreFoundation.CFArrayAppendValue.restype = None
+    CoreFoundation .CFArrayGetCount .argtypes =[CFArrayRef ]#line:471:]
+    CoreFoundation .CFArrayGetCount .restype =CFIndex #line:472:CoreFoundation.CFArrayGetCount.restype = CFIndex
+    CoreFoundation .CFArrayGetValueAtIndex .argtypes =[CFArrayRef ,CFIndex ]#line:477:]
+    CoreFoundation .CFArrayGetValueAtIndex .restype =c_void_p #line:478:CoreFoundation.CFArrayGetValueAtIndex.restype = c_void_p
+    CoreFoundation .kCFAllocatorDefault =CFAllocatorRef .in_dll (CoreFoundation ,'kCFAllocatorDefault')#line:482:)
+    CoreFoundation .kCFTypeArrayCallBacks =c_void_p .in_dll (CoreFoundation ,'kCFTypeArrayCallBacks')#line:483:CoreFoundation.kCFTypeArrayCallBacks = c_void_p.in_dll(CoreFoundation, 'kCFTypeArrayCallBacks')
+    CoreFoundation .kCFTypeDictionaryKeyCallBacks =c_void_p .in_dll (CoreFoundation ,'kCFTypeDictionaryKeyCallBacks')#line:486:)
+    CoreFoundation .kCFTypeDictionaryValueCallBacks =c_void_p .in_dll (CoreFoundation ,'kCFTypeDictionaryValueCallBacks')#line:489:)
+    CoreFoundation .CFTypeRef =CFTypeRef #line:491:CoreFoundation.CFTypeRef = CFTypeRef
+    CoreFoundation .CFArrayRef =CFArrayRef #line:492:CoreFoundation.CFArrayRef = CFArrayRef
+    CoreFoundation .CFStringRef =CFStringRef #line:493:CoreFoundation.CFStringRef = CFStringRef
+    CoreFoundation .CFDictionaryRef =CFDictionaryRef #line:494:CoreFoundation.CFDictionaryRef = CFDictionaryRef
+except (AttributeError ):#line:496:except (AttributeError):
+    raise ImportError ('Error initializing ctypes')#line:497:raise ImportError('Error initializing ctypes')
+class CFConst (object ):#line:500:class CFConst(object):
+    ""#line:504:"""
+    kCFStringEncodingUTF8 =CFStringEncoding (0x08000100 )#line:505:kCFStringEncodingUTF8 = CFStringEncoding(0x08000100)
+class SecurityConst (object ):#line:508:class SecurityConst(object):
+    ""#line:511:"""
+    kSSLSessionOptionBreakOnServerAuth =0 #line:512:kSSLSessionOptionBreakOnServerAuth = 0
+    kSSLProtocol2 =1 #line:514:kSSLProtocol2 = 1
+    kSSLProtocol3 =2 #line:515:kSSLProtocol3 = 2
+    kTLSProtocol1 =4 #line:516:kTLSProtocol1 = 4
+    kTLSProtocol11 =7 #line:517:kTLSProtocol11 = 7
+    kTLSProtocol12 =8 #line:518:kTLSProtocol12 = 8
+    kSSLClientSide =1 #line:520:kSSLClientSide = 1
+    kSSLStreamType =0 #line:521:kSSLStreamType = 0
+    kSecFormatPEMSequence =10 #line:523:kSecFormatPEMSequence = 10
+    kSecTrustResultInvalid =0 #line:525:kSecTrustResultInvalid = 0
+    kSecTrustResultProceed =1 #line:526:kSecTrustResultProceed = 1
+    kSecTrustResultDeny =3 #line:529:kSecTrustResultDeny = 3
+    kSecTrustResultUnspecified =4 #line:530:kSecTrustResultUnspecified = 4
+    kSecTrustResultRecoverableTrustFailure =5 #line:531:kSecTrustResultRecoverableTrustFailure = 5
+    kSecTrustResultFatalTrustFailure =6 #line:532:kSecTrustResultFatalTrustFailure = 6
+    kSecTrustResultOtherError =7 #line:533:kSecTrustResultOtherError = 7
+    errSSLProtocol =-9800 #line:535:errSSLProtocol = -9800
+    errSSLWouldBlock =-9803 #line:536:errSSLWouldBlock = -9803
+    errSSLClosedGraceful =-9805 #line:537:errSSLClosedGraceful = -9805
+    errSSLClosedNoNotify =-9816 #line:538:errSSLClosedNoNotify = -9816
+    errSSLClosedAbort =-9806 #line:539:errSSLClosedAbort = -9806
+    errSSLXCertChainInvalid =-9807 #line:541:errSSLXCertChainInvalid = -9807
+    errSSLCrypto =-9809 #line:542:errSSLCrypto = -9809
+    errSSLInternal =-9810 #line:543:errSSLInternal = -9810
+    errSSLCertExpired =-9814 #line:544:errSSLCertExpired = -9814
+    errSSLCertNotYetValid =-9815 #line:545:errSSLCertNotYetValid = -9815
+    errSSLUnknownRootCert =-9812 #line:546:errSSLUnknownRootCert = -9812
+    errSSLNoRootCert =-9813 #line:547:errSSLNoRootCert = -9813
+    errSSLHostNameMismatch =-9843 #line:548:errSSLHostNameMismatch = -9843
+    errSSLPeerHandshakeFail =-9824 #line:549:errSSLPeerHandshakeFail = -9824
+    errSSLPeerUserCancelled =-9839 #line:550:errSSLPeerUserCancelled = -9839
+    errSSLWeakPeerEphemeralDHKey =-9850 #line:551:errSSLWeakPeerEphemeralDHKey = -9850
+    errSSLServerAuthCompleted =-9841 #line:552:errSSLServerAuthCompleted = -9841
+    errSSLRecordOverflow =-9847 #line:553:errSSLRecordOverflow = -9847
+    errSecVerifyFailed =-67808 #line:555:errSecVerifyFailed = -67808
+    errSecNoTrustSettings =-25263 #line:556:errSecNoTrustSettings = -25263
+    errSecItemNotFound =-25300 #line:557:errSecItemNotFound = -25300
+    errSecInvalidTrustSettings =-25262 #line:558:errSecInvalidTrustSettings = -25262
+    TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 =0xC02C #line:561:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = 0xC02C
+    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 =0xC030 #line:562:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = 0xC030
+    TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 =0xC02B #line:563:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = 0xC02B
+    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 =0xC02F #line:564:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = 0xC02F
+    TLS_DHE_DSS_WITH_AES_256_GCM_SHA384 =0x00A3 #line:565:TLS_DHE_DSS_WITH_AES_256_GCM_SHA384 = 0x00A3
+    TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 =0x009F #line:566:TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 = 0x009F
+    TLS_DHE_DSS_WITH_AES_128_GCM_SHA256 =0x00A2 #line:567:TLS_DHE_DSS_WITH_AES_128_GCM_SHA256 = 0x00A2
+    TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 =0x009E #line:568:TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 = 0x009E
+    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 =0xC024 #line:569:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 = 0xC024
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 =0xC028 #line:570:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 = 0xC028
+    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA =0xC00A #line:571:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA = 0xC00A
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA =0xC014 #line:572:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = 0xC014
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 =0x006B #line:573:TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 = 0x006B
+    TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 =0x006A #line:574:TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 = 0x006A
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA =0x0039 #line:575:TLS_DHE_RSA_WITH_AES_256_CBC_SHA = 0x0039
+    TLS_DHE_DSS_WITH_AES_256_CBC_SHA =0x0038 #line:576:TLS_DHE_DSS_WITH_AES_256_CBC_SHA = 0x0038
+    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 =0xC023 #line:577:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 = 0xC023
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 =0xC027 #line:578:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 = 0xC027
+    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA =0xC009 #line:579:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA = 0xC009
+    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA =0xC013 #line:580:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA = 0xC013
+    TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 =0x0067 #line:581:TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 = 0x0067
+    TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 =0x0040 #line:582:TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 = 0x0040
+    TLS_DHE_RSA_WITH_AES_128_CBC_SHA =0x0033 #line:583:TLS_DHE_RSA_WITH_AES_128_CBC_SHA = 0x0033
+    TLS_DHE_DSS_WITH_AES_128_CBC_SHA =0x0032 #line:584:TLS_DHE_DSS_WITH_AES_128_CBC_SHA = 0x0032
+    TLS_RSA_WITH_AES_256_GCM_SHA384 =0x009D #line:585:TLS_RSA_WITH_AES_256_GCM_SHA384 = 0x009D
+    TLS_RSA_WITH_AES_128_GCM_SHA256 =0x009C #line:586:TLS_RSA_WITH_AES_128_GCM_SHA256 = 0x009C
+    TLS_RSA_WITH_AES_256_CBC_SHA256 =0x003D #line:587:TLS_RSA_WITH_AES_256_CBC_SHA256 = 0x003D
+    TLS_RSA_WITH_AES_128_CBC_SHA256 =0x003C #line:588:TLS_RSA_WITH_AES_128_CBC_SHA256 = 0x003C
+    TLS_RSA_WITH_AES_256_CBC_SHA =0x0035 #line:589:TLS_RSA_WITH_AES_256_CBC_SHA = 0x0035
+    TLS_RSA_WITH_AES_128_CBC_SHA =0x002F #line:590:TLS_RSA_WITH_AES_128_CBC_SHA = 0x002F
+    TLS_AES_128_GCM_SHA256 =0x1301 #line:591:TLS_AES_128_GCM_SHA256 = 0x1301
+    TLS_AES_256_GCM_SHA384 =0x1302 #line:592:TLS_AES_256_GCM_SHA384 = 0x1302
+    TLS_CHACHA20_POLY1305_SHA256 =0x1303 #line:593:TLS_CHACHA20_POLY1305_SHA256 = 0x1303

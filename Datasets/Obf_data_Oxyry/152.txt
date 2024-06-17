@@ -1,0 +1,129 @@
+import tkinter as tk #line:1
+from tkinter import ttk #line:2
+import random #line:3
+import time #line:4
+sentences =["The quick brown fox jumps over the lazy dog","Python is an interpreted high-level programming language","I'm learning to code with Python and it's fun","A journey of a thousand miles begins with a single step","Coding is not just about algorithms, it's about logic","Practice makes perfect in programming","Innovation distinguishes between a leader and a follower","The only way to do great work is to love what you do","Coding is the language of the future","Keep calm and code on",]#line:18
+score =0 #line:21
+start_time =0 #line:22
+current_sentence =random .choice (sentences )#line:23
+timer_duration =30 #line:24
+countdown_duration =5 #line:25
+game_started =False #line:28
+def start_game ():#line:32
+    global start_time ,current_sentence ,timer_duration ,score ,game_started #line:33
+    score =0 #line:34
+    timer_duration =30 #line:35
+    countdown_label .config (text ="Get ready!")#line:36
+    root .update ()#line:37
+    time .sleep (1 )#line:38
+    for OO0O000O0O000O000 in range (countdown_duration ,0 ,-1 ):#line:39
+        countdown_label .config (text =str (OO0O000O0O000O000 ))#line:40
+        root .update ()#line:41
+        time .sleep (1 )#line:42
+    countdown_label .config (text ="Go!")#line:43
+    root .update ()#line:44
+    time .sleep (1 )#line:45
+    countdown_label .config (text ="")#line:46
+    root .update ()#line:47
+    start_time =time .time ()#line:48
+    current_sentence =random .choice (sentences )#line:49
+    sentence_label .config (text =current_sentence )#line:50
+    input_box .delete (0 ,tk .END )#line:51
+    input_box .focus ()#line:52
+    input_box .config (foreground ="black",width =40 )#line:55
+    game_started =True #line:56
+    start_main_timer ()#line:57
+def reset_game ():#line:61
+    global game_started #line:62
+    game_started =False #line:63
+    countdown_label .config (text ="")#line:64
+    submit_score ()#line:65
+def start_main_timer ():#line:69
+    global timer_duration ,game_started #line:70
+    if timer_duration >0 and game_started :#line:71
+        timer_label .config (text =f"Time left: {timer_duration} seconds")#line:72
+        countdown_label .config (text =str (timer_duration ))#line:73
+        timer_duration -=1 #line:74
+        root .after (1000 ,start_main_timer )#line:75
+    elif game_started :#line:76
+        timer_label .config (text ="Time's up!")#line:77
+        submit_score ()#line:78
+def check_input (O0O0O0O0OO0O00000 ):#line:82
+    O0OO0O000O000OOOO =input_box .get ()#line:83
+    if current_sentence .startswith (O0OO0O000O000OOOO ):#line:84
+        input_box .config (foreground ="green")#line:85
+        update_progress_bar (len (O0OO0O000O000OOOO ))#line:86
+    else :#line:87
+        input_box .config (foreground ="red")#line:88
+def submit_score ():#line:92
+    global current_sentence ,game_started #line:93
+    O0O00O0OO000OO0OO =time .time ()#line:94
+    OOOOO000O00OOO0O0 =round (O0O00O0OO000OO0OO -start_time ,2 )#line:95
+    if input_box .get ()==current_sentence :#line:96
+        OO0OO00000O0OO0OO =calculate_wpm (OOOOO000O00OOO0O0 ,len (current_sentence .split ()))#line:97
+        result_label .config (text =f"Correct! Time taken: {OOOOO000O00OOO0O0} seconds, WPM: {OO0OO00000O0OO0OO}",foreground ="green",)#line:101
+        reset_progress_bar ()#line:102
+        animate_result_label ()#line:103
+        current_sentence =random .choice (sentences )#line:104
+        start_game ()#line:105
+    else :#line:106
+        result_label .config (text =f"Incorrect. Time taken: {OOOOO000O00OOO0O0} seconds",foreground ="red")#line:109
+        animate_result_label ()#line:110
+def animate_result_label ():#line:114
+    result_label .config (foreground ="red")#line:115
+    root .after (100 ,lambda :result_label .config (foreground ="black"))#line:116
+    root .after (200 ,lambda :result_label .config (foreground ="red"))#line:117
+    root .after (300 ,lambda :result_label .config (foreground ="black"))#line:118
+    root .after (400 ,lambda :result_label .config (foreground ="red"))#line:119
+    root .after (500 ,lambda :result_label .config (foreground ="black"))#line:120
+    root .after (600 ,lambda :result_label .config (foreground ="red"))#line:121
+    root .after (700 ,lambda :result_label .config (foreground ="black"))#line:122
+    root .after (800 ,lambda :result_label .config (foreground ="red"))#line:123
+    root .after (900 ,lambda :result_label .config (foreground ="black"))#line:124
+    root .after (1000 ,lambda :result_label .config (foreground ="red"))#line:125
+    root .after (1100 ,lambda :result_label .config (text ="",foreground ="black"))#line:126
+def update_progress_bar (OO0OOO000OOO0OO00 ):#line:130
+    OO0O0OO0000OO000O =min (OO0OOO000OOO0OO00 /len (current_sentence ),1.0 )*100 #line:131
+    progressbar_label .config (text =f"Progress: {int(OO0O0OO0000OO000O)}%")#line:132
+    progressbar ["value"]=OO0O0OO0000OO000O #line:133
+def reset_progress_bar ():#line:137
+    progressbar_label .config (text ="Progress: 0%")#line:138
+    progressbar ["value"]=0 #line:139
+def countdown ():#line:143
+    global timer_duration ,game_started #line:144
+    if timer_duration >0 and game_started :#line:145
+        timer_label .config (text =f"Time left: {timer_duration} seconds")#line:146
+        countdown_label .config (text =str (timer_duration ))#line:147
+        timer_duration -=1 #line:148
+        root .after (1000 ,countdown )#line:149
+def calculate_wpm (O00OOO0OO0OOO00OO ,OOOO00OOO00O00O00 ):#line:153
+    OO0OO00OOO00O000O =O00OOO0OO0OOO00OO /60 #line:154
+    OO00OOO0OO0O0OOO0 =(OOOO00OOO00O00O00 /5 )/OO0OO00OOO00O000O #line:155
+    return round (OO00OOO0OO0O0OOO0 )#line:156
+root =tk .Tk ()#line:160
+root .geometry ("800x400")#line:161
+root .title ("TypeRacer")#line:162
+style =ttk .Style ()#line:166
+style .configure ("TLabel",foreground ="black",font =("Arial",14 ))#line:167
+style .configure ("TButton",font =("Arial",16 ))#line:168
+sentence_label =ttk .Label (root ,text =current_sentence ,wraplength =700 ,justify ="left")#line:170
+input_box =ttk .Entry (root ,font =("Arial",16 ),width =40 )#line:171
+submit_button =ttk .Button (root ,text ="Submit",command =submit_score )#line:172
+reset_button =ttk .Button (root ,text ="Reset",command =reset_game )#line:173
+result_label =ttk .Label (root )#line:174
+progressbar_label =ttk .Label (root ,text ="Progress: 0%")#line:175
+progressbar =ttk .Progressbar (root ,orient =tk .HORIZONTAL ,length =200 ,mode ="determinate")#line:178
+timer_label =ttk .Label (root ,text =f"Time left: {timer_duration} seconds")#line:179
+countdown_label =ttk .Label (root ,font =("Arial",24 ),foreground ="red")#line:180
+sentence_label .pack (pady =20 )#line:183
+input_box .pack (pady =10 )#line:184
+submit_button .pack (side =tk .RIGHT ,padx =10 )#line:185
+reset_button .pack (side =tk .RIGHT ,padx =10 )#line:186
+result_label .pack (pady =10 )#line:187
+progressbar_label .pack (pady =10 )#line:188
+progressbar .pack (pady =10 )#line:189
+timer_label .pack (pady =10 )#line:190
+countdown_label .pack (pady =10 )#line:191
+input_box .bind ("<KeyRelease>",check_input )#line:194
+start_game ()#line:197
+root .mainloop ()#line:200

@@ -1,0 +1,403 @@
+""#line:2:"""Tests of Beautiful Soup as a whole."""
+from pdb import set_trace #line:4:from pdb import set_trace
+import logging #line:5:import logging
+import unittest #line:6:import unittest
+import sys #line:7:import sys
+import tempfile #line:8:import tempfile
+from bs4 import (BeautifulSoup ,BeautifulStoneSoup ,GuessedAtParserWarning ,MarkupResemblesLocatorWarning ,)#line:15:)
+from bs4 .builder import (TreeBuilder ,ParserRejectedMarkup ,)#line:19:)
+from bs4 .element import (CharsetMetaAttributeValue ,Comment ,ContentMetaAttributeValue ,SoupStrainer ,NamespacedAttribute ,Tag ,NavigableString ,)#line:28:)
+import bs4 .dammit #line:30:import bs4.dammit
+from bs4 .dammit import (EntitySubstitution ,UnicodeDammit ,EncodingDetector ,)#line:35:)
+from bs4 .testing import (default_builder ,SoupTest ,skipIf ,)#line:40:)
+import warnings #line:41:import warnings
+try :#line:43:try:
+    from bs4 .builder import LXMLTreeBuilder ,LXMLTreeBuilderForXML #line:44:from bs4.builder import LXMLTreeBuilder, LXMLTreeBuilderForXML
+    LXML_PRESENT =True #line:45:LXML_PRESENT = True
+except ImportError as e :#line:46:except ImportError as e:
+    LXML_PRESENT =False #line:47:LXML_PRESENT = False
+PYTHON_3_PRE_3_2 =(sys .version_info [0 ]==3 and sys .version_info <(3 ,2 ))#line:49:PYTHON_3_PRE_3_2 = (sys.version_info[0] == 3 and sys.version_info < (3,2))
+class TestConstructor (SoupTest ):#line:51:class TestConstructor(SoupTest):
+    def test_short_unicode_input (O0O00OOO00OOO00O0 ):#line:53:def test_short_unicode_input(self):
+        O00OO0OOOO00O0OOO ="<h1>éé</h1>"#line:54:data = "<h1>éé</h1>"
+        OOOOO00O0OO0O0OOO =O0O00OOO00OOO00O0 .soup (O00OO0OOOO00O0OOO )#line:55:soup = self.soup(data)
+        O0O00OOO00OOO00O0 .assertEqual ("éé",OOOOO00O0OO0O0OOO .h1 .string )#line:56:self.assertEqual("éé", soup.h1.string)
+    def test_embedded_null (O0O0O0OOOO000OO0O ):#line:58:def test_embedded_null(self):
+        O0O0000O0OO0OOO00 ="<h1>foo\0bar</h1>"#line:59:data = "<h1>foo\0bar</h1>"
+        OOOOO0O0O0O0OO0OO =O0O0O0OOOO000OO0O .soup (O0O0000O0OO0OOO00 )#line:60:soup = self.soup(data)
+        O0O0O0OOOO000OO0O .assertEqual ("foo\0bar",OOOOO0O0O0O0OO0OO .h1 .string )#line:61:self.assertEqual("foo\0bar", soup.h1.string)
+    def test_exclude_encodings (OOO00O0O0000O0O00 ):#line:63:def test_exclude_encodings(self):
+        OO00O00OOOOO0O0OO ="Räksmörgås".encode ("utf-8")#line:64:utf8_data = "Räksmörgås".encode("utf-8")
+        O0O0000OOO00O0O0O =OOO00O0O0000O0O00 .soup (OO00O00OOOOO0O0OO ,exclude_encodings =["utf-8"])#line:65:soup = self.soup(utf8_data, exclude_encodings=["utf-8"])
+        OOO00O0O0000O0O00 .assertEqual ("windows-1252",O0O0000OOO00O0O0O .original_encoding )#line:66:self.assertEqual("windows-1252", soup.original_encoding)
+    def test_custom_builder_class (O0OO0000000OO0000 ):#line:68:def test_custom_builder_class(self):
+        class O000O00O0O0O00OOO (object ):#line:71:class Mock(object):
+            def __init__ (OOO000OOO000O0OOO ,**O0000O00O0O00OOO0 ):#line:72:def __init__(self, **kwargs):
+                OOO000OOO000O0OOO .called_with =O0000O00O0O00OOO0 #line:73:self.called_with = kwargs
+                OOO000OOO000O0OOO .is_xml =True #line:74:self.is_xml = True
+                OOO000OOO000O0OOO .store_line_numbers =False #line:75:self.store_line_numbers = False
+                OOO000OOO000O0OOO .cdata_list_attributes =[]#line:76:self.cdata_list_attributes = []
+                OOO000OOO000O0OOO .preserve_whitespace_tags =[]#line:77:self.preserve_whitespace_tags = []
+                OOO000OOO000O0OOO .string_containers ={}#line:78:self.string_containers = {}
+            def initialize_soup (O00000OOO0OOOO0O0 ,O0OO000O0000O00O0 ):#line:79:def initialize_soup(self, soup):
+                pass #line:80:pass
+            def feed (OO000OO0OOOOOO0O0 ,O00000O00OO0OO0O0 ):#line:81:def feed(self, markup):
+                OO000OO0OOOOOO0O0 .fed =O00000O00OO0OO0O0 #line:82:self.fed = markup
+            def reset (OO0O0OOOO0O00000O ):#line:83:def reset(self):
+                pass #line:84:pass
+            def ignore (OOO000000OOOO0O00 ,OOOO0000O0O0000OO ):#line:85:def ignore(self, ignore):
+                pass #line:86:pass
+            set_up_substitutions =can_be_empty_element =ignore #line:87:set_up_substitutions = can_be_empty_element = ignore
+            def prepare_markup (OOO0000O0O00O0OOO ,*O00OOO0000OOOOOOO ,**OOO0O000O00O0OO0O ):#line:88:def prepare_markup(self, *args, **kwargs):
+                yield "prepared markup","original encoding","declared encoding","contains replacement characters"#line:89:yield "prepared markup", "original encoding", "declared encoding", "contains replacement characters"
+        O0000000O00O0OOOO =dict (var ="value",convertEntities =True ,)#line:96:)
+        with warnings .catch_warnings (record =True ):#line:97:with warnings.catch_warnings(record=True):
+            OO000O000O0O00O0O =BeautifulSoup ('',builder =O000O00O0O0O00OOO ,**O0000000O00O0OOOO )#line:98:soup = BeautifulSoup('', builder=Mock, **kwargs)
+        assert isinstance (OO000O000O0O00O0O .builder ,O000O00O0O0O00OOO )#line:99:assert isinstance(soup.builder, Mock)
+        O0OO0000000OO0000 .assertEqual (dict (var ="value"),OO000O000O0O00O0O .builder .called_with )#line:100:self.assertEqual(dict(var="value"), soup.builder.called_with)
+        O0OO0000000OO0000 .assertEqual ("prepared markup",OO000O000O0O00O0O .builder .fed )#line:101:self.assertEqual("prepared markup", soup.builder.fed)
+        O0000OO0000O00OOO =O000O00O0O0O00OOO (**O0000000O00O0OOOO )#line:106:builder = Mock(**kwargs)
+        with warnings .catch_warnings (record =True )as OOO00OO0O00O0O0O0 :#line:107:with warnings.catch_warnings(record=True) as w:
+            OO000O000O0O00O0O =BeautifulSoup ('',builder =O0000OO0000O00OOO ,ignored_value =True ,)#line:110:)
+        O000O0000OOO00O00 =str (OOO00OO0O00O0O0O0 [0 ].message )#line:111:msg = str(w[0].message)
+        assert O000O0000OOO00O00 .startswith ("Keyword arguments to the BeautifulSoup constructor will be ignored.")#line:112:assert msg.startswith("Keyword arguments to the BeautifulSoup constructor will be ignored.")
+        O0OO0000000OO0000 .assertEqual (O0000OO0000O00OOO ,OO000O000O0O00O0O .builder )#line:113:self.assertEqual(builder, soup.builder)
+        O0OO0000000OO0000 .assertEqual (O0000000O00O0OOOO ,O0000OO0000O00OOO .called_with )#line:114:self.assertEqual(kwargs, builder.called_with)
+    def test_parser_markup_rejection (OO0O00OOOOO0O0OOO ):#line:116:def test_parser_markup_rejection(self):
+        class OOOOOO00O0OOO0000 (TreeBuilder ):#line:119:class Mock(TreeBuilder):
+            def feed (OO0O0O00O000OOO00 ,*OOO000O000OO00000 ,**O000O00O0OO0OOO0O ):#line:120:def feed(self, *args, **kwargs):
+                raise ParserRejectedMarkup ("Nope.")#line:121:raise ParserRejectedMarkup("Nope.")
+        def OOOO00O00OO00O0O0 (OOOOO0O0O00000O00 ,*O0O000000O0OO00O0 ,**OO00OO000O0OO00O0 ):#line:123:def prepare_markup(self, *args, **kwargs):
+            yield markup ,None ,None ,False #line:126:yield markup, None, None, False
+            yield markup ,None ,None ,False #line:127:yield markup, None, None, False
+        import re #line:129:import re
+        OO0O00OOOOO0O0OOO .assertRaisesRegex (ParserRejectedMarkup ,"The markup you provided was rejected by the parser. Trying a different parser or a different encoding may help.",BeautifulSoup ,'',builder =OOOOOO00O0OOO0000 ,)#line:134:)
+    def test_cdata_list_attributes (O00OOO0O000O00O00 ):#line:136:def test_cdata_list_attributes(self):
+        OO00O000OO00O0OO0 ='<a id=" an id " class=" a class "></a>'#line:140:markup = '<a id=" an id " class=" a class "></a>'
+        O0OO0OOOO000OOOO0 =O00OOO0O000O00O00 .soup (OO00O000OO00O0OO0 )#line:141:soup = self.soup(markup)
+        O00000O00OOOO0000 =O0OO0OOOO000OOOO0 .a #line:144:a = soup.a
+        O00OOO0O000O00O00 .assertEqual (" an id ",O00000O00OOOO0000 ['id'])#line:145:self.assertEqual(" an id ", a['id'])
+        O00OOO0O000O00O00 .assertEqual (["a","class"],O00000O00OOOO0000 ['class'])#line:146:self.assertEqual(["a", "class"], a['class'])
+        O0OO0OOOO000OOOO0 =O00OOO0O000O00O00 .soup (OO00O000OO00O0OO0 ,builder =default_builder ,multi_valued_attributes =None )#line:151:soup = self.soup(markup, builder=default_builder, multi_valued_attributes=None)
+        O00OOO0O000O00O00 .assertEqual (" a class ",O0OO0OOOO000OOOO0 .a ['class'])#line:152:self.assertEqual(" a class ", soup.a['class'])
+        for O0000000OOOO0OOOO in ({'*':'id'},{'a':'id'}):#line:156:for switcheroo in ({'*': 'id'}, {'a': 'id'}):
+            with warnings .catch_warnings (record =True )as OO000OOOO0OOO0OO0 :#line:157:with warnings.catch_warnings(record=True) as w:
+                O0OO0OOOO000OOOO0 =O00OOO0O000O00O00 .soup (OO00O000OO00O0OO0 ,builder =None ,multi_valued_attributes =O0000000OOOO0OOOO )#line:160:soup = self.soup(markup, builder=None, multi_valued_attributes=switcheroo)
+            O00000O00OOOO0000 =O0OO0OOOO000OOOO0 .a #line:161:a = soup.a
+            O00OOO0O000O00O00 .assertEqual (["an","id"],O00000O00OOOO0000 ['id'])#line:162:self.assertEqual(["an", "id"], a['id'])
+            O00OOO0O000O00O00 .assertEqual (" a class ",O00000O00OOOO0000 ['class'])#line:163:self.assertEqual(" a class ", a['class'])
+    def test_replacement_classes (O0000OOOOO00OOO00 ):#line:165:def test_replacement_classes(self):
+        class OO0O000OOOOOO0000 (Tag ):#line:168:class TagPlus(Tag):
+            pass #line:169:pass
+        class O000OOOOO00OO0000 (NavigableString ):#line:171:class StringPlus(NavigableString):
+            pass #line:172:pass
+        class O00OO0OOO0O0O0OOO (Comment ):#line:174:class CommentPlus(Comment):
+            pass #line:175:pass
+        OO0O000OO00OOO00O =O0000OOOOO00OOO00 .soup ("<a><b>foo</b>bar</a><!--whee-->",element_classes ={Tag :OO0O000OOOOOO0000 ,NavigableString :O000OOOOO00OO0000 ,Comment :O00OO0OOO0O0O0OOO ,})#line:184:)
+        assert all (isinstance (O0OO0O0OO000OOO0O ,(OO0O000OOOOOO0000 ,O000OOOOO00OO0000 ,O00OO0OOO0O0O0OOO ))for O0OO0O0OO000OOO0O in OO0O000OO00OOO00O .recursiveChildGenerator ())#line:191:)
+    def test_alternate_string_containers (OO00O0O0O00O00O0O ):#line:193:def test_alternate_string_containers(self):
+        class O0O000OO0OOO0OO00 (NavigableString ):#line:196:class PString(NavigableString):
+            pass #line:197:pass
+        class O0OOO0O0OO00O00O0 (NavigableString ):#line:199:class BString(NavigableString):
+            pass #line:200:pass
+        O000O000O000O0000 =OO00O0O0O00O00O0O .soup ("<div>Hello.<p>Here is <b>some <i>bolded</i></b> text",string_containers ={'b':O0OOO0O0OO00O00O0 ,'p':O0O000OO0OOO0OO00 ,})#line:208:)
+        assert isinstance (O000O000O000O0000 .div .contents [0 ],NavigableString )#line:211:assert isinstance(soup.div.contents[0], NavigableString)
+        assert isinstance (O000O000O000O0000 .p .contents [0 ],O0O000OO0OOO0OO00 )#line:215:assert isinstance(soup.p.contents[0], PString)
+        for O0OOO0OO00OO0OOOO in O000O000O000O0000 .b .strings :#line:219:for s in soup.b.strings:
+            assert isinstance (O0OOO0OO00OO0OOOO ,O0OOO0O0OO00O00O0 )#line:220:assert isinstance(s, BString)
+        OO00O0O0O00O00O0O .assertEqual ([],O000O000O000O0000 .string_container_stack )#line:224:self.assertEqual([], soup.string_container_stack)
+class TestWarnings (SoupTest ):#line:227:class TestWarnings(SoupTest):
+    def _assert_warning (O000000OO00000OO0 ,O00OO00O000OO000O ,O00000000OO0OOOO0 ):#line:229:def _assert_warning(self, warnings, cls):
+        for O00000OO0O00O0OO0 in O00OO00O000OO000O :#line:230:for w in warnings:
+            if isinstance (O00000OO0O00O0OO0 .message ,O00000000OO0OOOO0 ):#line:231:if isinstance(w.message, cls):
+                return O00000OO0O00O0OO0 #line:232:return w
+        raise Exception ("%s warning not found in %r"%O00000000OO0OOOO0 ,O00OO00O000OO000O )#line:233:raise Exception("%s warning not found in %r" % cls, warnings)
+    def _assert_no_parser_specified (OO0O00OO0OO00OOOO ,O00O0O0O0OOO00OOO ):#line:235:def _assert_no_parser_specified(self, w):
+        OO0OOOOO0000OO00O =OO0O00OO0OO00OOOO ._assert_warning (O00O0O0O0OOO00OOO ,GuessedAtParserWarning )#line:236:warning = self._assert_warning(w, GuessedAtParserWarning)
+        O0O00O0OOO0O0OOOO =str (OO0OOOOO0000OO00O .message )#line:237:message = str(warning.message)
+        OO0O00OO0OO00OOOO .assertTrue (O0O00O0OOO0O0OOOO .startswith (BeautifulSoup .NO_PARSER_SPECIFIED_WARNING [:60 ]))#line:240:)
+    def test_warning_if_no_parser_specified (OOO0OOOO00O00O00O ):#line:242:def test_warning_if_no_parser_specified(self):
+        with warnings .catch_warnings (record =True )as OO0O00OOOO0OOOOOO :#line:243:with warnings.catch_warnings(record=True) as w:
+            OO0O0OO00OOOOOOO0 =BeautifulSoup ("<a><b></b></a>")#line:244:soup = BeautifulSoup("<a><b></b></a>")
+        OOO0OOOO00O00O00O ._assert_no_parser_specified (OO0O00OOOO0OOOOOO )#line:245:self._assert_no_parser_specified(w)
+    def test_warning_if_parser_specified_too_vague (OO0000O00O0OO0000 ):#line:247:def test_warning_if_parser_specified_too_vague(self):
+        with warnings .catch_warnings (record =True )as OO0O0O0OO0O0O0OOO :#line:248:with warnings.catch_warnings(record=True) as w:
+            OOOOOOO0OO0OOO0O0 =BeautifulSoup ("<a><b></b></a>","html")#line:249:soup = BeautifulSoup("<a><b></b></a>", "html")
+        OO0000O00O0OO0000 ._assert_no_parser_specified (OO0O0O0OO0O0O0OOO )#line:250:self._assert_no_parser_specified(w)
+    def test_no_warning_if_explicit_parser_specified (O000OOO00OO00O0O0 ):#line:252:def test_no_warning_if_explicit_parser_specified(self):
+        with warnings .catch_warnings (record =True )as O0OOO0OO00OOOO00O :#line:253:with warnings.catch_warnings(record=True) as w:
+            O0O000O00OO000OOO =BeautifulSoup ("<a><b></b></a>","html.parser")#line:254:soup = BeautifulSoup("<a><b></b></a>", "html.parser")
+        O000OOO00OO00O0O0 .assertEqual ([],O0OOO0OO00OOOO00O )#line:255:self.assertEqual([], w)
+    def test_parseOnlyThese_renamed_to_parse_only (OOO0OOOO0O0OOOOO0 ):#line:257:def test_parseOnlyThese_renamed_to_parse_only(self):
+        with warnings .catch_warnings (record =True )as O0OO0O00O00000O0O :#line:258:with warnings.catch_warnings(record=True) as w:
+            OOO0OO000OOO000OO =OOO0OOOO0O0OOOOO0 .soup ("<a><b></b></a>",parseOnlyThese =SoupStrainer ("b"))#line:259:soup = self.soup("<a><b></b></a>", parseOnlyThese=SoupStrainer("b"))
+        OOO0O00O00O00000O =str (O0OO0O00O00000O0O [0 ].message )#line:260:msg = str(w[0].message)
+        OOO0OOOO0O0OOOOO0 .assertTrue ("parseOnlyThese"in OOO0O00O00O00000O )#line:261:self.assertTrue("parseOnlyThese" in msg)
+        OOO0OOOO0O0OOOOO0 .assertTrue ("parse_only"in OOO0O00O00O00000O )#line:262:self.assertTrue("parse_only" in msg)
+        OOO0OOOO0O0OOOOO0 .assertEqual (b"<b></b>",OOO0OO000OOO000OO .encode ())#line:263:self.assertEqual(b"<b></b>", soup.encode())
+    def test_fromEncoding_renamed_to_from_encoding (OO000OO00OOOOO00O ):#line:265:def test_fromEncoding_renamed_to_from_encoding(self):
+        with warnings .catch_warnings (record =True )as OO0O0O0OO0O0OOOOO :#line:266:with warnings.catch_warnings(record=True) as w:
+            O0OO0OOO0OO0OO0O0 =b"\xc3\xa9"#line:267:utf8 = b"\xc3\xa9"
+            O00O0O0OO0OOO0000 =OO000OO00OOOOO00O .soup (O0OO0OOO0OO0OO0O0 ,fromEncoding ="utf8")#line:268:soup = self.soup(utf8, fromEncoding="utf8")
+        OOOOO000O000OOOO0 =str (OO0O0O0OO0O0OOOOO [0 ].message )#line:269:msg = str(w[0].message)
+        OO000OO00OOOOO00O .assertTrue ("fromEncoding"in OOOOO000O000OOOO0 )#line:270:self.assertTrue("fromEncoding" in msg)
+        OO000OO00OOOOO00O .assertTrue ("from_encoding"in OOOOO000O000OOOO0 )#line:271:self.assertTrue("from_encoding" in msg)
+        OO000OO00OOOOO00O .assertEqual ("utf8",O00O0O0OO0OOO0000 .original_encoding )#line:272:self.assertEqual("utf8", soup.original_encoding)
+    def test_unrecognized_keyword_argument (OOOOO000000OO00O0 ):#line:274:def test_unrecognized_keyword_argument(self):
+        OOOOO000000OO00O0 .assertRaises (TypeError ,OOOOO000000OO00O0 .soup ,"<a>",no_such_argument =True )#line:276:TypeError, self.soup, "<a>", no_such_argument=True)
+    def test_disk_file_warning (O0OOOOO0O00000O00 ):#line:278:def test_disk_file_warning(self):
+        O00OOO0O00O000O00 =tempfile .NamedTemporaryFile ()#line:279:filehandle = tempfile.NamedTemporaryFile()
+        OO0O0000O0OO00O0O =O00OOO0O00O000O00 .name #line:280:filename = filehandle.name
+        try :#line:281:try:
+            with warnings .catch_warnings (record =True )as OO00O00O00OO0O0O0 :#line:282:with warnings.catch_warnings(record=True) as w:
+                OO0O000000OOO0O00 =O0OOOOO0O00000O00 .soup (OO0O0000O0OO00O0O )#line:283:soup = self.soup(filename)
+            O0O000OOOO0O00OO0 =O0OOOOO0O00000O00 ._assert_warning (OO00O00O00OO0O0O0 ,MarkupResemblesLocatorWarning )#line:284:warning = self._assert_warning(w, MarkupResemblesLocatorWarning)
+            O0OOOOO0O00000O00 .assertTrue ("looks like a filename"in str (O0O000OOOO0O00OO0 .message ))#line:285:self.assertTrue("looks like a filename" in str(warning.message))
+        finally :#line:286:finally:
+            O00OOO0O00O000O00 .close ()#line:287:filehandle.close()
+        with warnings .catch_warnings (record =True )as OO00O00O00OO0O0O0 :#line:290:with warnings.catch_warnings(record=True) as w:
+            OO0O000000OOO0O00 =O0OOOOO0O00000O00 .soup (OO0O0000O0OO00O0O )#line:291:soup = self.soup(filename)
+        O0OOOOO0O00000O00 .assertEqual ([],OO00O00O00OO0O0O0 )#line:292:self.assertEqual([], w)
+    def test_url_warning_with_bytes_url (O000OO000O0O0OOO0 ):#line:294:def test_url_warning_with_bytes_url(self):
+        with warnings .catch_warnings (record =True )as O0OOOOOOO0OO000OO :#line:295:with warnings.catch_warnings(record=True) as warning_list:
+            O0OO0OOO0O0O0OOO0 =O000OO000O0O0OOO0 .soup (b"http://www.crummybytes.com/")#line:296:soup = self.soup(b"http://www.crummybytes.com/")
+        O0000OOOO0O0OOOOO =O000OO000O0O0OOO0 ._assert_warning (O0OOOOOOO0OO000OO ,MarkupResemblesLocatorWarning )#line:299:)
+        O000OO000O0O0OOO0 .assertTrue ("looks like a URL"in str (O0000OOOO0O0OOOOO .message ))#line:300:self.assertTrue("looks like a URL" in str(warning.message))
+    def test_url_warning_with_unicode_url (O0000000000OOO0OO ):#line:302:def test_url_warning_with_unicode_url(self):
+        with warnings .catch_warnings (record =True )as O00OO0O0OO00O00O0 :#line:303:with warnings.catch_warnings(record=True) as warning_list:
+            OO00OO0O0000OO000 =O0000000000OOO0OO .soup ("http://www.crummyunicode.com/")#line:306:soup = self.soup("http://www.crummyunicode.com/")
+        O0OO0OO0OOOOO0O0O =O0000000000OOO0OO ._assert_warning (O00OO0O0OO00O00O0 ,MarkupResemblesLocatorWarning )#line:309:)
+        O0000000000OOO0OO .assertTrue ("looks like a URL"in str (O0OO0OO0OOOOO0O0O .message ))#line:310:self.assertTrue("looks like a URL" in str(warning.message))
+    def test_url_warning_with_bytes_and_space (OOOOO00O0OOOO00OO ):#line:312:def test_url_warning_with_bytes_and_space(self):
+        with warnings .catch_warnings (record =True )as OOOOOO00OOO0OO0O0 :#line:315:with warnings.catch_warnings(record=True) as warning_list:
+            O0O00O0O000O00000 =OOOOO00O0OOOO00OO .soup (b"http://www.crummybytes.com/ is great")#line:316:soup = self.soup(b"http://www.crummybytes.com/ is great")
+        OOOOO00O0OOOO00OO .assertFalse (any ("looks like a URL"in str (OOO000OOOO00OO000 .message )for OOO000OOOO00OO000 in OOOOOO00OOO0OO0O0 ))#line:318:for w in warning_list))
+    def test_url_warning_with_unicode_and_space (OO0O0O0OO0OO00O0O ):#line:320:def test_url_warning_with_unicode_and_space(self):
+        with warnings .catch_warnings (record =True )as O00O00000000O000O :#line:321:with warnings.catch_warnings(record=True) as warning_list:
+            O0OOO00OO00OO000O =OO0O0O0OO0OO00O0O .soup ("http://www.crummyuncode.com/ is great")#line:322:soup = self.soup("http://www.crummyuncode.com/ is great")
+        OO0O0O0OO0OO00O0O .assertFalse (any ("looks like a URL"in str (O00OOO00O0OO0O0OO .message )for O00OOO00O0OO0O0OO in O00O00000000O000O ))#line:324:for w in warning_list))
+class TestSelectiveParsing (SoupTest ):#line:327:class TestSelectiveParsing(SoupTest):
+    def test_parse_with_soupstrainer (O000O0O00O0OOOO0O ):#line:329:def test_parse_with_soupstrainer(self):
+        O0OO0000000O0OOOO ="No<b>Yes</b><a>No<b>Yes <c>Yes</c></b>"#line:330:markup = "No<b>Yes</b><a>No<b>Yes <c>Yes</c></b>"
+        OOOO00O00O0O000OO =SoupStrainer ("b")#line:331:strainer = SoupStrainer("b")
+        OOOOOOOO0000O0OOO =O000O0O00O0OOOO0O .soup (O0OO0000000O0OOOO ,parse_only =OOOO00O00O0O000OO )#line:332:soup = self.soup(markup, parse_only=strainer)
+        O000O0O00O0OOOO0O .assertEqual (OOOOOOOO0000O0OOO .encode (),b"<b>Yes</b><b>Yes <c>Yes</c></b>")#line:333:self.assertEqual(soup.encode(), b"<b>Yes</b><b>Yes <c>Yes</c></b>")
+class TestEntitySubstitution (unittest .TestCase ):#line:336:class TestEntitySubstitution(unittest.TestCase):
+    ""#line:337:"""Standalone tests of the EntitySubstitution class."""
+    def setUp (O0O000O0O00OO0O00 ):#line:338:def setUp(self):
+        O0O000O0O00OO0O00 .sub =EntitySubstitution #line:339:self.sub = EntitySubstitution
+    def test_simple_html_substitution (O0O0O0OO00OO0000O ):#line:341:def test_simple_html_substitution(self):
+        O000000000OO0O0OO ="foo\u2200\N{SNOWMAN}\u00f5bar"#line:344:s = "foo\u2200\N{SNOWMAN}\u00f5bar"
+        O0O0O0OO00OO0000O .assertEqual (O0O0O0OO00OO0000O .sub .substitute_html (O000000000OO0O0OO ),"foo&forall;\N{SNOWMAN}&otilde;bar")#line:346:"foo&forall;\N{SNOWMAN}&otilde;bar")
+    def test_smart_quote_substitution (OOOOO000OOO00OO0O ):#line:348:def test_smart_quote_substitution(self):
+        OO00OOOOOOO00OO0O =b"\x91\x92foo\x93\x94"#line:351:quotes = b"\x91\x92foo\x93\x94"
+        OO0000O00OO0OOO00 =UnicodeDammit (OO00OOOOOOO00OO0O )#line:352:dammit = UnicodeDammit(quotes)
+        OOOOO000OOO00OO0O .assertEqual (OOOOO000OOO00OO0O .sub .substitute_html (OO0000O00OO0OOO00 .markup ),"&lsquo;&rsquo;foo&ldquo;&rdquo;")#line:354:"&lsquo;&rsquo;foo&ldquo;&rdquo;")
+    def test_xml_converstion_includes_no_quotes_if_make_quoted_attribute_is_false (O000OO0000OO0OOO0 ):#line:356:def test_xml_converstion_includes_no_quotes_if_make_quoted_attribute_is_false(self):
+        OOO00OO0OOOO000O0 ='Welcome to "my bar"'#line:357:s = 'Welcome to "my bar"'
+        O000OO0000OO0OOO0 .assertEqual (O000OO0000OO0OOO0 .sub .substitute_xml (OOO00OO0OOOO000O0 ,False ),OOO00OO0OOOO000O0 )#line:358:self.assertEqual(self.sub.substitute_xml(s, False), s)
+    def test_xml_attribute_quoting_normally_uses_double_quotes (O0O00OO00OOO0OOO0 ):#line:360:def test_xml_attribute_quoting_normally_uses_double_quotes(self):
+        O0O00OO00OOO0OOO0 .assertEqual (O0O00OO00OOO0OOO0 .sub .substitute_xml ("Welcome",True ),'"Welcome"')#line:362:'"Welcome"')
+        O0O00OO00OOO0OOO0 .assertEqual (O0O00OO00OOO0OOO0 .sub .substitute_xml ("Bob's Bar",True ),'"Bob\'s Bar"')#line:364:'"Bob\'s Bar"')
+    def test_xml_attribute_quoting_uses_single_quotes_when_value_contains_double_quotes (OO0OO0O00O0O00OOO ):#line:366:def test_xml_attribute_quoting_uses_single_quotes_when_value_contains_double_quotes(self):
+        O0OO00O0O00O000O0 ='Welcome to "my bar"'#line:367:s = 'Welcome to "my bar"'
+        OO0OO0O00O0O00OOO .assertEqual (OO0OO0O00O0O00OOO .sub .substitute_xml (O0OO00O0O00O000O0 ,True ),"'Welcome to \"my bar\"'")#line:369:"'Welcome to \"my bar\"'")
+    def test_xml_attribute_quoting_escapes_single_quotes_when_value_contains_both_single_and_double_quotes (O0O00O0O000O00OOO ):#line:371:def test_xml_attribute_quoting_escapes_single_quotes_when_value_contains_both_single_and_double_quotes(self):
+        OO00OOOOO00000OOO ='Welcome to "Bob\'s Bar"'#line:372:s = 'Welcome to "Bob\'s Bar"'
+        O0O00O0O000O00OOO .assertEqual (O0O00O0O000O00OOO .sub .substitute_xml (OO00OOOOO00000OOO ,True ),'"Welcome to &quot;Bob\'s Bar&quot;"')#line:375:'"Welcome to &quot;Bob\'s Bar&quot;"')
+    def test_xml_quotes_arent_escaped_when_value_is_not_being_quoted (OOOO0OO0O00OO0O00 ):#line:377:def test_xml_quotes_arent_escaped_when_value_is_not_being_quoted(self):
+        OO0O0000OO000O00O ='Welcome to "Bob\'s Bar"'#line:378:quoted = 'Welcome to "Bob\'s Bar"'
+        OOOO0OO0O00OO0O00 .assertEqual (OOOO0OO0O00OO0O00 .sub .substitute_xml (OO0O0000OO000O00O ),OO0O0000OO000O00O )#line:379:self.assertEqual(self.sub.substitute_xml(quoted), quoted)
+    def test_xml_quoting_handles_angle_brackets (O0O0O0OOOO0O0OOO0 ):#line:381:def test_xml_quoting_handles_angle_brackets(self):
+        O0O0O0OOOO0O0OOO0 .assertEqual (O0O0O0OOOO0O0OOO0 .sub .substitute_xml ("foo<bar>"),"foo&lt;bar&gt;")#line:384:"foo&lt;bar&gt;")
+    def test_xml_quoting_handles_ampersands (O00O0O00OO0OO0000 ):#line:386:def test_xml_quoting_handles_ampersands(self):
+        O00O0O00OO0OO0000 .assertEqual (O00O0O00OO0OO0000 .sub .substitute_xml ("AT&T"),"AT&amp;T")#line:387:self.assertEqual(self.sub.substitute_xml("AT&T"), "AT&amp;T")
+    def test_xml_quoting_including_ampersands_when_they_are_part_of_an_entity (OO0OOOO0O00O0O000 ):#line:389:def test_xml_quoting_including_ampersands_when_they_are_part_of_an_entity(self):
+        OO0OOOO0O00O0O000 .assertEqual (OO0OOOO0O00O0O000 .sub .substitute_xml ("&Aacute;T&T"),"&amp;Aacute;T&amp;T")#line:392:"&amp;Aacute;T&amp;T")
+    def test_xml_quoting_ignoring_ampersands_when_they_are_part_of_an_entity (OO000OOO0OO00O0OO ):#line:394:def test_xml_quoting_ignoring_ampersands_when_they_are_part_of_an_entity(self):
+        OO000OOO0OO00O0OO .assertEqual (OO000OOO0OO00O0OO .sub .substitute_xml_containing_entities ("&Aacute;T&T"),"&Aacute;T&amp;T")#line:397:"&Aacute;T&amp;T")
+    def test_quotes_not_html_substituted (OO0OOO00OOOO00OOO ):#line:399:def test_quotes_not_html_substituted(self):
+        ""#line:400:"""There's no need to do this except inside attribute values."""
+        OOOOOO0000OOOOO00 ='Bob\'s "bar"'#line:401:text = 'Bob\'s "bar"'
+        OO0OOO00OOOO00OOO .assertEqual (OO0OOO00OOOO00OOO .sub .substitute_html (OOOOOO0000OOOOO00 ),OOOOOO0000OOOOO00 )#line:402:self.assertEqual(self.sub.substitute_html(text), text)
+class TestEncodingConversion (SoupTest ):#line:405:class TestEncodingConversion(SoupTest):
+    def setUp (OOOO0OO0O0OO0O000 ):#line:409:def setUp(self):
+        super (TestEncodingConversion ,OOOO0OO0O0OO0O000 ).setUp ()#line:410:super(TestEncodingConversion, self).setUp()
+        OOOO0OO0O0OO0O000 .unicode_data ='<html><head><meta charset="utf-8"/></head><body><foo>Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!</foo></body></html>'#line:411:self.unicode_data = '<html><head><meta charset="utf-8"/></head><body><foo>Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!</foo></body></html>'
+        OOOO0OO0O0OO0O000 .utf8_data =OOOO0OO0O0OO0O000 .unicode_data .encode ("utf-8")#line:412:self.utf8_data = self.unicode_data.encode("utf-8")
+        OOOO0OO0O0OO0O000 .assertEqual (OOOO0OO0O0OO0O000 .utf8_data ,b'<html><head><meta charset="utf-8"/></head><body><foo>Sacr\xc3\xa9 bleu!</foo></body></html>')#line:416:b'<html><head><meta charset="utf-8"/></head><body><foo>Sacr\xc3\xa9 bleu!</foo></body></html>')
+    def test_ascii_in_unicode_out (OO0OOOOO0OOOOOO00 ):#line:418:def test_ascii_in_unicode_out(self):
+        O0OO00OOO0O0OOOO0 =bs4 .dammit .chardet_dammit #line:421:chardet = bs4.dammit.chardet_dammit
+        logging .disable (logging .WARNING )#line:422:logging.disable(logging.WARNING)
+        try :#line:423:try:
+            def OO0000OOO000O0O0O (O000000O0OO000OOO ):#line:424:def noop(str):
+                return None #line:425:return None
+            bs4 .dammit .chardet_dammit =OO0000OOO000O0O0O #line:427:bs4.dammit.chardet_dammit = noop
+            O000OOO0OO0OOO000 =b"<foo>a</foo>"#line:428:ascii = b"<foo>a</foo>"
+            O000O0O0OO000O0O0 =OO0OOOOO0OOOOOO00 .soup (O000OOO0OO0OOO000 )#line:429:soup_from_ascii = self.soup(ascii)
+            O0O0OO00O0O000OOO =O000O0O0OO000O0O0 .decode ()#line:430:unicode_output = soup_from_ascii.decode()
+            OO0OOOOO0OOOOOO00 .assertTrue (isinstance (O0O0OO00O0O000OOO ,str ))#line:431:self.assertTrue(isinstance(unicode_output, str))
+            OO0OOOOO0OOOOOO00 .assertEqual (O0O0OO00O0O000OOO ,OO0OOOOO0OOOOOO00 .document_for (O000OOO0OO0OOO000 .decode ()))#line:432:self.assertEqual(unicode_output, self.document_for(ascii.decode()))
+            OO0OOOOO0OOOOOO00 .assertEqual (O000O0O0OO000O0O0 .original_encoding .lower (),"utf-8")#line:433:self.assertEqual(soup_from_ascii.original_encoding.lower(), "utf-8")
+        finally :#line:434:finally:
+            logging .disable (logging .NOTSET )#line:435:logging.disable(logging.NOTSET)
+            bs4 .dammit .chardet_dammit =O0OO00OOO0O0OOOO0 #line:436:bs4.dammit.chardet_dammit = chardet
+    def test_unicode_in_unicode_out (O0O00OOOOOOOOO0OO ):#line:438:def test_unicode_in_unicode_out(self):
+        OOOOO0OO0O0O00O00 =O0O00OOOOOOOOO0OO .soup (O0O00OOOOOOOOO0OO .unicode_data )#line:441:soup_from_unicode = self.soup(self.unicode_data)
+        O0O00OOOOOOOOO0OO .assertEqual (OOOOO0OO0O0O00O00 .decode (),O0O00OOOOOOOOO0OO .unicode_data )#line:442:self.assertEqual(soup_from_unicode.decode(), self.unicode_data)
+        O0O00OOOOOOOOO0OO .assertEqual (OOOOO0OO0O0O00O00 .foo .string ,'Sacr\xe9 bleu!')#line:443:self.assertEqual(soup_from_unicode.foo.string, 'Sacr\xe9 bleu!')
+        O0O00OOOOOOOOO0OO .assertEqual (OOOOO0OO0O0O00O00 .original_encoding ,None )#line:444:self.assertEqual(soup_from_unicode.original_encoding, None)
+    def test_utf8_in_unicode_out (O0OO0OOOOOOO0O00O ):#line:446:def test_utf8_in_unicode_out(self):
+        O0OOO00O00O0OO00O =O0OO0OOOOOOO0O00O .soup (O0OO0OOOOOOO0O00O .utf8_data )#line:449:soup_from_utf8 = self.soup(self.utf8_data)
+        O0OO0OOOOOOO0O00O .assertEqual (O0OOO00O00O0OO00O .decode (),O0OO0OOOOOOO0O00O .unicode_data )#line:450:self.assertEqual(soup_from_utf8.decode(), self.unicode_data)
+        O0OO0OOOOOOO0O00O .assertEqual (O0OOO00O00O0OO00O .foo .string ,'Sacr\xe9 bleu!')#line:451:self.assertEqual(soup_from_utf8.foo.string, 'Sacr\xe9 bleu!')
+    def test_utf8_out (O0O0OO0O0OOOOO000 ):#line:453:def test_utf8_out(self):
+        OOOOOO000000O0O0O =O0O0OO0O0OOOOO000 .soup (O0O0OO0O0OOOOO000 .unicode_data )#line:455:soup_from_unicode = self.soup(self.unicode_data)
+        O0O0OO0O0OOOOO000 .assertEqual (OOOOOO000000O0O0O .encode ('utf-8'),O0O0OO0O0OOOOO000 .utf8_data )#line:456:self.assertEqual(soup_from_unicode.encode('utf-8'), self.utf8_data)
+    @skipIf (PYTHON_3_PRE_3_2 ,"Bad HTMLParser detected; skipping test of non-ASCII characters in attribute name.")#line:460:"Bad HTMLParser detected; skipping test of non-ASCII characters in attribute name.")
+    def test_attribute_name_containing_unicode_characters (O00OOOO0OOO0000O0 ):#line:461:def test_attribute_name_containing_unicode_characters(self):
+        O00O00OO000000000 ='<div><a \N{SNOWMAN}="snowman"></a></div>'#line:462:markup = '<div><a \N{SNOWMAN}="snowman"></a></div>'
+        O00OOOO0OOO0000O0 .assertEqual (O00OOOO0OOO0000O0 .soup (O00O00OO000000000 ).div .encode ("utf8"),O00O00OO000000000 .encode ("utf8"))#line:463:self.assertEqual(self.soup(markup).div.encode("utf8"), markup.encode("utf8"))
+class TestUnicodeDammit (unittest .TestCase ):#line:465:class TestUnicodeDammit(unittest.TestCase):
+    ""#line:466:"""Standalone tests of UnicodeDammit."""
+    def test_unicode_input (O0OO000000OO0O0O0 ):#line:468:def test_unicode_input(self):
+        OO000000O0O00OO0O ="I'm already Unicode! \N{SNOWMAN}"#line:469:markup = "I'm already Unicode! \N{SNOWMAN}"
+        OO0OOOOOO00OO00O0 =UnicodeDammit (OO000000O0O00OO0O )#line:470:dammit = UnicodeDammit(markup)
+        O0OO000000OO0O0O0 .assertEqual (OO0OOOOOO00OO00O0 .unicode_markup ,OO000000O0O00OO0O )#line:471:self.assertEqual(dammit.unicode_markup, markup)
+    def test_smart_quotes_to_unicode (O000OOOOO000O0O00 ):#line:473:def test_smart_quotes_to_unicode(self):
+        O0O0OO00O000OOO00 =b"<foo>\x91\x92\x93\x94</foo>"#line:474:markup = b"<foo>\x91\x92\x93\x94</foo>"
+        OO000O0O0OO000O00 =UnicodeDammit (O0O0OO00O000OOO00 )#line:475:dammit = UnicodeDammit(markup)
+        O000OOOOO000O0O00 .assertEqual (OO000O0O0OO000O00 .unicode_markup ,"<foo>\u2018\u2019\u201c\u201d</foo>")#line:477:dammit.unicode_markup, "<foo>\u2018\u2019\u201c\u201d</foo>")
+    def test_smart_quotes_to_xml_entities (OOOO000OO0O000O0O ):#line:479:def test_smart_quotes_to_xml_entities(self):
+        O0O0O0OO0OOO0OOO0 =b"<foo>\x91\x92\x93\x94</foo>"#line:480:markup = b"<foo>\x91\x92\x93\x94</foo>"
+        OOO0OOOO000OOO00O =UnicodeDammit (O0O0O0OO0OOO0OOO0 ,smart_quotes_to ="xml")#line:481:dammit = UnicodeDammit(markup, smart_quotes_to="xml")
+        OOOO000OO0O000O0O .assertEqual (OOO0OOOO000OOO00O .unicode_markup ,"<foo>&#x2018;&#x2019;&#x201C;&#x201D;</foo>")#line:483:dammit.unicode_markup, "<foo>&#x2018;&#x2019;&#x201C;&#x201D;</foo>")
+    def test_smart_quotes_to_html_entities (O0O0OO00O0O000000 ):#line:485:def test_smart_quotes_to_html_entities(self):
+        OOO0OOO0O000OO00O =b"<foo>\x91\x92\x93\x94</foo>"#line:486:markup = b"<foo>\x91\x92\x93\x94</foo>"
+        O0OO0OOO000OOOO00 =UnicodeDammit (OOO0OOO0O000OO00O ,smart_quotes_to ="html")#line:487:dammit = UnicodeDammit(markup, smart_quotes_to="html")
+        O0O0OO00O0O000000 .assertEqual (O0OO0OOO000OOOO00 .unicode_markup ,"<foo>&lsquo;&rsquo;&ldquo;&rdquo;</foo>")#line:489:dammit.unicode_markup, "<foo>&lsquo;&rsquo;&ldquo;&rdquo;</foo>")
+    def test_smart_quotes_to_ascii (O0O0O00OOO00OOOOO ):#line:491:def test_smart_quotes_to_ascii(self):
+        O00O00OO0OOO000OO =b"<foo>\x91\x92\x93\x94</foo>"#line:492:markup = b"<foo>\x91\x92\x93\x94</foo>"
+        OOO000O0OO0OO000O =UnicodeDammit (O00O00OO0OOO000OO ,smart_quotes_to ="ascii")#line:493:dammit = UnicodeDammit(markup, smart_quotes_to="ascii")
+        O0O0O00OOO00OOOOO .assertEqual (OOO000O0OO0OO000O .unicode_markup ,"""<foo>''""</foo>""")#line:495:dammit.unicode_markup, """<foo>''""</foo>""")
+    def test_detect_utf8 (O0O0OOOOO0OO00OO0 ):#line:497:def test_detect_utf8(self):
+        O0OOO0O0000O0OOO0 =b"Sacr\xc3\xa9 bleu! \xe2\x98\x83"#line:498:utf8 = b"Sacr\xc3\xa9 bleu! \xe2\x98\x83"
+        O0OOO00000O0OOO0O =UnicodeDammit (O0OOO0O0000O0OOO0 )#line:499:dammit = UnicodeDammit(utf8)
+        O0O0OOOOO0OO00OO0 .assertEqual (O0OOO00000O0OOO0O .original_encoding .lower (),'utf-8')#line:500:self.assertEqual(dammit.original_encoding.lower(), 'utf-8')
+        O0O0OOOOO0OO00OO0 .assertEqual (O0OOO00000O0OOO0O .unicode_markup ,'Sacr\xe9 bleu! \N{SNOWMAN}')#line:501:self.assertEqual(dammit.unicode_markup, 'Sacr\xe9 bleu! \N{SNOWMAN}')
+    def test_convert_hebrew (OO0OO0O0OO000OOOO ):#line:504:def test_convert_hebrew(self):
+        O0O00OOOO0OO000O0 =b"\xed\xe5\xec\xf9"#line:505:hebrew = b"\xed\xe5\xec\xf9"
+        O0OO00O0O00OOOO0O =UnicodeDammit (O0O00OOOO0OO000O0 ,["iso-8859-8"])#line:506:dammit = UnicodeDammit(hebrew, ["iso-8859-8"])
+        OO0OO0O0OO000OOOO .assertEqual (O0OO00O0O00OOOO0O .original_encoding .lower (),'iso-8859-8')#line:507:self.assertEqual(dammit.original_encoding.lower(), 'iso-8859-8')
+        OO0OO0O0OO000OOOO .assertEqual (O0OO00O0O00OOOO0O .unicode_markup ,'\u05dd\u05d5\u05dc\u05e9')#line:508:self.assertEqual(dammit.unicode_markup, '\u05dd\u05d5\u05dc\u05e9')
+    def test_dont_see_smart_quotes_where_there_are_none (O0OO00O00O00O00OO ):#line:510:def test_dont_see_smart_quotes_where_there_are_none(self):
+        O0000OO0OO00O00OO =b"\343\202\261\343\203\274\343\202\277\343\202\244 Watch"#line:511:utf_8 = b"\343\202\261\343\203\274\343\202\277\343\202\244 Watch"
+        O0000OOO000OO0O0O =UnicodeDammit (O0000OO0OO00O00OO )#line:512:dammit = UnicodeDammit(utf_8)
+        O0OO00O00O00O00OO .assertEqual (O0000OOO000OO0O0O .original_encoding .lower (),'utf-8')#line:513:self.assertEqual(dammit.original_encoding.lower(), 'utf-8')
+        O0OO00O00O00O00OO .assertEqual (O0000OOO000OO0O0O .unicode_markup .encode ("utf-8"),O0000OO0OO00O00OO )#line:514:self.assertEqual(dammit.unicode_markup.encode("utf-8"), utf_8)
+    def test_ignore_inappropriate_codecs (OO0O00OOO0OOOO00O ):#line:516:def test_ignore_inappropriate_codecs(self):
+        O00O0O0OO0O00000O ="Räksmörgås".encode ("utf-8")#line:517:utf8_data = "Räksmörgås".encode("utf-8")
+        O0O00OOOO0OO0000O =UnicodeDammit (O00O0O0OO0O00000O ,["iso-8859-8"])#line:518:dammit = UnicodeDammit(utf8_data, ["iso-8859-8"])
+        OO0O00OOO0OOOO00O .assertEqual (O0O00OOOO0OO0000O .original_encoding .lower (),'utf-8')#line:519:self.assertEqual(dammit.original_encoding.lower(), 'utf-8')
+    def test_ignore_invalid_codecs (O0000OOO0OOO0OO0O ):#line:521:def test_ignore_invalid_codecs(self):
+        O0O000OO00OOO00OO ="Räksmörgås".encode ("utf-8")#line:522:utf8_data = "Räksmörgås".encode("utf-8")
+        for OOOOOO0O000OO0OO0 in ['.utf8','...','utF---16.!']:#line:523:for bad_encoding in ['.utf8', '...', 'utF---16.!']:
+            O000O0OOO000OO000 =UnicodeDammit (O0O000OO00OOO00OO ,[OOOOOO0O000OO0OO0 ])#line:524:dammit = UnicodeDammit(utf8_data, [bad_encoding])
+            O0000OOO0OOO0OO0O .assertEqual (O000O0OOO000OO000 .original_encoding .lower (),'utf-8')#line:525:self.assertEqual(dammit.original_encoding.lower(), 'utf-8')
+    def test_exclude_encodings (O0O0O0O00OOO00OO0 ):#line:527:def test_exclude_encodings(self):
+        OO0OO000O0O00O00O ="Räksmörgås".encode ("utf-8")#line:529:utf8_data = "Räksmörgås".encode("utf-8")
+        OO0OOO000OO000O00 =UnicodeDammit (OO0OO000O0O00O00O ,exclude_encodings =["utf-8"])#line:533:dammit = UnicodeDammit(utf8_data, exclude_encodings=["utf-8"])
+        O0O0O0O00OOO00OO0 .assertEqual (OO0OOO000OO000O00 .original_encoding .lower (),'windows-1252')#line:534:self.assertEqual(dammit.original_encoding.lower(), 'windows-1252')
+        OO0OOO000OO000O00 =UnicodeDammit (OO0OO000O0O00O00O ,exclude_encodings =["utf-8","windows-1252"])#line:538:utf8_data, exclude_encodings=["utf-8", "windows-1252"])
+        O0O0O0O00OOO00OO0 .assertEqual (OO0OOO000OO000O00 .original_encoding ,None )#line:539:self.assertEqual(dammit.original_encoding, None)
+    def test_encoding_detector_replaces_junk_in_encoding_name_with_replacement_character (OOOOOOOOO0O0O0OOO ):#line:541:def test_encoding_detector_replaces_junk_in_encoding_name_with_replacement_character(self):
+        OO0OO000OOOOO0OO0 =EncodingDetector (b'<?xml version="1.0" encoding="UTF-\xdb" ?>')#line:543:b'<?xml version="1.0" encoding="UTF-\xdb" ?>')
+        O00O00OOO00O0OO00 =list (OO0OO000OOOOO0OO0 .encodings )#line:544:encodings = list(detected.encodings)
+        assert 'utf-\N{REPLACEMENT CHARACTER}'in O00O00OOO00O0OO00 #line:545:assert 'utf-\N{REPLACEMENT CHARACTER}' in encodings
+    def test_detect_html5_style_meta_tag (OOO000O0O000O0OOO ):#line:547:def test_detect_html5_style_meta_tag(self):
+        for O00OOOOOOOOOOOOOO in (b'<html><meta charset="euc-jp" /></html>',b"<html><meta charset='euc-jp' /></html>",b"<html><meta charset=euc-jp /></html>",b"<html><meta charset=euc-jp/></html>"):#line:553:b"<html><meta charset=euc-jp/></html>"):
+            OO0OOO0OO0000O0O0 =UnicodeDammit (O00OOOOOOOOOOOOOO ,is_html =True )#line:554:dammit = UnicodeDammit(data, is_html=True)
+            OOO000O0O000O0OOO .assertEqual ("euc-jp",OO0OOO0OO0000O0O0 .original_encoding )#line:556:"euc-jp", dammit.original_encoding)
+    def test_last_ditch_entity_replacement (OO00O00OO00OO000O ):#line:558:def test_last_ditch_entity_replacement(self):
+        OOOOOO0OO0O00OO00 =b"""\357\273\277<?xml version="1.0" encoding="UTF-8"?>
+<html><b>\330\250\330\252\330\261</b>
+<i>\310\322\321\220\312\321\355\344</i></html>"""#line:576:<i>\310\322\321\220\312\321\355\344</i></html>"""
+        OO0OOO000OOO0O00O =bs4 .dammit .chardet_dammit #line:577:chardet = bs4.dammit.chardet_dammit
+        logging .disable (logging .WARNING )#line:578:logging.disable(logging.WARNING)
+        try :#line:579:try:
+            def O00OOO000000O00O0 (OO000OO0O00O00000 ):#line:580:def noop(str):
+                return None #line:581:return None
+            bs4 .dammit .chardet_dammit =O00OOO000000O00O0 #line:582:bs4.dammit.chardet_dammit = noop
+            OO0OOOOO00OOOO0O0 =UnicodeDammit (OOOOOO0OO0O00OO00 )#line:583:dammit = UnicodeDammit(doc)
+            OO00O00OO00OO000O .assertEqual (True ,OO0OOOOO00OOOO0O0 .contains_replacement_characters )#line:584:self.assertEqual(True, dammit.contains_replacement_characters)
+            OO00O00OO00OO000O .assertTrue ("\ufffd"in OO0OOOOO00OOOO0O0 .unicode_markup )#line:585:self.assertTrue("\ufffd" in dammit.unicode_markup)
+            OO0000O0OOO0O0OOO =BeautifulSoup (OOOOOO0OO0O00OO00 ,"html.parser")#line:587:soup = BeautifulSoup(doc, "html.parser")
+            OO00O00OO00OO000O .assertTrue (OO0000O0OOO0O0OOO .contains_replacement_characters )#line:588:self.assertTrue(soup.contains_replacement_characters)
+        finally :#line:589:finally:
+            logging .disable (logging .NOTSET )#line:590:logging.disable(logging.NOTSET)
+            bs4 .dammit .chardet_dammit =OO0OOO000OOO0O00O #line:591:bs4.dammit.chardet_dammit = chardet
+    def test_byte_order_mark_removed (OOO0OOOOOO0O0O000 ):#line:593:def test_byte_order_mark_removed(self):
+        O00O000O000OOOOOO =b'\xff\xfe<\x00a\x00>\x00\xe1\x00\xe9\x00<\x00/\x00a\x00>\x00'#line:595:data = b'\xff\xfe<\x00a\x00>\x00\xe1\x00\xe9\x00<\x00/\x00a\x00>\x00'
+        O0O000OO0OO000O00 =UnicodeDammit (O00O000O000OOOOOO )#line:596:dammit = UnicodeDammit(data)
+        OOO0OOOOOO0O0O000 .assertEqual ("<a>áé</a>",O0O000OO0OO000O00 .unicode_markup )#line:597:self.assertEqual("<a>áé</a>", dammit.unicode_markup)
+        OOO0OOOOOO0O0O000 .assertEqual ("utf-16le",O0O000OO0OO000O00 .original_encoding )#line:598:self.assertEqual("utf-16le", dammit.original_encoding)
+    def test_detwingle (OO00OOOO0OO000OO0 ):#line:600:def test_detwingle(self):
+        O00OOO00OOO0O0OOO =("\N{SNOWMAN}"*3 ).encode ("utf8")#line:602:utf8 = ("\N{SNOWMAN}" * 3).encode("utf8")
+        OOOO0O000O0OO00O0 =("\N{LEFT DOUBLE QUOTATION MARK}Hi, I like Windows!" "\N{RIGHT DOUBLE QUOTATION MARK}").encode ("windows_1252")#line:607:"\N{RIGHT DOUBLE QUOTATION MARK}").encode("windows_1252")
+        O0000OOOOO0OO0O00 =O00OOO00OOO0O0OOO +OOOO0O000O0OO00O0 +O00OOO00OOO0O0OOO #line:610:doc = utf8 + windows_1252 + utf8
+        OO00OOOO0OO000OO0 .assertRaises (UnicodeDecodeError ,O0000OOOOO0OO0O00 .decode ,"utf8")#line:613:self.assertRaises(UnicodeDecodeError, doc.decode, "utf8")
+        O0OOO0O00O00O0O0O =UnicodeDammit .detwingle (O0000OOOOO0OO0O00 )#line:620:fixed = UnicodeDammit.detwingle(doc)
+        OO00OOOO0OO000OO0 .assertEqual ("☃☃☃“Hi, I like Windows!”☃☃☃",O0OOO0O00O00O0O0O .decode ("utf8"))#line:622:"☃☃☃“Hi, I like Windows!”☃☃☃", fixed.decode("utf8"))
+    def test_detwingle_ignores_multibyte_characters (OO00OO0OO0000OOOO ):#line:624:def test_detwingle_ignores_multibyte_characters(self):
+        for OO0OOO0O0OOOO0O0O in ("\N{LATIN SMALL LIGATURE OE}","\N{LATIN SUBSCRIPT SMALL LETTER X}","\xf0\x90\x90\x93",):#line:633:):
+            O0OOOO000000OO000 =OO0OOO0O0OOOO0O0O .encode ("utf8")#line:634:input = tricky_unicode_char.encode("utf8")
+            OO00OO0OO0000OOOO .assertTrue (O0OOOO000000OO000 .endswith (b'\x93'))#line:635:self.assertTrue(input.endswith(b'\x93'))
+            O0OO00O0O0000O0OO =UnicodeDammit .detwingle (O0OOOO000000OO000 )#line:636:output = UnicodeDammit.detwingle(input)
+            OO00OO0OO0000OOOO .assertEqual (O0OO00O0O0000O0OO ,O0OOOO000000OO000 )#line:637:self.assertEqual(output, input)
+    def test_find_declared_encoding (OOOOOOO0O000O00OO ):#line:639:def test_find_declared_encoding(self):
+        O00OOOO00OOO000OO ='<html><head><meta charset="utf-8"></head></html>'#line:647:html_unicode = '<html><head><meta charset="utf-8"></head></html>'
+        OOO00000OO000O0OO =O00OOOO00OOO000OO .encode ("ascii")#line:648:html_bytes = html_unicode.encode("ascii")
+        OOOOOOOO0OOOO0000 ='<?xml version="1.0" encoding="ISO-8859-1" ?>'#line:650:xml_unicode= '<?xml version="1.0" encoding="ISO-8859-1" ?>'
+        O0O00000000OO00OO =OOOOOOOO0OOOO0000 .encode ("ascii")#line:651:xml_bytes = xml_unicode.encode("ascii")
+        O000O0O0O0OOO0OO0 =EncodingDetector .find_declared_encoding #line:653:m = EncodingDetector.find_declared_encoding
+        OOOOOOO0O000O00OO .assertEqual (None ,O000O0O0O0OOO0OO0 (O00OOOO00OOO000OO ,is_html =False ))#line:654:self.assertEqual(None, m(html_unicode, is_html=False))
+        OOOOOOO0O000O00OO .assertEqual ("utf-8",O000O0O0O0OOO0OO0 (O00OOOO00OOO000OO ,is_html =True ))#line:655:self.assertEqual("utf-8", m(html_unicode, is_html=True))
+        OOOOOOO0O000O00OO .assertEqual ("utf-8",O000O0O0O0OOO0OO0 (OOO00000OO000O0OO ,is_html =True ))#line:656:self.assertEqual("utf-8", m(html_bytes, is_html=True))
+        OOOOOOO0O000O00OO .assertEqual ("iso-8859-1",O000O0O0O0OOO0OO0 (OOOOOOOO0OOOO0000 ))#line:658:self.assertEqual("iso-8859-1", m(xml_unicode))
+        OOOOOOO0O000O00OO .assertEqual ("iso-8859-1",O000O0O0O0OOO0OO0 (O0O00000000OO00OO ))#line:659:self.assertEqual("iso-8859-1", m(xml_bytes))
+        O0OO000O0OO0OOO0O =b' '*5000 #line:663:spacer = b' ' * 5000
+        OOOOOOO0O000O00OO .assertEqual (None ,O000O0O0O0OOO0OO0 (O0OO000O0OO0OOO0O +OOO00000OO000O0OO ))#line:664:self.assertEqual(None, m(spacer + html_bytes))
+        OOOOOOO0O000O00OO .assertEqual (None ,O000O0O0O0OOO0OO0 (O0OO000O0OO0OOO0O +O0O00000000OO00OO ))#line:665:self.assertEqual(None, m(spacer + xml_bytes))
+        OOOOOOO0O000O00OO .assertEqual ("utf-8",O000O0O0O0OOO0OO0 (O0OO000O0OO0OOO0O +OOO00000OO000O0OO ,is_html =True ,search_entire_document =True ))#line:672:)
+        OOOOOOO0O000O00OO .assertEqual ("iso-8859-1",O000O0O0O0OOO0OO0 (O0O00000000OO00OO ,search_entire_document =True ))#line:680:)
+        OOOOOOO0O000O00OO .assertEqual (None ,O000O0O0O0OOO0OO0 (b'a'+O0O00000000OO00OO ,search_entire_document =True ))#line:683:)
+class TestNamedspacedAttribute (SoupTest ):#line:685:class TestNamedspacedAttribute(SoupTest):
+    def test_name_may_be_none_or_missing (O0OO0O00OO0OOOO00 ):#line:687:def test_name_may_be_none_or_missing(self):
+        OO0OOOO0OOO0O0OO0 =NamespacedAttribute ("xmlns",None )#line:688:a = NamespacedAttribute("xmlns", None)
+        O0OO0O00OO0OOOO00 .assertEqual (OO0OOOO0OOO0O0OO0 ,"xmlns")#line:689:self.assertEqual(a, "xmlns")
+        OO0OOOO0OOO0O0OO0 =NamespacedAttribute ("xmlns")#line:691:a = NamespacedAttribute("xmlns")
+        O0OO0O00OO0OOOO00 .assertEqual (OO0OOOO0OOO0O0OO0 ,"xmlns")#line:692:self.assertEqual(a, "xmlns")
+    def test_attribute_is_equivalent_to_colon_separated_string (OO000OOOO0000O00O ):#line:694:def test_attribute_is_equivalent_to_colon_separated_string(self):
+        O00OO0O0OO0O00OOO =NamespacedAttribute ("a","b")#line:695:a = NamespacedAttribute("a", "b")
+        OO000OOOO0000O00O .assertEqual ("a:b",O00OO0O0OO0O00OOO )#line:696:self.assertEqual("a:b", a)
+    def test_attributes_are_equivalent_if_prefix_and_name_identical (OO0O000O00OOO000O ):#line:698:def test_attributes_are_equivalent_if_prefix_and_name_identical(self):
+        OO000000000000O00 =NamespacedAttribute ("a","b","c")#line:699:a = NamespacedAttribute("a", "b", "c")
+        OO0O0O0O0OO00O0OO =NamespacedAttribute ("a","b","c")#line:700:b = NamespacedAttribute("a", "b", "c")
+        OO0O000O00OOO000O .assertEqual (OO000000000000O00 ,OO0O0O0O0OO00O0OO )#line:701:self.assertEqual(a, b)
+        O0OOO0O000O0OOOO0 =NamespacedAttribute ("a","b",None )#line:704:c = NamespacedAttribute("a", "b", None)
+        OO0O000O00OOO000O .assertEqual (OO000000000000O00 ,O0OOO0O000O0OOOO0 )#line:705:self.assertEqual(a, c)
+        O0O0000O0OOOOO0O0 =NamespacedAttribute ("a","z","c")#line:708:d = NamespacedAttribute("a", "z", "c")
+        OO0O000O00OOO000O .assertNotEqual (OO000000000000O00 ,O0O0000O0OOOOO0O0 )#line:709:self.assertNotEqual(a, d)
+        OOO0000OO00O000OO =NamespacedAttribute ("z","b","c")#line:711:e = NamespacedAttribute("z", "b", "c")
+        OO0O000O00OOO000O .assertNotEqual (OO000000000000O00 ,OOO0000OO00O000OO )#line:712:self.assertNotEqual(a, e)
+class TestAttributeValueWithCharsetSubstitution (unittest .TestCase ):#line:715:class TestAttributeValueWithCharsetSubstitution(unittest.TestCase):
+    def test_content_meta_attribute_value (O00O000O0OOOO000O ):#line:717:def test_content_meta_attribute_value(self):
+        OO0O000OO0OO00O00 =CharsetMetaAttributeValue ("euc-jp")#line:718:value = CharsetMetaAttributeValue("euc-jp")
+        O00O000O0OOOO000O .assertEqual ("euc-jp",OO0O000OO0OO00O00 )#line:719:self.assertEqual("euc-jp", value)
+        O00O000O0OOOO000O .assertEqual ("euc-jp",OO0O000OO0OO00O00 .original_value )#line:720:self.assertEqual("euc-jp", value.original_value)
+        O00O000O0OOOO000O .assertEqual ("utf8",OO0O000OO0OO00O00 .encode ("utf8"))#line:721:self.assertEqual("utf8", value.encode("utf8"))
+    def test_content_meta_attribute_value (OO0OOO000OO0OOO0O ):#line:724:def test_content_meta_attribute_value(self):
+        OOO000OOOOOO0000O =ContentMetaAttributeValue ("text/html; charset=euc-jp")#line:725:value = ContentMetaAttributeValue("text/html; charset=euc-jp")
+        OO0OOO000OO0OOO0O .assertEqual ("text/html; charset=euc-jp",OOO000OOOOOO0000O )#line:726:self.assertEqual("text/html; charset=euc-jp", value)
+        OO0OOO000OO0OOO0O .assertEqual ("text/html; charset=euc-jp",OOO000OOOOOO0000O .original_value )#line:727:self.assertEqual("text/html; charset=euc-jp", value.original_value)
+        OO0OOO000OO0OOO0O .assertEqual ("text/html; charset=utf8",OOO000OOOOOO0000O .encode ("utf8"))#line:728:self.assertEqual("text/html; charset=utf8", value.encode("utf8"))

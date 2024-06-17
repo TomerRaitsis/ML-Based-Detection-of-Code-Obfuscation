@@ -1,0 +1,206 @@
+import turtle as tu #line:1:import turtle as tu
+roo =tu .Turtle ()#line:3:roo = tu.Turtle()  # Turtle object
+wn =tu .Screen ()#line:4:wn = tu.Screen()  # Screen Object
+wn .bgcolor ("black")#line:5:wn.bgcolor("black")  # Screen Bg color
+wn .title ("Fractal Tree Pattern")#line:6:wn.title("Fractal Tree Pattern")
+roo .left (90 )#line:7:roo.left(90)  # moving the turtle 90 degrees towards left
+roo .speed (20 )#line:8:roo.speed(20)  # setting the speed of the turtle
+def draw (O000O0OOOOO0OOO0O ):#line:11:def draw(l):  # recursive function taking length 'l' as argument
+    if O000O0OOOOO0OOO0O <10 :#line:12:if l < 10:
+        return #line:13:return
+    else :#line:14:else:
+        roo .pensize (2 )#line:15:roo.pensize(2)  # Setting Pensize
+        roo .pencolor ("yellow")#line:16:roo.pencolor("yellow")  # Setting Pencolor as yellow
+        roo .forward (O000O0OOOOO0OOO0O )#line:17:roo.forward(l)  # moving turtle forward by 'l'
+        roo .left (30 )#line:18:roo.left(30)  # moving the turtle 30 degrees towards left
+        draw (3 *O000O0OOOOO0OOO0O /4 )#line:21:)  # drawing a fractal on the left of the turtle object 'roo' with 3/4th of its length
+        roo .right (60 )#line:22:roo.right(60)  # moving the turtle 60 degrees towards right
+        draw (3 *O000O0OOOOO0OOO0O /4 )#line:25:)  # drawing a fractal on the right of the turtle object 'roo' with 3/4th of its length
+        roo .left (30 )#line:26:roo.left(30)  # moving the turtle 30 degrees towards left
+        roo .pensize (2 )#line:27:roo.pensize(2)
+        roo .backward (O000O0OOOOO0OOO0O )#line:28:roo.backward(l)  # returning the turtle back to its original psition
+draw (20 )#line:31:draw(20)  # drawing 20 times
+roo .right (90 )#line:33:roo.right(90)
+roo .speed (2000 )#line:34:roo.speed(2000)
+def draw (O00OO0OOOO0O0O0O0 ):#line:38:def draw(l):
+    if O00OO0OOOO0O0O0O0 <10 :#line:39:if l < 10:
+        return #line:40:return
+    else :#line:41:else:
+        roo .pensize (2 )#line:42:roo.pensize(2)
+        roo .pencolor ("magenta")#line:43:roo.pencolor("magenta")  # magenta
+        roo .forward (O00OO0OOOO0O0O0O0 )#line:44:roo.forward(l)
+        roo .left (30 )#line:45:roo.left(30)
+        draw (3 *O00OO0OOOO0O0O0O0 /4 )#line:46:draw(3 * l / 4)
+        roo .right (60 )#line:47:roo.right(60)
+        draw (3 *O00OO0OOOO0O0O0O0 /4 )#line:48:draw(3 * l / 4)
+        roo .left (30 )#line:49:roo.left(30)
+        roo .pensize (2 )#line:50:roo.pensize(2)
+        roo .backward (O00OO0OOOO0O0O0O0 )#line:51:roo.backward(l)
+draw (20 )#line:54:draw(20)
+roo .left (270 )#line:56:roo.left(270)
+roo .speed (2000 )#line:57:roo.speed(2000)
+def draw (OOOO00O0OO0O0OO0O ):#line:61:def draw(l):
+    if OOOO00O0OO0O0OO0O <10 :#line:62:if l < 10:
+        return #line:63:return
+    else :#line:64:else:
+        roo .pensize (2 )#line:65:roo.pensize(2)
+        roo .pencolor ("red")#line:66:roo.pencolor("red")  # red
+        roo .forward (OOOO00O0OO0O0OO0O )#line:67:roo.forward(l)
+        roo .left (30 )#line:68:roo.left(30)
+        draw (3 *OOOO00O0OO0O0OO0O /4 )#line:69:draw(3 * l / 4)
+        roo .right (60 )#line:70:roo.right(60)
+        draw (3 *OOOO00O0OO0O0OO0O /4 )#line:71:draw(3 * l / 4)
+        roo .left (30 )#line:72:roo.left(30)
+        roo .pensize (2 )#line:73:roo.pensize(2)
+        roo .backward (OOOO00O0OO0O0OO0O )#line:74:roo.backward(l)
+draw (20 )#line:77:draw(20)
+roo .right (90 )#line:79:roo.right(90)
+roo .speed (2000 )#line:80:roo.speed(2000)
+def draw (O00OO0OO00O0OO0O0 ):#line:84:def draw(l):
+    if O00OO0OO00O0OO0O0 <10 :#line:85:if l < 10:
+        return #line:86:return
+    else :#line:87:else:
+        roo .pensize (2 )#line:88:roo.pensize(2)
+        roo .pencolor ("#FFF8DC")#line:89:roo.pencolor("#FFF8DC")  # white
+        roo .forward (O00OO0OO00O0OO0O0 )#line:90:roo.forward(l)
+        roo .left (30 )#line:91:roo.left(30)
+        draw (3 *O00OO0OO00O0OO0O0 /4 )#line:92:draw(3 * l / 4)
+        roo .right (60 )#line:93:roo.right(60)
+        draw (3 *O00OO0OO00O0OO0O0 /4 )#line:94:draw(3 * l / 4)
+        roo .left (30 )#line:95:roo.left(30)
+        roo .pensize (2 )#line:96:roo.pensize(2)
+        roo .backward (O00OO0OO00O0OO0O0 )#line:97:roo.backward(l)
+draw (20 )#line:100:draw(20)
+def draw (OOO00000OOO0O0OO0 ):#line:106:def draw(l):
+    if OOO00000OOO0O0OO0 <10 :#line:107:if l < 10:
+        return #line:108:return
+    else :#line:109:else:
+        roo .pensize (3 )#line:110:roo.pensize(3)
+        roo .pencolor ("lightgreen")#line:111:roo.pencolor("lightgreen")  # lightgreen
+        roo .forward (OOO00000OOO0O0OO0 )#line:112:roo.forward(l)
+        roo .left (30 )#line:113:roo.left(30)
+        draw (4 *OOO00000OOO0O0OO0 /5 )#line:114:draw(4 * l / 5)
+        roo .right (60 )#line:115:roo.right(60)
+        draw (4 *OOO00000OOO0O0OO0 /5 )#line:116:draw(4 * l / 5)
+        roo .left (30 )#line:117:roo.left(30)
+        roo .pensize (3 )#line:118:roo.pensize(3)
+        roo .backward (OOO00000OOO0O0OO0 )#line:119:roo.backward(l)
+draw (40 )#line:122:draw(40)
+roo .right (90 )#line:124:roo.right(90)
+roo .speed (2000 )#line:125:roo.speed(2000)
+def draw (OO0OO0000OOOOO0O0 ):#line:129:def draw(l):
+    if OO0OO0000OOOOO0O0 <10 :#line:130:if l < 10:
+        return #line:131:return
+    else :#line:132:else:
+        roo .pensize (3 )#line:133:roo.pensize(3)
+        roo .pencolor ("red")#line:134:roo.pencolor("red")  # red
+        roo .forward (OO0OO0000OOOOO0O0 )#line:135:roo.forward(l)
+        roo .left (30 )#line:136:roo.left(30)
+        draw (4 *OO0OO0000OOOOO0O0 /5 )#line:137:draw(4 * l / 5)
+        roo .right (60 )#line:138:roo.right(60)
+        draw (4 *OO0OO0000OOOOO0O0 /5 )#line:139:draw(4 * l / 5)
+        roo .left (30 )#line:140:roo.left(30)
+        roo .pensize (3 )#line:141:roo.pensize(3)
+        roo .backward (OO0OO0000OOOOO0O0 )#line:142:roo.backward(l)
+draw (40 )#line:145:draw(40)
+roo .left (270 )#line:147:roo.left(270)
+roo .speed (2000 )#line:148:roo.speed(2000)
+def draw (OOOOOO00000OO00O0 ):#line:152:def draw(l):
+    if OOOOOO00000OO00O0 <10 :#line:153:if l < 10:
+        return #line:154:return
+    else :#line:155:else:
+        roo .pensize (3 )#line:156:roo.pensize(3)
+        roo .pencolor ("yellow")#line:157:roo.pencolor("yellow")  # yellow
+        roo .forward (OOOOOO00000OO00O0 )#line:158:roo.forward(l)
+        roo .left (30 )#line:159:roo.left(30)
+        draw (4 *OOOOOO00000OO00O0 /5 )#line:160:draw(4 * l / 5)
+        roo .right (60 )#line:161:roo.right(60)
+        draw (4 *OOOOOO00000OO00O0 /5 )#line:162:draw(4 * l / 5)
+        roo .left (30 )#line:163:roo.left(30)
+        roo .pensize (3 )#line:164:roo.pensize(3)
+        roo .backward (OOOOOO00000OO00O0 )#line:165:roo.backward(l)
+draw (40 )#line:168:draw(40)
+roo .right (90 )#line:170:roo.right(90)
+roo .speed (2000 )#line:171:roo.speed(2000)
+def draw (OOOO000O00O0O0O00 ):#line:175:def draw(l):
+    if OOOO000O00O0O0O00 <10 :#line:176:if l < 10:
+        return #line:177:return
+    else :#line:178:else:
+        roo .pensize (3 )#line:179:roo.pensize(3)
+        roo .pencolor ("#FFF8DC")#line:180:roo.pencolor("#FFF8DC")  # white
+        roo .forward (OOOO000O00O0O0O00 )#line:181:roo.forward(l)
+        roo .left (30 )#line:182:roo.left(30)
+        draw (4 *OOOO000O00O0O0O00 /5 )#line:183:draw(4 * l / 5)
+        roo .right (60 )#line:184:roo.right(60)
+        draw (4 *OOOO000O00O0O0O00 /5 )#line:185:draw(4 * l / 5)
+        roo .left (30 )#line:186:roo.left(30)
+        roo .pensize (3 )#line:187:roo.pensize(3)
+        roo .backward (OOOO000O00O0O0O00 )#line:188:roo.backward(l)
+draw (40 )#line:191:draw(40)
+def draw (OO00O00OO00OOOO0O ):#line:195:def draw(l):
+    if OO00O00OO00OOOO0O <10 :#line:196:if l < 10:
+        return #line:197:return
+    else :#line:198:else:
+        roo .pensize (2 )#line:199:roo.pensize(2)
+        roo .pencolor ("cyan")#line:200:roo.pencolor("cyan")  # cyan
+        roo .forward (OO00O00OO00OOOO0O )#line:201:roo.forward(l)
+        roo .left (30 )#line:202:roo.left(30)
+        draw (6 *OO00O00OO00OOOO0O /7 )#line:203:draw(6 * l / 7)
+        roo .right (60 )#line:204:roo.right(60)
+        draw (6 *OO00O00OO00OOOO0O /7 )#line:205:draw(6 * l / 7)
+        roo .left (30 )#line:206:roo.left(30)
+        roo .pensize (2 )#line:207:roo.pensize(2)
+        roo .backward (OO00O00OO00OOOO0O )#line:208:roo.backward(l)
+draw (60 )#line:211:draw(60)
+roo .right (90 )#line:213:roo.right(90)
+roo .speed (2000 )#line:214:roo.speed(2000)
+def draw (OOO0000OOOO0000OO ):#line:218:def draw(l):
+    if OOO0000OOOO0000OO <10 :#line:219:if l < 10:
+        return #line:220:return
+    else :#line:221:else:
+        roo .pensize (2 )#line:222:roo.pensize(2)
+        roo .pencolor ("yellow")#line:223:roo.pencolor("yellow")  # yellow
+        roo .forward (OOO0000OOOO0000OO )#line:224:roo.forward(l)
+        roo .left (30 )#line:225:roo.left(30)
+        draw (6 *OOO0000OOOO0000OO /7 )#line:226:draw(6 * l / 7)
+        roo .right (60 )#line:227:roo.right(60)
+        draw (6 *OOO0000OOOO0000OO /7 )#line:228:draw(6 * l / 7)
+        roo .left (30 )#line:229:roo.left(30)
+        roo .pensize (2 )#line:230:roo.pensize(2)
+        roo .backward (OOO0000OOOO0000OO )#line:231:roo.backward(l)
+draw (60 )#line:234:draw(60)
+roo .left (270 )#line:236:roo.left(270)
+roo .speed (2000 )#line:237:roo.speed(2000)
+def draw (OO00O0O00O0O0OO0O ):#line:241:def draw(l):
+    if OO00O0O00O0O0OO0O <10 :#line:242:if l < 10:
+        return #line:243:return
+    else :#line:244:else:
+        roo .pensize (2 )#line:245:roo.pensize(2)
+        roo .pencolor ("magenta")#line:246:roo.pencolor("magenta")  # magenta
+        roo .forward (OO00O0O00O0O0OO0O )#line:247:roo.forward(l)
+        roo .left (30 )#line:248:roo.left(30)
+        draw (6 *OO00O0O00O0O0OO0O /7 )#line:249:draw(6 * l / 7)
+        roo .right (60 )#line:250:roo.right(60)
+        draw (6 *OO00O0O00O0O0OO0O /7 )#line:251:draw(6 * l / 7)
+        roo .left (30 )#line:252:roo.left(30)
+        roo .pensize (2 )#line:253:roo.pensize(2)
+        roo .backward (OO00O0O00O0O0OO0O )#line:254:roo.backward(l)
+draw (60 )#line:257:draw(60)
+roo .right (90 )#line:259:roo.right(90)
+roo .speed (2000 )#line:260:roo.speed(2000)
+def draw (O0O0O000O0OOO00OO ):#line:264:def draw(l):
+    if O0O0O000O0OOO00OO <10 :#line:265:if l < 10:
+        return #line:266:return
+    else :#line:267:else:
+        roo .pensize (2 )#line:268:roo.pensize(2)
+        roo .pencolor ("#FFF8DC")#line:269:roo.pencolor("#FFF8DC")  # white
+        roo .forward (O0O0O000O0OOO00OO )#line:270:roo.forward(l)
+        roo .left (30 )#line:271:roo.left(30)
+        draw (6 *O0O0O000O0OOO00OO /7 )#line:272:draw(6 * l / 7)
+        roo .right (60 )#line:273:roo.right(60)
+        draw (6 *O0O0O000O0OOO00OO /7 )#line:274:draw(6 * l / 7)
+        roo .left (30 )#line:275:roo.left(30)
+        roo .pensize (2 )#line:276:roo.pensize(2)
+        roo .backward (O0O0O000O0OOO00OO )#line:277:roo.backward(l)
+draw (60 )#line:280:draw(60)
+wn .exitonclick ()#line:281:wn.exitonclick()

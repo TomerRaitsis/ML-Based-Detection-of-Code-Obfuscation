@@ -1,0 +1,128 @@
+from .euctwfreq import (EUCTW_CHAR_TO_FREQ_ORDER ,EUCTW_TABLE_SIZE ,EUCTW_TYPICAL_DISTRIBUTION_RATIO )#line:29
+from .euckrfreq import (EUCKR_CHAR_TO_FREQ_ORDER ,EUCKR_TABLE_SIZE ,EUCKR_TYPICAL_DISTRIBUTION_RATIO )#line:31
+from .gb2312freq import (GB2312_CHAR_TO_FREQ_ORDER ,GB2312_TABLE_SIZE ,GB2312_TYPICAL_DISTRIBUTION_RATIO )#line:33
+from .big5freq import (BIG5_CHAR_TO_FREQ_ORDER ,BIG5_TABLE_SIZE ,BIG5_TYPICAL_DISTRIBUTION_RATIO )#line:35
+from .jisfreq import (JIS_CHAR_TO_FREQ_ORDER ,JIS_TABLE_SIZE ,JIS_TYPICAL_DISTRIBUTION_RATIO )#line:37
+class CharDistributionAnalysis (object ):#line:40
+    ENOUGH_DATA_THRESHOLD =1024 #line:41
+    SURE_YES =0.99 #line:42
+    SURE_NO =0.01 #line:43
+    MINIMUM_DATA_THRESHOLD =3 #line:44
+    def __init__ (OOO0O0O00OO0O0O0O ):#line:46
+        OOO0O0O00OO0O0O0O ._char_to_freq_order =None #line:49
+        OOO0O0O00OO0O0O0O ._table_size =None #line:50
+        OOO0O0O00OO0O0O0O .typical_distribution_ratio =None #line:55
+        OOO0O0O00OO0O0O0O ._done =None #line:56
+        OOO0O0O00OO0O0O0O ._total_chars =None #line:57
+        OOO0O0O00OO0O0O0O ._freq_chars =None #line:58
+        OOO0O0O00OO0O0O0O .reset ()#line:59
+    def reset (OOOOOO00OOOOO0000 ):#line:61
+        ""#line:62
+        OOOOOO00OOOOO0000 ._done =False #line:65
+        OOOOOO00OOOOO0000 ._total_chars =0 #line:66
+        OOOOOO00OOOOO0000 ._freq_chars =0 #line:68
+    def feed (OOO00O0O0OO0O0O00 ,OOOO0OO0OO0000OOO ,O00OO0000O00O0OO0 ):#line:70
+        ""#line:71
+        if O00OO0000O00O0OO0 ==2 :#line:72
+            O00O0O0000OO0OO00 =OOO00O0O0OO0O0O00 .get_order (OOOO0OO0OO0000OOO )#line:74
+        else :#line:75
+            O00O0O0000OO0OO00 =-1 #line:76
+        if O00O0O0000OO0OO00 >=0 :#line:77
+            OOO00O0O0OO0O0O00 ._total_chars +=1 #line:78
+            if O00O0O0000OO0OO00 <OOO00O0O0OO0O0O00 ._table_size :#line:80
+                if 512 >OOO00O0O0OO0O0O00 ._char_to_freq_order [O00O0O0000OO0OO00 ]:#line:81
+                    OOO00O0O0OO0O0O00 ._freq_chars +=1 #line:82
+    def get_confidence (O000O0O0O0OOOO000 ):#line:84
+        ""#line:85
+        if O000O0O0O0OOOO000 ._total_chars <=0 or O000O0O0O0OOOO000 ._freq_chars <=O000O0O0O0OOOO000 .MINIMUM_DATA_THRESHOLD :#line:88
+            return O000O0O0O0OOOO000 .SURE_NO #line:89
+        if O000O0O0O0OOOO000 ._total_chars !=O000O0O0O0OOOO000 ._freq_chars :#line:91
+            O00OOO00OOOOOO0O0 =(O000O0O0O0OOOO000 ._freq_chars /((O000O0O0O0OOOO000 ._total_chars -O000O0O0O0OOOO000 ._freq_chars )*O000O0O0O0OOOO000 .typical_distribution_ratio ))#line:93
+            if O00OOO00OOOOOO0O0 <O000O0O0O0OOOO000 .SURE_YES :#line:94
+                return O00OOO00OOOOOO0O0 #line:95
+        return O000O0O0O0OOOO000 .SURE_YES #line:98
+    def got_enough_data (O0O000OOO0OO0OO00 ):#line:100
+        return O0O000OOO0OO0OO00 ._total_chars >O0O000OOO0OO0OO00 .ENOUGH_DATA_THRESHOLD #line:103
+    def get_order (O000OOOO000OOO0O0 ,OOO00000O0000O000 ):#line:105
+        return -1 #line:110
+class EUCTWDistributionAnalysis (CharDistributionAnalysis ):#line:113
+    def __init__ (OO00OO000000OO000 ):#line:114
+        super (EUCTWDistributionAnalysis ,OO00OO000000OO000 ).__init__ ()#line:115
+        OO00OO000000OO000 ._char_to_freq_order =EUCTW_CHAR_TO_FREQ_ORDER #line:116
+        OO00OO000000OO000 ._table_size =EUCTW_TABLE_SIZE #line:117
+        OO00OO000000OO000 .typical_distribution_ratio =EUCTW_TYPICAL_DISTRIBUTION_RATIO #line:118
+    def get_order (O0O0O0OOO0OO0OOOO ,OO0OOO0OOOO0000O0 ):#line:120
+        O0OOOOOOOO0OO00OO =OO0OOO0OOOO0000O0 [0 ]#line:125
+        if O0OOOOOOOO0OO00OO >=0xC4 :#line:126
+            return 94 *(O0OOOOOOOO0OO00OO -0xC4 )+OO0OOO0OOOO0000O0 [1 ]-0xA1 #line:127
+        else :#line:128
+            return -1 #line:129
+class EUCKRDistributionAnalysis (CharDistributionAnalysis ):#line:132
+    def __init__ (OOOO00000O0OO0O0O ):#line:133
+        super (EUCKRDistributionAnalysis ,OOOO00000O0OO0O0O ).__init__ ()#line:134
+        OOOO00000O0OO0O0O ._char_to_freq_order =EUCKR_CHAR_TO_FREQ_ORDER #line:135
+        OOOO00000O0OO0O0O ._table_size =EUCKR_TABLE_SIZE #line:136
+        OOOO00000O0OO0O0O .typical_distribution_ratio =EUCKR_TYPICAL_DISTRIBUTION_RATIO #line:137
+    def get_order (OOO00OO0OOOO0O0OO ,O00OO00O0OO00O00O ):#line:139
+        OO000O0O000OOOO00 =O00OO00O0OO00O00O [0 ]#line:144
+        if OO000O0O000OOOO00 >=0xB0 :#line:145
+            return 94 *(OO000O0O000OOOO00 -0xB0 )+O00OO00O0OO00O00O [1 ]-0xA1 #line:146
+        else :#line:147
+            return -1 #line:148
+class GB2312DistributionAnalysis (CharDistributionAnalysis ):#line:151
+    def __init__ (OO0OOO0OO0OOO0OO0 ):#line:152
+        super (GB2312DistributionAnalysis ,OO0OOO0OO0OOO0OO0 ).__init__ ()#line:153
+        OO0OOO0OO0OOO0OO0 ._char_to_freq_order =GB2312_CHAR_TO_FREQ_ORDER #line:154
+        OO0OOO0OO0OOO0OO0 ._table_size =GB2312_TABLE_SIZE #line:155
+        OO0OOO0OO0OOO0OO0 .typical_distribution_ratio =GB2312_TYPICAL_DISTRIBUTION_RATIO #line:156
+    def get_order (OOO00OO0O0000OO0O ,O0OOOO000OO0O00O0 ):#line:158
+        OO0O0O000O0OO0O0O ,O00OOO0OO0OOO00O0 =O0OOOO000OO0O00O0 [0 ],O0OOOO000OO0O00O0 [1 ]#line:163
+        if (OO0O0O000O0OO0O0O >=0xB0 )and (O00OOO0OO0OOO00O0 >=0xA1 ):#line:164
+            return 94 *(OO0O0O000O0OO0O0O -0xB0 )+O00OOO0OO0OOO00O0 -0xA1 #line:165
+        else :#line:166
+            return -1 #line:167
+class Big5DistributionAnalysis (CharDistributionAnalysis ):#line:170
+    def __init__ (O0O0O00O00O00O0O0 ):#line:171
+        super (Big5DistributionAnalysis ,O0O0O00O00O00O0O0 ).__init__ ()#line:172
+        O0O0O00O00O00O0O0 ._char_to_freq_order =BIG5_CHAR_TO_FREQ_ORDER #line:173
+        O0O0O00O00O00O0O0 ._table_size =BIG5_TABLE_SIZE #line:174
+        O0O0O00O00O00O0O0 .typical_distribution_ratio =BIG5_TYPICAL_DISTRIBUTION_RATIO #line:175
+    def get_order (O0O0OO00OO000O000 ,O0OOOOOOOOOO0OO0O ):#line:177
+        OO000O0OO0OO0000O ,O00O0O0O0OO00O000 =O0OOOOOOOOOO0OO0O [0 ],O0OOOOOOOOOO0OO0O [1 ]#line:182
+        if OO000O0OO0OO0000O >=0xA4 :#line:183
+            if O00O0O0O0OO00O000 >=0xA1 :#line:184
+                return 157 *(OO000O0OO0OO0000O -0xA4 )+O00O0O0O0OO00O000 -0xA1 +63 #line:185
+            else :#line:186
+                return 157 *(OO000O0OO0OO0000O -0xA4 )+O00O0O0O0OO00O000 -0x40 #line:187
+        else :#line:188
+            return -1 #line:189
+class SJISDistributionAnalysis (CharDistributionAnalysis ):#line:192
+    def __init__ (O0000O0O00OO00OOO ):#line:193
+        super (SJISDistributionAnalysis ,O0000O0O00OO00OOO ).__init__ ()#line:194
+        O0000O0O00OO00OOO ._char_to_freq_order =JIS_CHAR_TO_FREQ_ORDER #line:195
+        O0000O0O00OO00OOO ._table_size =JIS_TABLE_SIZE #line:196
+        O0000O0O00OO00OOO .typical_distribution_ratio =JIS_TYPICAL_DISTRIBUTION_RATIO #line:197
+    def get_order (OO00OOO00000OOO0O ,O0OOO0OO00O00O0OO ):#line:199
+        O0O00O0OOOO0OO0OO ,OOO0O0O0OOO0000OO =O0OOO0OO00O00O0OO [0 ],O0OOO0OO00O00O0OO [1 ]#line:204
+        if (O0O00O0OOOO0OO0OO >=0x81 )and (O0O00O0OOOO0OO0OO <=0x9F ):#line:205
+            O0OOO000O0OO0OO0O =188 *(O0O00O0OOOO0OO0OO -0x81 )#line:206
+        elif (O0O00O0OOOO0OO0OO >=0xE0 )and (O0O00O0OOOO0OO0OO <=0xEF ):#line:207
+            O0OOO000O0OO0OO0O =188 *(O0O00O0OOOO0OO0OO -0xE0 +31 )#line:208
+        else :#line:209
+            return -1 #line:210
+        O0OOO000O0OO0OO0O =O0OOO000O0OO0OO0O +OOO0O0O0OOO0000OO -0x40 #line:211
+        if OOO0O0O0OOO0000OO >0x7F :#line:212
+            O0OOO000O0OO0OO0O =-1 #line:213
+        return O0OOO000O0OO0OO0O #line:214
+class EUCJPDistributionAnalysis (CharDistributionAnalysis ):#line:217
+    def __init__ (O0O0OO00O000O0000 ):#line:218
+        super (EUCJPDistributionAnalysis ,O0O0OO00O000O0000 ).__init__ ()#line:219
+        O0O0OO00O000O0000 ._char_to_freq_order =JIS_CHAR_TO_FREQ_ORDER #line:220
+        O0O0OO00O000O0000 ._table_size =JIS_TABLE_SIZE #line:221
+        O0O0OO00O000O0000 .typical_distribution_ratio =JIS_TYPICAL_DISTRIBUTION_RATIO #line:222
+    def get_order (O000O00O00000000O ,OOO0OOOOO0OOO0OO0 ):#line:224
+        OO0O0O0O0O0OO0OOO =OOO0OOOOO0OOO0OO0 [0 ]#line:229
+        if OO0O0O0O0O0OO0OOO >=0xA0 :#line:230
+            return 94 *(OO0O0O0O0O0OO0OOO -0xA1 )+OOO0OOOOO0OOO0OO0 [1 ]-0xa1 #line:231
+        else :#line:232
+            return -1 #line:233

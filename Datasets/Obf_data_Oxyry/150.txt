@@ -1,0 +1,112 @@
+""#line:1
+from __future__ import absolute_import #line:2
+import os #line:4
+import os .path #line:5
+import platform #line:6
+import site #line:7
+import sys #line:8
+import sysconfig #line:9
+from distutils import sysconfig as distutils_sysconfig #line:10
+from distutils .command .install import SCHEME_KEYS #line:11
+from pip ._internal .utils import appdirs #line:13
+from pip ._internal .utils .compat import WINDOWS ,expanduser #line:14
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:15
+if MYPY_CHECK_RUNNING :#line:17
+    from typing import Any ,Union ,Dict ,List ,Optional #line:18
+USER_CACHE_DIR =appdirs .user_cache_dir ("pip")#line:22
+DELETE_MARKER_MESSAGE ='''\
+This file is placed here by pip to indicate the source was put
+here by pip.
+
+Once this package is successfully installed this source code will be
+deleted (unless you remove this file).
+'''#line:31
+PIP_DELETE_MARKER_FILENAME ='pip-delete-this-directory.txt'#line:32
+def write_delete_marker_file (OOOOO000000O0O0OO ):#line:35
+    ""#line:39
+    OOOO0OO0OO0OOO000 =os .path .join (OOOOO000000O0O0OO ,PIP_DELETE_MARKER_FILENAME )#line:40
+    with open (OOOO0OO0OO0OOO000 ,'w')as OOO000O0OO00O00OO :#line:41
+        OOO000O0OO00O00OO .write (DELETE_MARKER_MESSAGE )#line:42
+def running_under_virtualenv ():#line:45
+    ""#line:50
+    if hasattr (sys ,'real_prefix'):#line:51
+        return True #line:52
+    elif sys .prefix !=getattr (sys ,"base_prefix",sys .prefix ):#line:53
+        return True #line:54
+    return False #line:56
+def virtualenv_no_global ():#line:59
+    ""#line:63
+    O0O0O0000O0OOOO0O =os .path .dirname (os .path .abspath (site .__file__ ))#line:66
+    O0O0O0OO0OOOOOOOO =os .path .join (O0O0O0000O0OOOO0O ,'no-global-site-packages.txt')#line:67
+    if running_under_virtualenv ()and os .path .isfile (O0O0O0OO0OOOOOOOO ):#line:68
+        return True #line:69
+    else :#line:70
+        return False #line:71
+if running_under_virtualenv ():#line:74
+    src_prefix =os .path .join (sys .prefix ,'src')#line:75
+else :#line:76
+    try :#line:78
+        src_prefix =os .path .join (os .getcwd (),'src')#line:79
+    except OSError :#line:80
+        sys .exit ("The folder you are executing pip from can no longer be found.")#line:84
+src_prefix =os .path .abspath (src_prefix )#line:89
+site_packages =sysconfig .get_path ("purelib")#line:93
+if platform .python_implementation ().lower ()=="pypy":#line:98
+    site_packages =distutils_sysconfig .get_python_lib ()#line:99
+try :#line:100
+    user_site =site .getusersitepackages ()#line:103
+except AttributeError :#line:104
+    user_site =site .USER_SITE #line:105
+user_dir =expanduser ('~')#line:106
+if WINDOWS :#line:107
+    bin_py =os .path .join (sys .prefix ,'Scripts')#line:108
+    bin_user =os .path .join (user_site ,'Scripts')#line:109
+    if not os .path .exists (bin_py ):#line:111
+        bin_py =os .path .join (sys .prefix ,'bin')#line:112
+        bin_user =os .path .join (user_site ,'bin')#line:113
+    config_basename ='pip.ini'#line:115
+    legacy_storage_dir =os .path .join (user_dir ,'pip')#line:117
+    legacy_config_file =os .path .join (legacy_storage_dir ,config_basename ,)#line:121
+else :#line:122
+    bin_py =os .path .join (sys .prefix ,'bin')#line:123
+    bin_user =os .path .join (user_site ,'bin')#line:124
+    config_basename ='pip.conf'#line:126
+    legacy_storage_dir =os .path .join (user_dir ,'.pip')#line:128
+    legacy_config_file =os .path .join (legacy_storage_dir ,config_basename ,)#line:132
+    if sys .platform [:6 ]=='darwin'and sys .prefix [:16 ]=='/System/Library/':#line:135
+        bin_py ='/usr/local/bin'#line:136
+site_config_files =[os .path .join (OO0000OOOO00OOO0O ,config_basename )for OO0000OOOO00OOO0O in appdirs .site_config_dirs ('pip')]#line:141
+venv_config_file =os .path .join (sys .prefix ,config_basename )#line:143
+new_config_file =os .path .join (appdirs .user_config_dir ("pip"),config_basename )#line:144
+def distutils_scheme (O0O00OO00OOOO0000 ,user =False ,home =None ,root =None ,isolated =False ,prefix =None ):#line:148
+    ""#line:152
+    from distutils .dist import Distribution #line:153
+    O0OOO0OO0OOOO0O00 ={}#line:155
+    if isolated :#line:157
+        OO0OO000O0OO00O00 ={"script_args":["--no-user-cfg"]}#line:158
+    else :#line:159
+        OO0OO000O0OO00O00 ={}#line:160
+    OO0O0000000OO0OO0 ={'name':O0O00OO00OOOO0000 }#line:161
+    OO0O0000000OO0OO0 .update (OO0OO000O0OO00O00 )#line:162
+    OO0000OO0O0O0O000 =Distribution (OO0O0000000OO0OO0 )#line:164
+    OO0000OO0O0O0O000 .parse_config_files ()#line:166
+    O0OOO0O00O0000000 =OO0000OO0O0O0O000 .get_command_obj ('install',create =True )#line:168
+    assert O0OOO0O00O0000000 is not None #line:169
+    assert not (user and prefix ),"user={} prefix={}".format (user ,prefix )#line:173
+    O0OOO0O00O0000000 .user =user or O0OOO0O00O0000000 .user #line:174
+    if user :#line:175
+        O0OOO0O00O0000000 .prefix =""#line:176
+    O0OOO0O00O0000000 .prefix =prefix or O0OOO0O00O0000000 .prefix #line:177
+    O0OOO0O00O0000000 .home =home or O0OOO0O00O0000000 .home #line:178
+    O0OOO0O00O0000000 .root =root or O0OOO0O00O0000000 .root #line:179
+    O0OOO0O00O0000000 .finalize_options ()#line:180
+    for O0OOOOOOOO0OO0O0O in SCHEME_KEYS :#line:181
+        O0OOO0OO0OOOO0O00 [O0OOOOOOOO0OO0O0O ]=getattr (O0OOO0O00O0000000 ,'install_'+O0OOOOOOOO0OO0O0O )#line:182
+    if 'install_lib'in OO0000OO0O0O0O000 .get_option_dict ('install'):#line:191
+        O0OOO0OO0OOOO0O00 .update (dict (purelib =O0OOO0O00O0000000 .install_lib ,platlib =O0OOO0O00O0000000 .install_lib ))#line:192
+    if running_under_virtualenv ():#line:194
+        O0OOO0OO0OOOO0O00 ['headers']=os .path .join (sys .prefix ,'include','site','python'+sys .version [:3 ],O0O00OO00OOOO0000 ,)#line:201
+        if root is not None :#line:203
+            O00OOOO00O0000OO0 =os .path .splitdrive (os .path .abspath (O0OOO0OO0OOOO0O00 ["headers"]))[1 ]#line:205
+            O0OOO0OO0OOOO0O00 ["headers"]=os .path .join (root ,O00OOOO00O0000OO0 [1 :],)#line:209
+    return O0OOO0OO0OOOO0O00 #line:211

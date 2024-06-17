@@ -1,0 +1,78 @@
+import tensorflow as tf #line:1
+from tensorflow .contrib import rnn #line:2
+from utils import get_init_embedding #line:3
+class Model (object ):#line:6
+    def __init__ (OO0O000OOOOO00OOO ,O00O0OO00O00O0O0O ,OO00OOO00OO0OO000 ,OO0O0OOO00O0OO0OO ,OO0OO0O0OO000O0O0 ,forward_only =False ):#line:7
+        OO0O000OOOOO00OOO .vocabulary_size =len (O00O0OO00O00O0O0O )#line:8
+        OO0O000OOOOO00OOO .embedding_size =OO0OO0O0OO000O0O0 .embedding_size #line:9
+        OO0O000OOOOO00OOO .num_hidden =OO0OO0O0OO000O0O0 .num_hidden #line:10
+        OO0O000OOOOO00OOO .num_layers =OO0OO0O0OO000O0O0 .num_layers #line:11
+        OO0O000OOOOO00OOO .learning_rate =OO0OO0O0OO000O0O0 .learning_rate #line:12
+        OO0O000OOOOO00OOO .beam_width =OO0OO0O0OO000O0O0 .beam_width #line:13
+        if not forward_only :#line:14
+            OO0O000OOOOO00OOO .keep_prob =OO0OO0O0OO000O0O0 .keep_prob #line:15
+        else :#line:16
+            OO0O000OOOOO00OOO .keep_prob =1.0 #line:17
+        OO0O000OOOOO00OOO .cell =tf .nn .rnn_cell .BasicLSTMCell #line:18
+        with tf .variable_scope ("decoder/projection"):#line:19
+            OO0O000OOOOO00OOO .projection_layer =tf .layers .Dense (OO0O000OOOOO00OOO .vocabulary_size ,use_bias =False )#line:21
+        OO0O000OOOOO00OOO .batch_size =tf .placeholder (tf .int32 ,(),name ="batch_size")#line:23
+        OO0O000OOOOO00OOO .X =tf .placeholder (tf .int32 ,[None ,OO00OOO00OO0OO000 ])#line:24
+        OO0O000OOOOO00OOO .X_len =tf .placeholder (tf .int32 ,[None ])#line:25
+        OO0O000OOOOO00OOO .decoder_input =tf .placeholder (tf .int32 ,[None ,OO0O0OOO00O0OO0OO ])#line:26
+        OO0O000OOOOO00OOO .decoder_len =tf .placeholder (tf .int32 ,[None ])#line:27
+        OO0O000OOOOO00OOO .decoder_target =tf .placeholder (tf .int32 ,[None ,OO0O0OOO00O0OO0OO ])#line:28
+        OO0O000OOOOO00OOO .global_step =tf .Variable (0 ,trainable =False )#line:29
+        with tf .name_scope ("embedding"):#line:31
+            if not forward_only and OO0OO0O0OO000O0O0 .glove :#line:32
+                O0O0OOO00O00OOOOO =tf .constant (get_init_embedding (O00O0OO00O00O0O0O ,OO0O000OOOOO00OOO .embedding_size ),dtype =tf .float32 )#line:34
+            else :#line:35
+                O0O0OOO00O00OOOOO =tf .random_uniform ([OO0O000OOOOO00OOO .vocabulary_size ,OO0O000OOOOO00OOO .embedding_size ],-1.0 ,1.0 )#line:37
+            OO0O000OOOOO00OOO .embeddings =tf .get_variable ("embeddings",initializer =O0O0OOO00O00OOOOO )#line:39
+            OO0O000OOOOO00OOO .encoder_emb_inp =tf .transpose (tf .nn .embedding_lookup (OO0O000OOOOO00OOO .embeddings ,OO0O000OOOOO00OOO .X ),perm =[1 ,0 ,2 ])#line:41
+            OO0O000OOOOO00OOO .decoder_emb_inp =tf .transpose (tf .nn .embedding_lookup (OO0O000OOOOO00OOO .embeddings ,OO0O000OOOOO00OOO .decoder_input ),perm =[1 ,0 ,2 ])#line:43
+        with tf .name_scope ("encoder"):#line:45
+            OOOO00OO00O0O0O00 =[OO0O000OOOOO00OOO .cell (OO0O000OOOOO00OOO .num_hidden )for _OOO0000OOO0O0OOOO in range (OO0O000OOOOO00OOO .num_layers )]#line:47
+            OO000000O0O0000OO =[OO0O000OOOOO00OOO .cell (OO0O000OOOOO00OOO .num_hidden )for _O0000O00000OO0000 in range (OO0O000OOOOO00OOO .num_layers )]#line:49
+            OOOO00OO00O0O0O00 =[rnn .DropoutWrapper (OOO00O0OO0O00O00O )for OOO00O0OO0O00O00O in OOOO00OO00O0O0O00 ]#line:50
+            OO000000O0O0000OO =[rnn .DropoutWrapper (O0O00O00O0O00O0OO )for O0O00O00O0O00O0OO in OO000000O0O0000OO ]#line:51
+            OO0O0OOO0O0O00OOO ,O0O0OOO0O00O0O00O ,OOO00OOO0OOO0OOOO =tf .contrib .rnn .stack_bidirectional_dynamic_rnn (OOOO00OO00O0O0O00 ,OO000000O0O0000OO ,OO0O000OOOOO00OOO .encoder_emb_inp ,sequence_length =OO0O000OOOOO00OOO .X_len ,time_major =True ,dtype =tf .float32 )#line:55
+            OO0O000OOOOO00OOO .encoder_output =tf .concat (OO0O0OOO0O0O00OOO ,2 )#line:56
+            OOO0O0OO0000O00O0 =tf .concat ((O0O0OOO0O00O0O00O [0 ].c ,OOO00OOO0OOO0OOOO [0 ].c ),1 )#line:58
+            O00O0O0000OOOO0O0 =tf .concat ((O0O0OOO0O00O0O00O [0 ].h ,OOO00OOO0OOO0OOOO [0 ].h ),1 )#line:60
+            OO0O000OOOOO00OOO .encoder_state =rnn .LSTMStateTuple (c =OOO0O0OO0000O00O0 ,h =O00O0O0000OOOO0O0 )#line:62
+        with tf .name_scope ("decoder"),tf .variable_scope ("decoder")as O0OO0OOO000000O00 :#line:64
+            O0O0O0O0O0OOO0O00 =OO0O000OOOOO00OOO .cell (OO0O000OOOOO00OOO .num_hidden *2 )#line:65
+            if not forward_only :#line:67
+                O0OO0OOO0O0O0O000 =tf .transpose (OO0O000OOOOO00OOO .encoder_output ,[1 ,0 ,2 ])#line:68
+                O0OO00O000O0OO000 =tf .contrib .seq2seq .BahdanauAttention (OO0O000OOOOO00OOO .num_hidden *2 ,O0OO0OOO0O0O0O000 ,memory_sequence_length =OO0O000OOOOO00OOO .X_len ,normalize =True )#line:70
+                O0O0O0O0O0OOO0O00 =tf .contrib .seq2seq .AttentionWrapper (O0O0O0O0O0OOO0O00 ,O0OO00O000O0OO000 ,attention_layer_size =OO0O000OOOOO00OOO .num_hidden *2 )#line:72
+                O0O0OO0OOOO0O0000 =O0O0O0O0O0OOO0O00 .zero_state (dtype =tf .float32 ,batch_size =OO0O000OOOOO00OOO .batch_size )#line:74
+                O0O0OO0OOOO0O0000 =O0O0OO0OOOO0O0000 .clone (cell_state =OO0O000OOOOO00OOO .encoder_state )#line:76
+                O0000O0OOO00O000O =tf .contrib .seq2seq .TrainingHelper (OO0O000OOOOO00OOO .decoder_emb_inp ,OO0O000OOOOO00OOO .decoder_len ,time_major =True )#line:78
+                OO0OOO0OOO00000OO =tf .contrib .seq2seq .BasicDecoder (O0O0O0O0O0OOO0O00 ,O0000O0OOO00O000O ,O0O0OO0OOOO0O0000 )#line:80
+                O00O00000OOO000O0 ,_OO0O00OO000O00OOO ,_OO0O00OO000O00OOO =tf .contrib .seq2seq .dynamic_decode (OO0OOO0OOO00000OO ,output_time_major =True ,scope =O0OO0OOO000000O00 )#line:82
+                OO0O000OOOOO00OOO .decoder_output =O00O00000OOO000O0 .rnn_output #line:83
+                OO0O000OOOOO00OOO .logits =tf .transpose (OO0O000OOOOO00OOO .projection_layer (OO0O000OOOOO00OOO .decoder_output ),perm =[1 ,0 ,2 ])#line:85
+                OO0O000OOOOO00OOO .logits_reshape =tf .concat ([OO0O000OOOOO00OOO .logits ,tf .zeros ([OO0O000OOOOO00OOO .batch_size ,OO0O0OOO00O0OO0OO -tf .shape (OO0O000OOOOO00OOO .logits )[1 ],OO0O000OOOOO00OOO .vocabulary_size ])],axis =1 )#line:87
+            else :#line:88
+                OOOO00O0000O0O0O0 =tf .contrib .seq2seq .tile_batch (tf .transpose (OO0O000OOOOO00OOO .encoder_output ,perm =[1 ,0 ,2 ]),multiplier =OO0O000OOOOO00OOO .beam_width )#line:90
+                OO00O000OO000O0OO =tf .contrib .seq2seq .tile_batch (OO0O000OOOOO00OOO .encoder_state ,multiplier =OO0O000OOOOO00OOO .beam_width )#line:92
+                O0OO0O0OO00OO00O0 =tf .contrib .seq2seq .tile_batch (OO0O000OOOOO00OOO .X_len ,multiplier =OO0O000OOOOO00OOO .beam_width )#line:94
+                O0OO00O000O0OO000 =tf .contrib .seq2seq .BahdanauAttention (OO0O000OOOOO00OOO .num_hidden *2 ,OOOO00O0000O0O0O0 ,memory_sequence_length =O0OO0O0OO00OO00O0 ,normalize =True )#line:96
+                O0O0O0O0O0OOO0O00 =tf .contrib .seq2seq .AttentionWrapper (O0O0O0O0O0OOO0O00 ,O0OO00O000O0OO000 ,attention_layer_size =OO0O000OOOOO00OOO .num_hidden *2 )#line:98
+                O0O0OO0OOOO0O0000 =O0O0O0O0O0OOO0O00 .zero_state (dtype =tf .float32 ,batch_size =OO0O000OOOOO00OOO .batch_size *OO0O000OOOOO00OOO .beam_width )#line:100
+                O0O0OO0OOOO0O0000 =O0O0OO0OOOO0O0000 .clone (cell_state =OO00O000OO000O0OO )#line:102
+                OO0OOO0OOO00000OO =tf .contrib .seq2seq .BeamSearchDecoder (cell =O0O0O0O0O0OOO0O00 ,embedding =OO0O000OOOOO00OOO .embeddings ,start_tokens =tf .fill ([OO0O000OOOOO00OOO .batch_size ],tf .constant (2 )),end_token =tf .constant (3 ),initial_state =O0O0OO0OOOO0O0000 ,beam_width =OO0O000OOOOO00OOO .beam_width ,output_layer =OO0O000OOOOO00OOO .projection_layer )#line:111
+                O00O00000OOO000O0 ,_OO0O00OO000O00OOO ,_OO0O00OO000O00OOO =tf .contrib .seq2seq .dynamic_decode (OO0OOO0OOO00000OO ,output_time_major =True ,maximum_iterations =OO0O0OOO00O0OO0OO ,scope =O0OO0OOO000000O00 )#line:113
+                OO0O000OOOOO00OOO .prediction =tf .transpose (O00O00000OOO000O0 .predicted_ids ,perm =[1 ,2 ,0 ])#line:115
+        with tf .name_scope ("loss"):#line:117
+            if not forward_only :#line:118
+                OO0O00O0OO00O0OOO =tf .nn .sparse_softmax_cross_entropy_with_logits (logits =OO0O000OOOOO00OOO .logits_reshape ,labels =OO0O000OOOOO00OOO .decoder_target )#line:120
+                O0OOOOO00OO0O0OOO =tf .sequence_mask (OO0O000OOOOO00OOO .decoder_len ,OO0O0OOO00O0OO0OO ,dtype =tf .float32 )#line:122
+                OO0O000OOOOO00OOO .loss =tf .reduce_sum (OO0O00O0OO00O0OOO *O0OOOOO00OO0O0OOO /tf .to_float (OO0O000OOOOO00OOO .batch_size ))#line:124
+                O0O000O00000OO00O =tf .trainable_variables ()#line:126
+                O0OO0O00O0O00O0O0 =tf .gradients (OO0O000OOOOO00OOO .loss ,O0O000O00000OO00O )#line:127
+                OO00OOOOO0OOOOOO0 ,_OO0O00OO000O00OOO =tf .clip_by_global_norm (O0OO0O00O0O00O0O0 ,5.0 )#line:128
+                O0O0O000OO0OO000O =tf .train .AdamOptimizer (OO0O000OOOOO00OOO .learning_rate )#line:129
+                OO0O000OOOOO00OOO .update =O0O0O000OO0OO000O .apply_gradients (zip (OO00OOOOO0OOOOOO0 ,O0O000O00000OO00O ),global_step =OO0O000OOOOO00OOO .global_step )#line:131

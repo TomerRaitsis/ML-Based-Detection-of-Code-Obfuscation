@@ -1,0 +1,278 @@
+""#line:10:"""
+import copy #line:12:import copy
+import time #line:13:import time
+import calendar #line:14:import calendar
+from ._internal_utils import to_native_string #line:16:from ._internal_utils import to_native_string
+from .compat import cookielib ,urlparse ,urlunparse ,Morsel ,MutableMapping #line:17:from .compat import cookielib, urlparse, urlunparse, Morsel, MutableMapping
+try :#line:19:try:
+    import threading #line:20:import threading
+except ImportError :#line:21:except ImportError:
+    import dummy_threading as threading #line:22:import dummy_threading as threading
+class MockRequest (object ):#line:25:class MockRequest(object):
+    ""#line:35:"""
+    def __init__ (OOO0O00O0OO0O00OO ,OO00000OOOO0OO000 ):#line:37:def __init__(self, request):
+        OOO0O00O0OO0O00OO ._r =OO00000OOOO0OO000 #line:38:self._r = request
+        OOO0O00O0OO0O00OO ._new_headers ={}#line:39:self._new_headers = {}
+        OOO0O00O0OO0O00OO .type =urlparse (OOO0O00O0OO0O00OO ._r .url ).scheme #line:40:self.type = urlparse(self._r.url).scheme
+    def get_type (OOO000O000OOO0OOO ):#line:42:def get_type(self):
+        return OOO000O000OOO0OOO .type #line:43:return self.type
+    def get_host (O0O00O0O0O0OO000O ):#line:45:def get_host(self):
+        return urlparse (O0O00O0O0O0OO000O ._r .url ).netloc #line:46:return urlparse(self._r.url).netloc
+    def get_origin_req_host (O0OO0O0OO00000O0O ):#line:48:def get_origin_req_host(self):
+        return O0OO0O0OO00000O0O .get_host ()#line:49:return self.get_host()
+    def get_full_url (O00OO0OOO0000000O ):#line:51:def get_full_url(self):
+        if not O00OO0OOO0000000O ._r .headers .get ('Host'):#line:54:if not self._r.headers.get('Host'):
+            return O00OO0OOO0000000O ._r .url #line:55:return self._r.url
+        O00O00O00O0O0O00O =to_native_string (O00OO0OOO0000000O ._r .headers ['Host'],encoding ='utf-8')#line:57:host = to_native_string(self._r.headers['Host'], encoding='utf-8')
+        O00O000OOOOO0O0O0 =urlparse (O00OO0OOO0000000O ._r .url )#line:58:parsed = urlparse(self._r.url)
+        return urlunparse ([O00O000OOOOO0O0O0 .scheme ,O00O00O00O0O0O00O ,O00O000OOOOO0O0O0 .path ,O00O000OOOOO0O0O0 .params ,O00O000OOOOO0O0O0 .query ,O00O000OOOOO0O0O0 .fragment ])#line:63:])
+    def is_unverifiable (OOO00000OO0O0OOO0 ):#line:65:def is_unverifiable(self):
+        return True #line:66:return True
+    def has_header (O0000000O0OO0OO00 ,O000O000OOO0O0000 ):#line:68:def has_header(self, name):
+        return O000O000OOO0O0000 in O0000000O0OO0OO00 ._r .headers or O000O000OOO0O0000 in O0000000O0OO0OO00 ._new_headers #line:69:return name in self._r.headers or name in self._new_headers
+    def get_header (OOO0O00O0O000OO00 ,O00OO00OOOOO0O00O ,default =None ):#line:71:def get_header(self, name, default=None):
+        return OOO0O00O0O000OO00 ._r .headers .get (O00OO00OOOOO0O00O ,OOO0O00O0O000OO00 ._new_headers .get (O00OO00OOOOO0O00O ,default ))#line:72:return self._r.headers.get(name, self._new_headers.get(name, default))
+    def add_header (O0O00OO0000000OOO ,O00000OO0000000O0 ,O0OOO0O0OOOO000OO ):#line:74:def add_header(self, key, val):
+        ""#line:75:"""cookielib has no legitimate use for this method; add it back if you find one."""
+        raise NotImplementedError ("Cookie headers should be added with add_unredirected_header()")#line:76:raise NotImplementedError("Cookie headers should be added with add_unredirected_header()")
+    def add_unredirected_header (O0O0OO0O000OO0O00 ,OOOO0000O0000OOO0 ,O00OOO000O00O00OO ):#line:78:def add_unredirected_header(self, name, value):
+        O0O0OO0O000OO0O00 ._new_headers [OOOO0000O0000OOO0 ]=O00OOO000O00O00OO #line:79:self._new_headers[name] = value
+    def get_new_headers (OOO00OOO0OO0O000O ):#line:81:def get_new_headers(self):
+        return OOO00OOO0OO0O000O ._new_headers #line:82:return self._new_headers
+    @property #line:84:@property
+    def unverifiable (OOOOOO0OOO0O0O0OO ):#line:85:def unverifiable(self):
+        return OOOOOO0OOO0O0O0OO .is_unverifiable ()#line:86:return self.is_unverifiable()
+    @property #line:88:@property
+    def origin_req_host (OOO0OOOOOOOOOO000 ):#line:89:def origin_req_host(self):
+        return OOO0OOOOOOOOOO000 .get_origin_req_host ()#line:90:return self.get_origin_req_host()
+    @property #line:92:@property
+    def host (O00000O0O00OOO00O ):#line:93:def host(self):
+        return O00000O0O00OOO00O .get_host ()#line:94:return self.get_host()
+class MockResponse (object ):#line:97:class MockResponse(object):
+    ""#line:102:"""
+    def __init__ (OOO000OOOO0OO0OOO ,OO0OOOO00O0OOO0OO ):#line:104:def __init__(self, headers):
+        ""#line:108:"""
+        OOO000OOOO0OO0OOO ._headers =OO0OOOO00O0OOO0OO #line:109:self._headers = headers
+    def info (O0OO0O00O0O0O00OO ):#line:111:def info(self):
+        return O0OO0O00O0O0O00OO ._headers #line:112:return self._headers
+    def getheaders (OOOOO00O0000OO000 ,OOOOO0O000O00O000 ):#line:114:def getheaders(self, name):
+        OOOOO00O0000OO000 ._headers .getheaders (OOOOO0O000O00O000 )#line:115:self._headers.getheaders(name)
+def extract_cookies_to_jar (O0OOOOO00OOO00O0O ,OO00O00OO0OOOO000 ,O0O0000000O00000O ):#line:118:def extract_cookies_to_jar(jar, request, response):
+    ""#line:124:"""
+    if not (hasattr (O0O0000000O00000O ,'_original_response')and O0O0000000O00000O ._original_response ):#line:126:response._original_response):
+        return #line:127:return
+    OO0OO000000O000O0 =MockRequest (OO00O00OO0OOOO000 )#line:129:req = MockRequest(request)
+    OOOO000OO0O00OOO0 =MockResponse (O0O0000000O00000O ._original_response .msg )#line:131:res = MockResponse(response._original_response.msg)
+    O0OOOOO00OOO00O0O .extract_cookies (OOOO000OO0O00OOO0 ,OO0OO000000O000O0 )#line:132:jar.extract_cookies(res, req)
+def get_cookie_header (OOO000O00000OO000 ,OO00O0O0O0O0OO0OO ):#line:135:def get_cookie_header(jar, request):
+    ""#line:140:"""
+    O0000OOOO0OOO000O =MockRequest (OO00O0O0O0O0OO0OO )#line:141:r = MockRequest(request)
+    OOO000O00000OO000 .add_cookie_header (O0000OOOO0OOO000O )#line:142:jar.add_cookie_header(r)
+    return O0000OOOO0OOO000O .get_new_headers ().get ('Cookie')#line:143:return r.get_new_headers().get('Cookie')
+def remove_cookie_by_name (O000O0OO0OOO0OO00 ,OOOO0OO0000O0O000 ,domain =None ,path =None ):#line:146:def remove_cookie_by_name(cookiejar, name, domain=None, path=None):
+    ""#line:150:"""
+    O0O00O0OOO0O000O0 =[]#line:151:clearables = []
+    for OOOO00O0OOOO0OOO0 in O000O0OO0OOO0OO00 :#line:152:for cookie in cookiejar:
+        if OOOO00O0OOOO0OOO0 .name !=OOOO0OO0000O0O000 :#line:153:if cookie.name != name:
+            continue #line:154:continue
+        if domain is not None and domain !=OOOO00O0OOOO0OOO0 .domain :#line:155:if domain is not None and domain != cookie.domain:
+            continue #line:156:continue
+        if path is not None and path !=OOOO00O0OOOO0OOO0 .path :#line:157:if path is not None and path != cookie.path:
+            continue #line:158:continue
+        O0O00O0OOO0O000O0 .append ((OOOO00O0OOOO0OOO0 .domain ,OOOO00O0OOOO0OOO0 .path ,OOOO00O0OOOO0OOO0 .name ))#line:159:clearables.append((cookie.domain, cookie.path, cookie.name))
+    for domain ,path ,OOOO0OO0000O0O000 in O0O00O0OOO0O000O0 :#line:161:for domain, path, name in clearables:
+        O000O0OO0OOO0OO00 .clear (domain ,path ,OOOO0OO0000O0O000 )#line:162:cookiejar.clear(domain, path, name)
+class CookieConflictError (RuntimeError ):#line:165:class CookieConflictError(RuntimeError):
+    ""#line:168:"""
+class RequestsCookieJar (cookielib .CookieJar ,MutableMapping ):#line:171:class RequestsCookieJar(cookielib.CookieJar, MutableMapping):
+    ""#line:187:"""
+    def get (O00O0000O0OOOO0OO ,O00O0O00OO0O00OO0 ,default =None ,domain =None ,path =None ):#line:189:def get(self, name, default=None, domain=None, path=None):
+        ""#line:195:"""
+        try :#line:196:try:
+            return O00O0000O0OOOO0OO ._find_no_duplicates (O00O0O00OO0O00OO0 ,domain ,path )#line:197:return self._find_no_duplicates(name, domain, path)
+        except KeyError :#line:198:except KeyError:
+            return default #line:199:return default
+    def set (O00OOO0OOO000OO00 ,OOOO0OO0O0000O0O0 ,O000000O0OO0OOOO0 ,**OO0O00O00OOO000O0 ):#line:201:def set(self, name, value, **kwargs):
+        ""#line:205:"""
+        if O000000O0OO0OOOO0 is None :#line:207:if value is None:
+            remove_cookie_by_name (O00OOO0OOO000OO00 ,OOOO0OO0O0000O0O0 ,domain =OO0O00O00OOO000O0 .get ('domain'),path =OO0O00O00OOO000O0 .get ('path'))#line:208:remove_cookie_by_name(self, name, domain=kwargs.get('domain'), path=kwargs.get('path'))
+            return #line:209:return
+        if isinstance (O000000O0OO0OOOO0 ,Morsel ):#line:211:if isinstance(value, Morsel):
+            O0000OOO00O0O0O00 =morsel_to_cookie (O000000O0OO0OOOO0 )#line:212:c = morsel_to_cookie(value)
+        else :#line:213:else:
+            O0000OOO00O0O0O00 =create_cookie (OOOO0OO0O0000O0O0 ,O000000O0OO0OOOO0 ,**OO0O00O00OOO000O0 )#line:214:c = create_cookie(name, value, **kwargs)
+        O00OOO0OOO000OO00 .set_cookie (O0000OOO00O0O0O00 )#line:215:self.set_cookie(c)
+        return O0000OOO00O0O0O00 #line:216:return c
+    def iterkeys (O0OOO0O0O0OO0OO0O ):#line:218:def iterkeys(self):
+        ""#line:223:"""
+        for OO000OO00O0000OOO in iter (O0OOO0O0O0OO0OO0O ):#line:224:for cookie in iter(self):
+            yield OO000OO00O0000OOO .name #line:225:yield cookie.name
+    def keys (O0OO00O0OOO0000O0 ):#line:227:def keys(self):
+        ""#line:232:"""
+        return list (O0OO00O0OOO0000O0 .iterkeys ())#line:233:return list(self.iterkeys())
+    def itervalues (O0OO00O0OOO000O00 ):#line:235:def itervalues(self):
+        ""#line:240:"""
+        for O00OO000OOOOO0OO0 in iter (O0OO00O0OOO000O00 ):#line:241:for cookie in iter(self):
+            yield O00OO000OOOOO0OO0 .value #line:242:yield cookie.value
+    def values (O000OOOO00O00000O ):#line:244:def values(self):
+        ""#line:249:"""
+        return list (O000OOOO00O00000O .itervalues ())#line:250:return list(self.itervalues())
+    def iteritems (OO000000O0O0O0O00 ):#line:252:def iteritems(self):
+        ""#line:257:"""
+        for OOO0OO0O00OO000O0 in iter (OO000000O0O0O0O00 ):#line:258:for cookie in iter(self):
+            yield OOO0OO0O00OO000O0 .name ,OOO0OO0O00OO000O0 .value #line:259:yield cookie.name, cookie.value
+    def items (O00OOOO0000OO00O0 ):#line:261:def items(self):
+        ""#line:267:"""
+        return list (O00OOOO0000OO00O0 .iteritems ())#line:268:return list(self.iteritems())
+    def list_domains (OO00OOO000000O000 ):#line:270:def list_domains(self):
+        ""#line:271:"""Utility method to list all the domains in the jar."""
+        OO0OOOO00O0O0O0O0 =[]#line:272:domains = []
+        for OOOO0O000OOO0O0OO in iter (OO00OOO000000O000 ):#line:273:for cookie in iter(self):
+            if OOOO0O000OOO0O0OO .domain not in OO0OOOO00O0O0O0O0 :#line:274:if cookie.domain not in domains:
+                OO0OOOO00O0O0O0O0 .append (OOOO0O000OOO0O0OO .domain )#line:275:domains.append(cookie.domain)
+        return OO0OOOO00O0O0O0O0 #line:276:return domains
+    def list_paths (OO00000O0O0O00000 ):#line:278:def list_paths(self):
+        ""#line:279:"""Utility method to list all the paths in the jar."""
+        O00OO00000OOOOO0O =[]#line:280:paths = []
+        for O00O0O0O0OO0OOO0O in iter (OO00000O0O0O00000 ):#line:281:for cookie in iter(self):
+            if O00O0O0O0OO0OOO0O .path not in O00OO00000OOOOO0O :#line:282:if cookie.path not in paths:
+                O00OO00000OOOOO0O .append (O00O0O0O0OO0OOO0O .path )#line:283:paths.append(cookie.path)
+        return O00OO00000OOOOO0O #line:284:return paths
+    def multiple_domains (O0O0OO00O00OOO000 ):#line:286:def multiple_domains(self):
+        ""#line:291:"""
+        OO0OO0OO00O00O0OO =[]#line:292:domains = []
+        for O0OO0O0O0OO0000OO in iter (O0O0OO00O00OOO000 ):#line:293:for cookie in iter(self):
+            if O0OO0O0O0OO0000OO .domain is not None and O0OO0O0O0OO0000OO .domain in OO0OO0OO00O00O0OO :#line:294:if cookie.domain is not None and cookie.domain in domains:
+                return True #line:295:return True
+            OO0OO0OO00O00O0OO .append (O0OO0O0O0OO0000OO .domain )#line:296:domains.append(cookie.domain)
+        return False #line:297:return False  # there is only one domain in jar
+    def get_dict (O000OO000OOO0O000 ,domain =None ,path =None ):#line:299:def get_dict(self, domain=None, path=None):
+        ""#line:305:"""
+        O0000O00OOOOO0OOO ={}#line:306:dictionary = {}
+        for O000OO00OOO0OOOO0 in iter (O000OO000OOO0O000 ):#line:307:for cookie in iter(self):
+            if ((domain is None or O000OO00OOO0OOOO0 .domain ==domain )and (path is None or O000OO00OOO0OOOO0 .path ==path )):#line:311:):
+                O0000O00OOOOO0OOO [O000OO00OOO0OOOO0 .name ]=O000OO00OOO0OOOO0 .value #line:312:dictionary[cookie.name] = cookie.value
+        return O0000O00OOOOO0OOO #line:313:return dictionary
+    def __contains__ (O0O0OOO0OOO0OO00O ,OOO00O0OO00OO0OOO ):#line:315:def __contains__(self, name):
+        try :#line:316:try:
+            return super (RequestsCookieJar ,O0O0OOO0OOO0OO00O ).__contains__ (OOO00O0OO00OO0OOO )#line:317:return super(RequestsCookieJar, self).__contains__(name)
+        except CookieConflictError :#line:318:except CookieConflictError:
+            return True #line:319:return True
+    def __getitem__ (OO00000OO0O00OOOO ,O000O0O00OO000O0O ):#line:321:def __getitem__(self, name):
+        ""#line:327:"""
+        return OO00000OO0O00OOOO ._find_no_duplicates (O000O0O00OO000O0O )#line:328:return self._find_no_duplicates(name)
+    def __setitem__ (O0OO0000O0OOOO000 ,OOOOOOO0000OO0000 ,O0OOO0000O000O0OO ):#line:330:def __setitem__(self, name, value):
+        ""#line:334:"""
+        O0OO0000O0OOOO000 .set (OOOOOOO0000OO0000 ,O0OOO0000O000O0OO )#line:335:self.set(name, value)
+    def __delitem__ (OO0OOO00OOO000000 ,OO0000OOO00OO0OO0 ):#line:337:def __delitem__(self, name):
+        ""#line:340:"""
+        remove_cookie_by_name (OO0OOO00OOO000000 ,OO0000OOO00OO0OO0 )#line:341:remove_cookie_by_name(self, name)
+    def set_cookie (OO0O00O0OOO00OO00 ,O0O000O0000O0OO0O ,*O0OO00OO0O000O000 ,**OO000OOO0OOO0O000 ):#line:343:def set_cookie(self, cookie, *args, **kwargs):
+        if hasattr (O0O000O0000O0OO0O .value ,'startswith')and O0O000O0000O0OO0O .value .startswith ('"')and O0O000O0000O0OO0O .value .endswith ('"'):#line:344:if hasattr(cookie.value, 'startswith') and cookie.value.startswith('"') and cookie.value.endswith('"'):
+            O0O000O0000O0OO0O .value =O0O000O0000O0OO0O .value .replace ('\\"','')#line:345:cookie.value = cookie.value.replace('\\"', '')
+        return super (RequestsCookieJar ,OO0O00O0OOO00OO00 ).set_cookie (O0O000O0000O0OO0O ,*O0OO00OO0O000O000 ,**OO000OOO0OOO0O000 )#line:346:return super(RequestsCookieJar, self).set_cookie(cookie, *args, **kwargs)
+    def update (O0000000O000000O0 ,O0OOOOO00O000000O ):#line:348:def update(self, other):
+        ""#line:349:"""Updates this jar with cookies from another CookieJar or dict-like"""
+        if isinstance (O0OOOOO00O000000O ,cookielib .CookieJar ):#line:350:if isinstance(other, cookielib.CookieJar):
+            for O00O000O00OOOO0O0 in O0OOOOO00O000000O :#line:351:for cookie in other:
+                O0000000O000000O0 .set_cookie (copy .copy (O00O000O00OOOO0O0 ))#line:352:self.set_cookie(copy.copy(cookie))
+        else :#line:353:else:
+            super (RequestsCookieJar ,O0000000O000000O0 ).update (O0OOOOO00O000000O )#line:354:super(RequestsCookieJar, self).update(other)
+    def _find (O0O00OO0000O000O0 ,O0O000OOOOO0OO0O0 ,domain =None ,path =None ):#line:356:def _find(self, name, domain=None, path=None):
+        ""#line:367:"""
+        for OO00000OO00000O00 in iter (O0O00OO0000O000O0 ):#line:368:for cookie in iter(self):
+            if OO00000OO00000O00 .name ==O0O000OOOOO0OO0O0 :#line:369:if cookie.name == name:
+                if domain is None or OO00000OO00000O00 .domain ==domain :#line:370:if domain is None or cookie.domain == domain:
+                    if path is None or OO00000OO00000O00 .path ==path :#line:371:if path is None or cookie.path == path:
+                        return OO00000OO00000O00 .value #line:372:return cookie.value
+        raise KeyError ('name=%r, domain=%r, path=%r'%(O0O000OOOOO0OO0O0 ,domain ,path ))#line:374:raise KeyError('name=%r, domain=%r, path=%r' % (name, domain, path))
+    def _find_no_duplicates (O0OOO0OO0O0OOOOO0 ,OOO0O0O000O0000O0 ,domain =None ,path =None ):#line:376:def _find_no_duplicates(self, name, domain=None, path=None):
+        ""#line:387:"""
+        OO0O00OOOO000OO00 =None #line:388:toReturn = None
+        for O00OO0OOOO0OOO00O in iter (O0OOO0OO0O0OOOOO0 ):#line:389:for cookie in iter(self):
+            if O00OO0OOOO0OOO00O .name ==OOO0O0O000O0000O0 :#line:390:if cookie.name == name:
+                if domain is None or O00OO0OOOO0OOO00O .domain ==domain :#line:391:if domain is None or cookie.domain == domain:
+                    if path is None or O00OO0OOOO0OOO00O .path ==path :#line:392:if path is None or cookie.path == path:
+                        if OO0O00OOOO000OO00 is not None :#line:393:if toReturn is not None:  # if there are multiple cookies that meet passed in criteria
+                            raise CookieConflictError ('There are multiple cookies with name, %r'%(OOO0O0O000O0000O0 ))#line:394:raise CookieConflictError('There are multiple cookies with name, %r' % (name))
+                        OO0O00OOOO000OO00 =O00OO0OOOO0OOO00O .value #line:395:toReturn = cookie.value  # we will eventually return this as long as no cookie conflict
+        if OO0O00OOOO000OO00 :#line:397:if toReturn:
+            return OO0O00OOOO000OO00 #line:398:return toReturn
+        raise KeyError ('name=%r, domain=%r, path=%r'%(OOO0O0O000O0000O0 ,domain ,path ))#line:399:raise KeyError('name=%r, domain=%r, path=%r' % (name, domain, path))
+    def __getstate__ (OOOO0OO0OOO0OOO0O ):#line:401:def __getstate__(self):
+        ""#line:402:"""Unlike a normal CookieJar, this class is pickleable."""
+        O0OO0OO0000O0OOOO =OOOO0OO0OOO0OOO0O .__dict__ .copy ()#line:403:state = self.__dict__.copy()
+        O0OO0OO0000O0OOOO .pop ('_cookies_lock')#line:405:state.pop('_cookies_lock')
+        return O0OO0OO0000O0OOOO #line:406:return state
+    def __setstate__ (OOOOO0OO00O0000O0 ,O000OO0OO0000O000 ):#line:408:def __setstate__(self, state):
+        ""#line:409:"""Unlike a normal CookieJar, this class is pickleable."""
+        OOOOO0OO00O0000O0 .__dict__ .update (O000OO0OO0000O000 )#line:410:self.__dict__.update(state)
+        if '_cookies_lock'not in OOOOO0OO00O0000O0 .__dict__ :#line:411:if '_cookies_lock' not in self.__dict__:
+            OOOOO0OO00O0000O0 ._cookies_lock =threading .RLock ()#line:412:self._cookies_lock = threading.RLock()
+    def copy (O0OOOO00OOO0OO0O0 ):#line:414:def copy(self):
+        ""#line:415:"""Return a copy of this RequestsCookieJar."""
+        O000O0OOO0O0O0OOO =RequestsCookieJar ()#line:416:new_cj = RequestsCookieJar()
+        O000O0OOO0O0O0OOO .set_policy (O0OOOO00OOO0OO0O0 .get_policy ())#line:417:new_cj.set_policy(self.get_policy())
+        O000O0OOO0O0O0OOO .update (O0OOOO00OOO0OO0O0 )#line:418:new_cj.update(self)
+        return O000O0OOO0O0O0OOO #line:419:return new_cj
+    def get_policy (OOO0OO00000000OO0 ):#line:421:def get_policy(self):
+        ""#line:422:"""Return the CookiePolicy instance used."""
+        return OOO0OO00000000OO0 ._policy #line:423:return self._policy
+def _O0OO0O0O000O0OO00 (OO0O00O00OO00OO0O ):#line:426:def _copy_cookie_jar(jar):
+    if OO0O00O00OO00OO0O is None :#line:427:if jar is None:
+        return None #line:428:return None
+    if hasattr (OO0O00O00OO00OO0O ,'copy'):#line:430:if hasattr(jar, 'copy'):
+        return OO0O00O00OO00OO0O .copy ()#line:432:return jar.copy()
+    OOO00OO0OO0OO0000 =copy .copy (OO0O00O00OO00OO0O )#line:434:new_jar = copy.copy(jar)
+    OOO00OO0OO0OO0000 .clear ()#line:435:new_jar.clear()
+    for OOOO0OO000OOO00O0 in OO0O00O00OO00OO0O :#line:436:for cookie in jar:
+        OOO00OO0OO0OO0000 .set_cookie (copy .copy (OOOO0OO000OOO00O0 ))#line:437:new_jar.set_cookie(copy.copy(cookie))
+    return OOO00OO0OO0OO0000 #line:438:return new_jar
+def create_cookie (O0OO0000O00OOO0OO ,O00000O000O00O0OO ,**OO0OO000OO0O0000O ):#line:441:def create_cookie(name, value, **kwargs):
+    ""#line:446:"""
+    OO000OO000OO00OOO ={'version':0 ,'name':O0OO0000O00OOO0OO ,'value':O00000O000O00O0OO ,'port':None ,'domain':'','path':'/','secure':False ,'expires':None ,'discard':True ,'comment':None ,'comment_url':None ,'rest':{'HttpOnly':None },'rfc2109':False ,}#line:461:}
+    O0000O0O000OO0OO0 =set (OO0OO000OO0O0000O )-set (OO000OO000OO00OOO )#line:463:badargs = set(kwargs) - set(result)
+    if O0000O0O000OO0OO0 :#line:464:if badargs:
+        OOOOO0O0O000OOOOO ='create_cookie() got unexpected keyword arguments: %s'#line:465:err = 'create_cookie() got unexpected keyword arguments: %s'
+        raise TypeError (OOOOO0O0O000OOOOO %list (O0000O0O000OO0OO0 ))#line:466:raise TypeError(err % list(badargs))
+    OO000OO000OO00OOO .update (OO0OO000OO0O0000O )#line:468:result.update(kwargs)
+    OO000OO000OO00OOO ['port_specified']=bool (OO000OO000OO00OOO ['port'])#line:469:result['port_specified'] = bool(result['port'])
+    OO000OO000OO00OOO ['domain_specified']=bool (OO000OO000OO00OOO ['domain'])#line:470:result['domain_specified'] = bool(result['domain'])
+    OO000OO000OO00OOO ['domain_initial_dot']=OO000OO000OO00OOO ['domain'].startswith ('.')#line:471:result['domain_initial_dot'] = result['domain'].startswith('.')
+    OO000OO000OO00OOO ['path_specified']=bool (OO000OO000OO00OOO ['path'])#line:472:result['path_specified'] = bool(result['path'])
+    return cookielib .Cookie (**OO000OO000OO00OOO )#line:474:return cookielib.Cookie(**result)
+def morsel_to_cookie (OOOO0O00000O0OO0O ):#line:477:def morsel_to_cookie(morsel):
+    ""#line:478:"""Convert a Morsel object into a Cookie containing the one k/v pair."""
+    O0OOO0O0O000OOO0O =None #line:480:expires = None
+    if OOOO0O00000O0OO0O ['max-age']:#line:481:if morsel['max-age']:
+        try :#line:482:try:
+            O0OOO0O0O000OOO0O =int (time .time ()+int (OOOO0O00000O0OO0O ['max-age']))#line:483:expires = int(time.time() + int(morsel['max-age']))
+        except ValueError :#line:484:except ValueError:
+            raise TypeError ('max-age: %s must be integer'%OOOO0O00000O0OO0O ['max-age'])#line:485:raise TypeError('max-age: %s must be integer' % morsel['max-age'])
+    elif OOOO0O00000O0OO0O ['expires']:#line:486:elif morsel['expires']:
+        O0OO0OO0O0OOOO0OO ='%a, %d-%b-%Y %H:%M:%S GMT'#line:487:time_template = '%a, %d-%b-%Y %H:%M:%S GMT'
+        O0OOO0O0O000OOO0O =calendar .timegm (time .strptime (OOOO0O00000O0OO0O ['expires'],O0OO0OO0O0OOOO0OO ))#line:490:)
+    return create_cookie (comment =OOOO0O00000O0OO0O ['comment'],comment_url =bool (OOOO0O00000O0OO0O ['comment']),discard =False ,domain =OOOO0O00000O0OO0O ['domain'],expires =O0OOO0O0O000OOO0O ,name =OOOO0O00000O0OO0O .key ,path =OOOO0O00000O0OO0O ['path'],port =None ,rest ={'HttpOnly':OOOO0O00000O0OO0O ['httponly']},rfc2109 =False ,secure =bool (OOOO0O00000O0OO0O ['secure']),value =OOOO0O00000O0OO0O .value ,version =OOOO0O00000O0OO0O ['version']or 0 ,)#line:505:)
+def cookiejar_from_dict (O0O0O00O0O00OO0OO ,cookiejar =None ,overwrite =True ):#line:508:def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):
+    ""#line:516:"""
+    if cookiejar is None :#line:517:if cookiejar is None:
+        cookiejar =RequestsCookieJar ()#line:518:cookiejar = RequestsCookieJar()
+    if O0O0O00O0O00OO0OO is not None :#line:520:if cookie_dict is not None:
+        OOOOOO0OOO00O0O00 =[O00OO000O0OOO0O00 .name for O00OO000O0OOO0O00 in cookiejar ]#line:521:names_from_jar = [cookie.name for cookie in cookiejar]
+        for OO0OOOOOOO000O0O0 in O0O0O00O0O00OO0OO :#line:522:for name in cookie_dict:
+            if overwrite or (OO0OOOOOOO000O0O0 not in OOOOOO0OOO00O0O00 ):#line:523:if overwrite or (name not in names_from_jar):
+                cookiejar .set_cookie (create_cookie (OO0OOOOOOO000O0O0 ,O0O0O00O0O00OO0OO [OO0OOOOOOO000O0O0 ]))#line:524:cookiejar.set_cookie(create_cookie(name, cookie_dict[name]))
+    return cookiejar #line:526:return cookiejar
+def merge_cookies (OO00000O00O0OOOO0 ,O0OO0O0O00OOOO00O ):#line:529:def merge_cookies(cookiejar, cookies):
+    ""#line:535:"""
+    if not isinstance (OO00000O00O0OOOO0 ,cookielib .CookieJar ):#line:536:if not isinstance(cookiejar, cookielib.CookieJar):
+        raise ValueError ('You can only merge into CookieJar')#line:537:raise ValueError('You can only merge into CookieJar')
+    if isinstance (O0OO0O0O00OOOO00O ,dict ):#line:539:if isinstance(cookies, dict):
+        OO00000O00O0OOOO0 =cookiejar_from_dict (O0OO0O0O00OOOO00O ,cookiejar =OO00000O00O0OOOO0 ,overwrite =False )#line:541:cookies, cookiejar=cookiejar, overwrite=False)
+    elif isinstance (O0OO0O0O00OOOO00O ,cookielib .CookieJar ):#line:542:elif isinstance(cookies, cookielib.CookieJar):
+        try :#line:543:try:
+            OO00000O00O0OOOO0 .update (O0OO0O0O00OOOO00O )#line:544:cookiejar.update(cookies)
+        except AttributeError :#line:545:except AttributeError:
+            for OO0O0OOOOOOOO0OO0 in O0OO0O0O00OOOO00O :#line:546:for cookie_in_jar in cookies:
+                OO00000O00O0OOOO0 .set_cookie (OO0O0OOOOOOOO0OO0 )#line:547:cookiejar.set_cookie(cookie_in_jar)
+    return OO00000O00O0OOOO0 #line:549:return cookiejar

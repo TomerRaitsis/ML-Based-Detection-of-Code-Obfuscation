@@ -1,0 +1,1159 @@
+""#line:9:"""
+from __future__ import unicode_literals #line:11:from __future__ import unicode_literals
+import itertools #line:14:import itertools
+import struct #line:15:import struct
+__version__ ='1.0.22'#line:17:__version__ = '1.0.22'
+_O000O0000OO00000O =(int ,)#line:20:_compat_int_types = (int,)
+try :#line:21:try:
+    _O000O0000OO00000O =(int ,long )#line:22:_compat_int_types = (int, long)
+except NameError :#line:23:except NameError:
+    pass #line:24:pass
+try :#line:25:try:
+    _OOO00OO0OO000OOO0 =unicode #line:26:_compat_str = unicode
+except NameError :#line:27:except NameError:
+    _OOO00OO0OO000OOO0 =str #line:28:_compat_str = str
+    assert bytes !=str #line:29:assert bytes != str
+if b'\0'[0 ]==0 :#line:30:if b'\0'[0] == 0:  # Python 3 semantics
+    def _OOOOO00O0OO0OOO0O (O000000OOO0OOO000 ):#line:31:def _compat_bytes_to_byte_vals(byt):
+        return O000000OOO0OOO000 #line:32:return byt
+else :#line:33:else:
+    def _OOOOO00O0OO0OOO0O (O000OO00OOOO0000O ):#line:34:def _compat_bytes_to_byte_vals(byt):
+        return [struct .unpack (b'!B',O0OOO0O0O0OOO0000 )[0 ]for O0OOO0O0O0OOO0000 in O000OO00OOOO0000O ]#line:35:return [struct.unpack(b'!B', b)[0] for b in byt]
+try :#line:36:try:
+    _OOO0OOO00OO0O00O0 =int .from_bytes #line:37:_compat_int_from_byte_vals = int.from_bytes
+except AttributeError :#line:38:except AttributeError:
+    def _OOO0OOO00OO0O00O0 (OO0OO0O0OOO000O0O ,OO00O0O00000O00OO ):#line:39:def _compat_int_from_byte_vals(bytvals, endianess):
+        assert OO00O0O00000O00OO =='big'#line:40:assert endianess == 'big'
+        O0000O0O0O00O0O0O =0 #line:41:res = 0
+        for OOOO000000O0O00OO in OO0OO0O0OOO000O0O :#line:42:for bv in bytvals:
+            assert isinstance (OOOO000000O0O00OO ,_O000O0000OO00000O )#line:43:assert isinstance(bv, _compat_int_types)
+            O0000O0O0O00O0O0O =(O0000O0O0O00O0O0O <<8 )+OOOO000000O0O00OO #line:44:res = (res << 8) + bv
+        return O0000O0O0O00O0O0O #line:45:return res
+def _OOOOO00O0000O0000 (OOO00000OOOOOO00O ,OO00OO00O000OOOOO ,OOOO00OOOO00O0OOO ):#line:48:def _compat_to_bytes(intval, length, endianess):
+    assert isinstance (OOO00000OOOOOO00O ,_O000O0000OO00000O )#line:49:assert isinstance(intval, _compat_int_types)
+    assert OOOO00OOOO00O0OOO =='big'#line:50:assert endianess == 'big'
+    if OO00OO00O000OOOOO ==4 :#line:51:if length == 4:
+        if OOO00000OOOOOO00O <0 or OOO00000OOOOOO00O >=2 **32 :#line:52:if intval < 0 or intval >= 2 ** 32:
+            raise struct .error ("integer out of range for 'I' format code")#line:53:raise struct.error("integer out of range for 'I' format code")
+        return struct .pack (b'!I',OOO00000OOOOOO00O )#line:54:return struct.pack(b'!I', intval)
+    elif OO00OO00O000OOOOO ==16 :#line:55:elif length == 16:
+        if OOO00000OOOOOO00O <0 or OOO00000OOOOOO00O >=2 **128 :#line:56:if intval < 0 or intval >= 2 ** 128:
+            raise struct .error ("integer out of range for 'QQ' format code")#line:57:raise struct.error("integer out of range for 'QQ' format code")
+        return struct .pack (b'!QQ',OOO00000OOOOOO00O >>64 ,OOO00000OOOOOO00O &0xffffffffffffffff )#line:58:return struct.pack(b'!QQ', intval >> 64, intval & 0xffffffffffffffff)
+    else :#line:59:else:
+        raise NotImplementedError ()#line:60:raise NotImplementedError()
+if hasattr (int ,'bit_length'):#line:63:if hasattr(int, 'bit_length'):
+    def _OO000O000OOO0O000 (O0O0OO00O000OOO0O ):#line:65:def _compat_bit_length(i):
+        return O0O0OO00O000OOO0O .bit_length ()#line:66:return i.bit_length()
+else :#line:67:else:
+    def _OO000O000OOO0O000 (O0O0O0OO0O0O00000 ):#line:68:def _compat_bit_length(i):
+        for OOO0OO0OO000O0O0O in itertools .count ():#line:69:for res in itertools.count():
+            if O0O0O0OO0O0O00000 >>OOO0OO0OO000O0O0O ==0 :#line:70:if i >> res == 0:
+                return OOO0OO0OO000O0O0O #line:71:return res
+def _OO0O000O0OOOO00OO (O00O0OO0O0O0O0O00 ,O0OO00O0OO000O0OO ,step =1 ):#line:74:def _compat_range(start, end, step=1):
+    assert step >0 #line:75:assert step > 0
+    O0OOOO00O00OOO0O0 =O00O0OO0O0O0O0O00 #line:76:i = start
+    while O0OOOO00O00OOO0O0 <O0OO00O0OO000O0OO :#line:77:while i < end:
+        yield O0OOOO00O00OOO0O0 #line:78:yield i
+        O0OOOO00O00OOO0O0 +=step #line:79:i += step
+class _O000OOOO00O000O0O (object ):#line:82:class _TotalOrderingMixin(object):
+    __slots__ =()#line:83:__slots__ = ()
+    def __eq__ (OO0000O0O00O0OO0O ,OO00OO00O000O0000 ):#line:89:def __eq__(self, other):
+        raise NotImplementedError #line:90:raise NotImplementedError
+    def __ne__ (OO0000O00O000OO0O ,O0O0OO0000OO000O0 ):#line:92:def __ne__(self, other):
+        O0000O000OO0OOO0O =OO0000O00O000OO0O .__eq__ (O0O0OO0000OO000O0 )#line:93:equal = self.__eq__(other)
+        if O0000O000OO0OOO0O is NotImplemented :#line:94:if equal is NotImplemented:
+            return NotImplemented #line:95:return NotImplemented
+        return not O0000O000OO0OOO0O #line:96:return not equal
+    def __lt__ (OOOO000O0O00000OO ,O0O0000O0000OOOO0 ):#line:98:def __lt__(self, other):
+        raise NotImplementedError #line:99:raise NotImplementedError
+    def __le__ (O000OO00OOO000OOO ,O0OOO0O0000O000OO ):#line:101:def __le__(self, other):
+        O0O0O0OO000OOO0OO =O000OO00OOO000OOO .__lt__ (O0OOO0O0000O000OO )#line:102:less = self.__lt__(other)
+        if O0O0O0OO000OOO0OO is NotImplemented or not O0O0O0OO000OOO0OO :#line:103:if less is NotImplemented or not less:
+            return O000OO00OOO000OOO .__eq__ (O0OOO0O0000O000OO )#line:104:return self.__eq__(other)
+        return O0O0O0OO000OOO0OO #line:105:return less
+    def __gt__ (OO00000O00OO00O00 ,OO0000OO0O0000O0O ):#line:107:def __gt__(self, other):
+        OO0O0OOO0OO0OOOOO =OO00000O00OO00O00 .__lt__ (OO0000OO0O0000O0O )#line:108:less = self.__lt__(other)
+        if OO0O0OOO0OO0OOOOO is NotImplemented :#line:109:if less is NotImplemented:
+            return NotImplemented #line:110:return NotImplemented
+        O00000O0O0OOO000O =OO00000O00OO00O00 .__eq__ (OO0000OO0O0000O0O )#line:111:equal = self.__eq__(other)
+        if O00000O0O0OOO000O is NotImplemented :#line:112:if equal is NotImplemented:
+            return NotImplemented #line:113:return NotImplemented
+        return not (OO0O0OOO0OO0OOOOO or O00000O0O0OOO000O )#line:114:return not (less or equal)
+    def __ge__ (O00000O0OO00000O0 ,O00000O0OOO00O00O ):#line:116:def __ge__(self, other):
+        O000000OOOOO0000O =O00000O0OO00000O0 .__lt__ (O00000O0OOO00O00O )#line:117:less = self.__lt__(other)
+        if O000000OOOOO0000O is NotImplemented :#line:118:if less is NotImplemented:
+            return NotImplemented #line:119:return NotImplemented
+        return not O000000OOOOO0000O #line:120:return not less
+IPV4LENGTH =32 #line:123:IPV4LENGTH = 32
+IPV6LENGTH =128 #line:124:IPV6LENGTH = 128
+class AddressValueError (ValueError ):#line:127:class AddressValueError(ValueError):
+    ""#line:128:"""A Value Error related to the address."""
+class NetmaskValueError (ValueError ):#line:131:class NetmaskValueError(ValueError):
+    ""#line:132:"""A Value Error related to the netmask."""
+def ip_address (O00O0OOOOOO00OOOO ):#line:135:def ip_address(address):
+    ""#line:150:"""
+    try :#line:151:try:
+        return IPv4Address (O00O0OOOOOO00OOOO )#line:152:return IPv4Address(address)
+    except (AddressValueError ,NetmaskValueError ):#line:153:except (AddressValueError, NetmaskValueError):
+        pass #line:154:pass
+    try :#line:156:try:
+        return IPv6Address (O00O0OOOOOO00OOOO )#line:157:return IPv6Address(address)
+    except (AddressValueError ,NetmaskValueError ):#line:158:except (AddressValueError, NetmaskValueError):
+        pass #line:159:pass
+    if isinstance (O00O0OOOOOO00OOOO ,bytes ):#line:161:if isinstance(address, bytes):
+        raise AddressValueError ('%r does not appear to be an IPv4 or IPv6 address. ' 'Did you pass in a bytes (str in Python 2) instead of' ' a unicode object?'%O00O0OOOOOO00OOOO )#line:165:' a unicode object?' % address)
+    raise ValueError ('%r does not appear to be an IPv4 or IPv6 address'%O00O0OOOOOO00OOOO )#line:168:address)
+def ip_network (O00000000OOOO0000 ,strict =True ):#line:171:def ip_network(address, strict=True):
+    ""#line:186:"""
+    try :#line:187:try:
+        return IPv4Network (O00000000OOOO0000 ,strict )#line:188:return IPv4Network(address, strict)
+    except (AddressValueError ,NetmaskValueError ):#line:189:except (AddressValueError, NetmaskValueError):
+        pass #line:190:pass
+    try :#line:192:try:
+        return IPv6Network (O00000000OOOO0000 ,strict )#line:193:return IPv6Network(address, strict)
+    except (AddressValueError ,NetmaskValueError ):#line:194:except (AddressValueError, NetmaskValueError):
+        pass #line:195:pass
+    if isinstance (O00000000OOOO0000 ,bytes ):#line:197:if isinstance(address, bytes):
+        raise AddressValueError ('%r does not appear to be an IPv4 or IPv6 network. ' 'Did you pass in a bytes (str in Python 2) instead of' ' a unicode object?'%O00000000OOOO0000 )#line:201:' a unicode object?' % address)
+    raise ValueError ('%r does not appear to be an IPv4 or IPv6 network'%O00000000OOOO0000 )#line:204:address)
+def ip_interface (OO000O0O0O0OO0OOO ):#line:207:def ip_interface(address):
+    ""#line:227:"""
+    try :#line:228:try:
+        return IPv4Interface (OO000O0O0O0OO0OOO )#line:229:return IPv4Interface(address)
+    except (AddressValueError ,NetmaskValueError ):#line:230:except (AddressValueError, NetmaskValueError):
+        pass #line:231:pass
+    try :#line:233:try:
+        return IPv6Interface (OO000O0O0O0OO0OOO )#line:234:return IPv6Interface(address)
+    except (AddressValueError ,NetmaskValueError ):#line:235:except (AddressValueError, NetmaskValueError):
+        pass #line:236:pass
+    raise ValueError ('%r does not appear to be an IPv4 or IPv6 interface'%OO000O0O0O0OO0OOO )#line:239:address)
+def v4_int_to_packed (O000OO0OO0O00O0O0 ):#line:242:def v4_int_to_packed(address):
+    ""#line:255:"""
+    try :#line:256:try:
+        return _OOOOO00O0000O0000 (O000OO0OO0O00O0O0 ,4 ,'big')#line:257:return _compat_to_bytes(address, 4, 'big')
+    except (struct .error ,OverflowError ):#line:258:except (struct.error, OverflowError):
+        raise ValueError ("Address negative or too large for IPv4")#line:259:raise ValueError("Address negative or too large for IPv4")
+def v6_int_to_packed (OO00O0OO0OOOOOO00 ):#line:262:def v6_int_to_packed(address):
+    ""#line:271:"""
+    try :#line:272:try:
+        return _OOOOO00O0000O0000 (OO00O0OO0OOOOOO00 ,16 ,'big')#line:273:return _compat_to_bytes(address, 16, 'big')
+    except (struct .error ,OverflowError ):#line:274:except (struct.error, OverflowError):
+        raise ValueError ("Address negative or too large for IPv6")#line:275:raise ValueError("Address negative or too large for IPv6")
+def _O0000OOO0O0OOO0OO (OO0000OOOO0O00000 ):#line:278:def _split_optional_netmask(address):
+    ""#line:279:"""Helper to split the netmask and raise AddressValueError if needed"""
+    OO0OO0O0OO00O0O00 =_OOO00OO0OO000OOO0 (OO0000OOOO0O00000 ).split ('/')#line:280:addr = _compat_str(address).split('/')
+    if len (OO0OO0O0OO00O0O00 )>2 :#line:281:if len(addr) > 2:
+        raise AddressValueError ("Only one '/' permitted in %r"%OO0000OOOO0O00000 )#line:282:raise AddressValueError("Only one '/' permitted in %r" % address)
+    return OO0OO0O0OO00O0O00 #line:283:return addr
+def _O0000O0OO000OOO0O (OO00000OO0O00O00O ):#line:286:def _find_address_range(addresses):
+    ""#line:295:"""
+    OO0O0OO000O000000 =iter (OO00000OO0O00O00O )#line:296:it = iter(addresses)
+    OO000OOO0O00O0OOO =OO00O0OOO00OO0O00 =next (OO0O0OO000O000000 )#line:297:first = last = next(it)
+    for O0OOO0O0O0O0OO0OO in OO0O0OO000O000000 :#line:298:for ip in it:
+        if O0OOO0O0O0O0OO0OO ._ip !=OO00O0OOO00OO0O00 ._ip +1 :#line:299:if ip._ip != last._ip + 1:
+            yield OO000OOO0O00O0OOO ,OO00O0OOO00OO0O00 #line:300:yield first, last
+            OO000OOO0O00O0OOO =O0OOO0O0O0O0OO0OO #line:301:first = ip
+        OO00O0OOO00OO0O00 =O0OOO0O0O0O0OO0OO #line:302:last = ip
+    yield OO000OOO0O00O0OOO ,OO00O0OOO00OO0O00 #line:303:yield first, last
+def _O0OOOO0O00OOOO000 (O0OO0O0O00000OOO0 ,OOO00OO000O00O00O ):#line:306:def _count_righthand_zero_bits(number, bits):
+    ""#line:316:"""
+    if O0OO0O0O00000OOO0 ==0 :#line:317:if number == 0:
+        return OOO00OO000O00O00O #line:318:return bits
+    return min (OOO00OO000O00O00O ,_OO000O000OOO0O000 (~O0OO0O0O00000OOO0 &(O0OO0O0O00000OOO0 -1 )))#line:319:return min(bits, _compat_bit_length(~number & (number - 1)))
+def summarize_address_range (O0O0OOOOO0OO00OOO ,O0OOOOOOO00OO0O00 ):#line:322:def summarize_address_range(first, last):
+    ""#line:347:"""
+    if (not (isinstance (O0O0OOOOO0OO00OOO ,_OOOO00OOO0O0O0000 )and isinstance (O0OOOOOOO00OO0O00 ,_OOOO00OOO0O0O0000 ))):#line:349:isinstance(last, _BaseAddress))):
+        raise TypeError ('first and last must be IP addresses, not networks')#line:350:raise TypeError('first and last must be IP addresses, not networks')
+    if O0O0OOOOO0OO00OOO .version !=O0OOOOOOO00OO0O00 .version :#line:351:if first.version != last.version:
+        raise TypeError ("%s and %s are not of the same version"%(O0O0OOOOO0OO00OOO ,O0OOOOOOO00OO0O00 ))#line:353:first, last))
+    if O0O0OOOOO0OO00OOO >O0OOOOOOO00OO0O00 :#line:354:if first > last:
+        raise ValueError ('last IP address must be greater than first')#line:355:raise ValueError('last IP address must be greater than first')
+    if O0O0OOOOO0OO00OOO .version ==4 :#line:357:if first.version == 4:
+        OO000OO00O0O0OOOO =IPv4Network #line:358:ip = IPv4Network
+    elif O0O0OOOOO0OO00OOO .version ==6 :#line:359:elif first.version == 6:
+        OO000OO00O0O0OOOO =IPv6Network #line:360:ip = IPv6Network
+    else :#line:361:else:
+        raise ValueError ('unknown IP version')#line:362:raise ValueError('unknown IP version')
+    O00O00OOOOOOO0O0O =O0O0OOOOO0OO00OOO ._max_prefixlen #line:364:ip_bits = first._max_prefixlen
+    O0OO00OOOO0000O00 =O0O0OOOOO0OO00OOO ._ip #line:365:first_int = first._ip
+    OO0OOOOO0OO0000OO =O0OOOOOOO00OO0O00 ._ip #line:366:last_int = last._ip
+    while O0OO00OOOO0000O00 <=OO0OOOOO0OO0000OO :#line:367:while first_int <= last_int:
+        O0OOO0OO00OOOO000 =min (_O0OOOO0O00OOOO000 (O0OO00OOOO0000O00 ,O00O00OOOOOOO0O0O ),_OO000O000OOO0O000 (OO0OOOOO0OO0000OO -O0OO00OOOO0000O00 +1 )-1 )#line:369:_compat_bit_length(last_int - first_int + 1) - 1)
+        OO00O000000O0O00O =OO000OO00O0O0OOOO ((O0OO00OOOO0000O00 ,O00O00OOOOOOO0O0O -O0OOO0OO00OOOO000 ))#line:370:net = ip((first_int, ip_bits - nbits))
+        yield OO00O000000O0O00O #line:371:yield net
+        O0OO00OOOO0000O00 +=1 <<O0OOO0OO00OOOO000 #line:372:first_int += 1 << nbits
+        if O0OO00OOOO0000O00 -1 ==OO000OO00O0O0OOOO ._ALL_ONES :#line:373:if first_int - 1 == ip._ALL_ONES:
+            break #line:374:break
+def _O000000000OO00O00 (O0OO0OOO0OO000O00 ):#line:377:def _collapse_addresses_internal(addresses):
+    ""#line:400:"""
+    OOO00OO0OOOO000O0 =list (O0OO0OOO0OO000O00 )#line:402:to_merge = list(addresses)
+    OO0O0OO00000000O0 ={}#line:403:subnets = {}
+    while OOO00OO0OOOO000O0 :#line:404:while to_merge:
+        OOOO0O0OOOO000OO0 =OOO00OO0OOOO000O0 .pop ()#line:405:net = to_merge.pop()
+        OO0000OOO0OOOO000 =OOOO0O0OOOO000OO0 .supernet ()#line:406:supernet = net.supernet()
+        OOO0OOOO00000000O =OO0O0OO00000000O0 .get (OO0000OOO0OOOO000 )#line:407:existing = subnets.get(supernet)
+        if OOO0OOOO00000000O is None :#line:408:if existing is None:
+            OO0O0OO00000000O0 [OO0000OOO0OOOO000 ]=OOOO0O0OOOO000OO0 #line:409:subnets[supernet] = net
+        elif OOO0OOOO00000000O !=OOOO0O0OOOO000OO0 :#line:410:elif existing != net:
+            del OO0O0OO00000000O0 [OO0000OOO0OOOO000 ]#line:412:del subnets[supernet]
+            OOO00OO0OOOO000O0 .append (OO0000OOO0OOOO000 )#line:413:to_merge.append(supernet)
+    O0O0O0O0OOO00OO00 =None #line:415:last = None
+    for OOOO0O0OOOO000OO0 in sorted (OO0O0OO00000000O0 .values ()):#line:416:for net in sorted(subnets.values()):
+        if O0O0O0O0OOO00OO00 is not None :#line:417:if last is not None:
+            if O0O0O0O0OOO00OO00 .broadcast_address >=OOOO0O0OOOO000OO0 .broadcast_address :#line:420:if last.broadcast_address >= net.broadcast_address:
+                continue #line:421:continue
+        yield OOOO0O0OOOO000OO0 #line:422:yield net
+        O0O0O0O0OOO00OO00 =OOOO0O0OOOO000OO0 #line:423:last = net
+def collapse_addresses (OO0OO0O000OOO0OOO ):#line:426:def collapse_addresses(addresses):
+    ""#line:443:"""
+    OOOOO0O00O000O000 =[]#line:444:addrs = []
+    O0O0OO0O0OOOOO00O =[]#line:445:ips = []
+    OOO000OO00OOO0OOO =[]#line:446:nets = []
+    for O0OOOOO0OOO0O0O00 in OO0OO0O000OOO0OOO :#line:449:for ip in addresses:
+        if isinstance (O0OOOOO0OOO0O0O00 ,_OOOO00OOO0O0O0000 ):#line:450:if isinstance(ip, _BaseAddress):
+            if O0O0OO0O0OOOOO00O and O0O0OO0O0OOOOO00O [-1 ]._version !=O0OOOOO0OOO0O0O00 ._version :#line:451:if ips and ips[-1]._version != ip._version:
+                raise TypeError ("%s and %s are not of the same version"%(O0OOOOO0OOO0O0O00 ,O0O0OO0O0OOOOO00O [-1 ]))#line:453:ip, ips[-1]))
+            O0O0OO0O0OOOOO00O .append (O0OOOOO0OOO0O0O00 )#line:454:ips.append(ip)
+        elif O0OOOOO0OOO0O0O00 ._prefixlen ==O0OOOOO0OOO0O0O00 ._max_prefixlen :#line:455:elif ip._prefixlen == ip._max_prefixlen:
+            if O0O0OO0O0OOOOO00O and O0O0OO0O0OOOOO00O [-1 ]._version !=O0OOOOO0OOO0O0O00 ._version :#line:456:if ips and ips[-1]._version != ip._version:
+                raise TypeError ("%s and %s are not of the same version"%(O0OOOOO0OOO0O0O00 ,O0O0OO0O0OOOOO00O [-1 ]))#line:458:ip, ips[-1]))
+            try :#line:459:try:
+                O0O0OO0O0OOOOO00O .append (O0OOOOO0OOO0O0O00 .ip )#line:460:ips.append(ip.ip)
+            except AttributeError :#line:461:except AttributeError:
+                O0O0OO0O0OOOOO00O .append (O0OOOOO0OOO0O0O00 .network_address )#line:462:ips.append(ip.network_address)
+        else :#line:463:else:
+            if OOO000OO00OOO0OOO and OOO000OO00OOO0OOO [-1 ]._version !=O0OOOOO0OOO0O0O00 ._version :#line:464:if nets and nets[-1]._version != ip._version:
+                raise TypeError ("%s and %s are not of the same version"%(O0OOOOO0OOO0O0O00 ,OOO000OO00OOO0OOO [-1 ]))#line:466:ip, nets[-1]))
+            OOO000OO00OOO0OOO .append (O0OOOOO0OOO0O0O00 )#line:467:nets.append(ip)
+    O0O0OO0O0OOOOO00O =sorted (set (O0O0OO0O0OOOOO00O ))#line:470:ips = sorted(set(ips))
+    if O0O0OO0O0OOOOO00O :#line:473:if ips:
+        for OOOOO0O0OO0O0OOO0 ,O0OOOOO0O00OO00OO in _O0000O0OO000OOO0O (O0O0OO0O0OOOOO00O ):#line:474:for first, last in _find_address_range(ips):
+            OOOOO0O00O000O000 .extend (summarize_address_range (OOOOO0O0OO0O0OOO0 ,O0OOOOO0O00OO00OO ))#line:475:addrs.extend(summarize_address_range(first, last))
+    return _O000000000OO00O00 (OOOOO0O00O000O000 +OOO000OO00OOO0OOO )#line:477:return _collapse_addresses_internal(addrs + nets)
+def get_mixed_type_key (O0OOO00OO000O00OO ):#line:480:def get_mixed_type_key(obj):
+    ""#line:497:"""
+    if isinstance (O0OOO00OO000O00OO ,_OOO00O000O0O00OOO ):#line:498:if isinstance(obj, _BaseNetwork):
+        return O0OOO00OO000O00OO ._get_networks_key ()#line:499:return obj._get_networks_key()
+    elif isinstance (O0OOO00OO000O00OO ,_OOOO00OOO0O0O0000 ):#line:500:elif isinstance(obj, _BaseAddress):
+        return O0OOO00OO000O00OO ._get_address_key ()#line:501:return obj._get_address_key()
+    return NotImplemented #line:502:return NotImplemented
+class _OO0OOO00O0OO00O00 (_O000OOOO00O000O0O ):#line:505:class _IPAddressBase(_TotalOrderingMixin):
+    ""#line:507:"""The mother class."""
+    __slots__ =()#line:509:__slots__ = ()
+    @property #line:511:@property
+    def exploded (O00O000000OO0O00O ):#line:512:def exploded(self):
+        ""#line:513:"""Return the longhand version of the IP address as a string."""
+        return O00O000000OO0O00O ._explode_shorthand_ip_string ()#line:514:return self._explode_shorthand_ip_string()
+    @property #line:516:@property
+    def compressed (OOO00OO0O00OOOOO0 ):#line:517:def compressed(self):
+        ""#line:518:"""Return the shorthand version of the IP address as a string."""
+        return _OOO00OO0OO000OOO0 (OOO00OO0O00OOOOO0 )#line:519:return _compat_str(self)
+    @property #line:521:@property
+    def reverse_pointer (OOO0OO0O000O000O0 ):#line:522:def reverse_pointer(self):
+        ""#line:529:"""
+        return OOO0OO0O000O000O0 ._reverse_pointer ()#line:530:return self._reverse_pointer()
+    @property #line:532:@property
+    def version (O0000000O0O000O0O ):#line:533:def version(self):
+        O00000O0OOOOOO0OO ='%200s has no version specified'%(type (O0000000O0O000O0O ),)#line:534:msg = '%200s has no version specified' % (type(self),)
+        raise NotImplementedError (O00000O0OOOOOO0OO )#line:535:raise NotImplementedError(msg)
+    def _check_int_address (OO0O0O0O00O0OO00O ,O00O00000O0O0OO0O ):#line:537:def _check_int_address(self, address):
+        if O00O00000O0O0OO0O <0 :#line:538:if address < 0:
+            OO0OO0OO00OOO0O00 ="%d (< 0) is not permitted as an IPv%d address"#line:539:msg = "%d (< 0) is not permitted as an IPv%d address"
+            raise AddressValueError (OO0OO0OO00OOO0O00 %(O00O00000O0O0OO0O ,OO0O0O0O00O0OO00O ._version ))#line:540:raise AddressValueError(msg % (address, self._version))
+        if O00O00000O0O0OO0O >OO0O0O0O00O0OO00O ._ALL_ONES :#line:541:if address > self._ALL_ONES:
+            OO0OO0OO00OOO0O00 ="%d (>= 2**%d) is not permitted as an IPv%d address"#line:542:msg = "%d (>= 2**%d) is not permitted as an IPv%d address"
+            raise AddressValueError (OO0OO0OO00OOO0O00 %(O00O00000O0O0OO0O ,OO0O0O0O00O0OO00O ._max_prefixlen ,OO0O0O0O00O0OO00O ._version ))#line:544:self._version))
+    def _check_packed_address (OOO0000OOOOOOOO0O ,O00O0OO0OO00O0000 ,OO0000OO00O0OO0OO ):#line:546:def _check_packed_address(self, address, expected_len):
+        OOO00OOO000OO0000 =len (O00O0OO0OO00O0000 )#line:547:address_len = len(address)
+        if OOO00OOO000OO0000 !=OO0000OO00O0OO0OO :#line:548:if address_len != expected_len:
+            O00O000OO0O00OOO0 =('%r (len %d != %d) is not permitted as an IPv%d address. ' 'Did you pass in a bytes (str in Python 2) instead of' ' a unicode object?')#line:552:' a unicode object?')
+            raise AddressValueError (O00O000OO0O00OOO0 %(O00O0OO0OO00O0000 ,OOO00OOO000OO0000 ,OO0000OO00O0OO0OO ,OOO0000OOOOOOOO0O ._version ))#line:554:expected_len, self._version))
+    @classmethod #line:556:@classmethod
+    def _ip_int_from_prefix (O00O00OO0O000O000 ,OO0O000O0O0OO0O00 ):#line:557:def _ip_int_from_prefix(cls, prefixlen):
+        ""#line:566:"""
+        return O00O00OO0O000O000 ._ALL_ONES ^(O00O00OO0O000O000 ._ALL_ONES >>OO0O000O0O0OO0O00 )#line:567:return cls._ALL_ONES ^ (cls._ALL_ONES >> prefixlen)
+    @classmethod #line:569:@classmethod
+    def _prefix_from_ip_int (O0O00O00OO0O00OO0 ,OOOO0O0000O00000O ):#line:570:def _prefix_from_ip_int(cls, ip_int):
+        ""#line:581:"""
+        O00O0OO0O00OOO0O0 =_O0OOOO0O00OOOO000 (OOOO0O0000O00000O ,O0O00O00OO0O00OO0 ._max_prefixlen )#line:583:cls._max_prefixlen)
+        OOOOO0O0OOOOO0O0O =O0O00O00OO0O00OO0 ._max_prefixlen -O00O0OO0O00OOO0O0 #line:584:prefixlen = cls._max_prefixlen - trailing_zeroes
+        OOOO000OO0OOO0OO0 =OOOO0O0000O00000O >>O00O0OO0O00OOO0O0 #line:585:leading_ones = ip_int >> trailing_zeroes
+        OOOO00OOOOOOO0OO0 =(1 <<OOOOO0O0OOOOO0O0O )-1 #line:586:all_ones = (1 << prefixlen) - 1
+        if OOOO000OO0OOO0OO0 !=OOOO00OOOOOOO0OO0 :#line:587:if leading_ones != all_ones:
+            OO0OOO00O00OO00OO =O0O00O00OO0O00OO0 ._max_prefixlen //8 #line:588:byteslen = cls._max_prefixlen // 8
+            O0OO0O0000OOO0OO0 =_OOOOO00O0000O0000 (OOOO0O0000O00000O ,OO0OOO00O00OO00OO ,'big')#line:589:details = _compat_to_bytes(ip_int, byteslen, 'big')
+            OOOOO00O0OOOOO0OO ='Netmask pattern %r mixes zeroes & ones'#line:590:msg = 'Netmask pattern %r mixes zeroes & ones'
+            raise ValueError (OOOOO00O0OOOOO0OO %O0OO0O0000OOO0OO0 )#line:591:raise ValueError(msg % details)
+        return OOOOO0O0OOOOO0O0O #line:592:return prefixlen
+    @classmethod #line:594:@classmethod
+    def _report_invalid_netmask (O0O00O000OO0O0000 ,O00O0000O0O000O0O ):#line:595:def _report_invalid_netmask(cls, netmask_str):
+        O00O00OO0O0O0OO00 ='%r is not a valid netmask'%O00O0000O0O000O0O #line:596:msg = '%r is not a valid netmask' % netmask_str
+        raise NetmaskValueError (O00O00OO0O0O0OO00 )#line:597:raise NetmaskValueError(msg)
+    @classmethod #line:599:@classmethod
+    def _prefix_from_prefix_string (OO0O0OOO000OO000O ,O000OOOOO00OOO0OO ):#line:600:def _prefix_from_prefix_string(cls, prefixlen_str):
+        ""#line:611:"""
+        if not _OO0O0O0OOOOO000O0 ._DECIMAL_DIGITS .issuperset (O000OOOOO00OOO0OO ):#line:614:if not _BaseV4._DECIMAL_DIGITS.issuperset(prefixlen_str):
+            OO0O0OOO000OO000O ._report_invalid_netmask (O000OOOOO00OOO0OO )#line:615:cls._report_invalid_netmask(prefixlen_str)
+        try :#line:616:try:
+            O0O0OOOO0O00OO00O =int (O000OOOOO00OOO0OO )#line:617:prefixlen = int(prefixlen_str)
+        except ValueError :#line:618:except ValueError:
+            OO0O0OOO000OO000O ._report_invalid_netmask (O000OOOOO00OOO0OO )#line:619:cls._report_invalid_netmask(prefixlen_str)
+        if not (0 <=O0O0OOOO0O00OO00O <=OO0O0OOO000OO000O ._max_prefixlen ):#line:620:if not (0 <= prefixlen <= cls._max_prefixlen):
+            OO0O0OOO000OO000O ._report_invalid_netmask (O000OOOOO00OOO0OO )#line:621:cls._report_invalid_netmask(prefixlen_str)
+        return O0O0OOOO0O00OO00O #line:622:return prefixlen
+    @classmethod #line:624:@classmethod
+    def _prefix_from_ip_string (O000O0OOO0O0OO0OO ,O0OO00O000OOOO0O0 ):#line:625:def _prefix_from_ip_string(cls, ip_str):
+        ""#line:636:"""
+        try :#line:638:try:
+            O00OOOOOOOO0OOOOO =O000O0OOO0O0OO0OO ._ip_int_from_string (O0OO00O000OOOO0O0 )#line:639:ip_int = cls._ip_int_from_string(ip_str)
+        except AddressValueError :#line:640:except AddressValueError:
+            O000O0OOO0O0OO0OO ._report_invalid_netmask (O0OO00O000OOOO0O0 )#line:641:cls._report_invalid_netmask(ip_str)
+        try :#line:646:try:
+            return O000O0OOO0O0OO0OO ._prefix_from_ip_int (O00OOOOOOOO0OOOOO )#line:647:return cls._prefix_from_ip_int(ip_int)
+        except ValueError :#line:648:except ValueError:
+            pass #line:649:pass
+        O00OOOOOOOO0OOOOO ^=O000O0OOO0O0OO0OO ._ALL_ONES #line:652:ip_int ^= cls._ALL_ONES
+        try :#line:653:try:
+            return O000O0OOO0O0OO0OO ._prefix_from_ip_int (O00OOOOOOOO0OOOOO )#line:654:return cls._prefix_from_ip_int(ip_int)
+        except ValueError :#line:655:except ValueError:
+            O000O0OOO0O0OO0OO ._report_invalid_netmask (O0OO00O000OOOO0O0 )#line:656:cls._report_invalid_netmask(ip_str)
+    def __reduce__ (OO0O0OOO0O00000O0 ):#line:658:def __reduce__(self):
+        return OO0O0OOO0O00000O0 .__class__ ,(_OOO00OO0OO000OOO0 (OO0O0OOO0O00000O0 ),)#line:659:return self.__class__, (_compat_str(self),)
+class _OOOO00OOO0O0O0000 (_OO0OOO00O0OO00O00 ):#line:662:class _BaseAddress(_IPAddressBase):
+    ""#line:668:"""
+    __slots__ =()#line:670:__slots__ = ()
+    def __int__ (OO0O00OOO0O000O00 ):#line:672:def __int__(self):
+        return OO0O00OOO0O000O00 ._ip #line:673:return self._ip
+    def __eq__ (O0O0OO00OO00O0000 ,O0OOOO0OO00O00O00 ):#line:675:def __eq__(self, other):
+        try :#line:676:try:
+            return (O0O0OO00OO00O0000 ._ip ==O0OOOO0OO00O00O00 ._ip and O0O0OO00OO00O0000 ._version ==O0OOOO0OO00O00O00 ._version )#line:678:self._version == other._version)
+        except AttributeError :#line:679:except AttributeError:
+            return NotImplemented #line:680:return NotImplemented
+    def __lt__ (OOO0OOOOOO0O00OOO ,O000O00O00OO0OO00 ):#line:682:def __lt__(self, other):
+        if not isinstance (O000O00O00OO0OO00 ,_OO0OOO00O0OO00O00 ):#line:683:if not isinstance(other, _IPAddressBase):
+            return NotImplemented #line:684:return NotImplemented
+        if not isinstance (O000O00O00OO0OO00 ,_OOOO00OOO0O0O0000 ):#line:685:if not isinstance(other, _BaseAddress):
+            raise TypeError ('%s and %s are not of the same type'%(OOO0OOOOOO0O00OOO ,O000O00O00OO0OO00 ))#line:687:self, other))
+        if OOO0OOOOOO0O00OOO ._version !=O000O00O00OO0OO00 ._version :#line:688:if self._version != other._version:
+            raise TypeError ('%s and %s are not of the same version'%(OOO0OOOOOO0O00OOO ,O000O00O00OO0OO00 ))#line:690:self, other))
+        if OOO0OOOOOO0O00OOO ._ip !=O000O00O00OO0OO00 ._ip :#line:691:if self._ip != other._ip:
+            return OOO0OOOOOO0O00OOO ._ip <O000O00O00OO0OO00 ._ip #line:692:return self._ip < other._ip
+        return False #line:693:return False
+    def __add__ (O0OOOOOO0OO0OO0OO ,OO0OO0000O00O0OO0 ):#line:697:def __add__(self, other):
+        if not isinstance (OO0OO0000O00O0OO0 ,_O000O0000OO00000O ):#line:698:if not isinstance(other, _compat_int_types):
+            return NotImplemented #line:699:return NotImplemented
+        return O0OOOOOO0OO0OO0OO .__class__ (int (O0OOOOOO0OO0OO0OO )+OO0OO0000O00O0OO0 )#line:700:return self.__class__(int(self) + other)
+    def __sub__ (O0O0O0OO0OOOOO0OO ,O0O0O0O000OOO000O ):#line:702:def __sub__(self, other):
+        if not isinstance (O0O0O0O000OOO000O ,_O000O0000OO00000O ):#line:703:if not isinstance(other, _compat_int_types):
+            return NotImplemented #line:704:return NotImplemented
+        return O0O0O0OO0OOOOO0OO .__class__ (int (O0O0O0OO0OOOOO0OO )-O0O0O0O000OOO000O )#line:705:return self.__class__(int(self) - other)
+    def __repr__ (OOOOO0OOOO00OO00O ):#line:707:def __repr__(self):
+        return '%s(%r)'%(OOOOO0OOOO00OO00O .__class__ .__name__ ,_OOO00OO0OO000OOO0 (OOOOO0OOOO00OO00O ))#line:708:return '%s(%r)' % (self.__class__.__name__, _compat_str(self))
+    def __str__ (O0O00OOO000O0O0OO ):#line:710:def __str__(self):
+        return _OOO00OO0OO000OOO0 (O0O00OOO000O0O0OO ._string_from_ip_int (O0O00OOO000O0O0OO ._ip ))#line:711:return _compat_str(self._string_from_ip_int(self._ip))
+    def __hash__ (O0000O00OO00O0O0O ):#line:713:def __hash__(self):
+        return hash (hex (int (O0000O00OO00O0O0O ._ip )))#line:714:return hash(hex(int(self._ip)))
+    def _get_address_key (OO00OOO000O0O0OO0 ):#line:716:def _get_address_key(self):
+        return (OO00OOO000O0O0OO0 ._version ,OO00OOO000O0O0OO0 )#line:717:return (self._version, self)
+    def __reduce__ (O0O0OOO0OOOOO0000 ):#line:719:def __reduce__(self):
+        return O0O0OOO0OOOOO0000 .__class__ ,(O0O0OOO0OOOOO0000 ._ip ,)#line:720:return self.__class__, (self._ip,)
+class _OOO00O000O0O00OOO (_OO0OOO00O0OO00O00 ):#line:723:class _BaseNetwork(_IPAddressBase):
+    ""#line:730:"""
+    def __init__ (O0OOOO0000O0OOOOO ,O00OO0OO0O0O0O00O ):#line:731:def __init__(self, address):
+        O0OOOO0000O0OOOOO ._cache ={}#line:732:self._cache = {}
+    def __repr__ (OOO0O00OOOOOO0OOO ):#line:734:def __repr__(self):
+        return '%s(%r)'%(OOO0O00OOOOOO0OOO .__class__ .__name__ ,_OOO00OO0OO000OOO0 (OOO0O00OOOOOO0OOO ))#line:735:return '%s(%r)' % (self.__class__.__name__, _compat_str(self))
+    def __str__ (O0000O0O00000O00O ):#line:737:def __str__(self):
+        return '%s/%d'%(O0000O0O00000O00O .network_address ,O0000O0O00000O00O .prefixlen )#line:738:return '%s/%d' % (self.network_address, self.prefixlen)
+    def hosts (O00O000OOO00000O0 ):#line:740:def hosts(self):
+        ""#line:746:"""
+        OO0O0000OO0000OOO =int (O00O000OOO00000O0 .network_address )#line:747:network = int(self.network_address)
+        OOO00O0OO00OO0O0O =int (O00O000OOO00000O0 .broadcast_address )#line:748:broadcast = int(self.broadcast_address)
+        for OO00000000OO0O0O0 in _OO0O000O0OOOO00OO (OO0O0000OO0000OOO +1 ,OOO00O0OO00OO0O0O ):#line:749:for x in _compat_range(network + 1, broadcast):
+            yield O00O000OOO00000O0 ._address_class (OO00000000OO0O0O0 )#line:750:yield self._address_class(x)
+    def __iter__ (O0OOOO0OOOOO000OO ):#line:752:def __iter__(self):
+        OO00O00OOO0O0000O =int (O0OOOO0OOOOO000OO .network_address )#line:753:network = int(self.network_address)
+        O0OO0OO0O0OOO0O00 =int (O0OOOO0OOOOO000OO .broadcast_address )#line:754:broadcast = int(self.broadcast_address)
+        for OOOO0O00OO000OO0O in _OO0O000O0OOOO00OO (OO00O00OOO0O0000O ,O0OO0OO0O0OOO0O00 +1 ):#line:755:for x in _compat_range(network, broadcast + 1):
+            yield O0OOOO0OOOOO000OO ._address_class (OOOO0O00OO000OO0O )#line:756:yield self._address_class(x)
+    def __getitem__ (O0OOO000OOO0OO0O0 ,O0O0OOOOO0OO00OO0 ):#line:758:def __getitem__(self, n):
+        O0000OO00OO0O0O0O =int (O0OOO000OOO0OO0O0 .network_address )#line:759:network = int(self.network_address)
+        OOOOO0O0OO0O0O0O0 =int (O0OOO000OOO0OO0O0 .broadcast_address )#line:760:broadcast = int(self.broadcast_address)
+        if O0O0OOOOO0OO00OO0 >=0 :#line:761:if n >= 0:
+            if O0000OO00OO0O0O0O +O0O0OOOOO0OO00OO0 >OOOOO0O0OO0O0O0O0 :#line:762:if network + n > broadcast:
+                raise IndexError ('address out of range')#line:763:raise IndexError('address out of range')
+            return O0OOO000OOO0OO0O0 ._address_class (O0000OO00OO0O0O0O +O0O0OOOOO0OO00OO0 )#line:764:return self._address_class(network + n)
+        else :#line:765:else:
+            O0O0OOOOO0OO00OO0 +=1 #line:766:n += 1
+            if OOOOO0O0OO0O0O0O0 +O0O0OOOOO0OO00OO0 <O0000OO00OO0O0O0O :#line:767:if broadcast + n < network:
+                raise IndexError ('address out of range')#line:768:raise IndexError('address out of range')
+            return O0OOO000OOO0OO0O0 ._address_class (OOOOO0O0OO0O0O0O0 +O0O0OOOOO0OO00OO0 )#line:769:return self._address_class(broadcast + n)
+    def __lt__ (O0OO0OO0000O00000 ,OO0OOO000O0000O00 ):#line:771:def __lt__(self, other):
+        if not isinstance (OO0OOO000O0000O00 ,_OO0OOO00O0OO00O00 ):#line:772:if not isinstance(other, _IPAddressBase):
+            return NotImplemented #line:773:return NotImplemented
+        if not isinstance (OO0OOO000O0000O00 ,_OOO00O000O0O00OOO ):#line:774:if not isinstance(other, _BaseNetwork):
+            raise TypeError ('%s and %s are not of the same type'%(O0OO0OO0000O00000 ,OO0OOO000O0000O00 ))#line:776:self, other))
+        if O0OO0OO0000O00000 ._version !=OO0OOO000O0000O00 ._version :#line:777:if self._version != other._version:
+            raise TypeError ('%s and %s are not of the same version'%(O0OO0OO0000O00000 ,OO0OOO000O0000O00 ))#line:779:self, other))
+        if O0OO0OO0000O00000 .network_address !=OO0OOO000O0000O00 .network_address :#line:780:if self.network_address != other.network_address:
+            return O0OO0OO0000O00000 .network_address <OO0OOO000O0000O00 .network_address #line:781:return self.network_address < other.network_address
+        if O0OO0OO0000O00000 .netmask !=OO0OOO000O0000O00 .netmask :#line:782:if self.netmask != other.netmask:
+            return O0OO0OO0000O00000 .netmask <OO0OOO000O0000O00 .netmask #line:783:return self.netmask < other.netmask
+        return False #line:784:return False
+    def __eq__ (O00O00O000O0OO00O ,O0O00O000OOOO0000 ):#line:786:def __eq__(self, other):
+        try :#line:787:try:
+            return (O00O00O000O0OO00O ._version ==O0O00O000OOOO0000 ._version and O00O00O000O0OO00O .network_address ==O0O00O000OOOO0000 .network_address and int (O00O00O000O0OO00O .netmask )==int (O0O00O000OOOO0000 .netmask ))#line:790:int(self.netmask) == int(other.netmask))
+        except AttributeError :#line:791:except AttributeError:
+            return NotImplemented #line:792:return NotImplemented
+    def __hash__ (OO0000O00OO00O000 ):#line:794:def __hash__(self):
+        return hash (int (OO0000O00OO00O000 .network_address )^int (OO0000O00OO00O000 .netmask ))#line:795:return hash(int(self.network_address) ^ int(self.netmask))
+    def __contains__ (O0OOO0O00000O0O00 ,OO00OOO0O0OOO000O ):#line:797:def __contains__(self, other):
+        if O0OOO0O00000O0O00 ._version !=OO00OOO0O0OOO000O ._version :#line:799:if self._version != other._version:
+            return False #line:800:return False
+        if isinstance (OO00OOO0O0OOO000O ,_OOO00O000O0O00OOO ):#line:802:if isinstance(other, _BaseNetwork):
+            return False #line:803:return False
+        else :#line:805:else:
+            return (int (O0OOO0O00000O0O00 .network_address )<=int (OO00OOO0O0OOO000O ._ip )<=int (O0OOO0O00000O0O00 .broadcast_address ))#line:808:int(self.broadcast_address))
+    def overlaps (O00000OO00O000OOO ,O000OOOO0OO0O0O00 ):#line:810:def overlaps(self, other):
+        ""#line:811:"""Tell if self is partly contained in other."""
+        return O00000OO00O000OOO .network_address in O000OOOO0OO0O0O00 or (O00000OO00O000OOO .broadcast_address in O000OOOO0OO0O0O00 or (O000OOOO0OO0O0O00 .network_address in O00000OO00O000OOO or (O000OOOO0OO0O0O00 .broadcast_address in O00000OO00O000OOO )))#line:815:other.broadcast_address in self)))
+    @property #line:817:@property
+    def broadcast_address (O0OO00O00O0O00O0O ):#line:818:def broadcast_address(self):
+        O000OOO000O000000 =O0OO00O00O0O00O0O ._cache .get ('broadcast_address')#line:819:x = self._cache.get('broadcast_address')
+        if O000OOO000O000000 is None :#line:820:if x is None:
+            O000OOO000O000000 =O0OO00O00O0O00O0O ._address_class (int (O0OO00O00O0O00O0O .network_address )|int (O0OO00O00O0O00O0O .hostmask ))#line:822:int(self.hostmask))
+            O0OO00O00O0O00O0O ._cache ['broadcast_address']=O000OOO000O000000 #line:823:self._cache['broadcast_address'] = x
+        return O000OOO000O000000 #line:824:return x
+    @property #line:826:@property
+    def hostmask (OOOOO0O0O0OOOO0OO ):#line:827:def hostmask(self):
+        OO00OOOO0OOO0O0O0 =OOOOO0O0O0OOOO0OO ._cache .get ('hostmask')#line:828:x = self._cache.get('hostmask')
+        if OO00OOOO0OOO0O0O0 is None :#line:829:if x is None:
+            OO00OOOO0OOO0O0O0 =OOOOO0O0O0OOOO0OO ._address_class (int (OOOOO0O0O0OOOO0OO .netmask )^OOOOO0O0O0OOOO0OO ._ALL_ONES )#line:830:x = self._address_class(int(self.netmask) ^ self._ALL_ONES)
+            OOOOO0O0O0OOOO0OO ._cache ['hostmask']=OO00OOOO0OOO0O0O0 #line:831:self._cache['hostmask'] = x
+        return OO00OOOO0OOO0O0O0 #line:832:return x
+    @property #line:834:@property
+    def with_prefixlen (OOOO0OO0O0OO0000O ):#line:835:def with_prefixlen(self):
+        return '%s/%d'%(OOOO0OO0O0OO0000O .network_address ,OOOO0OO0O0OO0000O ._prefixlen )#line:836:return '%s/%d' % (self.network_address, self._prefixlen)
+    @property #line:838:@property
+    def with_netmask (OOOO0OOO0O000O00O ):#line:839:def with_netmask(self):
+        return '%s/%s'%(OOOO0OOO0O000O00O .network_address ,OOOO0OOO0O000O00O .netmask )#line:840:return '%s/%s' % (self.network_address, self.netmask)
+    @property #line:842:@property
+    def with_hostmask (O0OOOO00OO00O0OO0 ):#line:843:def with_hostmask(self):
+        return '%s/%s'%(O0OOOO00OO00O0OO0 .network_address ,O0OOOO00OO00O0OO0 .hostmask )#line:844:return '%s/%s' % (self.network_address, self.hostmask)
+    @property #line:846:@property
+    def num_addresses (OO00OOOOOO000O0O0 ):#line:847:def num_addresses(self):
+        ""#line:848:"""Number of hosts in the current subnet."""
+        return int (OO00OOOOOO000O0O0 .broadcast_address )-int (OO00OOOOOO000O0O0 .network_address )+1 #line:849:return int(self.broadcast_address) - int(self.network_address) + 1
+    @property #line:851:@property
+    def _address_class (O0OO0OO0OO00O00OO ):#line:852:def _address_class(self):
+        O0OO000OO0OO0000O ='%200s has no associated address class'%(type (O0OO0OO0OO00O00OO ),)#line:856:msg = '%200s has no associated address class' % (type(self),)
+        raise NotImplementedError (O0OO000OO0OO0000O )#line:857:raise NotImplementedError(msg)
+    @property #line:859:@property
+    def prefixlen (OOOO0O00OO0O000O0 ):#line:860:def prefixlen(self):
+        return OOOO0O00OO0O000O0 ._prefixlen #line:861:return self._prefixlen
+    def address_exclude (OO000O00000O0O000 ,OOO0OOO0OO0OO00OO ):#line:863:def address_exclude(self, other):
+        ""#line:898:"""
+        if not OO000O00000O0O000 ._version ==OOO0OOO0OO0OO00OO ._version :#line:899:if not self._version == other._version:
+            raise TypeError ("%s and %s are not of the same version"%(OO000O00000O0O000 ,OOO0OOO0OO0OO00OO ))#line:901:self, other))
+        if not isinstance (OOO0OOO0OO0OO00OO ,_OOO00O000O0O00OOO ):#line:903:if not isinstance(other, _BaseNetwork):
+            raise TypeError ("%s is not a network object"%OOO0OOO0OO0OO00OO )#line:904:raise TypeError("%s is not a network object" % other)
+        if not OOO0OOO0OO0OO00OO .subnet_of (OO000O00000O0O000 ):#line:906:if not other.subnet_of(self):
+            raise ValueError ('%s not contained in %s'%(OOO0OOO0OO0OO00OO ,OO000O00000O0O000 ))#line:907:raise ValueError('%s not contained in %s' % (other, self))
+        if OOO0OOO0OO0OO00OO ==OO000O00000O0O000 :#line:908:if other == self:
+            return #line:909:return
+        OOO0OOO0OO0OO00OO =OOO0OOO0OO0OO00OO .__class__ ('%s/%s'%(OOO0OOO0OO0OO00OO .network_address ,OOO0OOO0OO0OO00OO .prefixlen ))#line:913:other.prefixlen))
+        OO0OO0O0O000OOOO0 ,O0O0000O00OOO0000 =OO000O00000O0O000 .subnets ()#line:915:s1, s2 = self.subnets()
+        while OO0OO0O0O000OOOO0 !=OOO0OOO0OO0OO00OO and O0O0000O00OOO0000 !=OOO0OOO0OO0OO00OO :#line:916:while s1 != other and s2 != other:
+            if OOO0OOO0OO0OO00OO .subnet_of (OO0OO0O0O000OOOO0 ):#line:917:if other.subnet_of(s1):
+                yield O0O0000O00OOO0000 #line:918:yield s2
+                OO0OO0O0O000OOOO0 ,O0O0000O00OOO0000 =OO0OO0O0O000OOOO0 .subnets ()#line:919:s1, s2 = s1.subnets()
+            elif OOO0OOO0OO0OO00OO .subnet_of (O0O0000O00OOO0000 ):#line:920:elif other.subnet_of(s2):
+                yield OO0OO0O0O000OOOO0 #line:921:yield s1
+                OO0OO0O0O000OOOO0 ,O0O0000O00OOO0000 =O0O0000O00OOO0000 .subnets ()#line:922:s1, s2 = s2.subnets()
+            else :#line:923:else:
+                raise AssertionError ('Error performing exclusion: ' 's1: %s s2: %s other: %s'%(OO0OO0O0O000OOOO0 ,O0O0000O00OOO0000 ,OOO0OOO0OO0OO00OO ))#line:927:(s1, s2, other))
+        if OO0OO0O0O000OOOO0 ==OOO0OOO0OO0OO00OO :#line:928:if s1 == other:
+            yield O0O0000O00OOO0000 #line:929:yield s2
+        elif O0O0000O00OOO0000 ==OOO0OOO0OO0OO00OO :#line:930:elif s2 == other:
+            yield OO0OO0O0O000OOOO0 #line:931:yield s1
+        else :#line:932:else:
+            raise AssertionError ('Error performing exclusion: ' 's1: %s s2: %s other: %s'%(OO0OO0O0O000OOOO0 ,O0O0000O00OOO0000 ,OOO0OOO0OO0OO00OO ))#line:936:(s1, s2, other))
+    def compare_networks (O00O0O0OOOO0000O0 ,O0O00O00O0O0O0OO0 ):#line:938:def compare_networks(self, other):
+        ""#line:969:"""
+        if O00O0O0OOOO0000O0 ._version !=O0O00O00O0O0O0OO0 ._version :#line:971:if self._version != other._version:
+            raise TypeError ('%s and %s are not of the same type'%(O00O0O0OOOO0000O0 ,O0O00O00O0O0O0OO0 ))#line:973:self, other))
+        if O00O0O0OOOO0000O0 .network_address <O0O00O00O0O0O0OO0 .network_address :#line:975:if self.network_address < other.network_address:
+            return -1 #line:976:return -1
+        if O00O0O0OOOO0000O0 .network_address >O0O00O00O0O0O0OO0 .network_address :#line:977:if self.network_address > other.network_address:
+            return 1 #line:978:return 1
+        if O00O0O0OOOO0000O0 .netmask <O0O00O00O0O0O0OO0 .netmask :#line:980:if self.netmask < other.netmask:
+            return -1 #line:981:return -1
+        if O00O0O0OOOO0000O0 .netmask >O0O00O00O0O0O0OO0 .netmask :#line:982:if self.netmask > other.netmask:
+            return 1 #line:983:return 1
+        return 0 #line:984:return 0
+    def _get_networks_key (OO0O0O0O00O0OOO00 ):#line:986:def _get_networks_key(self):
+        ""#line:993:"""
+        return (OO0O0O0O00O0OOO00 ._version ,OO0O0O0O00O0OOO00 .network_address ,OO0O0O0O00O0OOO00 .netmask )#line:994:return (self._version, self.network_address, self.netmask)
+    def subnets (O00000O00O0O00OO0 ,prefixlen_diff =1 ,new_prefix =None ):#line:996:def subnets(self, prefixlen_diff=1, new_prefix=None):
+        ""#line:1021:"""
+        if O00000O00O0O00OO0 ._prefixlen ==O00000O00O0O00OO0 ._max_prefixlen :#line:1022:if self._prefixlen == self._max_prefixlen:
+            yield O00000O00O0O00OO0 #line:1023:yield self
+            return #line:1024:return
+        if new_prefix is not None :#line:1026:if new_prefix is not None:
+            if new_prefix <O00000O00O0O00OO0 ._prefixlen :#line:1027:if new_prefix < self._prefixlen:
+                raise ValueError ('new prefix must be longer')#line:1028:raise ValueError('new prefix must be longer')
+            if prefixlen_diff !=1 :#line:1029:if prefixlen_diff != 1:
+                raise ValueError ('cannot set prefixlen_diff and new_prefix')#line:1030:raise ValueError('cannot set prefixlen_diff and new_prefix')
+            prefixlen_diff =new_prefix -O00000O00O0O00OO0 ._prefixlen #line:1031:prefixlen_diff = new_prefix - self._prefixlen
+        if prefixlen_diff <0 :#line:1033:if prefixlen_diff < 0:
+            raise ValueError ('prefix length diff must be > 0')#line:1034:raise ValueError('prefix length diff must be > 0')
+        OOOOOO0OOOO0O0OO0 =O00000O00O0O00OO0 ._prefixlen +prefixlen_diff #line:1035:new_prefixlen = self._prefixlen + prefixlen_diff
+        if OOOOOO0OOOO0O0OO0 >O00000O00O0O00OO0 ._max_prefixlen :#line:1037:if new_prefixlen > self._max_prefixlen:
+            raise ValueError ('prefix length diff %d is invalid for netblock %s'%(OOOOOO0OOOO0O0OO0 ,O00000O00O0O00OO0 ))#line:1040:new_prefixlen, self))
+        O0OOO0OOOO00O00OO =int (O00000O00O0O00OO0 .network_address )#line:1042:start = int(self.network_address)
+        O000O0O0OOO0OOO00 =int (O00000O00O0O00OO0 .broadcast_address )+1 #line:1043:end = int(self.broadcast_address) + 1
+        OOO00O0OO0OOOO000 =(int (O00000O00O0O00OO0 .hostmask )+1 )>>prefixlen_diff #line:1044:step = (int(self.hostmask) + 1) >> prefixlen_diff
+        for OO00OO0O00O00O00O in _OO0O000O0OOOO00OO (O0OOO0OOOO00O00OO ,O000O0O0OOO0OOO00 ,OOO00O0OO0OOOO000 ):#line:1045:for new_addr in _compat_range(start, end, step):
+            OO0000OO0O00O0OOO =O00000O00O0O00OO0 .__class__ ((OO00OO0O00O00O00O ,OOOOOO0OOOO0O0OO0 ))#line:1046:current = self.__class__((new_addr, new_prefixlen))
+            yield OO0000OO0O00O0OOO #line:1047:yield current
+    def supernet (O0OO0OO00O00000O0 ,prefixlen_diff =1 ,new_prefix =None ):#line:1049:def supernet(self, prefixlen_diff=1, new_prefix=None):
+        ""#line:1069:"""
+        if O0OO0OO00O00000O0 ._prefixlen ==0 :#line:1070:if self._prefixlen == 0:
+            return O0OO0OO00O00000O0 #line:1071:return self
+        if new_prefix is not None :#line:1073:if new_prefix is not None:
+            if new_prefix >O0OO0OO00O00000O0 ._prefixlen :#line:1074:if new_prefix > self._prefixlen:
+                raise ValueError ('new prefix must be shorter')#line:1075:raise ValueError('new prefix must be shorter')
+            if prefixlen_diff !=1 :#line:1076:if prefixlen_diff != 1:
+                raise ValueError ('cannot set prefixlen_diff and new_prefix')#line:1077:raise ValueError('cannot set prefixlen_diff and new_prefix')
+            prefixlen_diff =O0OO0OO00O00000O0 ._prefixlen -new_prefix #line:1078:prefixlen_diff = self._prefixlen - new_prefix
+        O0O0O00O00OOOO000 =O0OO0OO00O00000O0 .prefixlen -prefixlen_diff #line:1080:new_prefixlen = self.prefixlen - prefixlen_diff
+        if O0O0O00O00OOOO000 <0 :#line:1081:if new_prefixlen < 0:
+            raise ValueError ('current prefixlen is %d, cannot have a prefixlen_diff of %d'%(O0OO0OO00O00000O0 .prefixlen ,prefixlen_diff ))#line:1084:(self.prefixlen, prefixlen_diff))
+        return O0OO0OO00O00000O0 .__class__ ((int (O0OO0OO00O00000O0 .network_address )&(int (O0OO0OO00O00000O0 .netmask )<<prefixlen_diff ),O0O0O00O00OOOO000 ))#line:1087:new_prefixlen))
+    @property #line:1089:@property
+    def is_multicast (OO0O00OO00O0OO0O0 ):#line:1090:def is_multicast(self):
+        ""#line:1097:"""
+        return (OO0O00OO00O0OO0O0 .network_address .is_multicast and OO0O00OO00O0OO0O0 .broadcast_address .is_multicast )#line:1099:self.broadcast_address.is_multicast)
+    @staticmethod #line:1101:@staticmethod
+    def _is_subnet_of (OOOO0O00O0OOOOOOO ,O0OOO00000OO0O00O ):#line:1102:def _is_subnet_of(a, b):
+        try :#line:1103:try:
+            if OOOO0O00O0OOOOOOO ._version !=O0OOO00000OO0O00O ._version :#line:1105:if a._version != b._version:
+                raise TypeError ("%s and %s are not of the same version"(OOOO0O00O0OOOOOOO ,O0OOO00000OO0O00O ))#line:1106:raise TypeError("%s and %s are not of the same version" (a, b))
+            return (O0OOO00000OO0O00O .network_address <=OOOO0O00O0OOOOOOO .network_address and O0OOO00000OO0O00O .broadcast_address >=OOOO0O00O0OOOOOOO .broadcast_address )#line:1108:b.broadcast_address >= a.broadcast_address)
+        except AttributeError :#line:1109:except AttributeError:
+            raise TypeError ("Unable to test subnet containment " "between %s and %s"%(OOOO0O00O0OOOOOOO ,O0OOO00000OO0O00O ))#line:1111:"between %s and %s" % (a, b))
+    def subnet_of (O0O0OO0OO0O0OOOOO ,OOO0OOO000O00OO00 ):#line:1113:def subnet_of(self, other):
+        ""#line:1114:"""Return True if this network is a subnet of other."""
+        return O0O0OO0OO0O0OOOOO ._is_subnet_of (O0O0OO0OO0O0OOOOO ,OOO0OOO000O00OO00 )#line:1115:return self._is_subnet_of(self, other)
+    def supernet_of (O00OOOO00O00O0O00 ,OO0O0O00OO000OO00 ):#line:1117:def supernet_of(self, other):
+        ""#line:1118:"""Return True if this network is a supernet of other."""
+        return O00OOOO00O00O0O00 ._is_subnet_of (OO0O0O00OO000OO00 ,O00OOOO00O00O0O00 )#line:1119:return self._is_subnet_of(other, self)
+    @property #line:1121:@property
+    def is_reserved (O00000000OO0OOOO0 ):#line:1122:def is_reserved(self):
+        ""#line:1129:"""
+        return (O00000000OO0OOOO0 .network_address .is_reserved and O00000000OO0OOOO0 .broadcast_address .is_reserved )#line:1131:self.broadcast_address.is_reserved)
+    @property #line:1133:@property
+    def is_link_local (OOOO0OO0OOO0O0O0O ):#line:1134:def is_link_local(self):
+        ""#line:1140:"""
+        return (OOOO0OO0OOO0O0O0O .network_address .is_link_local and OOOO0OO0OOO0O0O0O .broadcast_address .is_link_local )#line:1142:self.broadcast_address.is_link_local)
+    @property #line:1144:@property
+    def is_private (O0O00OO0000000O00 ):#line:1145:def is_private(self):
+        ""#line:1152:"""
+        return (O0O00OO0000000O00 .network_address .is_private and O0O00OO0000000O00 .broadcast_address .is_private )#line:1154:self.broadcast_address.is_private)
+    @property #line:1156:@property
+    def is_global (OO0O0OO0O0O0OO0O0 ):#line:1157:def is_global(self):
+        ""#line:1164:"""
+        return not OO0O0OO0O0O0OO0O0 .is_private #line:1165:return not self.is_private
+    @property #line:1167:@property
+    def is_unspecified (O0OOOO0OO0OOO0000 ):#line:1168:def is_unspecified(self):
+        ""#line:1175:"""
+        return (O0OOOO0OO0OOO0000 .network_address .is_unspecified and O0OOOO0OO0OOO0000 .broadcast_address .is_unspecified )#line:1177:self.broadcast_address.is_unspecified)
+    @property #line:1179:@property
+    def is_loopback (OOOOO000O00O0OOOO ):#line:1180:def is_loopback(self):
+        ""#line:1187:"""
+        return (OOOOO000O00O0OOOO .network_address .is_loopback and OOOOO000O00O0OOOO .broadcast_address .is_loopback )#line:1189:self.broadcast_address.is_loopback)
+class _OO0O0O0OOOOO000O0 (object ):#line:1192:class _BaseV4(object):
+    ""#line:1199:"""
+    __slots__ =()#line:1201:__slots__ = ()
+    _version =4 #line:1202:_version = 4
+    _ALL_ONES =(2 **IPV4LENGTH )-1 #line:1204:_ALL_ONES = (2 ** IPV4LENGTH) - 1
+    _DECIMAL_DIGITS =frozenset ('0123456789')#line:1205:_DECIMAL_DIGITS = frozenset('0123456789')
+    _valid_mask_octets =frozenset ([255 ,254 ,252 ,248 ,240 ,224 ,192 ,128 ,0 ])#line:1208:_valid_mask_octets = frozenset([255, 254, 252, 248, 240, 224, 192, 128, 0])
+    _max_prefixlen =IPV4LENGTH #line:1210:_max_prefixlen = IPV4LENGTH
+    _netmask_cache ={}#line:1213:_netmask_cache = {}
+    def _explode_shorthand_ip_string (O0O0O0O000OO00OO0 ):#line:1215:def _explode_shorthand_ip_string(self):
+        return _OOO00OO0OO000OOO0 (O0O0O0O000OO00OO0 )#line:1216:return _compat_str(self)
+    @classmethod #line:1218:@classmethod
+    def _make_netmask (O0OO0O00O00OOOO00 ,O000O0OOOOOOOO0OO ):#line:1219:def _make_netmask(cls, arg):
+        ""#line:1226:"""
+        if O000O0OOOOOOOO0OO not in O0OO0O00O00OOOO00 ._netmask_cache :#line:1227:if arg not in cls._netmask_cache:
+            if isinstance (O000O0OOOOOOOO0OO ,_O000O0000OO00000O ):#line:1228:if isinstance(arg, _compat_int_types):
+                OO0OOO0O0O0OO0O0O =O000O0OOOOOOOO0OO #line:1229:prefixlen = arg
+            else :#line:1230:else:
+                try :#line:1231:try:
+                    OO0OOO0O0O0OO0O0O =O0OO0O00O00OOOO00 ._prefix_from_prefix_string (O000O0OOOOOOOO0OO )#line:1233:prefixlen = cls._prefix_from_prefix_string(arg)
+                except NetmaskValueError :#line:1234:except NetmaskValueError:
+                    OO0OOO0O0O0OO0O0O =O0OO0O00O00OOOO00 ._prefix_from_ip_string (O000O0OOOOOOOO0OO )#line:1237:prefixlen = cls._prefix_from_ip_string(arg)
+            OOOO0OO000O0O0OOO =IPv4Address (O0OO0O00O00OOOO00 ._ip_int_from_prefix (OO0OOO0O0O0OO0O0O ))#line:1238:netmask = IPv4Address(cls._ip_int_from_prefix(prefixlen))
+            O0OO0O00O00OOOO00 ._netmask_cache [O000O0OOOOOOOO0OO ]=OOOO0OO000O0O0OOO ,OO0OOO0O0O0OO0O0O #line:1239:cls._netmask_cache[arg] = netmask, prefixlen
+        return O0OO0O00O00OOOO00 ._netmask_cache [O000O0OOOOOOOO0OO ]#line:1240:return cls._netmask_cache[arg]
+    @classmethod #line:1242:@classmethod
+    def _ip_int_from_string (O00OOOOO0000000O0 ,OO0OO0OOOO0OOOO0O ):#line:1243:def _ip_int_from_string(cls, ip_str):
+        ""#line:1255:"""
+        if not OO0OO0OOOO0OOOO0O :#line:1256:if not ip_str:
+            raise AddressValueError ('Address cannot be empty')#line:1257:raise AddressValueError('Address cannot be empty')
+        O00OO00O0O00O0O0O =OO0OO0OOOO0OOOO0O .split ('.')#line:1259:octets = ip_str.split('.')
+        if len (O00OO00O0O00O0O0O )!=4 :#line:1260:if len(octets) != 4:
+            raise AddressValueError ("Expected 4 octets in %r"%OO0OO0OOOO0OOOO0O )#line:1261:raise AddressValueError("Expected 4 octets in %r" % ip_str)
+        try :#line:1263:try:
+            return _OOO0OOO00OO0O00O0 (map (O00OOOOO0000000O0 ._parse_octet ,O00OO00O0O00O0O0O ),'big')#line:1265:map(cls._parse_octet, octets), 'big')
+        except ValueError as O0OOO00O0OOO0000O :#line:1266:except ValueError as exc:
+            raise AddressValueError ("%s in %r"%(O0OOO00O0OOO0000O ,OO0OO0OOOO0OOOO0O ))#line:1267:raise AddressValueError("%s in %r" % (exc, ip_str))
+    @classmethod #line:1269:@classmethod
+    def _parse_octet (O0OO0OOO0OOOOO0OO ,OOOOO0O00OOOO00OO ):#line:1270:def _parse_octet(cls, octet_str):
+        ""#line:1282:"""
+        if not OOOOO0O00OOOO00OO :#line:1283:if not octet_str:
+            raise ValueError ("Empty octet not permitted")#line:1284:raise ValueError("Empty octet not permitted")
+        if not O0OO0OOO0OOOOO0OO ._DECIMAL_DIGITS .issuperset (OOOOO0O00OOOO00OO ):#line:1286:if not cls._DECIMAL_DIGITS.issuperset(octet_str):
+            O00OO00000OO00OO0 ="Only decimal digits permitted in %r"#line:1287:msg = "Only decimal digits permitted in %r"
+            raise ValueError (O00OO00000OO00OO0 %OOOOO0O00OOOO00OO )#line:1288:raise ValueError(msg % octet_str)
+        if len (OOOOO0O00OOOO00OO )>3 :#line:1291:if len(octet_str) > 3:
+            O00OO00000OO00OO0 ="At most 3 characters permitted in %r"#line:1292:msg = "At most 3 characters permitted in %r"
+            raise ValueError (O00OO00000OO00OO0 %OOOOO0O00OOOO00OO )#line:1293:raise ValueError(msg % octet_str)
+        OO000O0O0O0OOOOOO =int (OOOOO0O00OOOO00OO ,10 )#line:1295:octet_int = int(octet_str, 10)
+        if OO000O0O0O0OOOOOO >7 and OOOOO0O00OOOO00OO [0 ]=='0':#line:1299:if octet_int > 7 and octet_str[0] == '0':
+            O00OO00000OO00OO0 ="Ambiguous (octal/decimal) value in %r not permitted"#line:1300:msg = "Ambiguous (octal/decimal) value in %r not permitted"
+            raise ValueError (O00OO00000OO00OO0 %OOOOO0O00OOOO00OO )#line:1301:raise ValueError(msg % octet_str)
+        if OO000O0O0O0OOOOOO >255 :#line:1302:if octet_int > 255:
+            raise ValueError ("Octet %d (> 255) not permitted"%OO000O0O0O0OOOOOO )#line:1303:raise ValueError("Octet %d (> 255) not permitted" % octet_int)
+        return OO000O0O0O0OOOOOO #line:1304:return octet_int
+    @classmethod #line:1306:@classmethod
+    def _string_from_ip_int (O0OOOO00O00O0OOO0 ,OOO00O00O0O00O0O0 ):#line:1307:def _string_from_ip_int(cls, ip_int):
+        ""#line:1316:"""
+        return '.'.join (_OOO00OO0OO000OOO0 (struct .unpack (b'!B',OOO00OO00OOO00OOO )[0 ]if isinstance (OOO00OO00OOO00OOO ,bytes )else OOO00OO00OOO00OOO )for OOO00OO00OOO00OOO in _OOOOO00O0000O0000 (OOO00O00O0O00O0O0 ,4 ,'big'))#line:1320:for b in _compat_to_bytes(ip_int, 4, 'big'))
+    def _is_hostmask (OO00OO00O0OOOO000 ,O00O00OOOOO0OO000 ):#line:1322:def _is_hostmask(self, ip_str):
+        ""#line:1331:"""
+        OO0O000O00OO00O00 =O00O00OOOOO0OO000 .split ('.')#line:1332:bits = ip_str.split('.')
+        try :#line:1333:try:
+            O00O000O0OOOOOO0O =[O0OO0O00OO0O00O00 for O0OO0O00OO0O00O00 in map (int ,OO0O000O00OO00O00 )if O0OO0O00OO0O00O00 in OO00OO00O0OOOO000 ._valid_mask_octets ]#line:1334:parts = [x for x in map(int, bits) if x in self._valid_mask_octets]
+        except ValueError :#line:1335:except ValueError:
+            return False #line:1336:return False
+        if len (O00O000O0OOOOOO0O )!=len (OO0O000O00OO00O00 ):#line:1337:if len(parts) != len(bits):
+            return False #line:1338:return False
+        if O00O000O0OOOOOO0O [0 ]<O00O000O0OOOOOO0O [-1 ]:#line:1339:if parts[0] < parts[-1]:
+            return True #line:1340:return True
+        return False #line:1341:return False
+    def _reverse_pointer (O000O0OO0OOOO0OOO ):#line:1343:def _reverse_pointer(self):
+        ""#line:1348:"""
+        O0O0OO0000O00O0O0 =_OOO00OO0OO000OOO0 (O000O0OO0OOOO0OOO ).split ('.')[::-1 ]#line:1349:reverse_octets = _compat_str(self).split('.')[::-1]
+        return '.'.join (O0O0OO0000O00O0O0 )+'.in-addr.arpa'#line:1350:return '.'.join(reverse_octets) + '.in-addr.arpa'
+    @property #line:1352:@property
+    def max_prefixlen (OOOO000OO0000OO0O ):#line:1353:def max_prefixlen(self):
+        return OOOO000OO0000OO0O ._max_prefixlen #line:1354:return self._max_prefixlen
+    @property #line:1356:@property
+    def version (O0O0O000O0OO00000 ):#line:1357:def version(self):
+        return O0O0O000O0OO00000 ._version #line:1358:return self._version
+class IPv4Address (_OO0O0O0OOOOO000O0 ,_OOOO00OOO0O0O0000 ):#line:1361:class IPv4Address(_BaseV4, _BaseAddress):
+    ""#line:1363:"""Represent and manipulate single IPv4 Addresses."""
+    __slots__ =('_ip','__weakref__')#line:1365:__slots__ = ('_ip', '__weakref__')
+    def __init__ (O000OOO0OOOOOOOO0 ,OO00OO0O000OO00O0 ):#line:1367:def __init__(self, address):
+        ""#line:1382:"""
+        if isinstance (OO00OO0O000OO00O0 ,_O000O0000OO00000O ):#line:1384:if isinstance(address, _compat_int_types):
+            O000OOO0OOOOOOOO0 ._check_int_address (OO00OO0O000OO00O0 )#line:1385:self._check_int_address(address)
+            O000OOO0OOOOOOOO0 ._ip =OO00OO0O000OO00O0 #line:1386:self._ip = address
+            return #line:1387:return
+        if isinstance (OO00OO0O000OO00O0 ,bytes ):#line:1390:if isinstance(address, bytes):
+            O000OOO0OOOOOOOO0 ._check_packed_address (OO00OO0O000OO00O0 ,4 )#line:1391:self._check_packed_address(address, 4)
+            O0O0000O0O0O00000 =_OOOOO00O0OO0OOO0O (OO00OO0O000OO00O0 )#line:1392:bvs = _compat_bytes_to_byte_vals(address)
+            O000OOO0OOOOOOOO0 ._ip =_OOO0OOO00OO0O00O0 (O0O0000O0O0O00000 ,'big')#line:1393:self._ip = _compat_int_from_byte_vals(bvs, 'big')
+            return #line:1394:return
+        O000OO0O0000O000O =_OOO00OO0OO000OOO0 (OO00OO0O000OO00O0 )#line:1398:addr_str = _compat_str(address)
+        if '/'in O000OO0O0000O000O :#line:1399:if '/' in addr_str:
+            raise AddressValueError ("Unexpected '/' in %r"%OO00OO0O000OO00O0 )#line:1400:raise AddressValueError("Unexpected '/' in %r" % address)
+        O000OOO0OOOOOOOO0 ._ip =O000OOO0OOOOOOOO0 ._ip_int_from_string (O000OO0O0000O000O )#line:1401:self._ip = self._ip_int_from_string(addr_str)
+    @property #line:1403:@property
+    def packed (OOOOOOO0000O000OO ):#line:1404:def packed(self):
+        ""#line:1405:"""The binary representation of this address."""
+        return v4_int_to_packed (OOOOOOO0000O000OO ._ip )#line:1406:return v4_int_to_packed(self._ip)
+    @property #line:1408:@property
+    def is_reserved (O00O0O0OO0O000O00 ):#line:1409:def is_reserved(self):
+        ""#line:1416:"""
+        return O00O0O0OO0O000O00 in O00O0O0OO0O000O00 ._constants ._reserved_network #line:1417:return self in self._constants._reserved_network
+    @property #line:1419:@property
+    def is_private (O0OO0OOOO00OOOOO0 ):#line:1420:def is_private(self):
+        ""#line:1427:"""
+        return any (O0OO0OOOO00OOOOO0 in OOO0OOO0OOO0O00O0 for OOO0OOO0OOO0O00O0 in O0OO0OOOO00OOOOO0 ._constants ._private_networks )#line:1428:return any(self in net for net in self._constants._private_networks)
+    @property #line:1430:@property
+    def is_global (O00O00OOOO0OO0OO0 ):#line:1431:def is_global(self):
+        return (O00O00OOOO0OO0OO0 not in O00O00OOOO0OO0OO0 ._constants ._public_network and not O00O00OOOO0OO0OO0 .is_private )#line:1434:not self.is_private)
+    @property #line:1436:@property
+    def is_multicast (O0OOOOO0O00000OO0 ):#line:1437:def is_multicast(self):
+        ""#line:1444:"""
+        return O0OOOOO0O00000OO0 in O0OOOOO0O00000OO0 ._constants ._multicast_network #line:1445:return self in self._constants._multicast_network
+    @property #line:1447:@property
+    def is_unspecified (OO0O0O00OOO00OOO0 ):#line:1448:def is_unspecified(self):
+        ""#line:1455:"""
+        return OO0O0O00OOO00OOO0 ==OO0O0O00OOO00OOO0 ._constants ._unspecified_address #line:1456:return self == self._constants._unspecified_address
+    @property #line:1458:@property
+    def is_loopback (O000O00O00OO0OO0O ):#line:1459:def is_loopback(self):
+        ""#line:1465:"""
+        return O000O00O00OO0OO0O in O000O00O00OO0OO0O ._constants ._loopback_network #line:1466:return self in self._constants._loopback_network
+    @property #line:1468:@property
+    def is_link_local (O00OOO0O0O0O0O0OO ):#line:1469:def is_link_local(self):
+        ""#line:1475:"""
+        return O00OOO0O0O0O0O0OO in O00OOO0O0O0O0O0OO ._constants ._linklocal_network #line:1476:return self in self._constants._linklocal_network
+class IPv4Interface (IPv4Address ):#line:1479:class IPv4Interface(IPv4Address):
+    def __init__ (OOOOOOO0O0O00O0O0 ,O0OO0O0OO0OOOO0O0 ):#line:1481:def __init__(self, address):
+        if isinstance (O0OO0O0OO0OOOO0O0 ,(bytes ,_O000O0000OO00000O )):#line:1482:if isinstance(address, (bytes, _compat_int_types)):
+            IPv4Address .__init__ (OOOOOOO0O0O00O0O0 ,O0OO0O0OO0OOOO0O0 )#line:1483:IPv4Address.__init__(self, address)
+            OOOOOOO0O0O00O0O0 .network =IPv4Network (OOOOOOO0O0O00O0O0 ._ip )#line:1484:self.network = IPv4Network(self._ip)
+            OOOOOOO0O0O00O0O0 ._prefixlen =OOOOOOO0O0O00O0O0 ._max_prefixlen #line:1485:self._prefixlen = self._max_prefixlen
+            return #line:1486:return
+        if isinstance (O0OO0O0OO0OOOO0O0 ,tuple ):#line:1488:if isinstance(address, tuple):
+            IPv4Address .__init__ (OOOOOOO0O0O00O0O0 ,O0OO0O0OO0OOOO0O0 [0 ])#line:1489:IPv4Address.__init__(self, address[0])
+            if len (O0OO0O0OO0OOOO0O0 )>1 :#line:1490:if len(address) > 1:
+                OOOOOOO0O0O00O0O0 ._prefixlen =int (O0OO0O0OO0OOOO0O0 [1 ])#line:1491:self._prefixlen = int(address[1])
+            else :#line:1492:else:
+                OOOOOOO0O0O00O0O0 ._prefixlen =OOOOOOO0O0O00O0O0 ._max_prefixlen #line:1493:self._prefixlen = self._max_prefixlen
+            OOOOOOO0O0O00O0O0 .network =IPv4Network (O0OO0O0OO0OOOO0O0 ,strict =False )#line:1495:self.network = IPv4Network(address, strict=False)
+            OOOOOOO0O0O00O0O0 .netmask =OOOOOOO0O0O00O0O0 .network .netmask #line:1496:self.netmask = self.network.netmask
+            OOOOOOO0O0O00O0O0 .hostmask =OOOOOOO0O0O00O0O0 .network .hostmask #line:1497:self.hostmask = self.network.hostmask
+            return #line:1498:return
+        OOOO00O000OOO0O0O =_O0000OOO0O0OOO0OO (O0OO0O0OO0OOOO0O0 )#line:1500:addr = _split_optional_netmask(address)
+        IPv4Address .__init__ (OOOOOOO0O0O00O0O0 ,OOOO00O000OOO0O0O [0 ])#line:1501:IPv4Address.__init__(self, addr[0])
+        OOOOOOO0O0O00O0O0 .network =IPv4Network (O0OO0O0OO0OOOO0O0 ,strict =False )#line:1503:self.network = IPv4Network(address, strict=False)
+        OOOOOOO0O0O00O0O0 ._prefixlen =OOOOOOO0O0O00O0O0 .network ._prefixlen #line:1504:self._prefixlen = self.network._prefixlen
+        OOOOOOO0O0O00O0O0 .netmask =OOOOOOO0O0O00O0O0 .network .netmask #line:1506:self.netmask = self.network.netmask
+        OOOOOOO0O0O00O0O0 .hostmask =OOOOOOO0O0O00O0O0 .network .hostmask #line:1507:self.hostmask = self.network.hostmask
+    def __str__ (O0O00OOO0OOO00000 ):#line:1509:def __str__(self):
+        return '%s/%d'%(O0O00OOO0OOO00000 ._string_from_ip_int (O0O00OOO0OOO00000 ._ip ),O0O00OOO0OOO00000 .network .prefixlen )#line:1511:self.network.prefixlen)
+    def __eq__ (O0O0O0000OOOOO000 ,O0OOOO00O000O0OOO ):#line:1513:def __eq__(self, other):
+        OOOO0OO0O0OO00O00 =IPv4Address .__eq__ (O0O0O0000OOOOO000 ,O0OOOO00O000O0OOO )#line:1514:address_equal = IPv4Address.__eq__(self, other)
+        if not OOOO0OO0O0OO00O00 or OOOO0OO0O0OO00O00 is NotImplemented :#line:1515:if not address_equal or address_equal is NotImplemented:
+            return OOOO0OO0O0OO00O00 #line:1516:return address_equal
+        try :#line:1517:try:
+            return O0O0O0000OOOOO000 .network ==O0OOOO00O000O0OOO .network #line:1518:return self.network == other.network
+        except AttributeError :#line:1519:except AttributeError:
+            return False #line:1523:return False
+    def __lt__ (O0O00O0O00000000O ,OO00OOOOO00000O0O ):#line:1525:def __lt__(self, other):
+        O000OO00OOO000000 =IPv4Address .__lt__ (O0O00O0O00000000O ,OO00OOOOO00000O0O )#line:1526:address_less = IPv4Address.__lt__(self, other)
+        if O000OO00OOO000000 is NotImplemented :#line:1527:if address_less is NotImplemented:
+            return NotImplemented #line:1528:return NotImplemented
+        try :#line:1529:try:
+            return (O0O00O0O00000000O .network <OO00OOOOO00000O0O .network or O0O00O0O00000000O .network ==OO00OOOOO00000O0O .network and O000OO00OOO000000 )#line:1531:self.network == other.network and address_less)
+        except AttributeError :#line:1532:except AttributeError:
+            return False #line:1535:return False
+    def __hash__ (OO00OO0OOOO0OOOOO ):#line:1537:def __hash__(self):
+        return OO00OO0OOOO0OOOOO ._ip ^OO00OO0OOOO0OOOOO ._prefixlen ^int (OO00OO0OOOO0OOOOO .network .network_address )#line:1538:return self._ip ^ self._prefixlen ^ int(self.network.network_address)
+    __reduce__ =_OO0OOO00O0OO00O00 .__reduce__ #line:1540:__reduce__ = _IPAddressBase.__reduce__
+    @property #line:1542:@property
+    def ip (O00OO00O00OO0OO0O ):#line:1543:def ip(self):
+        return IPv4Address (O00OO00O00OO0OO0O ._ip )#line:1544:return IPv4Address(self._ip)
+    @property #line:1546:@property
+    def with_prefixlen (O0OO000000O0OOOOO ):#line:1547:def with_prefixlen(self):
+        return '%s/%s'%(O0OO000000O0OOOOO ._string_from_ip_int (O0OO000000O0OOOOO ._ip ),O0OO000000O0OOOOO ._prefixlen )#line:1549:self._prefixlen)
+    @property #line:1551:@property
+    def with_netmask (O00OO0OO0000OOOOO ):#line:1552:def with_netmask(self):
+        return '%s/%s'%(O00OO0OO0000OOOOO ._string_from_ip_int (O00OO0OO0000OOOOO ._ip ),O00OO0OO0000OOOOO .netmask )#line:1554:self.netmask)
+    @property #line:1556:@property
+    def with_hostmask (OO000000000O0000O ):#line:1557:def with_hostmask(self):
+        return '%s/%s'%(OO000000000O0000O ._string_from_ip_int (OO000000000O0000O ._ip ),OO000000000O0000O .hostmask )#line:1559:self.hostmask)
+class IPv4Network (_OO0O0O0OOOOO000O0 ,_OOO00O000O0O00OOO ):#line:1562:class IPv4Network(_BaseV4, _BaseNetwork):
+    ""#line:1573:"""
+    _address_class =IPv4Address #line:1575:_address_class = IPv4Address
+    def __init__ (OOO0OOO0OO0OOO00O ,OO0000OO0OOOOOO00 ,strict =True ):#line:1577:def __init__(self, address, strict=True):
+        ""#line:1613:"""
+        _OOO00O000O0O00OOO .__init__ (OOO0OOO0OO0OOO00O ,OO0000OO0OOOOOO00 )#line:1614:_BaseNetwork.__init__(self, address)
+        if isinstance (OO0000OO0OOOOOO00 ,(_O000O0000OO00000O ,bytes )):#line:1617:if isinstance(address, (_compat_int_types, bytes)):
+            OOO0OOO0OO0OOO00O .network_address =IPv4Address (OO0000OO0OOOOOO00 )#line:1618:self.network_address = IPv4Address(address)
+            OOO0OOO0OO0OOO00O .netmask ,OOO0OOO0OO0OOO00O ._prefixlen =OOO0OOO0OO0OOO00O ._make_netmask (OOO0OOO0OO0OOO00O ._max_prefixlen )#line:1620:self._max_prefixlen)
+            return #line:1622:return
+        if isinstance (OO0000OO0OOOOOO00 ,tuple ):#line:1624:if isinstance(address, tuple):
+            if len (OO0000OO0OOOOOO00 )>1 :#line:1625:if len(address) > 1:
+                OO0O0000O0OO000O0 =OO0000OO0OOOOOO00 [1 ]#line:1626:arg = address[1]
+            else :#line:1627:else:
+                OO0O0000O0OO000O0 =OOO0OOO0OO0OOO00O ._max_prefixlen #line:1629:arg = self._max_prefixlen
+            OOO0OOO0OO0OOO00O .network_address =IPv4Address (OO0000OO0OOOOOO00 [0 ])#line:1630:self.network_address = IPv4Address(address[0])
+            OOO0OOO0OO0OOO00O .netmask ,OOO0OOO0OO0OOO00O ._prefixlen =OOO0OOO0OO0OOO00O ._make_netmask (OO0O0000O0OO000O0 )#line:1631:self.netmask, self._prefixlen = self._make_netmask(arg)
+            OOOOO0000O00000O0 =int (OOO0OOO0OO0OOO00O .network_address )#line:1632:packed = int(self.network_address)
+            if OOOOO0000O00000O0 &int (OOO0OOO0OO0OOO00O .netmask )!=OOOOO0000O00000O0 :#line:1633:if packed & int(self.netmask) != packed:
+                if strict :#line:1634:if strict:
+                    raise ValueError ('%s has host bits set'%OOO0OOO0OO0OOO00O )#line:1635:raise ValueError('%s has host bits set' % self)
+                else :#line:1636:else:
+                    OOO0OOO0OO0OOO00O .network_address =IPv4Address (OOOOO0000O00000O0 &int (OOO0OOO0OO0OOO00O .netmask ))#line:1638:int(self.netmask))
+            return #line:1639:return
+        O0O0OOOOO0O0000O0 =_O0000OOO0O0OOO0OO (OO0000OO0OOOOOO00 )#line:1643:addr = _split_optional_netmask(address)
+        OOO0OOO0OO0OOO00O .network_address =IPv4Address (OOO0OOO0OO0OOO00O ._ip_int_from_string (O0O0OOOOO0O0000O0 [0 ]))#line:1644:self.network_address = IPv4Address(self._ip_int_from_string(addr[0]))
+        if len (O0O0OOOOO0O0000O0 )==2 :#line:1646:if len(addr) == 2:
+            OO0O0000O0OO000O0 =O0O0OOOOO0O0000O0 [1 ]#line:1647:arg = addr[1]
+        else :#line:1648:else:
+            OO0O0000O0OO000O0 =OOO0OOO0OO0OOO00O ._max_prefixlen #line:1649:arg = self._max_prefixlen
+        OOO0OOO0OO0OOO00O .netmask ,OOO0OOO0OO0OOO00O ._prefixlen =OOO0OOO0OO0OOO00O ._make_netmask (OO0O0000O0OO000O0 )#line:1650:self.netmask, self._prefixlen = self._make_netmask(arg)
+        if strict :#line:1652:if strict:
+            if (IPv4Address (int (OOO0OOO0OO0OOO00O .network_address )&int (OOO0OOO0OO0OOO00O .netmask ))!=OOO0OOO0OO0OOO00O .network_address ):#line:1654:self.network_address):
+                raise ValueError ('%s has host bits set'%OOO0OOO0OO0OOO00O )#line:1655:raise ValueError('%s has host bits set' % self)
+        OOO0OOO0OO0OOO00O .network_address =IPv4Address (int (OOO0OOO0OO0OOO00O .network_address )&int (OOO0OOO0OO0OOO00O .netmask ))#line:1657:int(self.netmask))
+        if OOO0OOO0OO0OOO00O ._prefixlen ==(OOO0OOO0OO0OOO00O ._max_prefixlen -1 ):#line:1659:if self._prefixlen == (self._max_prefixlen - 1):
+            OOO0OOO0OO0OOO00O .hosts =OOO0OOO0OO0OOO00O .__iter__ #line:1660:self.hosts = self.__iter__
+    @property #line:1662:@property
+    def is_global (O0000OO0O0000OOOO ):#line:1663:def is_global(self):
+        ""#line:1670:"""
+        return (not (O0000OO0O0000OOOO .network_address in IPv4Network ('100.64.0.0/10')and O0000OO0O0000OOOO .broadcast_address in IPv4Network ('100.64.0.0/10'))and not O0000OO0O0000OOOO .is_private )#line:1673:not self.is_private)
+class _O0O0O0O000OO000OO (object ):#line:1676:class _IPv4Constants(object):
+    _linklocal_network =IPv4Network ('169.254.0.0/16')#line:1678:_linklocal_network = IPv4Network('169.254.0.0/16')
+    _loopback_network =IPv4Network ('127.0.0.0/8')#line:1680:_loopback_network = IPv4Network('127.0.0.0/8')
+    _multicast_network =IPv4Network ('224.0.0.0/4')#line:1682:_multicast_network = IPv4Network('224.0.0.0/4')
+    _public_network =IPv4Network ('100.64.0.0/10')#line:1684:_public_network = IPv4Network('100.64.0.0/10')
+    _private_networks =[IPv4Network ('0.0.0.0/8'),IPv4Network ('10.0.0.0/8'),IPv4Network ('127.0.0.0/8'),IPv4Network ('169.254.0.0/16'),IPv4Network ('172.16.0.0/12'),IPv4Network ('192.0.0.0/29'),IPv4Network ('192.0.0.170/31'),IPv4Network ('192.0.2.0/24'),IPv4Network ('192.168.0.0/16'),IPv4Network ('198.18.0.0/15'),IPv4Network ('198.51.100.0/24'),IPv4Network ('203.0.113.0/24'),IPv4Network ('240.0.0.0/4'),IPv4Network ('255.255.255.255/32'),]#line:1701:]
+    _reserved_network =IPv4Network ('240.0.0.0/4')#line:1703:_reserved_network = IPv4Network('240.0.0.0/4')
+    _unspecified_address =IPv4Address ('0.0.0.0')#line:1705:_unspecified_address = IPv4Address('0.0.0.0')
+IPv4Address ._constants =_O0O0O0O000OO000OO #line:1708:IPv4Address._constants = _IPv4Constants
+class _OOO0O0OO00000OOO0 (object ):#line:1711:class _BaseV6(object):
+    ""#line:1718:"""
+    __slots__ =()#line:1720:__slots__ = ()
+    _version =6 #line:1721:_version = 6
+    _ALL_ONES =(2 **IPV6LENGTH )-1 #line:1722:_ALL_ONES = (2 ** IPV6LENGTH) - 1
+    _HEXTET_COUNT =8 #line:1723:_HEXTET_COUNT = 8
+    _HEX_DIGITS =frozenset ('0123456789ABCDEFabcdef')#line:1724:_HEX_DIGITS = frozenset('0123456789ABCDEFabcdef')
+    _max_prefixlen =IPV6LENGTH #line:1725:_max_prefixlen = IPV6LENGTH
+    _netmask_cache ={}#line:1729:_netmask_cache = {}
+    @classmethod #line:1731:@classmethod
+    def _make_netmask (O0O0O00OOO0O00OO0 ,OO0OOO0000OOOO0O0 ):#line:1732:def _make_netmask(cls, arg):
+        ""#line:1739:"""
+        if OO0OOO0000OOOO0O0 not in O0O0O00OOO0O00OO0 ._netmask_cache :#line:1740:if arg not in cls._netmask_cache:
+            if isinstance (OO0OOO0000OOOO0O0 ,_O000O0000OO00000O ):#line:1741:if isinstance(arg, _compat_int_types):
+                OOOO00O00OO0O0OO0 =OO0OOO0000OOOO0O0 #line:1742:prefixlen = arg
+            else :#line:1743:else:
+                OOOO00O00OO0O0OO0 =O0O0O00OOO0O00OO0 ._prefix_from_prefix_string (OO0OOO0000OOOO0O0 )#line:1744:prefixlen = cls._prefix_from_prefix_string(arg)
+            O00000O0O0OO0O00O =IPv6Address (O0O0O00OOO0O00OO0 ._ip_int_from_prefix (OOOO00O00OO0O0OO0 ))#line:1745:netmask = IPv6Address(cls._ip_int_from_prefix(prefixlen))
+            O0O0O00OOO0O00OO0 ._netmask_cache [OO0OOO0000OOOO0O0 ]=O00000O0O0OO0O00O ,OOOO00O00OO0O0OO0 #line:1746:cls._netmask_cache[arg] = netmask, prefixlen
+        return O0O0O00OOO0O00OO0 ._netmask_cache [OO0OOO0000OOOO0O0 ]#line:1747:return cls._netmask_cache[arg]
+    @classmethod #line:1749:@classmethod
+    def _ip_int_from_string (O0OO00O0O000O0OO0 ,OO0OO0O0OOO0O0OO0 ):#line:1750:def _ip_int_from_string(cls, ip_str):
+        ""#line:1762:"""
+        if not OO0OO0O0OOO0O0OO0 :#line:1763:if not ip_str:
+            raise AddressValueError ('Address cannot be empty')#line:1764:raise AddressValueError('Address cannot be empty')
+        O0O0000O0OOOOOOO0 =OO0OO0O0OOO0O0OO0 .split (':')#line:1766:parts = ip_str.split(':')
+        _O0OO0OOOOOOOO0OO0 =3 #line:1769:_min_parts = 3
+        if len (O0O0000O0OOOOOOO0 )<_O0OO0OOOOOOOO0OO0 :#line:1770:if len(parts) < _min_parts:
+            O00000O000O00O00O ="At least %d parts expected in %r"%(_O0OO0OOOOOOOO0OO0 ,OO0OO0O0OOO0O0OO0 )#line:1771:msg = "At least %d parts expected in %r" % (_min_parts, ip_str)
+            raise AddressValueError (O00000O000O00O00O )#line:1772:raise AddressValueError(msg)
+        if '.'in O0O0000O0OOOOOOO0 [-1 ]:#line:1775:if '.' in parts[-1]:
+            try :#line:1776:try:
+                O0O0000O00OO0000O =IPv4Address (O0O0000O0OOOOOOO0 .pop ())._ip #line:1777:ipv4_int = IPv4Address(parts.pop())._ip
+            except AddressValueError as O0OOO00O0O0O00OO0 :#line:1778:except AddressValueError as exc:
+                raise AddressValueError ("%s in %r"%(O0OOO00O0O0O00OO0 ,OO0OO0O0OOO0O0OO0 ))#line:1779:raise AddressValueError("%s in %r" % (exc, ip_str))
+            O0O0000O0OOOOOOO0 .append ('%x'%((O0O0000O00OO0000O >>16 )&0xFFFF ))#line:1780:parts.append('%x' % ((ipv4_int >> 16) & 0xFFFF))
+            O0O0000O0OOOOOOO0 .append ('%x'%(O0O0000O00OO0000O &0xFFFF ))#line:1781:parts.append('%x' % (ipv4_int & 0xFFFF))
+        _O0OO000OOOO0O0O00 =O0OO00O0O000O0OO0 ._HEXTET_COUNT +1 #line:1786:_max_parts = cls._HEXTET_COUNT + 1
+        if len (O0O0000O0OOOOOOO0 )>_O0OO000OOOO0O0O00 :#line:1787:if len(parts) > _max_parts:
+            O00000O000O00O00O ="At most %d colons permitted in %r"%(_O0OO000OOOO0O0O00 -1 ,OO0OO0O0OOO0O0OO0 )#line:1789:_max_parts - 1, ip_str)
+            raise AddressValueError (O00000O000O00O00O )#line:1790:raise AddressValueError(msg)
+        O0OO00O000O00O000 =None #line:1794:skip_index = None
+        for OOO0000O000000OO0 in _OO0O000O0OOOO00OO (1 ,len (O0O0000O0OOOOOOO0 )-1 ):#line:1795:for i in _compat_range(1, len(parts) - 1):
+            if not O0O0000O0OOOOOOO0 [OOO0000O000000OO0 ]:#line:1796:if not parts[i]:
+                if O0OO00O000O00O000 is not None :#line:1797:if skip_index is not None:
+                    O00000O000O00O00O ="At most one '::' permitted in %r"%OO0OO0O0OOO0O0OO0 #line:1799:msg = "At most one '::' permitted in %r" % ip_str
+                    raise AddressValueError (O00000O000O00O00O )#line:1800:raise AddressValueError(msg)
+                O0OO00O000O00O000 =OOO0000O000000OO0 #line:1801:skip_index = i
+        if O0OO00O000O00O000 is not None :#line:1805:if skip_index is not None:
+            OOOOOOOO00OO0O0O0 =O0OO00O000O00O000 #line:1807:parts_hi = skip_index
+            O00OO0OO0OO000OO0 =len (O0O0000O0OOOOOOO0 )-O0OO00O000O00O000 -1 #line:1808:parts_lo = len(parts) - skip_index - 1
+            if not O0O0000O0OOOOOOO0 [0 ]:#line:1809:if not parts[0]:
+                OOOOOOOO00OO0O0O0 -=1 #line:1810:parts_hi -= 1
+                if OOOOOOOO00OO0O0O0 :#line:1811:if parts_hi:
+                    O00000O000O00O00O ="Leading ':' only permitted as part of '::' in %r"#line:1812:msg = "Leading ':' only permitted as part of '::' in %r"
+                    raise AddressValueError (O00000O000O00O00O %OO0OO0O0OOO0O0OO0 )#line:1813:raise AddressValueError(msg % ip_str)  # ^: requires ^::
+            if not O0O0000O0OOOOOOO0 [-1 ]:#line:1814:if not parts[-1]:
+                O00OO0OO0OO000OO0 -=1 #line:1815:parts_lo -= 1
+                if O00OO0OO0OO000OO0 :#line:1816:if parts_lo:
+                    O00000O000O00O00O ="Trailing ':' only permitted as part of '::' in %r"#line:1817:msg = "Trailing ':' only permitted as part of '::' in %r"
+                    raise AddressValueError (O00000O000O00O00O %OO0OO0O0OOO0O0OO0 )#line:1818:raise AddressValueError(msg % ip_str)  # :$ requires ::$
+            O0OOOOOO0OO0O0O0O =O0OO00O0O000O0OO0 ._HEXTET_COUNT -(OOOOOOOO00OO0O0O0 +O00OO0OO0OO000OO0 )#line:1819:parts_skipped = cls._HEXTET_COUNT - (parts_hi + parts_lo)
+            if O0OOOOOO0OO0O0O0O <1 :#line:1820:if parts_skipped < 1:
+                O00000O000O00O00O ="Expected at most %d other parts with '::' in %r"#line:1821:msg = "Expected at most %d other parts with '::' in %r"
+                raise AddressValueError (O00000O000O00O00O %(O0OO00O0O000O0OO0 ._HEXTET_COUNT -1 ,OO0OO0O0OOO0O0OO0 ))#line:1822:raise AddressValueError(msg % (cls._HEXTET_COUNT - 1, ip_str))
+        else :#line:1823:else:
+            if len (O0O0000O0OOOOOOO0 )!=O0OO00O0O000O0OO0 ._HEXTET_COUNT :#line:1827:if len(parts) != cls._HEXTET_COUNT:
+                O00000O000O00O00O ="Exactly %d parts expected without '::' in %r"#line:1828:msg = "Exactly %d parts expected without '::' in %r"
+                raise AddressValueError (O00000O000O00O00O %(O0OO00O0O000O0OO0 ._HEXTET_COUNT ,OO0OO0O0OOO0O0OO0 ))#line:1829:raise AddressValueError(msg % (cls._HEXTET_COUNT, ip_str))
+            if not O0O0000O0OOOOOOO0 [0 ]:#line:1830:if not parts[0]:
+                O00000O000O00O00O ="Leading ':' only permitted as part of '::' in %r"#line:1831:msg = "Leading ':' only permitted as part of '::' in %r"
+                raise AddressValueError (O00000O000O00O00O %OO0OO0O0OOO0O0OO0 )#line:1832:raise AddressValueError(msg % ip_str)  # ^: requires ^::
+            if not O0O0000O0OOOOOOO0 [-1 ]:#line:1833:if not parts[-1]:
+                O00000O000O00O00O ="Trailing ':' only permitted as part of '::' in %r"#line:1834:msg = "Trailing ':' only permitted as part of '::' in %r"
+                raise AddressValueError (O00000O000O00O00O %OO0OO0O0OOO0O0OO0 )#line:1835:raise AddressValueError(msg % ip_str)  # :$ requires ::$
+            OOOOOOOO00OO0O0O0 =len (O0O0000O0OOOOOOO0 )#line:1836:parts_hi = len(parts)
+            O00OO0OO0OO000OO0 =0 #line:1837:parts_lo = 0
+            O0OOOOOO0OO0O0O0O =0 #line:1838:parts_skipped = 0
+        try :#line:1840:try:
+            OO000O00OO0OOOOOO =0 #line:1842:ip_int = 0
+            for OOO0000O000000OO0 in range (OOOOOOOO00OO0O0O0 ):#line:1843:for i in range(parts_hi):
+                OO000O00OO0OOOOOO <<=16 #line:1844:ip_int <<= 16
+                OO000O00OO0OOOOOO |=O0OO00O0O000O0OO0 ._parse_hextet (O0O0000O0OOOOOOO0 [OOO0000O000000OO0 ])#line:1845:ip_int |= cls._parse_hextet(parts[i])
+            OO000O00OO0OOOOOO <<=16 *O0OOOOOO0OO0O0O0O #line:1846:ip_int <<= 16 * parts_skipped
+            for OOO0000O000000OO0 in range (-O00OO0OO0OO000OO0 ,0 ):#line:1847:for i in range(-parts_lo, 0):
+                OO000O00OO0OOOOOO <<=16 #line:1848:ip_int <<= 16
+                OO000O00OO0OOOOOO |=O0OO00O0O000O0OO0 ._parse_hextet (O0O0000O0OOOOOOO0 [OOO0000O000000OO0 ])#line:1849:ip_int |= cls._parse_hextet(parts[i])
+            return OO000O00OO0OOOOOO #line:1850:return ip_int
+        except ValueError as O0OOO00O0O0O00OO0 :#line:1851:except ValueError as exc:
+            raise AddressValueError ("%s in %r"%(O0OOO00O0O0O00OO0 ,OO0OO0O0OOO0O0OO0 ))#line:1852:raise AddressValueError("%s in %r" % (exc, ip_str))
+    @classmethod #line:1854:@classmethod
+    def _parse_hextet (O0OO0O0O00O0O00O0 ,OO00OO00OOOO0OO0O ):#line:1855:def _parse_hextet(cls, hextet_str):
+        ""#line:1868:"""
+        if not O0OO0O0O00O0O00O0 ._HEX_DIGITS .issuperset (OO00OO00OOOO0OO0O ):#line:1870:if not cls._HEX_DIGITS.issuperset(hextet_str):
+            raise ValueError ("Only hex digits permitted in %r"%OO00OO00OOOO0OO0O )#line:1871:raise ValueError("Only hex digits permitted in %r" % hextet_str)
+        if len (OO00OO00OOOO0OO0O )>4 :#line:1874:if len(hextet_str) > 4:
+            O0OO0OOO0OO00OOO0 ="At most 4 characters permitted in %r"#line:1875:msg = "At most 4 characters permitted in %r"
+            raise ValueError (O0OO0OOO0OO00OOO0 %OO00OO00OOOO0OO0O )#line:1876:raise ValueError(msg % hextet_str)
+        return int (OO00OO00OOOO0OO0O ,16 )#line:1878:return int(hextet_str, 16)
+    @classmethod #line:1880:@classmethod
+    def _compress_hextets (O000OO000000O000O ,OO00OO0OOO0OO00O0 ):#line:1881:def _compress_hextets(cls, hextets):
+        ""#line:1896:"""
+        OOO00OOO00OO0O0OO =-1 #line:1897:best_doublecolon_start = -1
+        OO0OOOO0000O0O0OO =0 #line:1898:best_doublecolon_len = 0
+        OOO00OOOO0O0OOOO0 =-1 #line:1899:doublecolon_start = -1
+        OOO0O0OO00OOOOOOO =0 #line:1900:doublecolon_len = 0
+        for OO0O0OOOOO00O000O ,OOO000OO0O000000O in enumerate (OO00OO0OOO0OO00O0 ):#line:1901:for index, hextet in enumerate(hextets):
+            if OOO000OO0O000000O =='0':#line:1902:if hextet == '0':
+                OOO0O0OO00OOOOOOO +=1 #line:1903:doublecolon_len += 1
+                if OOO00OOOO0O0OOOO0 ==-1 :#line:1904:if doublecolon_start == -1:
+                    OOO00OOOO0O0OOOO0 =OO0O0OOOOO00O000O #line:1906:doublecolon_start = index
+                if OOO0O0OO00OOOOOOO >OO0OOOO0000O0O0OO :#line:1907:if doublecolon_len > best_doublecolon_len:
+                    OO0OOOO0000O0O0OO =OOO0O0OO00OOOOOOO #line:1909:best_doublecolon_len = doublecolon_len
+                    OOO00OOO00OO0O0OO =OOO00OOOO0O0OOOO0 #line:1910:best_doublecolon_start = doublecolon_start
+            else :#line:1911:else:
+                OOO0O0OO00OOOOOOO =0 #line:1912:doublecolon_len = 0
+                OOO00OOOO0O0OOOO0 =-1 #line:1913:doublecolon_start = -1
+        if OO0OOOO0000O0O0OO >1 :#line:1915:if best_doublecolon_len > 1:
+            OO0000OO0O0O000O0 =(OOO00OOO00OO0O0OO +OO0OOOO0000O0O0OO )#line:1917:best_doublecolon_len)
+            if OO0000OO0O0O000O0 ==len (OO00OO0OOO0OO00O0 ):#line:1919:if best_doublecolon_end == len(hextets):
+                OO00OO0OOO0OO00O0 +=['']#line:1920:hextets += ['']
+            OO00OO0OOO0OO00O0 [OOO00OOO00OO0O0OO :OO0000OO0O0O000O0 ]=['']#line:1921:hextets[best_doublecolon_start:best_doublecolon_end] = ['']
+            if OOO00OOO00OO0O0OO ==0 :#line:1923:if best_doublecolon_start == 0:
+                OO00OO0OOO0OO00O0 =['']+OO00OO0OOO0OO00O0 #line:1924:hextets = [''] + hextets
+        return OO00OO0OOO0OO00O0 #line:1926:return hextets
+    @classmethod #line:1928:@classmethod
+    def _string_from_ip_int (O0OOO0OO000OO0O0O ,ip_int =None ):#line:1929:def _string_from_ip_int(cls, ip_int=None):
+        ""#line:1941:"""
+        if ip_int is None :#line:1942:if ip_int is None:
+            ip_int =int (O0OOO0OO000OO0O0O ._ip )#line:1943:ip_int = int(cls._ip)
+        if ip_int >O0OOO0OO000OO0O0O ._ALL_ONES :#line:1945:if ip_int > cls._ALL_ONES:
+            raise ValueError ('IPv6 address is too large')#line:1946:raise ValueError('IPv6 address is too large')
+        O00O0OO0O000O0000 ='%032x'%ip_int #line:1948:hex_str = '%032x' % ip_int
+        O0000000O000O0O00 =['%x'%int (O00O0OO0O000O0000 [OOOOOOOO0O0000OO0 :OOOOOOOO0O0000OO0 +4 ],16 )for OOOOOOOO0O0000OO0 in range (0 ,32 ,4 )]#line:1949:hextets = ['%x' % int(hex_str[x:x + 4], 16) for x in range(0, 32, 4)]
+        O0000000O000O0O00 =O0OOO0OO000OO0O0O ._compress_hextets (O0000000O000O0O00 )#line:1951:hextets = cls._compress_hextets(hextets)
+        return ':'.join (O0000000O000O0O00 )#line:1952:return ':'.join(hextets)
+    def _explode_shorthand_ip_string (O000O00O0OOOOO0OO ):#line:1954:def _explode_shorthand_ip_string(self):
+        ""#line:1963:"""
+        if isinstance (O000O00O0OOOOO0OO ,IPv6Network ):#line:1964:if isinstance(self, IPv6Network):
+            OO0O000O0O0000O0O =_OOO00OO0OO000OOO0 (O000O00O0OOOOO0OO .network_address )#line:1965:ip_str = _compat_str(self.network_address)
+        elif isinstance (O000O00O0OOOOO0OO ,IPv6Interface ):#line:1966:elif isinstance(self, IPv6Interface):
+            OO0O000O0O0000O0O =_OOO00OO0OO000OOO0 (O000O00O0OOOOO0OO .ip )#line:1967:ip_str = _compat_str(self.ip)
+        else :#line:1968:else:
+            OO0O000O0O0000O0O =_OOO00OO0OO000OOO0 (O000O00O0OOOOO0OO )#line:1969:ip_str = _compat_str(self)
+        O0OOO0O0OO0000O00 =O000O00O0OOOOO0OO ._ip_int_from_string (OO0O000O0O0000O0O )#line:1971:ip_int = self._ip_int_from_string(ip_str)
+        OO0OOO00O00OOO00O ='%032x'%O0OOO0O0OO0000O00 #line:1972:hex_str = '%032x' % ip_int
+        O0OO00000O0O00OOO =[OO0OOO00O00OOO00O [OOOOO000OO0O0OOOO :OOOOO000OO0O0OOOO +4 ]for OOOOO000OO0O0OOOO in range (0 ,32 ,4 )]#line:1973:parts = [hex_str[x:x + 4] for x in range(0, 32, 4)]
+        if isinstance (O000O00O0OOOOO0OO ,(_OOO00O000O0O00OOO ,IPv6Interface )):#line:1974:if isinstance(self, (_BaseNetwork, IPv6Interface)):
+            return '%s/%d'%(':'.join (O0OO00000O0O00OOO ),O000O00O0OOOOO0OO ._prefixlen )#line:1975:return '%s/%d' % (':'.join(parts), self._prefixlen)
+        return ':'.join (O0OO00000O0O00OOO )#line:1976:return ':'.join(parts)
+    def _reverse_pointer (O000O0OOO0O0OOO00 ):#line:1978:def _reverse_pointer(self):
+        ""#line:1983:"""
+        O000OO00O0OOO00O0 =O000O0OOO0O0OOO00 .exploded [::-1 ].replace (':','')#line:1984:reverse_chars = self.exploded[::-1].replace(':', '')
+        return '.'.join (O000OO00O0OOO00O0 )+'.ip6.arpa'#line:1985:return '.'.join(reverse_chars) + '.ip6.arpa'
+    @property #line:1987:@property
+    def max_prefixlen (OOOO0OO00OOO0OO00 ):#line:1988:def max_prefixlen(self):
+        return OOOO0OO00OOO0OO00 ._max_prefixlen #line:1989:return self._max_prefixlen
+    @property #line:1991:@property
+    def version (O0O0OOOO00000OOO0 ):#line:1992:def version(self):
+        return O0O0OOOO00000OOO0 ._version #line:1993:return self._version
+class IPv6Address (_OOO0O0OO00000OOO0 ,_OOOO00OOO0O0O0000 ):#line:1996:class IPv6Address(_BaseV6, _BaseAddress):
+    ""#line:1998:"""Represent and manipulate single IPv6 Addresses."""
+    __slots__ =('_ip','__weakref__')#line:2000:__slots__ = ('_ip', '__weakref__')
+    def __init__ (O00O0OOO00OOO0O00 ,O0OO0O0O00OOOOO00 ):#line:2002:def __init__(self, address):
+        ""#line:2018:"""
+        if isinstance (O0OO0O0O00OOOOO00 ,_O000O0000OO00000O ):#line:2020:if isinstance(address, _compat_int_types):
+            O00O0OOO00OOO0O00 ._check_int_address (O0OO0O0O00OOOOO00 )#line:2021:self._check_int_address(address)
+            O00O0OOO00OOO0O00 ._ip =O0OO0O0O00OOOOO00 #line:2022:self._ip = address
+            return #line:2023:return
+        if isinstance (O0OO0O0O00OOOOO00 ,bytes ):#line:2026:if isinstance(address, bytes):
+            O00O0OOO00OOO0O00 ._check_packed_address (O0OO0O0O00OOOOO00 ,16 )#line:2027:self._check_packed_address(address, 16)
+            OOO0O0O0OOO0O0000 =_OOOOO00O0OO0OOO0O (O0OO0O0O00OOOOO00 )#line:2028:bvs = _compat_bytes_to_byte_vals(address)
+            O00O0OOO00OOO0O00 ._ip =_OOO0OOO00OO0O00O0 (OOO0O0O0OOO0O0000 ,'big')#line:2029:self._ip = _compat_int_from_byte_vals(bvs, 'big')
+            return #line:2030:return
+        OOO00O0OOO00O0OOO =_OOO00OO0OO000OOO0 (O0OO0O0O00OOOOO00 )#line:2034:addr_str = _compat_str(address)
+        if '/'in OOO00O0OOO00O0OOO :#line:2035:if '/' in addr_str:
+            raise AddressValueError ("Unexpected '/' in %r"%O0OO0O0O00OOOOO00 )#line:2036:raise AddressValueError("Unexpected '/' in %r" % address)
+        O00O0OOO00OOO0O00 ._ip =O00O0OOO00OOO0O00 ._ip_int_from_string (OOO00O0OOO00O0OOO )#line:2037:self._ip = self._ip_int_from_string(addr_str)
+    @property #line:2039:@property
+    def packed (OO0O0O0O0O00OO000 ):#line:2040:def packed(self):
+        ""#line:2041:"""The binary representation of this address."""
+        return v6_int_to_packed (OO0O0O0O0O00OO000 ._ip )#line:2042:return v6_int_to_packed(self._ip)
+    @property #line:2044:@property
+    def is_multicast (O0OOOO0OOO0OOOO0O ):#line:2045:def is_multicast(self):
+        ""#line:2052:"""
+        return O0OOOO0OOO0OOOO0O in O0OOOO0OOO0OOOO0O ._constants ._multicast_network #line:2053:return self in self._constants._multicast_network
+    @property #line:2055:@property
+    def is_reserved (OO0OO0O000OOOOOOO ):#line:2056:def is_reserved(self):
+        ""#line:2063:"""
+        return any (OO0OO0O000OOOOOOO in OOOO0OOO0O0OO0OOO for OOOO0OOO0O0OO0OOO in OO0OO0O000OOOOOOO ._constants ._reserved_networks )#line:2064:return any(self in x for x in self._constants._reserved_networks)
+    @property #line:2066:@property
+    def is_link_local (O0000000OO0O00OO0 ):#line:2067:def is_link_local(self):
+        ""#line:2073:"""
+        return O0000000OO0O00OO0 in O0000000OO0O00OO0 ._constants ._linklocal_network #line:2074:return self in self._constants._linklocal_network
+    @property #line:2076:@property
+    def is_site_local (OO00O0OOOO0OOOOO0 ):#line:2077:def is_site_local(self):
+        ""#line:2087:"""
+        return OO00O0OOOO0OOOOO0 in OO00O0OOOO0OOOOO0 ._constants ._sitelocal_network #line:2088:return self in self._constants._sitelocal_network
+    @property #line:2090:@property
+    def is_private (OO000000O000O00OO ):#line:2091:def is_private(self):
+        ""#line:2098:"""
+        return any (OO000000O000O00OO in OO0OO000O0000OO00 for OO0OO000O0000OO00 in OO000000O000O00OO ._constants ._private_networks )#line:2099:return any(self in net for net in self._constants._private_networks)
+    @property #line:2101:@property
+    def is_global (OO0O00OOOO0O00OOO ):#line:2102:def is_global(self):
+        ""#line:2109:"""
+        return not OO0O00OOOO0O00OOO .is_private #line:2110:return not self.is_private
+    @property #line:2112:@property
+    def is_unspecified (OO00O0OO0O0O0O00O ):#line:2113:def is_unspecified(self):
+        ""#line:2120:"""
+        return OO00O0OO0O0O0O00O ._ip ==0 #line:2121:return self._ip == 0
+    @property #line:2123:@property
+    def is_loopback (O0O00000O00OOOOO0 ):#line:2124:def is_loopback(self):
+        ""#line:2131:"""
+        return O0O00000O00OOOOO0 ._ip ==1 #line:2132:return self._ip == 1
+    @property #line:2134:@property
+    def ipv4_mapped (OOOOOOOOOOO0O0OO0 ):#line:2135:def ipv4_mapped(self):
+        ""#line:2142:"""
+        if (OOOOOOOOOOO0O0OO0 ._ip >>32 )!=0xFFFF :#line:2143:if (self._ip >> 32) != 0xFFFF:
+            return None #line:2144:return None
+        return IPv4Address (OOOOOOOOOOO0O0OO0 ._ip &0xFFFFFFFF )#line:2145:return IPv4Address(self._ip & 0xFFFFFFFF)
+    @property #line:2147:@property
+    def teredo (OO00000OO00O0OO0O ):#line:2148:def teredo(self):
+        ""#line:2156:"""
+        if (OO00000OO00O0OO0O ._ip >>96 )!=0x20010000 :#line:2157:if (self._ip >> 96) != 0x20010000:
+            return None #line:2158:return None
+        return (IPv4Address ((OO00000OO00O0OO0O ._ip >>64 )&0xFFFFFFFF ),IPv4Address (~OO00000OO00O0OO0O ._ip &0xFFFFFFFF ))#line:2160:IPv4Address(~self._ip & 0xFFFFFFFF))
+    @property #line:2162:@property
+    def sixtofour (O0000OOOOO00000OO ):#line:2163:def sixtofour(self):
+        ""#line:2170:"""
+        if (O0000OOOOO00000OO ._ip >>112 )!=0x2002 :#line:2171:if (self._ip >> 112) != 0x2002:
+            return None #line:2172:return None
+        return IPv4Address ((O0000OOOOO00000OO ._ip >>80 )&0xFFFFFFFF )#line:2173:return IPv4Address((self._ip >> 80) & 0xFFFFFFFF)
+class IPv6Interface (IPv6Address ):#line:2176:class IPv6Interface(IPv6Address):
+    def __init__ (O0OOO000O0OOO0OO0 ,O00O00000O00000O0 ):#line:2178:def __init__(self, address):
+        if isinstance (O00O00000O00000O0 ,(bytes ,_O000O0000OO00000O )):#line:2179:if isinstance(address, (bytes, _compat_int_types)):
+            IPv6Address .__init__ (O0OOO000O0OOO0OO0 ,O00O00000O00000O0 )#line:2180:IPv6Address.__init__(self, address)
+            O0OOO000O0OOO0OO0 .network =IPv6Network (O0OOO000O0OOO0OO0 ._ip )#line:2181:self.network = IPv6Network(self._ip)
+            O0OOO000O0OOO0OO0 ._prefixlen =O0OOO000O0OOO0OO0 ._max_prefixlen #line:2182:self._prefixlen = self._max_prefixlen
+            return #line:2183:return
+        if isinstance (O00O00000O00000O0 ,tuple ):#line:2184:if isinstance(address, tuple):
+            IPv6Address .__init__ (O0OOO000O0OOO0OO0 ,O00O00000O00000O0 [0 ])#line:2185:IPv6Address.__init__(self, address[0])
+            if len (O00O00000O00000O0 )>1 :#line:2186:if len(address) > 1:
+                O0OOO000O0OOO0OO0 ._prefixlen =int (O00O00000O00000O0 [1 ])#line:2187:self._prefixlen = int(address[1])
+            else :#line:2188:else:
+                O0OOO000O0OOO0OO0 ._prefixlen =O0OOO000O0OOO0OO0 ._max_prefixlen #line:2189:self._prefixlen = self._max_prefixlen
+            O0OOO000O0OOO0OO0 .network =IPv6Network (O00O00000O00000O0 ,strict =False )#line:2190:self.network = IPv6Network(address, strict=False)
+            O0OOO000O0OOO0OO0 .netmask =O0OOO000O0OOO0OO0 .network .netmask #line:2191:self.netmask = self.network.netmask
+            O0OOO000O0OOO0OO0 .hostmask =O0OOO000O0OOO0OO0 .network .hostmask #line:2192:self.hostmask = self.network.hostmask
+            return #line:2193:return
+        OOO0OO000O00OO0OO =_O0000OOO0O0OOO0OO (O00O00000O00000O0 )#line:2195:addr = _split_optional_netmask(address)
+        IPv6Address .__init__ (O0OOO000O0OOO0OO0 ,OOO0OO000O00OO0OO [0 ])#line:2196:IPv6Address.__init__(self, addr[0])
+        O0OOO000O0OOO0OO0 .network =IPv6Network (O00O00000O00000O0 ,strict =False )#line:2197:self.network = IPv6Network(address, strict=False)
+        O0OOO000O0OOO0OO0 .netmask =O0OOO000O0OOO0OO0 .network .netmask #line:2198:self.netmask = self.network.netmask
+        O0OOO000O0OOO0OO0 ._prefixlen =O0OOO000O0OOO0OO0 .network ._prefixlen #line:2199:self._prefixlen = self.network._prefixlen
+        O0OOO000O0OOO0OO0 .hostmask =O0OOO000O0OOO0OO0 .network .hostmask #line:2200:self.hostmask = self.network.hostmask
+    def __str__ (OOO0O0O00O0OOOOOO ):#line:2202:def __str__(self):
+        return '%s/%d'%(OOO0O0O00O0OOOOOO ._string_from_ip_int (OOO0O0O00O0OOOOOO ._ip ),OOO0O0O00O0OOOOOO .network .prefixlen )#line:2204:self.network.prefixlen)
+    def __eq__ (O0O00000OOOOO0O0O ,OO0000OO0O0OOOO00 ):#line:2206:def __eq__(self, other):
+        O0OOOO00O00000O00 =IPv6Address .__eq__ (O0O00000OOOOO0O0O ,OO0000OO0O0OOOO00 )#line:2207:address_equal = IPv6Address.__eq__(self, other)
+        if not O0OOOO00O00000O00 or O0OOOO00O00000O00 is NotImplemented :#line:2208:if not address_equal or address_equal is NotImplemented:
+            return O0OOOO00O00000O00 #line:2209:return address_equal
+        try :#line:2210:try:
+            return O0O00000OOOOO0O0O .network ==OO0000OO0O0OOOO00 .network #line:2211:return self.network == other.network
+        except AttributeError :#line:2212:except AttributeError:
+            return False #line:2216:return False
+    def __lt__ (O0000OOO00O0O00O0 ,OO0OO0OOO0OO0OO0O ):#line:2218:def __lt__(self, other):
+        O0OOOOOOO0000OOO0 =IPv6Address .__lt__ (O0000OOO00O0O00O0 ,OO0OO0OOO0OO0OO0O )#line:2219:address_less = IPv6Address.__lt__(self, other)
+        if O0OOOOOOO0000OOO0 is NotImplemented :#line:2220:if address_less is NotImplemented:
+            return NotImplemented #line:2221:return NotImplemented
+        try :#line:2222:try:
+            return (O0000OOO00O0O00O0 .network <OO0OO0OOO0OO0OO0O .network or O0000OOO00O0O00O0 .network ==OO0OO0OOO0OO0OO0O .network and O0OOOOOOO0000OOO0 )#line:2224:self.network == other.network and address_less)
+        except AttributeError :#line:2225:except AttributeError:
+            return False #line:2228:return False
+    def __hash__ (OO00000O0O0O0O0OO ):#line:2230:def __hash__(self):
+        return OO00000O0O0O0O0OO ._ip ^OO00000O0O0O0O0OO ._prefixlen ^int (OO00000O0O0O0O0OO .network .network_address )#line:2231:return self._ip ^ self._prefixlen ^ int(self.network.network_address)
+    __reduce__ =_OO0OOO00O0OO00O00 .__reduce__ #line:2233:__reduce__ = _IPAddressBase.__reduce__
+    @property #line:2235:@property
+    def ip (O000000O00O00OO0O ):#line:2236:def ip(self):
+        return IPv6Address (O000000O00O00OO0O ._ip )#line:2237:return IPv6Address(self._ip)
+    @property #line:2239:@property
+    def with_prefixlen (O0O0OOO0OOO0O00OO ):#line:2240:def with_prefixlen(self):
+        return '%s/%s'%(O0O0OOO0OOO0O00OO ._string_from_ip_int (O0O0OOO0OOO0O00OO ._ip ),O0O0OOO0OOO0O00OO ._prefixlen )#line:2242:self._prefixlen)
+    @property #line:2244:@property
+    def with_netmask (O00O0OO0O00OOOO00 ):#line:2245:def with_netmask(self):
+        return '%s/%s'%(O00O0OO0O00OOOO00 ._string_from_ip_int (O00O0OO0O00OOOO00 ._ip ),O00O0OO0O00OOOO00 .netmask )#line:2247:self.netmask)
+    @property #line:2249:@property
+    def with_hostmask (O00OOOO000000O0O0 ):#line:2250:def with_hostmask(self):
+        return '%s/%s'%(O00OOOO000000O0O0 ._string_from_ip_int (O00OOOO000000O0O0 ._ip ),O00OOOO000000O0O0 .hostmask )#line:2252:self.hostmask)
+    @property #line:2254:@property
+    def is_unspecified (O0000O0OO00OOOO0O ):#line:2255:def is_unspecified(self):
+        return O0000O0OO00OOOO0O ._ip ==0 and O0000O0OO00OOOO0O .network .is_unspecified #line:2256:return self._ip == 0 and self.network.is_unspecified
+    @property #line:2258:@property
+    def is_loopback (OO0OO00OO000000O0 ):#line:2259:def is_loopback(self):
+        return OO0OO00OO000000O0 ._ip ==1 and OO0OO00OO000000O0 .network .is_loopback #line:2260:return self._ip == 1 and self.network.is_loopback
+class IPv6Network (_OOO0O0OO00000OOO0 ,_OOO00O000O0O00OOO ):#line:2263:class IPv6Network(_BaseV6, _BaseNetwork):
+    ""#line:2274:"""
+    _address_class =IPv6Address #line:2277:_address_class = IPv6Address
+    def __init__ (O00O0OOOO000000O0 ,OO0OO00OO0000O000 ,strict =True ):#line:2279:def __init__(self, address, strict=True):
+        ""#line:2310:"""
+        _OOO00O000O0O00OOO .__init__ (O00O0OOOO000000O0 ,OO0OO00OO0000O000 )#line:2311:_BaseNetwork.__init__(self, address)
+        if isinstance (OO0OO00OO0000O000 ,(bytes ,_O000O0000OO00000O )):#line:2314:if isinstance(address, (bytes, _compat_int_types)):
+            O00O0OOOO000000O0 .network_address =IPv6Address (OO0OO00OO0000O000 )#line:2315:self.network_address = IPv6Address(address)
+            O00O0OOOO000000O0 .netmask ,O00O0OOOO000000O0 ._prefixlen =O00O0OOOO000000O0 ._make_netmask (O00O0OOOO000000O0 ._max_prefixlen )#line:2317:self._max_prefixlen)
+            return #line:2318:return
+        if isinstance (OO0OO00OO0000O000 ,tuple ):#line:2320:if isinstance(address, tuple):
+            if len (OO0OO00OO0000O000 )>1 :#line:2321:if len(address) > 1:
+                OO0OOO00OOOO0OO00 =OO0OO00OO0000O000 [1 ]#line:2322:arg = address[1]
+            else :#line:2323:else:
+                OO0OOO00OOOO0OO00 =O00O0OOOO000000O0 ._max_prefixlen #line:2324:arg = self._max_prefixlen
+            O00O0OOOO000000O0 .netmask ,O00O0OOOO000000O0 ._prefixlen =O00O0OOOO000000O0 ._make_netmask (OO0OOO00OOOO0OO00 )#line:2325:self.netmask, self._prefixlen = self._make_netmask(arg)
+            O00O0OOOO000000O0 .network_address =IPv6Address (OO0OO00OO0000O000 [0 ])#line:2326:self.network_address = IPv6Address(address[0])
+            O0O00O0O0OO0OOOOO =int (O00O0OOOO000000O0 .network_address )#line:2327:packed = int(self.network_address)
+            if O0O00O0O0OO0OOOOO &int (O00O0OOOO000000O0 .netmask )!=O0O00O0O0OO0OOOOO :#line:2328:if packed & int(self.netmask) != packed:
+                if strict :#line:2329:if strict:
+                    raise ValueError ('%s has host bits set'%O00O0OOOO000000O0 )#line:2330:raise ValueError('%s has host bits set' % self)
+                else :#line:2331:else:
+                    O00O0OOOO000000O0 .network_address =IPv6Address (O0O00O0O0OO0OOOOO &int (O00O0OOOO000000O0 .netmask ))#line:2333:int(self.netmask))
+            return #line:2334:return
+        O0O00O00O000O0O00 =_O0000OOO0O0OOO0OO (OO0OO00OO0000O000 )#line:2338:addr = _split_optional_netmask(address)
+        O00O0OOOO000000O0 .network_address =IPv6Address (O00O0OOOO000000O0 ._ip_int_from_string (O0O00O00O000O0O00 [0 ]))#line:2340:self.network_address = IPv6Address(self._ip_int_from_string(addr[0]))
+        if len (O0O00O00O000O0O00 )==2 :#line:2342:if len(addr) == 2:
+            OO0OOO00OOOO0OO00 =O0O00O00O000O0O00 [1 ]#line:2343:arg = addr[1]
+        else :#line:2344:else:
+            OO0OOO00OOOO0OO00 =O00O0OOOO000000O0 ._max_prefixlen #line:2345:arg = self._max_prefixlen
+        O00O0OOOO000000O0 .netmask ,O00O0OOOO000000O0 ._prefixlen =O00O0OOOO000000O0 ._make_netmask (OO0OOO00OOOO0OO00 )#line:2346:self.netmask, self._prefixlen = self._make_netmask(arg)
+        if strict :#line:2348:if strict:
+            if (IPv6Address (int (O00O0OOOO000000O0 .network_address )&int (O00O0OOOO000000O0 .netmask ))!=O00O0OOOO000000O0 .network_address ):#line:2350:self.network_address):
+                raise ValueError ('%s has host bits set'%O00O0OOOO000000O0 )#line:2351:raise ValueError('%s has host bits set' % self)
+        O00O0OOOO000000O0 .network_address =IPv6Address (int (O00O0OOOO000000O0 .network_address )&int (O00O0OOOO000000O0 .netmask ))#line:2353:int(self.netmask))
+        if O00O0OOOO000000O0 ._prefixlen ==(O00O0OOOO000000O0 ._max_prefixlen -1 ):#line:2355:if self._prefixlen == (self._max_prefixlen - 1):
+            O00O0OOOO000000O0 .hosts =O00O0OOOO000000O0 .__iter__ #line:2356:self.hosts = self.__iter__
+    def hosts (OOOO0OO0O0OO0OO00 ):#line:2358:def hosts(self):
+        ""#line:2364:"""
+        O0O0OOO000O0OOOO0 =int (OOOO0OO0O0OO0OO00 .network_address )#line:2365:network = int(self.network_address)
+        O000O0OO000OOOOO0 =int (OOOO0OO0O0OO0OO00 .broadcast_address )#line:2366:broadcast = int(self.broadcast_address)
+        for O0OO0OOOO0O0OO00O in _OO0O000O0OOOO00OO (O0O0OOO000O0OOOO0 +1 ,O000O0OO000OOOOO0 +1 ):#line:2367:for x in _compat_range(network + 1, broadcast + 1):
+            yield OOOO0OO0O0OO0OO00 ._address_class (O0OO0OOOO0O0OO00O )#line:2368:yield self._address_class(x)
+    @property #line:2370:@property
+    def is_site_local (OOO00O00OO000O00O ):#line:2371:def is_site_local(self):
+        ""#line:2381:"""
+        return (OOO00O00OO000O00O .network_address .is_site_local and OOO00O00OO000O00O .broadcast_address .is_site_local )#line:2383:self.broadcast_address.is_site_local)
+class _O000OOOO00OOO000O (object ):#line:2386:class _IPv6Constants(object):
+    _linklocal_network =IPv6Network ('fe80::/10')#line:2388:_linklocal_network = IPv6Network('fe80::/10')
+    _multicast_network =IPv6Network ('ff00::/8')#line:2390:_multicast_network = IPv6Network('ff00::/8')
+    _private_networks =[IPv6Network ('::1/128'),IPv6Network ('::/128'),IPv6Network ('::ffff:0:0/96'),IPv6Network ('100::/64'),IPv6Network ('2001::/23'),IPv6Network ('2001:2::/48'),IPv6Network ('2001:db8::/32'),IPv6Network ('2001:10::/28'),IPv6Network ('fc00::/7'),IPv6Network ('fe80::/10'),]#line:2403:]
+    _reserved_networks =[IPv6Network ('::/8'),IPv6Network ('100::/8'),IPv6Network ('200::/7'),IPv6Network ('400::/6'),IPv6Network ('800::/5'),IPv6Network ('1000::/4'),IPv6Network ('4000::/3'),IPv6Network ('6000::/3'),IPv6Network ('8000::/3'),IPv6Network ('A000::/3'),IPv6Network ('C000::/3'),IPv6Network ('E000::/4'),IPv6Network ('F000::/5'),IPv6Network ('F800::/6'),IPv6Network ('FE00::/9'),]#line:2414:]
+    _sitelocal_network =IPv6Network ('fec0::/10')#line:2416:_sitelocal_network = IPv6Network('fec0::/10')
+IPv6Address ._constants =_O000OOOO00OOO000O #line:2419:IPv6Address._constants = _IPv6Constants

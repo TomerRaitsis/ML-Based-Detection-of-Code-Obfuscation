@@ -1,0 +1,97 @@
+import io #line:1:import io
+import unittest #line:2:import unittest
+from unittest .mock import patch ,MagicMock ,mock_open #line:3:from unittest.mock import patch, MagicMock, mock_open
+import pygame #line:4:import pygame
+from game import Game #line:5:from game import Game
+from constants import GameSettings ,Point #line:6:from constants import GameSettings, Point
+from snake import Snake #line:7:from snake import Snake
+class TestGame (unittest .TestCase ):#line:10:class TestGame(unittest.TestCase):
+    def setUp (OOOOOOOO000OO0O00 ):#line:11:def setUp(self):
+        OOOOOOOO000OO0O00 .game =Game ()#line:12:self.game = Game()
+    def test_init (OOOO00OO0OO00OOO0 ):#line:14:def test_init(self):
+        OOOO00OO0OO00OOO0 .assertIsNotNone (OOOO00OO0OO00OOO0 .game .display )#line:15:self.assertIsNotNone(self.game.display)
+        OOOO00OO0OO00OOO0 .assertIsNotNone (OOOO00OO0OO00OOO0 .game .snake )#line:16:self.assertIsNotNone(self.game.snake)
+        OOOO00OO0OO00OOO0 .assertEqual (OOOO00OO0OO00OOO0 .game .score ,0 )#line:17:self.assertEqual(self.game.score, 0)
+        OOOO00OO0OO00OOO0 .assertIsNotNone (OOOO00OO0OO00OOO0 .game .food )#line:18:self.assertIsNotNone(self.game.food)
+    def test_is_collision (OOOOOOO0O00OOO000 ):#line:20:def test_is_collision(self):
+        OOOOOOO0O00OOO000 .game .snake .head =Point (-1 ,-1 )#line:22:self.game.snake.head = Point(-1, -1)
+        OOOOOOO0O00OOO000 .assertTrue (OOOOOOO0O00OOO000 .game .is_collision ())#line:23:self.assertTrue(self.game.is_collision())
+        OOOOOOO0O00OOO000 .game .snake .head =OOOOOOO0O00OOO000 .game .snake .blocks [1 ]#line:25:self.game.snake.head = self.game.snake.blocks[1]
+        OOOOOOO0O00OOO000 .assertTrue (OOOOOOO0O00OOO000 .game .is_collision ())#line:26:self.assertTrue(self.game.is_collision())
+    @patch ("pygame.event.get")#line:28:@patch("pygame.event.get")
+    @patch ("pygame.draw.rect")#line:29:@patch("pygame.draw.rect")
+    @patch ("pygame.display.flip")#line:30:@patch("pygame.display.flip")
+    @patch ("pygame.font.Font")#line:31:@patch("pygame.font.Font")
+    def test_play_step (OO000OO00O0O0O0OO ,OO0O0OOOOOOOOO0OO ,O0OO00000O0O00O00 ,O0OO0OOO0OO0O0O0O ,OOO00OO0OOOOO0000 ):#line:34:):
+        OOO00OO0OOOOO0000 .return_value =[]#line:35:mock_event_get.return_value = []
+        O0OOOO0OOO000000O =MagicMock ()#line:36:mock_font_instance = MagicMock()
+        OO000OO00O0O0O0OO .game .display .window =MagicMock (spec =pygame .Surface )#line:37:self.game.display.window = MagicMock(spec=pygame.Surface)
+        OOOO0O0OO0OOOO00O =MagicMock (spec =pygame .Surface )#line:38:mock_surface = MagicMock(spec=pygame.Surface)
+        O0OOOO0OOO000000O .render .return_value =OOOO0O0OO0OOOO00O #line:39:mock_font_instance.render.return_value = mock_surface
+        OO0O0OOOOOOOOO0OO .return_value =O0OOOO0OOO000000O #line:40:mock_font.return_value = mock_font_instance
+        OOO0OO00O000O00O0 =len (OO000OO00O0O0O0OO .game .snake .blocks )#line:42:init_snake_length = len(self.game.snake.blocks)
+        OOO0OO0O0OOOOO0O0 =OO000OO00O0O0O0OO .game .score #line:43:init_score = self.game.score
+        OO000O0OO0000O0OO =OO000OO00O0O0O0OO .game .snake .head #line:44:init_head_position = self.game.snake.head
+        OO000OO00O0O0O0OO .game .food =Point (OO000O0OO0000O0OO .x +GameSettings .BLOCK_SIZE ,OO000O0OO0000O0OO .y )#line:48:)
+        OO000OO00O0O0O0OO .game .play_step ()#line:49:self.game.play_step()
+        OO000OO00O0O0O0OO .assertEqual (len (OO000OO00O0O0O0OO .game .snake .blocks ),OOO0OO00O000O00O0 +1 )#line:51:self.assertEqual(len(self.game.snake.blocks), init_snake_length + 1)
+        OO000OO00O0O0O0OO .assertEqual (OO000OO00O0O0O0OO .game .score ,OOO0OO0O0OOOOO0O0 +1 )#line:52:self.assertEqual(self.game.score, init_score + 1)
+        O0O00O00O0O0O0000 =Point (OO000O0OO0000O0OO .x +GameSettings .BLOCK_SIZE ,OO000O0OO0000O0OO .y )#line:56:)
+        OO000OO00O0O0O0OO .assertEqual (OO000OO00O0O0O0OO .game .snake .head ,O0O00O00O0O0O0000 )#line:57:self.assertEqual(self.game.snake.head, new_head_position)
+    def test_place_food (OO0O00000O0000OO0 ):#line:59:def test_place_food(self):
+        OO0O00000O0000OO0 .game .place_food ()#line:60:self.game.place_food()
+        OO0O00000O0000OO0 .assertNotIn (OO0O00000O0000OO0 .game .food ,OO0O00000O0000OO0 .game .snake .blocks )#line:61:self.assertNotIn(self.game.food, self.game.snake.blocks)
+    @patch ("pygame.event.get")#line:63:@patch("pygame.event.get")
+    def test_play_again_y (OO0O0O000O0000000 ,O0OOO0O0OOO00O0O0 ):#line:64:def test_play_again_y(self, mock_event_get):
+        O0OOO0O0OOO00O0O0 .return_value =[MagicMock (type =pygame .KEYDOWN ,key =pygame .K_y )]#line:65:mock_event_get.return_value = [MagicMock(type=pygame.KEYDOWN, key=pygame.K_y)]
+        O0O0OO000O0O00O0O =OO0O0O000O0000000 .game .play_again ()#line:66:value = self.game.play_again()
+        OO0O0O000O0000000 .assertTrue (O0O0OO000O0O00O0O )#line:67:self.assertTrue(value)
+    @patch ("pygame.event.get")#line:69:@patch("pygame.event.get")
+    def test_play_again_return (OO0O0O00OO0OOOOO0 ,O0O00OOOOO00OO0OO ):#line:70:def test_play_again_return(self, mock_event_get):
+        O0O00OOOOO00OO0OO .return_value =[MagicMock (type =pygame .KEYDOWN ,key =pygame .K_RETURN )]#line:73:]
+        OO0O0OO0O0O00OO0O =OO0O0O00OO0OOOOO0 .game .play_again ()#line:74:value = self.game.play_again()
+        OO0O0O00OO0OOOOO0 .assertTrue (OO0O0OO0O0O00OO0O )#line:75:self.assertTrue(value)
+    @patch ("pygame.event.get")#line:77:@patch("pygame.event.get")
+    def test_play_again_n (O000O0OO000OOOOO0 ,O000O000OO0O0OOOO ):#line:78:def test_play_again_n(self, mock_event_get):
+        O000O000OO0O0OOOO .return_value =[MagicMock (type =pygame .KEYDOWN ,key =pygame .K_n )]#line:79:mock_event_get.return_value = [MagicMock(type=pygame.KEYDOWN, key=pygame.K_n)]
+    @patch ("pygame.event.get")#line:81:@patch("pygame.event.get")
+    def test_play_again_esc (OO0OOO0O0O0O00O0O ,O0O0OOOOOO0O00OO0 ):#line:82:def test_play_again_esc(self, mock_event_get):
+        O0O0OOOOOO0O00OO0 .return_value =[MagicMock (type =pygame .KEYDOWN ,key =pygame .K_ESCAPE )]#line:85:]
+    def test_restart_game (OOO00OOO0O00O0000 ):#line:87:def test_restart_game(self):
+        OOO00OOO0O00O0000 .game .snake =Snake (init_length =10 )#line:88:self.game.snake = Snake(init_length=10)
+        OOO00OOO0O00O0000 .game .score =10 #line:89:self.game.score = 10
+        O0000O0000O0O00OO =OOO00OOO0O00O0000 .game .high_score #line:90:init_high_score = self.game.high_score
+        OOO00OOO0O00O0000 .game .restart_game ()#line:92:self.game.restart_game()
+        OOO00OOO0O00O0000 .assertEqual (len (OOO00OOO0O00O0000 .game .snake .blocks ),3 )#line:93:self.assertEqual(len(self.game.snake.blocks), 3)
+        OOO00OOO0O00O0000 .assertEqual (OOO00OOO0O00O0000 .game .score ,0 )#line:94:self.assertEqual(self.game.score, 0)
+        OOO00OOO0O00O0000 .assertIsNotNone (OOO00OOO0O00O0000 .game .food )#line:95:self.assertIsNotNone(self.game.food)
+        OOO00OOO0O00O0000 .assertEqual (O0000O0000O0O00OO ,OOO00OOO0O00O0000 .game .high_score )#line:96:self.assertEqual(init_high_score, self.game.high_score)
+    @patch ("builtins.open",side_effect =FileNotFoundError )#line:98:@patch("builtins.open", side_effect=FileNotFoundError)
+    def test_load_high_score_no_json_file (O00OO0O000OO00000 ,OO0O0OO0O0O000000 ):#line:99:def test_load_high_score_no_json_file(self, mock_open):
+        O0O0O0O0000OOOOO0 =O00OO0O000OO00000 .game .load_high_score ()#line:100:returned_high_score = self.game.load_high_score()
+        O00OO0O000OO00000 .assertEqual (O0O0O0O0000OOOOO0 ,0 )#line:101:self.assertEqual(returned_high_score, 0)
+    @patch ("builtins.open",return_value =io .StringIO ('{"high_score": 100}'))#line:103:@patch("builtins.open", return_value=io.StringIO('{"high_score": 100}'))
+    def test_load_high_score_existing_file (OO00O000O0O0000O0 ,O0OOOO000000O000O ):#line:104:def test_load_high_score_existing_file(self, mock_open):
+        OOOOOOO00000O0O0O =OO00O000O0O0000O0 .game .load_high_score ()#line:105:returned_high_score = self.game.load_high_score()
+        OO00O000O0O0000O0 .assertEqual (OOOOOOO00000O0O0O ,100 )#line:106:self.assertEqual(returned_high_score, 100)
+    @patch ("builtins.open",new_callable =mock_open )#line:108:@patch("builtins.open", new_callable=mock_open)
+    @patch ("json.dump")#line:109:@patch("json.dump")
+    @patch ("json.load",return_value ={"high_score":100 })#line:110:@patch("json.load", return_value={"high_score": 100})
+    def test_update_high_score (O0OOOOO0OOO0OOOOO ,O0OO0O00OO0OO0O00 ,O0O0OO00OOOO0O00O ,O0000OOO0OO000000 ):#line:111:def test_update_high_score(self, mock_load, mock_dump, mock_open):
+        O0OO0OO000OO0OOO0 =O0000OOO0OO000000 .return_value #line:112:mock_file = mock_open.return_value
+        O0OO0OO000OO0OOO0 .__enter__ .return_value =O0OO0OO000OO0OOO0 #line:113:mock_file.__enter__.return_value = mock_file
+        O0OOOOO0OOO0OOOOO .game .update_high_score (200 )#line:115:self.game.update_high_score(200)
+        O0000OOO0OO000000 .assert_any_call ("high_score.json","r")#line:118:mock_open.assert_any_call("high_score.json", "r")
+        O0000OOO0OO000000 .assert_any_call ("high_score.json","w")#line:119:mock_open.assert_any_call("high_score.json", "w")
+        O0O0OO00OOOO0O00O .assert_called_with ({"high_score":200 },O0OO0OO000OO0OOO0 )#line:121:mock_dump.assert_called_with({"high_score": 200}, mock_file)
+    @patch ("builtins.open",new_callable =mock_open )#line:123:@patch("builtins.open", new_callable=mock_open)
+    @patch ("json.dump")#line:124:@patch("json.dump")
+    @patch ("json.load",return_value ={"high_score":100 })#line:125:@patch("json.load", return_value={"high_score": 100})
+    def test_update_high_score_with_score_lower_than_high_score (O00O00000O000OO00 ,OOO0OOO0O0O00000O ,O000O000OOO00OO00 ,O0OO00O0O000OO000 ):#line:128:):
+        O0O0O0OO0O000O00O =O0OO00O0O000OO000 .return_value #line:129:mock_file = mock_open.return_value
+        O0O0O0OO0O000O00O .__enter__ .return_value =O0O0O0OO0O000O00O #line:130:mock_file.__enter__.return_value = mock_file
+        O00O00000O000OO00 .game .update_high_score (50 )#line:132:self.game.update_high_score(50)
+        O0OO00O0O000OO000 .assert_called_once_with ("high_score.json","r")#line:135:mock_open.assert_called_once_with("high_score.json", "r")
+        O000O000OOO00OO00 .assert_not_called ()#line:136:mock_dump.assert_not_called()
+if __name__ =="__main__":#line:139:if __name__ == "__main__":
+    unittest .main ()#line:140:unittest.main()

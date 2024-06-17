@@ -1,0 +1,468 @@
+""#line:6:"""
+import contextlib #line:7:import contextlib
+import math #line:8:import math
+import os #line:9:import os
+import sys #line:10:import sys
+import time #line:11:import time
+from ._compat import _default_text_stdout #line:13:from ._compat import _default_text_stdout
+from ._compat import CYGWIN #line:14:from ._compat import CYGWIN
+from ._compat import get_best_encoding #line:15:from ._compat import get_best_encoding
+from ._compat import int_types #line:16:from ._compat import int_types
+from ._compat import isatty #line:17:from ._compat import isatty
+from ._compat import open_stream #line:18:from ._compat import open_stream
+from ._compat import range_type #line:19:from ._compat import range_type
+from ._compat import strip_ansi #line:20:from ._compat import strip_ansi
+from ._compat import term_len #line:21:from ._compat import term_len
+from ._compat import WIN #line:22:from ._compat import WIN
+from .exceptions import ClickException #line:23:from .exceptions import ClickException
+from .utils import echo #line:24:from .utils import echo
+if os .name =="nt":#line:26:if os.name == "nt":
+    BEFORE_BAR ="\r"#line:27:BEFORE_BAR = "\r"
+    AFTER_BAR ="\n"#line:28:AFTER_BAR = "\n"
+else :#line:29:else:
+    BEFORE_BAR ="\r\033[?25l"#line:30:BEFORE_BAR = "\r\033[?25l"
+    AFTER_BAR ="\033[?25h\n"#line:31:AFTER_BAR = "\033[?25h\n"
+def _O00O0O0O0O0O0OOO0 (O0O000O00OOO0O0OO ):#line:34:def _length_hint(obj):
+    ""#line:35:"""Returns the length hint of an object."""
+    try :#line:36:try:
+        return len (O0O000O00OOO0O0OO )#line:37:return len(obj)
+    except (AttributeError ,TypeError ):#line:38:except (AttributeError, TypeError):
+        try :#line:39:try:
+            OOOO00O0O000000O0 =type (O0O000O00OOO0O0OO ).__length_hint__ #line:40:get_hint = type(obj).__length_hint__
+        except AttributeError :#line:41:except AttributeError:
+            return None #line:42:return None
+        try :#line:43:try:
+            O000O0O0O0000OO00 =OOOO00O0O000000O0 (O0O000O00OOO0O0OO )#line:44:hint = get_hint(obj)
+        except TypeError :#line:45:except TypeError:
+            return None #line:46:return None
+        if O000O0O0O0000OO00 is NotImplemented or not isinstance (O000O0O0O0000OO00 ,int_types )or O000O0O0O0000OO00 <0 :#line:47:if hint is NotImplemented or not isinstance(hint, int_types) or hint < 0:
+            return None #line:48:return None
+        return O000O0O0O0000OO00 #line:49:return hint
+class ProgressBar (object ):#line:52:class ProgressBar(object):
+    def __init__ (OO00OO0OO00OOO000 ,O0O00OOOO0O000OOO ,length =None ,fill_char ="#",empty_char =" ",bar_template ="%(bar)s",info_sep ="  ",show_eta =True ,show_percent =None ,show_pos =False ,item_show_func =None ,label =None ,file =None ,color =None ,width =30 ,):#line:69:):
+        OO00OO0OO00OOO000 .fill_char =fill_char #line:70:self.fill_char = fill_char
+        OO00OO0OO00OOO000 .empty_char =empty_char #line:71:self.empty_char = empty_char
+        OO00OO0OO00OOO000 .bar_template =bar_template #line:72:self.bar_template = bar_template
+        OO00OO0OO00OOO000 .info_sep =info_sep #line:73:self.info_sep = info_sep
+        OO00OO0OO00OOO000 .show_eta =show_eta #line:74:self.show_eta = show_eta
+        OO00OO0OO00OOO000 .show_percent =show_percent #line:75:self.show_percent = show_percent
+        OO00OO0OO00OOO000 .show_pos =show_pos #line:76:self.show_pos = show_pos
+        OO00OO0OO00OOO000 .item_show_func =item_show_func #line:77:self.item_show_func = item_show_func
+        OO00OO0OO00OOO000 .label =label or ""#line:78:self.label = label or ""
+        if file is None :#line:79:if file is None:
+            file =_default_text_stdout ()#line:80:file = _default_text_stdout()
+        OO00OO0OO00OOO000 .file =file #line:81:self.file = file
+        OO00OO0OO00OOO000 .color =color #line:82:self.color = color
+        OO00OO0OO00OOO000 .width =width #line:83:self.width = width
+        OO00OO0OO00OOO000 .autowidth =width ==0 #line:84:self.autowidth = width == 0
+        if length is None :#line:86:if length is None:
+            length =_O00O0O0O0O0O0OOO0 (O0O00OOOO0O000OOO )#line:87:length = _length_hint(iterable)
+        if O0O00OOOO0O000OOO is None :#line:88:if iterable is None:
+            if length is None :#line:89:if length is None:
+                raise TypeError ("iterable or length is required")#line:90:raise TypeError("iterable or length is required")
+            O0O00OOOO0O000OOO =range_type (length )#line:91:iterable = range_type(length)
+        OO00OO0OO00OOO000 .iter =iter (O0O00OOOO0O000OOO )#line:92:self.iter = iter(iterable)
+        OO00OO0OO00OOO000 .length =length #line:93:self.length = length
+        OO00OO0OO00OOO000 .length_known =length is not None #line:94:self.length_known = length is not None
+        OO00OO0OO00OOO000 .pos =0 #line:95:self.pos = 0
+        OO00OO0OO00OOO000 .avg =[]#line:96:self.avg = []
+        OO00OO0OO00OOO000 .start =OO00OO0OO00OOO000 .last_eta =time .time ()#line:97:self.start = self.last_eta = time.time()
+        OO00OO0OO00OOO000 .eta_known =False #line:98:self.eta_known = False
+        OO00OO0OO00OOO000 .finished =False #line:99:self.finished = False
+        OO00OO0OO00OOO000 .max_width =None #line:100:self.max_width = None
+        OO00OO0OO00OOO000 .entered =False #line:101:self.entered = False
+        OO00OO0OO00OOO000 .current_item =None #line:102:self.current_item = None
+        OO00OO0OO00OOO000 .is_hidden =not isatty (OO00OO0OO00OOO000 .file )#line:103:self.is_hidden = not isatty(self.file)
+        OO00OO0OO00OOO000 ._last_line =None #line:104:self._last_line = None
+        OO00OO0OO00OOO000 .short_limit =0.5 #line:105:self.short_limit = 0.5
+    def __enter__ (O0OOO00O0OOOO0000 ):#line:107:def __enter__(self):
+        O0OOO00O0OOOO0000 .entered =True #line:108:self.entered = True
+        O0OOO00O0OOOO0000 .render_progress ()#line:109:self.render_progress()
+        return O0OOO00O0OOOO0000 #line:110:return self
+    def __exit__ (O000OO0O00O0OO0O0 ,OO00000000OO00O0O ,OO0OOO000O0OOOOOO ,O000OOOOOO0O00O00 ):#line:112:def __exit__(self, exc_type, exc_value, tb):
+        O000OO0O00O0OO0O0 .render_finish ()#line:113:self.render_finish()
+    def __iter__ (OOOO0O00O000O0OOO ):#line:115:def __iter__(self):
+        if not OOOO0O00O000O0OOO .entered :#line:116:if not self.entered:
+            raise RuntimeError ("You need to use progress bars in a with block.")#line:117:raise RuntimeError("You need to use progress bars in a with block.")
+        OOOO0O00O000O0OOO .render_progress ()#line:118:self.render_progress()
+        return OOOO0O00O000O0OOO .generator ()#line:119:return self.generator()
+    def __next__ (OO00OO0OO0O000O00 ):#line:121:def __next__(self):
+        return next (iter (OO00OO0OO0O000O00 ))#line:127:return next(iter(self))
+    next =__next__ #line:130:next = __next__
+    def is_fast (O0O00O0000000O000 ):#line:132:def is_fast(self):
+        return time .time ()-O0O00O0000000O000 .start <=O0O00O0000000O000 .short_limit #line:133:return time.time() - self.start <= self.short_limit
+    def render_finish (O0OO00O00O0OOO0OO ):#line:135:def render_finish(self):
+        if O0OO00O00O0OOO0OO .is_hidden or O0OO00O00O0OOO0OO .is_fast ():#line:136:if self.is_hidden or self.is_fast():
+            return #line:137:return
+        O0OO00O00O0OOO0OO .file .write (AFTER_BAR )#line:138:self.file.write(AFTER_BAR)
+        O0OO00O00O0OOO0OO .file .flush ()#line:139:self.file.flush()
+    @property #line:141:@property
+    def pct (OOOO0OOOO0O0OOOOO ):#line:142:def pct(self):
+        if OOOO0OOOO0O0OOOOO .finished :#line:143:if self.finished:
+            return 1.0 #line:144:return 1.0
+        return min (OOOO0OOOO0O0OOOOO .pos /(float (OOOO0OOOO0O0OOOOO .length )or 1 ),1.0 )#line:145:return min(self.pos / (float(self.length) or 1), 1.0)
+    @property #line:147:@property
+    def time_per_iteration (O00OO0O0OO0OOOO00 ):#line:148:def time_per_iteration(self):
+        if not O00OO0O0OO0OOOO00 .avg :#line:149:if not self.avg:
+            return 0.0 #line:150:return 0.0
+        return sum (O00OO0O0OO0OOOO00 .avg )/float (len (O00OO0O0OO0OOOO00 .avg ))#line:151:return sum(self.avg) / float(len(self.avg))
+    @property #line:153:@property
+    def eta (OOO0O000OO0O000O0 ):#line:154:def eta(self):
+        if OOO0O000OO0O000O0 .length_known and not OOO0O000OO0O000O0 .finished :#line:155:if self.length_known and not self.finished:
+            return OOO0O000OO0O000O0 .time_per_iteration *(OOO0O000OO0O000O0 .length -OOO0O000OO0O000O0 .pos )#line:156:return self.time_per_iteration * (self.length - self.pos)
+        return 0.0 #line:157:return 0.0
+    def format_eta (O0O0O00O0O00O00OO ):#line:159:def format_eta(self):
+        if O0O0O00O0O00O00OO .eta_known :#line:160:if self.eta_known:
+            OO00O0OOOO0OOOOO0 =int (O0O0O00O0O00O00OO .eta )#line:161:t = int(self.eta)
+            O00O0OOOOOOOOOO00 =OO00O0OOOO0OOOOO0 %60 #line:162:seconds = t % 60
+            OO00O0OOOO0OOOOO0 //=60 #line:163:t //= 60
+            O0OOOOO0O0O0O00O0 =OO00O0OOOO0OOOOO0 %60 #line:164:minutes = t % 60
+            OO00O0OOOO0OOOOO0 //=60 #line:165:t //= 60
+            OOO00OOO0OOO00OOO =OO00O0OOOO0OOOOO0 %24 #line:166:hours = t % 24
+            OO00O0OOOO0OOOOO0 //=24 #line:167:t //= 24
+            if OO00O0OOOO0OOOOO0 >0 :#line:168:if t > 0:
+                return "{}d {:02}:{:02}:{:02}".format (OO00O0OOOO0OOOOO0 ,OOO00OOO0OOO00OOO ,O0OOOOO0O0O0O00O0 ,O00O0OOOOOOOOOO00 )#line:169:return "{}d {:02}:{:02}:{:02}".format(t, hours, minutes, seconds)
+            else :#line:170:else:
+                return "{:02}:{:02}:{:02}".format (OOO00OOO0OOO00OOO ,O0OOOOO0O0O0O00O0 ,O00O0OOOOOOOOOO00 )#line:171:return "{:02}:{:02}:{:02}".format(hours, minutes, seconds)
+        return ""#line:172:return ""
+    def format_pos (OO000OO0OO0OO00OO ):#line:174:def format_pos(self):
+        O00000O000OOO00O0 =str (OO000OO0OO0OO00OO .pos )#line:175:pos = str(self.pos)
+        if OO000OO0OO0OO00OO .length_known :#line:176:if self.length_known:
+            O00000O000OOO00O0 +="/{}".format (OO000OO0OO0OO00OO .length )#line:177:pos += "/{}".format(self.length)
+        return O00000O000OOO00O0 #line:178:return pos
+    def format_pct (OOO0O00OO0O0OOO00 ):#line:180:def format_pct(self):
+        return "{: 4}%".format (int (OOO0O00OO0O0OOO00 .pct *100 ))[1 :]#line:181:return "{: 4}%".format(int(self.pct * 100))[1:]
+    def format_bar (OOOOO0000O00OO0OO ):#line:183:def format_bar(self):
+        if OOOOO0000O00OO0OO .length_known :#line:184:if self.length_known:
+            OOOOOO000O0000O0O =int (OOOOO0000O00OO0OO .pct *OOOOO0000O00OO0OO .width )#line:185:bar_length = int(self.pct * self.width)
+            O00O0O000OO0000OO =OOOOO0000O00OO0OO .fill_char *OOOOOO000O0000O0O #line:186:bar = self.fill_char * bar_length
+            O00O0O000OO0000OO +=OOOOO0000O00OO0OO .empty_char *(OOOOO0000O00OO0OO .width -OOOOOO000O0000O0O )#line:187:bar += self.empty_char * (self.width - bar_length)
+        elif OOOOO0000O00OO0OO .finished :#line:188:elif self.finished:
+            O00O0O000OO0000OO =OOOOO0000O00OO0OO .fill_char *OOOOO0000O00OO0OO .width #line:189:bar = self.fill_char * self.width
+        else :#line:190:else:
+            O00O0O000OO0000OO =list (OOOOO0000O00OO0OO .empty_char *(OOOOO0000O00OO0OO .width or 1 ))#line:191:bar = list(self.empty_char * (self.width or 1))
+            if OOOOO0000O00OO0OO .time_per_iteration !=0 :#line:192:if self.time_per_iteration != 0:
+                O00O0O000OO0000OO [int ((math .cos (OOOOO0000O00OO0OO .pos *OOOOO0000O00OO0OO .time_per_iteration )/2.0 +0.5 )*OOOOO0000O00OO0OO .width )]=OOOOO0000O00OO0OO .fill_char #line:198:] = self.fill_char
+            O00O0O000OO0000OO ="".join (O00O0O000OO0000OO )#line:199:bar = "".join(bar)
+        return O00O0O000OO0000OO #line:200:return bar
+    def format_progress_line (O0OOO00OOOOO00O00 ):#line:202:def format_progress_line(self):
+        O0OO000O00000O00O =O0OOO00OOOOO00O00 .show_percent #line:203:show_percent = self.show_percent
+        O0O00OOO0000OO0OO =[]#line:205:info_bits = []
+        if O0OOO00OOOOO00O00 .length_known and O0OO000O00000O00O is None :#line:206:if self.length_known and show_percent is None:
+            O0OO000O00000O00O =not O0OOO00OOOOO00O00 .show_pos #line:207:show_percent = not self.show_pos
+        if O0OOO00OOOOO00O00 .show_pos :#line:209:if self.show_pos:
+            O0O00OOO0000OO0OO .append (O0OOO00OOOOO00O00 .format_pos ())#line:210:info_bits.append(self.format_pos())
+        if O0OO000O00000O00O :#line:211:if show_percent:
+            O0O00OOO0000OO0OO .append (O0OOO00OOOOO00O00 .format_pct ())#line:212:info_bits.append(self.format_pct())
+        if O0OOO00OOOOO00O00 .show_eta and O0OOO00OOOOO00O00 .eta_known and not O0OOO00OOOOO00O00 .finished :#line:213:if self.show_eta and self.eta_known and not self.finished:
+            O0O00OOO0000OO0OO .append (O0OOO00OOOOO00O00 .format_eta ())#line:214:info_bits.append(self.format_eta())
+        if O0OOO00OOOOO00O00 .item_show_func is not None :#line:215:if self.item_show_func is not None:
+            O0O0OO00000O0OOO0 =O0OOO00OOOOO00O00 .item_show_func (O0OOO00OOOOO00O00 .current_item )#line:216:item_info = self.item_show_func(self.current_item)
+            if O0O0OO00000O0OOO0 is not None :#line:217:if item_info is not None:
+                O0O00OOO0000OO0OO .append (O0O0OO00000O0OOO0 )#line:218:info_bits.append(item_info)
+        return (O0OOO00OOOOO00O00 .bar_template %{"label":O0OOO00OOOOO00O00 .label ,"bar":O0OOO00OOOOO00O00 .format_bar (),"info":O0OOO00OOOOO00O00 .info_sep .join (O0O00OOO0000OO0OO ),}).rstrip ()#line:227:).rstrip()
+    def render_progress (OOO0OO0O0OOO000O0 ):#line:229:def render_progress(self):
+        from .termui import get_terminal_size #line:230:from .termui import get_terminal_size
+        if OOO0OO0O0OOO000O0 .is_hidden :#line:232:if self.is_hidden:
+            return #line:233:return
+        OO0O00O0OOOOOO0O0 =[]#line:235:buf = []
+        if OOO0OO0O0OOO000O0 .autowidth :#line:237:if self.autowidth:
+            OO0000OOOOOOO000O =OOO0OO0O0OOO000O0 .width #line:238:old_width = self.width
+            OOO0OO0O0OOO000O0 .width =0 #line:239:self.width = 0
+            OO00O0000O00OO0O0 =term_len (OOO0OO0O0OOO000O0 .format_progress_line ())#line:240:clutter_length = term_len(self.format_progress_line())
+            OO00O000OOOO0O0O0 =max (0 ,get_terminal_size ()[0 ]-OO00O0000O00OO0O0 )#line:241:new_width = max(0, get_terminal_size()[0] - clutter_length)
+            if OO00O000OOOO0O0O0 <OO0000OOOOOOO000O :#line:242:if new_width < old_width:
+                OO0O00O0OOOOOO0O0 .append (BEFORE_BAR )#line:243:buf.append(BEFORE_BAR)
+                OO0O00O0OOOOOO0O0 .append (" "*OOO0OO0O0OOO000O0 .max_width )#line:244:buf.append(" " * self.max_width)
+                OOO0OO0O0OOO000O0 .max_width =OO00O000OOOO0O0O0 #line:245:self.max_width = new_width
+            OOO0OO0O0OOO000O0 .width =OO00O000OOOO0O0O0 #line:246:self.width = new_width
+        O0000OOOOO00O000O =OOO0OO0O0OOO000O0 .width #line:248:clear_width = self.width
+        if OOO0OO0O0OOO000O0 .max_width is not None :#line:249:if self.max_width is not None:
+            O0000OOOOO00O000O =OOO0OO0O0OOO000O0 .max_width #line:250:clear_width = self.max_width
+        OO0O00O0OOOOOO0O0 .append (BEFORE_BAR )#line:252:buf.append(BEFORE_BAR)
+        OOOO00O0O000OO00O =OOO0OO0O0OOO000O0 .format_progress_line ()#line:253:line = self.format_progress_line()
+        O000OO0OO0O000OO0 =term_len (OOOO00O0O000OO00O )#line:254:line_len = term_len(line)
+        if OOO0OO0O0OOO000O0 .max_width is None or OOO0OO0O0OOO000O0 .max_width <O000OO0OO0O000OO0 :#line:255:if self.max_width is None or self.max_width < line_len:
+            OOO0OO0O0OOO000O0 .max_width =O000OO0OO0O000OO0 #line:256:self.max_width = line_len
+        OO0O00O0OOOOOO0O0 .append (OOOO00O0O000OO00O )#line:258:buf.append(line)
+        OO0O00O0OOOOOO0O0 .append (" "*(O0000OOOOO00O000O -O000OO0OO0O000OO0 ))#line:259:buf.append(" " * (clear_width - line_len))
+        OOOO00O0O000OO00O ="".join (OO0O00O0OOOOOO0O0 )#line:260:line = "".join(buf)
+        if OOOO00O0O000OO00O !=OOO0OO0O0OOO000O0 ._last_line and not OOO0OO0O0OOO000O0 .is_fast ():#line:263:if line != self._last_line and not self.is_fast():
+            OOO0OO0O0OOO000O0 ._last_line =OOOO00O0O000OO00O #line:264:self._last_line = line
+            echo (OOOO00O0O000OO00O ,file =OOO0OO0O0OOO000O0 .file ,color =OOO0OO0O0OOO000O0 .color ,nl =False )#line:265:echo(line, file=self.file, color=self.color, nl=False)
+            OOO0OO0O0OOO000O0 .file .flush ()#line:266:self.file.flush()
+    def make_step (O00O00O00OO000O0O ,OO0OO00O0O00O00O0 ):#line:268:def make_step(self, n_steps):
+        O00O00O00OO000O0O .pos +=OO0OO00O0O00O00O0 #line:269:self.pos += n_steps
+        if O00O00O00OO000O0O .length_known and O00O00O00OO000O0O .pos >=O00O00O00OO000O0O .length :#line:270:if self.length_known and self.pos >= self.length:
+            O00O00O00OO000O0O .finished =True #line:271:self.finished = True
+        if (time .time ()-O00O00O00OO000O0O .last_eta )<1.0 :#line:273:if (time.time() - self.last_eta) < 1.0:
+            return #line:274:return
+        O00O00O00OO000O0O .last_eta =time .time ()#line:276:self.last_eta = time.time()
+        if O00O00O00OO000O0O .pos :#line:281:if self.pos:
+            OO000O00OO0O0OOOO =(time .time ()-O00O00O00OO000O0O .start )/O00O00O00OO000O0O .pos #line:282:step = (time.time() - self.start) / self.pos
+        else :#line:283:else:
+            OO000O00OO0O0OOOO =time .time ()-O00O00O00OO000O0O .start #line:284:step = time.time() - self.start
+        O00O00O00OO000O0O .avg =O00O00O00OO000O0O .avg [-6 :]+[OO000O00OO0O0OOOO ]#line:286:self.avg = self.avg[-6:] + [step]
+        O00O00O00OO000O0O .eta_known =O00O00O00OO000O0O .length_known #line:288:self.eta_known = self.length_known
+    def update (O0O00O00000O0000O ,OO000O0O0O0000O0O ):#line:290:def update(self, n_steps):
+        O0O00O00000O0000O .make_step (OO000O0O0O0000O0O )#line:291:self.make_step(n_steps)
+        O0O00O00000O0000O .render_progress ()#line:292:self.render_progress()
+    def finish (O0O0OO0000OO00OOO ):#line:294:def finish(self):
+        O0O0OO0000OO00OOO .eta_known =0 #line:295:self.eta_known = 0
+        O0O0OO0000OO00OOO .current_item =None #line:296:self.current_item = None
+        O0O0OO0000OO00OOO .finished =True #line:297:self.finished = True
+    def generator (OO000O0OO0OOOO0OO ):#line:299:def generator(self):
+        ""#line:303:"""
+        if not OO000O0OO0OOOO0OO .entered :#line:311:if not self.entered:
+            raise RuntimeError ("You need to use progress bars in a with block.")#line:312:raise RuntimeError("You need to use progress bars in a with block.")
+        if OO000O0OO0OOOO0OO .is_hidden :#line:314:if self.is_hidden:
+            for O00000OO0OOOOOO00 in OO000O0OO0OOOO0OO .iter :#line:315:for rv in self.iter:
+                yield O00000OO0OOOOOO00 #line:316:yield rv
+        else :#line:317:else:
+            for O00000OO0OOOOOO00 in OO000O0OO0OOOO0OO .iter :#line:318:for rv in self.iter:
+                OO000O0OO0OOOO0OO .current_item =O00000OO0OOOOOO00 #line:319:self.current_item = rv
+                yield O00000OO0OOOOOO00 #line:320:yield rv
+                OO000O0OO0OOOO0OO .update (1 )#line:321:self.update(1)
+            OO000O0OO0OOOO0OO .finish ()#line:322:self.finish()
+            OO000O0OO0OOOO0OO .render_progress ()#line:323:self.render_progress()
+def pager (OO0O000O00O0OO0OO ,color =None ):#line:326:def pager(generator, color=None):
+    ""#line:327:"""Decide what method to use for paging through text."""
+    O0O000O00000000OO =_default_text_stdout ()#line:328:stdout = _default_text_stdout()
+    if not isatty (sys .stdin )or not isatty (O0O000O00000000OO ):#line:329:if not isatty(sys.stdin) or not isatty(stdout):
+        return _OO0O0OO0O00OOOOOO (O0O000O00000000OO ,OO0O000O00O0OO0OO ,color )#line:330:return _nullpager(stdout, generator, color)
+    OO000000O0OO0OO00 =(os .environ .get ("PAGER",None )or "").strip ()#line:331:pager_cmd = (os.environ.get("PAGER", None) or "").strip()
+    if OO000000O0OO0OO00 :#line:332:if pager_cmd:
+        if WIN :#line:333:if WIN:
+            return _OO0OOOOOO0OO00000 (OO0O000O00O0OO0OO ,OO000000O0OO0OO00 ,color )#line:334:return _tempfilepager(generator, pager_cmd, color)
+        return _OOO00O0OO0OO0OOOO (OO0O000O00O0OO0OO ,OO000000O0OO0OO00 ,color )#line:335:return _pipepager(generator, pager_cmd, color)
+    if os .environ .get ("TERM")in ("dumb","emacs"):#line:336:if os.environ.get("TERM") in ("dumb", "emacs"):
+        return _OO0O0OO0O00OOOOOO (O0O000O00000000OO ,OO0O000O00O0OO0OO ,color )#line:337:return _nullpager(stdout, generator, color)
+    if WIN or sys .platform .startswith ("os2"):#line:338:if WIN or sys.platform.startswith("os2"):
+        return _OO0OOOOOO0OO00000 (OO0O000O00O0OO0OO ,"more <",color )#line:339:return _tempfilepager(generator, "more <", color)
+    if hasattr (os ,"system")and os .system ("(less) 2>/dev/null")==0 :#line:340:if hasattr(os, "system") and os.system("(less) 2>/dev/null") == 0:
+        return _OOO00O0OO0OO0OOOO (OO0O000O00O0OO0OO ,"less",color )#line:341:return _pipepager(generator, "less", color)
+    import tempfile #line:343:import tempfile
+    OO0O000000000OOOO ,O000O00O000OOO00O =tempfile .mkstemp ()#line:345:fd, filename = tempfile.mkstemp()
+    os .close (OO0O000000000OOOO )#line:346:os.close(fd)
+    try :#line:347:try:
+        if hasattr (os ,"system")and os .system ('more "{}"'.format (O000O00O000OOO00O ))==0 :#line:348:if hasattr(os, "system") and os.system('more "{}"'.format(filename)) == 0:
+            return _OOO00O0OO0OO0OOOO (OO0O000O00O0OO0OO ,"more",color )#line:349:return _pipepager(generator, "more", color)
+        return _OO0O0OO0O00OOOOOO (O0O000O00000000OO ,OO0O000O00O0OO0OO ,color )#line:350:return _nullpager(stdout, generator, color)
+    finally :#line:351:finally:
+        os .unlink (O000O00O000OOO00O )#line:352:os.unlink(filename)
+def _OOO00O0OO0OO0OOOO (OOOO00OOOO0O0OOO0 ,OOOO0O0O0OO0OOO00 ,O0OO0OOOOO000O0OO ):#line:355:def _pipepager(generator, cmd, color):
+    ""#line:358:"""
+    import subprocess #line:359:import subprocess
+    OOO00OO0OOOO0OOOO =dict (os .environ )#line:361:env = dict(os.environ)
+    O0OO0OO0OOO0000OO =OOOO0O0O0OO0OOO00 .rsplit ("/",1 )[-1 ].split ()#line:365:cmd_detail = cmd.rsplit("/", 1)[-1].split()
+    if O0OO0OOOOO000O0OO is None and O0OO0OO0OOO0000OO [0 ]=="less":#line:366:if color is None and cmd_detail[0] == "less":
+        OO00O0OOOOO0OO00O ="{}{}".format (os .environ .get ("LESS","")," ".join (O0OO0OO0OOO0000OO [1 :]))#line:367:less_flags = "{}{}".format(os.environ.get("LESS", ""), " ".join(cmd_detail[1:]))
+        if not OO00O0OOOOO0OO00O :#line:368:if not less_flags:
+            OOO00OO0OOOO0OOOO ["LESS"]="-R"#line:369:env["LESS"] = "-R"
+            O0OO0OOOOO000O0OO =True #line:370:color = True
+        elif "r"in OO00O0OOOOO0OO00O or "R"in OO00O0OOOOO0OO00O :#line:371:elif "r" in less_flags or "R" in less_flags:
+            O0OO0OOOOO000O0OO =True #line:372:color = True
+    OO00OO0O0000OOO0O =subprocess .Popen (OOOO0O0O0OO0OOO00 ,shell =True ,stdin =subprocess .PIPE ,env =OOO00OO0OOOO0OOOO )#line:374:c = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, env=env)
+    OO0O000000000OOO0 =get_best_encoding (OO00OO0O0000OOO0O .stdin )#line:375:encoding = get_best_encoding(c.stdin)
+    try :#line:376:try:
+        for OOO0OOOOO0OO0000O in OOOO00OOOO0O0OOO0 :#line:377:for text in generator:
+            if not O0OO0OOOOO000O0OO :#line:378:if not color:
+                OOO0OOOOO0OO0000O =strip_ansi (OOO0OOOOO0OO0000O )#line:379:text = strip_ansi(text)
+            OO00OO0O0000OOO0O .stdin .write (OOO0OOOOO0OO0000O .encode (OO0O000000000OOO0 ,"replace"))#line:381:c.stdin.write(text.encode(encoding, "replace"))
+    except (IOError ,KeyboardInterrupt ):#line:382:except (IOError, KeyboardInterrupt):
+        pass #line:383:pass
+    else :#line:384:else:
+        OO00OO0O0000OOO0O .stdin .close ()#line:385:c.stdin.close()
+    while True :#line:395:while True:
+        try :#line:396:try:
+            OO00OO0O0000OOO0O .wait ()#line:397:c.wait()
+        except KeyboardInterrupt :#line:398:except KeyboardInterrupt:
+            pass #line:399:pass
+        else :#line:400:else:
+            break #line:401:break
+def _OO0OOOOOO0OO00000 (OO0000OOO00O0OO00 ,O0000OO00OOOO0O0O ,O00O0O000O0OO0O00 ):#line:404:def _tempfilepager(generator, cmd, color):
+    ""#line:405:"""Page through text by invoking a program on a temporary file."""
+    import tempfile #line:406:import tempfile
+    O000O0OO0O00OOOOO =tempfile .mktemp ()#line:408:filename = tempfile.mktemp()
+    OOO0OO0OO00O000O0 ="".join (OO0000OOO00O0OO00 )#line:410:text = "".join(generator)
+    if not O00O0O000O0OO0O00 :#line:411:if not color:
+        OOO0OO0OO00O000O0 =strip_ansi (OOO0OO0OO00O000O0 )#line:412:text = strip_ansi(text)
+    OOOOOOOOO0000OOO0 =get_best_encoding (sys .stdout )#line:413:encoding = get_best_encoding(sys.stdout)
+    with open_stream (O000O0OO0O00OOOOO ,"wb")[0 ]as OOOOOOO00OOOOO00O :#line:414:with open_stream(filename, "wb")[0] as f:
+        OOOOOOO00OOOOO00O .write (OOO0OO0OO00O000O0 .encode (OOOOOOOOO0000OOO0 ))#line:415:f.write(text.encode(encoding))
+    try :#line:416:try:
+        os .system ('{} "{}"'.format (O0000OO00OOOO0O0O ,O000O0OO0O00OOOOO ))#line:417:os.system('{} "{}"'.format(cmd, filename))
+    finally :#line:418:finally:
+        os .unlink (O000O0OO0O00OOOOO )#line:419:os.unlink(filename)
+def _OO0O0OO0O00OOOOOO (O0OOOOO0O0OO0OO00 ,OO0O00OOO00O0OO0O ,OO0OO0OOO000000O0 ):#line:422:def _nullpager(stream, generator, color):
+    ""#line:423:"""Simply print unformatted text.  This is the ultimate fallback."""
+    for O00OO00000O00OO00 in OO0O00OOO00O0OO0O :#line:424:for text in generator:
+        if not OO0OO0OOO000000O0 :#line:425:if not color:
+            O00OO00000O00OO00 =strip_ansi (O00OO00000O00OO00 )#line:426:text = strip_ansi(text)
+        O0OOOOO0O0OO0OO00 .write (O00OO00000O00OO00 )#line:427:stream.write(text)
+class Editor (object ):#line:430:class Editor(object):
+    def __init__ (OOOO000O0O0O0O0O0 ,editor =None ,env =None ,require_save =True ,extension =".txt"):#line:431:def __init__(self, editor=None, env=None, require_save=True, extension=".txt"):
+        OOOO000O0O0O0O0O0 .editor =editor #line:432:self.editor = editor
+        OOOO000O0O0O0O0O0 .env =env #line:433:self.env = env
+        OOOO000O0O0O0O0O0 .require_save =require_save #line:434:self.require_save = require_save
+        OOOO000O0O0O0O0O0 .extension =extension #line:435:self.extension = extension
+    def get_editor (OOOOOO00O0OOOO0OO ):#line:437:def get_editor(self):
+        if OOOOOO00O0OOOO0OO .editor is not None :#line:438:if self.editor is not None:
+            return OOOOOO00O0OOOO0OO .editor #line:439:return self.editor
+        for O0O0O0O0O000O000O in "VISUAL","EDITOR":#line:440:for key in "VISUAL", "EDITOR":
+            OO0000OO0OOOOOOOO =os .environ .get (O0O0O0O0O000O000O )#line:441:rv = os.environ.get(key)
+            if OO0000OO0OOOOOOOO :#line:442:if rv:
+                return OO0000OO0OOOOOOOO #line:443:return rv
+        if WIN :#line:444:if WIN:
+            return "notepad"#line:445:return "notepad"
+        for OOOOO00OOOOOOO0OO in "sensible-editor","vim","nano":#line:446:for editor in "sensible-editor", "vim", "nano":
+            if os .system ("which {} >/dev/null 2>&1".format (OOOOO00OOOOOOO0OO ))==0 :#line:447:if os.system("which {} >/dev/null 2>&1".format(editor)) == 0:
+                return OOOOO00OOOOOOO0OO #line:448:return editor
+        return "vi"#line:449:return "vi"
+    def edit_file (O000OO00O0O0000O0 ,O0000OO00OOOOO00O ):#line:451:def edit_file(self, filename):
+        import subprocess #line:452:import subprocess
+        O0O0OO00000O0000O =O000OO00O0O0000O0 .get_editor ()#line:454:editor = self.get_editor()
+        if O000OO00O0O0000O0 .env :#line:455:if self.env:
+            OO00O0OOOO000OO0O =os .environ .copy ()#line:456:environ = os.environ.copy()
+            OO00O0OOOO000OO0O .update (O000OO00O0O0000O0 .env )#line:457:environ.update(self.env)
+        else :#line:458:else:
+            OO00O0OOOO000OO0O =None #line:459:environ = None
+        try :#line:460:try:
+            O0O0OO0OO0O0O00O0 =subprocess .Popen ('{} "{}"'.format (O0O0OO00000O0000O ,O0000OO00OOOOO00O ),env =OO00O0OOOO000OO0O ,shell =True ,)#line:463:)
+            OOOO00O0O0OOOOOO0 =O0O0OO0OO0O0O00O0 .wait ()#line:464:exit_code = c.wait()
+            if OOOO00O0O0OOOOOO0 !=0 :#line:465:if exit_code != 0:
+                raise ClickException ("{}: Editing failed!".format (O0O0OO00000O0000O ))#line:466:raise ClickException("{}: Editing failed!".format(editor))
+        except OSError as OO0OO00OO0OO0000O :#line:467:except OSError as e:
+            raise ClickException ("{}: Editing failed: {}".format (O0O0OO00000O0000O ,OO0OO00OO0OO0000O ))#line:468:raise ClickException("{}: Editing failed: {}".format(editor, e))
+    def edit (O000OO00O0O000OO0 ,OOOO0O00O0OOOO00O ):#line:470:def edit(self, text):
+        import tempfile #line:471:import tempfile
+        OOOO0O00O0OOOO00O =OOOO0O00O0OOOO00O or ""#line:473:text = text or ""
+        if OOOO0O00O0OOOO00O and not OOOO0O00O0OOOO00O .endswith ("\n"):#line:474:if text and not text.endswith("\n"):
+            OOOO0O00O0OOOO00O +="\n"#line:475:text += "\n"
+        O0OOO000O00OOO0OO ,O0O0OOOO00OO00000 =tempfile .mkstemp (prefix ="editor-",suffix =O000OO00O0O000OO0 .extension )#line:477:fd, name = tempfile.mkstemp(prefix="editor-", suffix=self.extension)
+        try :#line:478:try:
+            if WIN :#line:479:if WIN:
+                O0000OOOOO0OOO0O0 ="utf-8-sig"#line:480:encoding = "utf-8-sig"
+                OOOO0O00O0OOOO00O =OOOO0O00O0OOOO00O .replace ("\n","\r\n")#line:481:text = text.replace("\n", "\r\n")
+            else :#line:482:else:
+                O0000OOOOO0OOO0O0 ="utf-8"#line:483:encoding = "utf-8"
+            OOOO0O00O0OOOO00O =OOOO0O00O0OOOO00O .encode (O0000OOOOO0OOO0O0 )#line:484:text = text.encode(encoding)
+            OOOO0000O00000OOO =os .fdopen (O0OOO000O00OOO0OO ,"wb")#line:486:f = os.fdopen(fd, "wb")
+            OOOO0000O00000OOO .write (OOOO0O00O0OOOO00O )#line:487:f.write(text)
+            OOOO0000O00000OOO .close ()#line:488:f.close()
+            OOOO0OO0OO0O000OO =os .path .getmtime (O0O0OOOO00OO00000 )#line:489:timestamp = os.path.getmtime(name)
+            O000OO00O0O000OO0 .edit_file (O0O0OOOO00OO00000 )#line:491:self.edit_file(name)
+            if O000OO00O0O000OO0 .require_save and os .path .getmtime (O0O0OOOO00OO00000 )==OOOO0OO0OO0O000OO :#line:493:if self.require_save and os.path.getmtime(name) == timestamp:
+                return None #line:494:return None
+            OOOO0000O00000OOO =open (O0O0OOOO00OO00000 ,"rb")#line:496:f = open(name, "rb")
+            try :#line:497:try:
+                OOOOO0OO0000OOO00 =OOOO0000O00000OOO .read ()#line:498:rv = f.read()
+            finally :#line:499:finally:
+                OOOO0000O00000OOO .close ()#line:500:f.close()
+            return OOOOO0OO0000OOO00 .decode ("utf-8-sig").replace ("\r\n","\n")#line:501:return rv.decode("utf-8-sig").replace("\r\n", "\n")
+        finally :#line:502:finally:
+            os .unlink (O0O0OOOO00OO00000 )#line:503:os.unlink(name)
+def open_url (OO00OO0O0O0000OOO ,wait =False ,locate =False ):#line:506:def open_url(url, wait=False, locate=False):
+    import subprocess #line:507:import subprocess
+    def _O00O0OOO0OOO00O0O (OOOO0OO0O0OOO0O0O ):#line:509:def _unquote_file(url):
+        try :#line:510:try:
+            import urllib #line:511:import urllib
+        except ImportError :#line:512:except ImportError:
+            import urllib #line:513:import urllib
+        if OOOO0OO0O0OOO0O0O .startswith ("file://"):#line:514:if url.startswith("file://"):
+            OOOO0OO0O0OOO0O0O =urllib .unquote (OOOO0OO0O0OOO0O0O [7 :])#line:515:url = urllib.unquote(url[7:])
+        return OOOO0OO0O0OOO0O0O #line:516:return url
+    if sys .platform =="darwin":#line:518:if sys.platform == "darwin":
+        O0OO0O00000O0OO00 =["open"]#line:519:args = ["open"]
+        if wait :#line:520:if wait:
+            O0OO0O00000O0OO00 .append ("-W")#line:521:args.append("-W")
+        if locate :#line:522:if locate:
+            O0OO0O00000O0OO00 .append ("-R")#line:523:args.append("-R")
+        O0OO0O00000O0OO00 .append (_O00O0OOO0OOO00O0O (OO00OO0O0O0000OOO ))#line:524:args.append(_unquote_file(url))
+        OO0OOO0OOO0O00OOO =open ("/dev/null","w")#line:525:null = open("/dev/null", "w")
+        try :#line:526:try:
+            return subprocess .Popen (O0OO0O00000O0OO00 ,stderr =OO0OOO0OOO0O00OOO ).wait ()#line:527:return subprocess.Popen(args, stderr=null).wait()
+        finally :#line:528:finally:
+            OO0OOO0OOO0O00OOO .close ()#line:529:null.close()
+    elif WIN :#line:530:elif WIN:
+        if locate :#line:531:if locate:
+            OO00OO0O0O0000OOO =_O00O0OOO0OOO00O0O (OO00OO0O0O0000OOO )#line:532:url = _unquote_file(url)
+            O0OO0O00000O0OO00 ='explorer /select,"{}"'.format (_O00O0OOO0OOO00O0O (OO00OO0O0O0000OOO .replace ('"',"")))#line:533:args = 'explorer /select,"{}"'.format(_unquote_file(url.replace('"', "")))
+        else :#line:534:else:
+            O0OO0O00000O0OO00 ='start {} "" "{}"'.format ("/WAIT"if wait else "",OO00OO0O0O0000OOO .replace ('"',""))#line:537:)
+        return os .system (O0OO0O00000O0OO00 )#line:538:return os.system(args)
+    elif CYGWIN :#line:539:elif CYGWIN:
+        if locate :#line:540:if locate:
+            OO00OO0O0O0000OOO =_O00O0OOO0OOO00O0O (OO00OO0O0O0000OOO )#line:541:url = _unquote_file(url)
+            O0OO0O00000O0OO00 ='cygstart "{}"'.format (os .path .dirname (OO00OO0O0O0000OOO ).replace ('"',""))#line:542:args = 'cygstart "{}"'.format(os.path.dirname(url).replace('"', ""))
+        else :#line:543:else:
+            O0OO0O00000O0OO00 ='cygstart {} "{}"'.format ("-w"if wait else "",OO00OO0O0O0000OOO .replace ('"',""))#line:544:args = 'cygstart {} "{}"'.format("-w" if wait else "", url.replace('"', ""))
+        return os .system (O0OO0O00000O0OO00 )#line:545:return os.system(args)
+    try :#line:547:try:
+        if locate :#line:548:if locate:
+            OO00OO0O0O0000OOO =os .path .dirname (_O00O0OOO0OOO00O0O (OO00OO0O0O0000OOO ))or "."#line:549:url = os.path.dirname(_unquote_file(url)) or "."
+        else :#line:550:else:
+            OO00OO0O0O0000OOO =_O00O0OOO0OOO00O0O (OO00OO0O0O0000OOO )#line:551:url = _unquote_file(url)
+        OOO0O0O0O00O00O0O =subprocess .Popen (["xdg-open",OO00OO0O0O0000OOO ])#line:552:c = subprocess.Popen(["xdg-open", url])
+        if wait :#line:553:if wait:
+            return OOO0O0O0O00O00O0O .wait ()#line:554:return c.wait()
+        return 0 #line:555:return 0
+    except OSError :#line:556:except OSError:
+        if OO00OO0O0O0000OOO .startswith (("http://","https://"))and not locate and not wait :#line:557:if url.startswith(("http://", "https://")) and not locate and not wait:
+            import webbrowser #line:558:import webbrowser
+            webbrowser .open (OO00OO0O0O0000OOO )#line:560:webbrowser.open(url)
+            return 0 #line:561:return 0
+        return 1 #line:562:return 1
+def _OO00O0OOOOO0O0OO0 (OOOO0O000OOO000OO ):#line:565:def _translate_ch_to_exc(ch):
+    if OOOO0O000OOO000OO ==u"\x03":#line:566:if ch == u"\x03":
+        raise KeyboardInterrupt ()#line:567:raise KeyboardInterrupt()
+    if OOOO0O000OOO000OO ==u"\x04"and not WIN :#line:568:if ch == u"\x04" and not WIN:  # Unix-like, Ctrl+D
+        raise EOFError ()#line:569:raise EOFError()
+    if OOOO0O000OOO000OO ==u"\x1a"and WIN :#line:570:if ch == u"\x1a" and WIN:  # Windows, Ctrl+Z
+        raise EOFError ()#line:571:raise EOFError()
+if WIN :#line:574:if WIN:
+    import msvcrt #line:575:import msvcrt
+    @contextlib .contextmanager #line:577:@contextlib.contextmanager
+    def raw_terminal ():#line:578:def raw_terminal():
+        yield #line:579:yield
+    def getchar (O0OO0O0OOOOO0OO00 ):#line:581:def getchar(echo):
+        if O0OO0O0OOOOO0OO00 :#line:611:if echo:
+            O0O0OO0O0O0OO0OO0 =msvcrt .getwche #line:612:func = msvcrt.getwche
+        else :#line:613:else:
+            O0O0OO0O0O0OO0OO0 =msvcrt .getwch #line:614:func = msvcrt.getwch
+        O000OOO0000OO0000 =O0O0OO0O0O0OO0OO0 ()#line:616:rv = func()
+        if O000OOO0000OO0000 in (u"\x00",u"\xe0"):#line:617:if rv in (u"\x00", u"\xe0"):
+            O000OOO0000OO0000 +=O0O0OO0O0O0OO0OO0 ()#line:620:rv += func()
+        _OO00O0OOOOO0O0OO0 (O000OOO0000OO0000 )#line:621:_translate_ch_to_exc(rv)
+        return O000OOO0000OO0000 #line:622:return rv
+else :#line:625:else:
+    import tty #line:626:import tty
+    import termios #line:627:import termios
+    @contextlib .contextmanager #line:629:@contextlib.contextmanager
+    def raw_terminal ():#line:630:def raw_terminal():
+        if not isatty (sys .stdin ):#line:631:if not isatty(sys.stdin):
+            O0000O000O0OOOO0O =open ("/dev/tty")#line:632:f = open("/dev/tty")
+            O000O0O000OOOO00O =O0000O000O0OOOO0O .fileno ()#line:633:fd = f.fileno()
+        else :#line:634:else:
+            O000O0O000OOOO00O =sys .stdin .fileno ()#line:635:fd = sys.stdin.fileno()
+            O0000O000O0OOOO0O =None #line:636:f = None
+        try :#line:637:try:
+            O0O00OOO0O0OO00OO =termios .tcgetattr (O000O0O000OOOO00O )#line:638:old_settings = termios.tcgetattr(fd)
+            try :#line:639:try:
+                tty .setraw (O000O0O000OOOO00O )#line:640:tty.setraw(fd)
+                yield O000O0O000OOOO00O #line:641:yield fd
+            finally :#line:642:finally:
+                termios .tcsetattr (O000O0O000OOOO00O ,termios .TCSADRAIN ,O0O00OOO0O0OO00OO )#line:643:termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+                sys .stdout .flush ()#line:644:sys.stdout.flush()
+                if O0000O000O0OOOO0O is not None :#line:645:if f is not None:
+                    O0000O000O0OOOO0O .close ()#line:646:f.close()
+        except termios .error :#line:647:except termios.error:
+            pass #line:648:pass
+    def getchar (OO0OOOO0O0000OOOO ):#line:650:def getchar(echo):
+        with raw_terminal ()as OOOOO00O000OO0OO0 :#line:651:with raw_terminal() as fd:
+            OOOOOOOOO00O0O000 =os .read (OOOOO00O000OO0OO0 ,32 )#line:652:ch = os.read(fd, 32)
+            OOOOOOOOO00O0O000 =OOOOOOOOO00O0O000 .decode (get_best_encoding (sys .stdin ),"replace")#line:653:ch = ch.decode(get_best_encoding(sys.stdin), "replace")
+            if OO0OOOO0O0000OOOO and isatty (sys .stdout ):#line:654:if echo and isatty(sys.stdout):
+                sys .stdout .write (OOOOOOOOO00O0O000 )#line:655:sys.stdout.write(ch)
+            _OO00O0OOOOO0O0OO0 (OOOOOOOOO00O0O000 )#line:656:_translate_ch_to_exc(ch)
+            return OOOOOOOOO00O0O000 #line:657:return ch

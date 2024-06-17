@@ -1,0 +1,488 @@
+""#line:1:"""Utilities for writing code that runs on Python 2 and 3"""
+from __future__ import absolute_import #line:23:from __future__ import absolute_import
+import functools #line:25:import functools
+import itertools #line:26:import itertools
+import operator #line:27:import operator
+import sys #line:28:import sys
+import types #line:29:import types
+__author__ ="Benjamin Peterson <benjamin@python.org>"#line:31:__author__ = "Benjamin Peterson <benjamin@python.org>"
+__version__ ="1.10.0"#line:32:__version__ = "1.10.0"
+PY2 =sys .version_info [0 ]==2 #line:36:PY2 = sys.version_info[0] == 2
+PY3 =sys .version_info [0 ]==3 #line:37:PY3 = sys.version_info[0] == 3
+PY34 =sys .version_info [0 :2 ]>=(3 ,4 )#line:38:PY34 = sys.version_info[0:2] >= (3, 4)
+if PY3 :#line:40:if PY3:
+    string_types =str ,#line:41:string_types = str,
+    integer_types =int ,#line:42:integer_types = int,
+    class_types =type ,#line:43:class_types = type,
+    text_type =str #line:44:text_type = str
+    binary_type =bytes #line:45:binary_type = bytes
+    MAXSIZE =sys .maxsize #line:47:MAXSIZE = sys.maxsize
+else :#line:48:else:
+    string_types =basestring ,#line:49:string_types = basestring,
+    integer_types =(int ,long )#line:50:integer_types = (int, long)
+    class_types =(type ,types .ClassType )#line:51:class_types = (type, types.ClassType)
+    text_type =unicode #line:52:text_type = unicode
+    binary_type =str #line:53:binary_type = str
+    if sys .platform .startswith ("java"):#line:55:if sys.platform.startswith("java"):
+        MAXSIZE =int ((1 <<31 )-1 )#line:57:MAXSIZE = int((1 << 31) - 1)
+    else :#line:58:else:
+        class X (object ):#line:60:class X(object):
+            def __len__ (OOOO000O0O00O0O00 ):#line:62:def __len__(self):
+                return 1 <<31 #line:63:return 1 << 31
+        try :#line:64:try:
+            len (X ())#line:65:len(X())
+        except OverflowError :#line:66:except OverflowError:
+            MAXSIZE =int ((1 <<31 )-1 )#line:68:MAXSIZE = int((1 << 31) - 1)
+        else :#line:69:else:
+            MAXSIZE =int ((1 <<63 )-1 )#line:71:MAXSIZE = int((1 << 63) - 1)
+        del X #line:72:del X
+def _OOOOO0O000O000O0O (OO000O0OOOOO000OO ,OOO0OOO0OOOO0OO00 ):#line:75:def _add_doc(func, doc):
+    ""#line:76:"""Add documentation to a function."""
+    OO000O0OOOOO000OO .__doc__ =OOO0OOO0OOOO0OO00 #line:77:func.__doc__ = doc
+def _OOO000O00000OO00O (OO0OOO000O0OOOO0O ):#line:80:def _import_module(name):
+    ""#line:81:"""Import module, returning the module after the last dot."""
+    __import__ (OO0OOO000O0OOOO0O )#line:82:__import__(name)
+    return sys .modules [OO0OOO000O0OOOO0O ]#line:83:return sys.modules[name]
+class _OOO000OOO0O0OO0O0 (object ):#line:86:class _LazyDescr(object):
+    def __init__ (OOOOO0O0OOOOOO0OO ,O0OO0OOOO00O00OO0 ):#line:88:def __init__(self, name):
+        OOOOO0O0OOOOOO0OO .name =O0OO0OOOO00O00OO0 #line:89:self.name = name
+    def __get__ (OOO000000OOO000OO ,OOOO00O0O0OO000O0 ,OOOO0OOOOOO0O00O0 ):#line:91:def __get__(self, obj, tp):
+        OOOOOO0O00000O0O0 =OOO000000OOO000OO ._resolve ()#line:92:result = self._resolve()
+        setattr (OOOO00O0O0OO000O0 ,OOO000000OOO000OO .name ,OOOOOO0O00000O0O0 )#line:93:setattr(obj, self.name, result)  # Invokes __set__.
+        try :#line:94:try:
+            delattr (OOOO00O0O0OO000O0 .__class__ ,OOO000000OOO000OO .name )#line:97:delattr(obj.__class__, self.name)
+        except AttributeError :#line:98:except AttributeError:
+            pass #line:99:pass
+        return OOOOOO0O00000O0O0 #line:100:return result
+class MovedModule (_OOO000OOO0O0OO0O0 ):#line:103:class MovedModule(_LazyDescr):
+    def __init__ (O0O0O0OOOOOOOO0O0 ,O0OOO00O0OOOO0000 ,O00OOOO0O00O0O00O ,new =None ):#line:105:def __init__(self, name, old, new=None):
+        super (MovedModule ,O0O0O0OOOOOOOO0O0 ).__init__ (O0OOO00O0OOOO0000 )#line:106:super(MovedModule, self).__init__(name)
+        if PY3 :#line:107:if PY3:
+            if new is None :#line:108:if new is None:
+                new =O0OOO00O0OOOO0000 #line:109:new = name
+            O0O0O0OOOOOOOO0O0 .mod =new #line:110:self.mod = new
+        else :#line:111:else:
+            O0O0O0OOOOOOOO0O0 .mod =O00OOOO0O00O0O00O #line:112:self.mod = old
+    def _resolve (OO00000OOO00O0OO0 ):#line:114:def _resolve(self):
+        return _OOO000O00000OO00O (OO00000OOO00O0OO0 .mod )#line:115:return _import_module(self.mod)
+    def __getattr__ (O0O0000OO0O00O000 ,OO0OO0OOO0O0O0OO0 ):#line:117:def __getattr__(self, attr):
+        _OO0000000O0OO00OO =O0O0000OO0O00O000 ._resolve ()#line:118:_module = self._resolve()
+        OOOO00OOO00OOO000 =getattr (_OO0000000O0OO00OO ,OO0OO0OOO0O0O0OO0 )#line:119:value = getattr(_module, attr)
+        setattr (O0O0000OO0O00O000 ,OO0OO0OOO0O0O0OO0 ,OOOO00OOO00OOO000 )#line:120:setattr(self, attr, value)
+        return OOOO00OOO00OOO000 #line:121:return value
+class _OO00O00OOOOOO00OO (types .ModuleType ):#line:124:class _LazyModule(types.ModuleType):
+    def __init__ (OO00000OOOO0O00OO ,O0OOOOO00OO00O000 ):#line:126:def __init__(self, name):
+        super (_OO00O00OOOOOO00OO ,OO00000OOOO0O00OO ).__init__ (O0OOOOO00OO00O000 )#line:127:super(_LazyModule, self).__init__(name)
+        OO00000OOOO0O00OO .__doc__ =OO00000OOOO0O00OO .__class__ .__doc__ #line:128:self.__doc__ = self.__class__.__doc__
+    def __dir__ (OO000OO0OO00OOOO0 ):#line:130:def __dir__(self):
+        OOOO000OO000OOOOO =["__doc__","__name__"]#line:131:attrs = ["__doc__", "__name__"]
+        OOOO000OO000OOOOO +=[OO0O0OO000000O0O0 .name for OO0O0OO000000O0O0 in OO000OO0OO00OOOO0 ._moved_attributes ]#line:132:attrs += [attr.name for attr in self._moved_attributes]
+        return OOOO000OO000OOOOO #line:133:return attrs
+    _moved_attributes =[]#line:136:_moved_attributes = []
+class MovedAttribute (_OOO000OOO0O0OO0O0 ):#line:139:class MovedAttribute(_LazyDescr):
+    def __init__ (OO0OO0O0O0OOO0000 ,O0OO00O000O0000O0 ,O0OO00OOO00O0O0O0 ,OO0O00O0000OOOOOO ,old_attr =None ,new_attr =None ):#line:141:def __init__(self, name, old_mod, new_mod, old_attr=None, new_attr=None):
+        super (MovedAttribute ,OO0OO0O0O0OOO0000 ).__init__ (O0OO00O000O0000O0 )#line:142:super(MovedAttribute, self).__init__(name)
+        if PY3 :#line:143:if PY3:
+            if OO0O00O0000OOOOOO is None :#line:144:if new_mod is None:
+                OO0O00O0000OOOOOO =O0OO00O000O0000O0 #line:145:new_mod = name
+            OO0OO0O0O0OOO0000 .mod =OO0O00O0000OOOOOO #line:146:self.mod = new_mod
+            if new_attr is None :#line:147:if new_attr is None:
+                if old_attr is None :#line:148:if old_attr is None:
+                    new_attr =O0OO00O000O0000O0 #line:149:new_attr = name
+                else :#line:150:else:
+                    new_attr =old_attr #line:151:new_attr = old_attr
+            OO0OO0O0O0OOO0000 .attr =new_attr #line:152:self.attr = new_attr
+        else :#line:153:else:
+            OO0OO0O0O0OOO0000 .mod =O0OO00OOO00O0O0O0 #line:154:self.mod = old_mod
+            if old_attr is None :#line:155:if old_attr is None:
+                old_attr =O0OO00O000O0000O0 #line:156:old_attr = name
+            OO0OO0O0O0OOO0000 .attr =old_attr #line:157:self.attr = old_attr
+    def _resolve (O0OOO0O0O000OOOOO ):#line:159:def _resolve(self):
+        OOO000OO00O00O0O0 =_OOO000O00000OO00O (O0OOO0O0O000OOOOO .mod )#line:160:module = _import_module(self.mod)
+        return getattr (OOO000OO00O00O0O0 ,O0OOO0O0O000OOOOO .attr )#line:161:return getattr(module, self.attr)
+class _O0OO0O00O0OO0O0O0 (object ):#line:164:class _SixMetaPathImporter(object):
+    ""#line:171:"""
+    def __init__ (O0OOO000OO0O00OO0 ,OOO00OO0O0OOO0000 ):#line:173:def __init__(self, six_module_name):
+        O0OOO000OO0O00OO0 .name =OOO00OO0O0OOO0000 #line:174:self.name = six_module_name
+        O0OOO000OO0O00OO0 .known_modules ={}#line:175:self.known_modules = {}
+    def _add_module (O0O00O0O00OO0O0OO ,O00OO00OO0O0O0OOO ,*O0OO0OO0OOO000OO0 ):#line:177:def _add_module(self, mod, *fullnames):
+        for O000OOOO0000O0OOO in O0OO0OO0OOO000OO0 :#line:178:for fullname in fullnames:
+            O0O00O0O00OO0O0OO .known_modules [O0O00O0O00OO0O0OO .name +"."+O000OOOO0000O0OOO ]=O00OO00OO0O0O0OOO #line:179:self.known_modules[self.name + "." + fullname] = mod
+    def _get_module (O000OOOO00O0O0O00 ,OOOOO0O00OOO0O0OO ):#line:181:def _get_module(self, fullname):
+        return O000OOOO00O0O0O00 .known_modules [O000OOOO00O0O0O00 .name +"."+OOOOO0O00OOO0O0OO ]#line:182:return self.known_modules[self.name + "." + fullname]
+    def find_module (OOOOOO0O0OO0O00OO ,O0O0O0O0O000OOO0O ,path =None ):#line:184:def find_module(self, fullname, path=None):
+        if O0O0O0O0O000OOO0O in OOOOOO0O0OO0O00OO .known_modules :#line:185:if fullname in self.known_modules:
+            return OOOOOO0O0OO0O00OO #line:186:return self
+        return None #line:187:return None
+    def ___OOO0000OOO0OOOO0O (OO0OO00O0O0OO00OO ,OOOOO0OO00OO0OO0O ):#line:189:def __get_module(self, fullname):
+        try :#line:190:try:
+            return OO0OO00O0O0OO00OO .known_modules [OOOOO0OO00OO0OO0O ]#line:191:return self.known_modules[fullname]
+        except KeyError :#line:192:except KeyError:
+            raise ImportError ("This loader does not know module "+OOOOO0OO00OO0OO0O )#line:193:raise ImportError("This loader does not know module " + fullname)
+    def load_module (OO00OO0O0O00O00OO ,OOOO0O00O0O0OO0OO ):#line:195:def load_module(self, fullname):
+        try :#line:196:try:
+            return sys .modules [OOOO0O00O0O0OO0OO ]#line:198:return sys.modules[fullname]
+        except KeyError :#line:199:except KeyError:
+            pass #line:200:pass
+        O0O0O00O0O000000O =OO00OO0O0O00O00OO .___OOO0000OOO0OOOO0O (OOOO0O00O0O0OO0OO )#line:201:mod = self.__get_module(fullname)
+        if isinstance (O0O0O00O0O000000O ,MovedModule ):#line:202:if isinstance(mod, MovedModule):
+            O0O0O00O0O000000O =O0O0O00O0O000000O ._resolve ()#line:203:mod = mod._resolve()
+        else :#line:204:else:
+            O0O0O00O0O000000O .__loader__ =OO00OO0O0O00O00OO #line:205:mod.__loader__ = self
+        sys .modules [OOOO0O00O0O0OO0OO ]=O0O0O00O0O000000O #line:206:sys.modules[fullname] = mod
+        return O0O0O00O0O000000O #line:207:return mod
+    def is_package (O0000OOOOO00O0OO0 ,O0OOO0OO00O000O0O ):#line:209:def is_package(self, fullname):
+        ""#line:215:"""
+        return hasattr (O0000OOOOO00O0OO0 .___OOO0000OOO0OOOO0O (O0OOO0OO00O000O0O ),"__path__")#line:216:return hasattr(self.__get_module(fullname), "__path__")
+    def get_code (OOO00OOOO00OOOOO0 ,O0O0OO0OOOO0OO000 ):#line:218:def get_code(self, fullname):
+        ""#line:221:Required, if is_package is implemented"""
+        OOO00OOOO00OOOOO0 .___OOO0000OOO0OOOO0O (O0O0OO0OOOO0OO000 )#line:222:self.__get_module(fullname)  # eventually raises ImportError
+        return None #line:223:return None
+    get_source =get_code #line:224:get_source = get_code  # same as get_code
+_O0OOOOO0O0O00O000 =_O0OO0O00O0OO0O0O0 (__name__ )#line:226:_importer = _SixMetaPathImporter(__name__)
+class _O000O00O0OOO0O00O (_OO00O00OOOOOO00OO ):#line:229:class _MovedItems(_LazyModule):
+    ""#line:231:"""Lazy loading of moved objects"""
+    __path__ =[]#line:232:__path__ = []  # mark as package
+_O0O0O000OO0O0OO0O =[MovedAttribute ("cStringIO","cStringIO","io","StringIO"),MovedAttribute ("filter","itertools","builtins","ifilter","filter"),MovedAttribute ("filterfalse","itertools","itertools","ifilterfalse","filterfalse"),MovedAttribute ("input","__builtin__","builtins","raw_input","input"),MovedAttribute ("intern","__builtin__","sys"),MovedAttribute ("map","itertools","builtins","imap","map"),MovedAttribute ("getcwd","os","os","getcwdu","getcwd"),MovedAttribute ("getcwdb","os","os","getcwd","getcwdb"),MovedAttribute ("range","__builtin__","builtins","xrange","range"),MovedAttribute ("reload_module","__builtin__","importlib"if PY34 else "imp","reload"),MovedAttribute ("reduce","__builtin__","functools"),MovedAttribute ("shlex_quote","pipes","shlex","quote"),MovedAttribute ("StringIO","StringIO","io"),MovedAttribute ("UserDict","UserDict","collections"),MovedAttribute ("UserList","UserList","collections"),MovedAttribute ("UserString","UserString","collections"),MovedAttribute ("xrange","__builtin__","builtins","xrange","range"),MovedAttribute ("zip","itertools","builtins","izip","zip"),MovedAttribute ("zip_longest","itertools","itertools","izip_longest","zip_longest"),MovedModule ("builtins","__builtin__"),MovedModule ("configparser","ConfigParser"),MovedModule ("copyreg","copy_reg"),MovedModule ("dbm_gnu","gdbm","dbm.gnu"),MovedModule ("_dummy_thread","dummy_thread","_dummy_thread"),MovedModule ("http_cookiejar","cookielib","http.cookiejar"),MovedModule ("http_cookies","Cookie","http.cookies"),MovedModule ("html_entities","htmlentitydefs","html.entities"),MovedModule ("html_parser","HTMLParser","html.parser"),MovedModule ("http_client","httplib","http.client"),MovedModule ("email_mime_multipart","email.MIMEMultipart","email.mime.multipart"),MovedModule ("email_mime_nonmultipart","email.MIMENonMultipart","email.mime.nonmultipart"),MovedModule ("email_mime_text","email.MIMEText","email.mime.text"),MovedModule ("email_mime_base","email.MIMEBase","email.mime.base"),MovedModule ("BaseHTTPServer","BaseHTTPServer","http.server"),MovedModule ("CGIHTTPServer","CGIHTTPServer","http.server"),MovedModule ("SimpleHTTPServer","SimpleHTTPServer","http.server"),MovedModule ("cPickle","cPickle","pickle"),MovedModule ("queue","Queue"),MovedModule ("reprlib","repr"),MovedModule ("socketserver","SocketServer"),MovedModule ("_thread","thread","_thread"),MovedModule ("tkinter","Tkinter"),MovedModule ("tkinter_dialog","Dialog","tkinter.dialog"),MovedModule ("tkinter_filedialog","FileDialog","tkinter.filedialog"),MovedModule ("tkinter_scrolledtext","ScrolledText","tkinter.scrolledtext"),MovedModule ("tkinter_simpledialog","SimpleDialog","tkinter.simpledialog"),MovedModule ("tkinter_tix","Tix","tkinter.tix"),MovedModule ("tkinter_ttk","ttk","tkinter.ttk"),MovedModule ("tkinter_constants","Tkconstants","tkinter.constants"),MovedModule ("tkinter_dnd","Tkdnd","tkinter.dnd"),MovedModule ("tkinter_colorchooser","tkColorChooser","tkinter.colorchooser"),MovedModule ("tkinter_commondialog","tkCommonDialog","tkinter.commondialog"),MovedModule ("tkinter_tkfiledialog","tkFileDialog","tkinter.filedialog"),MovedModule ("tkinter_font","tkFont","tkinter.font"),MovedModule ("tkinter_messagebox","tkMessageBox","tkinter.messagebox"),MovedModule ("tkinter_tksimpledialog","tkSimpleDialog","tkinter.simpledialog"),MovedModule ("urllib_parse",__name__ +".moves.urllib_parse","urllib.parse"),MovedModule ("urllib_error",__name__ +".moves.urllib_error","urllib.error"),MovedModule ("urllib",__name__ +".moves.urllib",__name__ +".moves.urllib"),MovedModule ("urllib_robotparser","robotparser","urllib.robotparser"),MovedModule ("xmlrpc_client","xmlrpclib","xmlrpc.client"),MovedModule ("xmlrpc_server","SimpleXMLRPCServer","xmlrpc.server"),]#line:301:]
+if sys .platform =="win32":#line:303:if sys.platform == "win32":
+    _O0O0O000OO0O0OO0O +=[MovedModule ("winreg","_winreg"),]#line:306:]
+for attr in _O0O0O000OO0O0OO0O :#line:308:for attr in _moved_attributes:
+    setattr (_O000O00O0OOO0O00O ,attr .name ,attr )#line:309:setattr(_MovedItems, attr.name, attr)
+    if isinstance (attr ,MovedModule ):#line:310:if isinstance(attr, MovedModule):
+        _O0OOOOO0O0O00O000 ._add_module (attr ,"moves."+attr .name )#line:311:_importer._add_module(attr, "moves." + attr.name)
+del attr #line:312:del attr
+_O000O00O0OOO0O00O ._moved_attributes =_O0O0O000OO0O0OO0O #line:314:_MovedItems._moved_attributes = _moved_attributes
+moves =_O000O00O0OOO0O00O (__name__ +".moves")#line:316:moves = _MovedItems(__name__ + ".moves")
+_O0OOOOO0O0O00O000 ._add_module (moves ,"moves")#line:317:_importer._add_module(moves, "moves")
+class Module_six_moves_urllib_parse (_OO00O00OOOOOO00OO ):#line:320:class Module_six_moves_urllib_parse(_LazyModule):
+    ""#line:322:"""Lazy loading of moved objects in six.moves.urllib_parse"""
+_O0O0OOOOOO0OO0OO0 =[MovedAttribute ("ParseResult","urlparse","urllib.parse"),MovedAttribute ("SplitResult","urlparse","urllib.parse"),MovedAttribute ("parse_qs","urlparse","urllib.parse"),MovedAttribute ("parse_qsl","urlparse","urllib.parse"),MovedAttribute ("urldefrag","urlparse","urllib.parse"),MovedAttribute ("urljoin","urlparse","urllib.parse"),MovedAttribute ("urlparse","urlparse","urllib.parse"),MovedAttribute ("urlsplit","urlparse","urllib.parse"),MovedAttribute ("urlunparse","urlparse","urllib.parse"),MovedAttribute ("urlunsplit","urlparse","urllib.parse"),MovedAttribute ("quote","urllib","urllib.parse"),MovedAttribute ("quote_plus","urllib","urllib.parse"),MovedAttribute ("unquote","urllib","urllib.parse"),MovedAttribute ("unquote_plus","urllib","urllib.parse"),MovedAttribute ("urlencode","urllib","urllib.parse"),MovedAttribute ("splitquery","urllib","urllib.parse"),MovedAttribute ("splittag","urllib","urllib.parse"),MovedAttribute ("splituser","urllib","urllib.parse"),MovedAttribute ("uses_fragment","urlparse","urllib.parse"),MovedAttribute ("uses_netloc","urlparse","urllib.parse"),MovedAttribute ("uses_params","urlparse","urllib.parse"),MovedAttribute ("uses_query","urlparse","urllib.parse"),MovedAttribute ("uses_relative","urlparse","urllib.parse"),]#line:349:]
+for attr in _O0O0OOOOOO0OO0OO0 :#line:350:for attr in _urllib_parse_moved_attributes:
+    setattr (Module_six_moves_urllib_parse ,attr .name ,attr )#line:351:setattr(Module_six_moves_urllib_parse, attr.name, attr)
+del attr #line:352:del attr
+Module_six_moves_urllib_parse ._moved_attributes =_O0O0OOOOOO0OO0OO0 #line:354:Module_six_moves_urllib_parse._moved_attributes = _urllib_parse_moved_attributes
+_O0OOOOO0O0O00O000 ._add_module (Module_six_moves_urllib_parse (__name__ +".moves.urllib_parse"),"moves.urllib_parse","moves.urllib.parse")#line:357:"moves.urllib_parse", "moves.urllib.parse")
+class Module_six_moves_urllib_error (_OO00O00OOOOOO00OO ):#line:360:class Module_six_moves_urllib_error(_LazyModule):
+    ""#line:362:"""Lazy loading of moved objects in six.moves.urllib_error"""
+_OOO0O0OO0OOO000O0 =[MovedAttribute ("URLError","urllib2","urllib.error"),MovedAttribute ("HTTPError","urllib2","urllib.error"),MovedAttribute ("ContentTooShortError","urllib","urllib.error"),]#line:369:]
+for attr in _OOO0O0OO0OOO000O0 :#line:370:for attr in _urllib_error_moved_attributes:
+    setattr (Module_six_moves_urllib_error ,attr .name ,attr )#line:371:setattr(Module_six_moves_urllib_error, attr.name, attr)
+del attr #line:372:del attr
+Module_six_moves_urllib_error ._moved_attributes =_OOO0O0OO0OOO000O0 #line:374:Module_six_moves_urllib_error._moved_attributes = _urllib_error_moved_attributes
+_O0OOOOO0O0O00O000 ._add_module (Module_six_moves_urllib_error (__name__ +".moves.urllib.error"),"moves.urllib_error","moves.urllib.error")#line:377:"moves.urllib_error", "moves.urllib.error")
+class Module_six_moves_urllib_request (_OO00O00OOOOOO00OO ):#line:380:class Module_six_moves_urllib_request(_LazyModule):
+    ""#line:382:"""Lazy loading of moved objects in six.moves.urllib_request"""
+_OO00O0000000O00OO =[MovedAttribute ("urlopen","urllib2","urllib.request"),MovedAttribute ("install_opener","urllib2","urllib.request"),MovedAttribute ("build_opener","urllib2","urllib.request"),MovedAttribute ("pathname2url","urllib","urllib.request"),MovedAttribute ("url2pathname","urllib","urllib.request"),MovedAttribute ("getproxies","urllib","urllib.request"),MovedAttribute ("Request","urllib2","urllib.request"),MovedAttribute ("OpenerDirector","urllib2","urllib.request"),MovedAttribute ("HTTPDefaultErrorHandler","urllib2","urllib.request"),MovedAttribute ("HTTPRedirectHandler","urllib2","urllib.request"),MovedAttribute ("HTTPCookieProcessor","urllib2","urllib.request"),MovedAttribute ("ProxyHandler","urllib2","urllib.request"),MovedAttribute ("BaseHandler","urllib2","urllib.request"),MovedAttribute ("HTTPPasswordMgr","urllib2","urllib.request"),MovedAttribute ("HTTPPasswordMgrWithDefaultRealm","urllib2","urllib.request"),MovedAttribute ("AbstractBasicAuthHandler","urllib2","urllib.request"),MovedAttribute ("HTTPBasicAuthHandler","urllib2","urllib.request"),MovedAttribute ("ProxyBasicAuthHandler","urllib2","urllib.request"),MovedAttribute ("AbstractDigestAuthHandler","urllib2","urllib.request"),MovedAttribute ("HTTPDigestAuthHandler","urllib2","urllib.request"),MovedAttribute ("ProxyDigestAuthHandler","urllib2","urllib.request"),MovedAttribute ("HTTPHandler","urllib2","urllib.request"),MovedAttribute ("HTTPSHandler","urllib2","urllib.request"),MovedAttribute ("FileHandler","urllib2","urllib.request"),MovedAttribute ("FTPHandler","urllib2","urllib.request"),MovedAttribute ("CacheFTPHandler","urllib2","urllib.request"),MovedAttribute ("UnknownHandler","urllib2","urllib.request"),MovedAttribute ("HTTPErrorProcessor","urllib2","urllib.request"),MovedAttribute ("urlretrieve","urllib","urllib.request"),MovedAttribute ("urlcleanup","urllib","urllib.request"),MovedAttribute ("URLopener","urllib","urllib.request"),MovedAttribute ("FancyURLopener","urllib","urllib.request"),MovedAttribute ("proxy_bypass","urllib","urllib.request"),]#line:419:]
+for attr in _OO00O0000000O00OO :#line:420:for attr in _urllib_request_moved_attributes:
+    setattr (Module_six_moves_urllib_request ,attr .name ,attr )#line:421:setattr(Module_six_moves_urllib_request, attr.name, attr)
+del attr #line:422:del attr
+Module_six_moves_urllib_request ._moved_attributes =_OO00O0000000O00OO #line:424:Module_six_moves_urllib_request._moved_attributes = _urllib_request_moved_attributes
+_O0OOOOO0O0O00O000 ._add_module (Module_six_moves_urllib_request (__name__ +".moves.urllib.request"),"moves.urllib_request","moves.urllib.request")#line:427:"moves.urllib_request", "moves.urllib.request")
+class Module_six_moves_urllib_response (_OO00O00OOOOOO00OO ):#line:430:class Module_six_moves_urllib_response(_LazyModule):
+    ""#line:432:"""Lazy loading of moved objects in six.moves.urllib_response"""
+_O00OOO0O0O000000O =[MovedAttribute ("addbase","urllib","urllib.response"),MovedAttribute ("addclosehook","urllib","urllib.response"),MovedAttribute ("addinfo","urllib","urllib.response"),MovedAttribute ("addinfourl","urllib","urllib.response"),]#line:440:]
+for attr in _O00OOO0O0O000000O :#line:441:for attr in _urllib_response_moved_attributes:
+    setattr (Module_six_moves_urllib_response ,attr .name ,attr )#line:442:setattr(Module_six_moves_urllib_response, attr.name, attr)
+del attr #line:443:del attr
+Module_six_moves_urllib_response ._moved_attributes =_O00OOO0O0O000000O #line:445:Module_six_moves_urllib_response._moved_attributes = _urllib_response_moved_attributes
+_O0OOOOO0O0O00O000 ._add_module (Module_six_moves_urllib_response (__name__ +".moves.urllib.response"),"moves.urllib_response","moves.urllib.response")#line:448:"moves.urllib_response", "moves.urllib.response")
+class Module_six_moves_urllib_robotparser (_OO00O00OOOOOO00OO ):#line:451:class Module_six_moves_urllib_robotparser(_LazyModule):
+    ""#line:453:"""Lazy loading of moved objects in six.moves.urllib_robotparser"""
+_O0O0O000O00O00OOO =[MovedAttribute ("RobotFileParser","robotparser","urllib.robotparser"),]#line:458:]
+for attr in _O0O0O000O00O00OOO :#line:459:for attr in _urllib_robotparser_moved_attributes:
+    setattr (Module_six_moves_urllib_robotparser ,attr .name ,attr )#line:460:setattr(Module_six_moves_urllib_robotparser, attr.name, attr)
+del attr #line:461:del attr
+Module_six_moves_urllib_robotparser ._moved_attributes =_O0O0O000O00O00OOO #line:463:Module_six_moves_urllib_robotparser._moved_attributes = _urllib_robotparser_moved_attributes
+_O0OOOOO0O0O00O000 ._add_module (Module_six_moves_urllib_robotparser (__name__ +".moves.urllib.robotparser"),"moves.urllib_robotparser","moves.urllib.robotparser")#line:466:"moves.urllib_robotparser", "moves.urllib.robotparser")
+class Module_six_moves_urllib (types .ModuleType ):#line:469:class Module_six_moves_urllib(types.ModuleType):
+    ""#line:471:"""Create a six.moves.urllib namespace that resembles the Python 3 namespace"""
+    __path__ =[]#line:472:__path__ = []  # mark as package
+    parse =_O0OOOOO0O0O00O000 ._get_module ("moves.urllib_parse")#line:473:parse = _importer._get_module("moves.urllib_parse")
+    error =_O0OOOOO0O0O00O000 ._get_module ("moves.urllib_error")#line:474:error = _importer._get_module("moves.urllib_error")
+    request =_O0OOOOO0O0O00O000 ._get_module ("moves.urllib_request")#line:475:request = _importer._get_module("moves.urllib_request")
+    response =_O0OOOOO0O0O00O000 ._get_module ("moves.urllib_response")#line:476:response = _importer._get_module("moves.urllib_response")
+    robotparser =_O0OOOOO0O0O00O000 ._get_module ("moves.urllib_robotparser")#line:477:robotparser = _importer._get_module("moves.urllib_robotparser")
+    def __dir__ (O00O0O00OO00O0O0O ):#line:479:def __dir__(self):
+        return ['parse','error','request','response','robotparser']#line:480:return ['parse', 'error', 'request', 'response', 'robotparser']
+_O0OOOOO0O0O00O000 ._add_module (Module_six_moves_urllib (__name__ +".moves.urllib"),"moves.urllib")#line:483:"moves.urllib")
+def add_move (O0O000OOO000OO0O0 ):#line:486:def add_move(move):
+    ""#line:487:"""Add an item to six.moves."""
+    setattr (_O000O00O0OOO0O00O ,O0O000OOO000OO0O0 .name ,O0O000OOO000OO0O0 )#line:488:setattr(_MovedItems, move.name, move)
+def remove_move (OOO00OO0O0OO000OO ):#line:491:def remove_move(name):
+    ""#line:492:"""Remove item from six.moves."""
+    try :#line:493:try:
+        delattr (_O000O00O0OOO0O00O ,OOO00OO0O0OO000OO )#line:494:delattr(_MovedItems, name)
+    except AttributeError :#line:495:except AttributeError:
+        try :#line:496:try:
+            del moves .__dict__ [OOO00OO0O0OO000OO ]#line:497:del moves.__dict__[name]
+        except KeyError :#line:498:except KeyError:
+            raise AttributeError ("no such move, %r"%(OOO00OO0O0OO000OO ,))#line:499:raise AttributeError("no such move, %r" % (name,))
+if PY3 :#line:502:if PY3:
+    _OO00OOO0OO0O0O00O ="__func__"#line:503:_meth_func = "__func__"
+    _O0OOOO000OOOO0OO0 ="__self__"#line:504:_meth_self = "__self__"
+    _O00OOO0OO00O00000 ="__closure__"#line:506:_func_closure = "__closure__"
+    _O00O0O000O000O000 ="__code__"#line:507:_func_code = "__code__"
+    _OOO00OOOOOOO0OOO0 ="__defaults__"#line:508:_func_defaults = "__defaults__"
+    _OO0OOOO00OOOOO0O0 ="__globals__"#line:509:_func_globals = "__globals__"
+else :#line:510:else:
+    _OO00OOO0OO0O0O00O ="im_func"#line:511:_meth_func = "im_func"
+    _O0OOOO000OOOO0OO0 ="im_self"#line:512:_meth_self = "im_self"
+    _O00OOO0OO00O00000 ="func_closure"#line:514:_func_closure = "func_closure"
+    _O00O0O000O000O000 ="func_code"#line:515:_func_code = "func_code"
+    _OOO00OOOOOOO0OOO0 ="func_defaults"#line:516:_func_defaults = "func_defaults"
+    _OO0OOOO00OOOOO0O0 ="func_globals"#line:517:_func_globals = "func_globals"
+try :#line:520:try:
+    advance_iterator =next #line:521:advance_iterator = next
+except NameError :#line:522:except NameError:
+    def advance_iterator (OO000O00OOOO0O0O0 ):#line:523:def advance_iterator(it):
+        return OO000O00OOOO0O0O0 .next ()#line:524:return it.next()
+next =advance_iterator #line:525:next = advance_iterator
+try :#line:528:try:
+    callable =callable #line:529:callable = callable
+except NameError :#line:530:except NameError:
+    def callable (OOOO00O0OO00OO0O0 ):#line:531:def callable(obj):
+        return any ("__call__"in OOO00OO00000OO00O .__dict__ for OOO00OO00000OO00O in type (OOOO00O0OO00OO0O0 ).__mro__ )#line:532:return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
+if PY3 :#line:535:if PY3:
+    def get_unbound_function (OO0000OOOO00OOO0O ):#line:536:def get_unbound_function(unbound):
+        return OO0000OOOO00OOO0O #line:537:return unbound
+    create_bound_method =types .MethodType #line:539:create_bound_method = types.MethodType
+    def create_unbound_method (OOO0OOO0000OOOO00 ,OO00O0OOOOO0O000O ):#line:541:def create_unbound_method(func, cls):
+        return OOO0OOO0000OOOO00 #line:542:return func
+    Iterator =object #line:544:Iterator = object
+else :#line:545:else:
+    def get_unbound_function (O000O00O0O000OO0O ):#line:546:def get_unbound_function(unbound):
+        return O000O00O0O000OO0O .im_func #line:547:return unbound.im_func
+    def create_bound_method (OOOO0OO00O00O0O00 ,O000O0O0O00OO0O0O ):#line:549:def create_bound_method(func, obj):
+        return types .MethodType (OOOO0OO00O00O0O00 ,O000O0O0O00OO0O0O ,O000O0O0O00OO0O0O .__class__ )#line:550:return types.MethodType(func, obj, obj.__class__)
+    def create_unbound_method (O0OOO00OO0OOOOO00 ,O0OOOOOO0O0O0OOOO ):#line:552:def create_unbound_method(func, cls):
+        return types .MethodType (O0OOO00OO0OOOOO00 ,None ,O0OOOOOO0O0O0OOOO )#line:553:return types.MethodType(func, None, cls)
+    class Iterator (object ):#line:555:class Iterator(object):
+        def next (OOO0O00O0O00000OO ):#line:557:def next(self):
+            return type (OOO0O00O0O00000OO ).__next__ (OOO0O00O0O00000OO )#line:558:return type(self).__next__(self)
+    callable =callable #line:560:callable = callable
+_OOOOO0O000O000O0O (get_unbound_function ,"""Get the function out of a possibly unbound function""")#line:562:"""Get the function out of a possibly unbound function""")
+get_method_function =operator .attrgetter (_OO00OOO0OO0O0O00O )#line:565:get_method_function = operator.attrgetter(_meth_func)
+get_method_self =operator .attrgetter (_O0OOOO000OOOO0OO0 )#line:566:get_method_self = operator.attrgetter(_meth_self)
+get_function_closure =operator .attrgetter (_O00OOO0OO00O00000 )#line:567:get_function_closure = operator.attrgetter(_func_closure)
+get_function_code =operator .attrgetter (_O00O0O000O000O000 )#line:568:get_function_code = operator.attrgetter(_func_code)
+get_function_defaults =operator .attrgetter (_OOO00OOOOOOO0OOO0 )#line:569:get_function_defaults = operator.attrgetter(_func_defaults)
+get_function_globals =operator .attrgetter (_OO0OOOO00OOOOO0O0 )#line:570:get_function_globals = operator.attrgetter(_func_globals)
+if PY3 :#line:573:if PY3:
+    def iterkeys (O0OOO0OOO0O00OO00 ,**O00OOO0O0OOO000OO ):#line:574:def iterkeys(d, **kw):
+        return iter (O0OOO0OOO0O00OO00 .keys (**O00OOO0O0OOO000OO ))#line:575:return iter(d.keys(**kw))
+    def itervalues (O0OOOO00O0O0OO00O ,**OO000OO0OO00O00O0 ):#line:577:def itervalues(d, **kw):
+        return iter (O0OOOO00O0O0OO00O .values (**OO000OO0OO00O00O0 ))#line:578:return iter(d.values(**kw))
+    def iteritems (OOO00OOOOOOOOOO0O ,**OOOOOO0OOOO0O000O ):#line:580:def iteritems(d, **kw):
+        return iter (OOO00OOOOOOOOOO0O .items (**OOOOOO0OOOO0O000O ))#line:581:return iter(d.items(**kw))
+    def iterlists (O0OO0OO00OOO0O000 ,**OO00OOOO000O0O0OO ):#line:583:def iterlists(d, **kw):
+        return iter (O0OO0OO00OOO0O000 .lists (**OO00OOOO000O0O0OO ))#line:584:return iter(d.lists(**kw))
+    viewkeys =operator .methodcaller ("keys")#line:586:viewkeys = operator.methodcaller("keys")
+    viewvalues =operator .methodcaller ("values")#line:588:viewvalues = operator.methodcaller("values")
+    viewitems =operator .methodcaller ("items")#line:590:viewitems = operator.methodcaller("items")
+else :#line:591:else:
+    def iterkeys (OO0O00O00OOO0000O ,**O0OO00OOO0OO0O00O ):#line:592:def iterkeys(d, **kw):
+        return OO0O00O00OOO0000O .iterkeys (**O0OO00OOO0OO0O00O )#line:593:return d.iterkeys(**kw)
+    def itervalues (O0OO0OOO0OOOOO000 ,**O0OOO000OOOO00000 ):#line:595:def itervalues(d, **kw):
+        return O0OO0OOO0OOOOO000 .itervalues (**O0OOO000OOOO00000 )#line:596:return d.itervalues(**kw)
+    def iteritems (OOO00O00O00OO00O0 ,**OOO0O000OO00OOO0O ):#line:598:def iteritems(d, **kw):
+        return OOO00O00O00OO00O0 .iteritems (**OOO0O000OO00OOO0O )#line:599:return d.iteritems(**kw)
+    def iterlists (O000O00OO00000OO0 ,**OOO0O000O000OO000 ):#line:601:def iterlists(d, **kw):
+        return O000O00OO00000OO0 .iterlists (**OOO0O000O000OO000 )#line:602:return d.iterlists(**kw)
+    viewkeys =operator .methodcaller ("viewkeys")#line:604:viewkeys = operator.methodcaller("viewkeys")
+    viewvalues =operator .methodcaller ("viewvalues")#line:606:viewvalues = operator.methodcaller("viewvalues")
+    viewitems =operator .methodcaller ("viewitems")#line:608:viewitems = operator.methodcaller("viewitems")
+_OOOOO0O000O000O0O (iterkeys ,"Return an iterator over the keys of a dictionary.")#line:610:_add_doc(iterkeys, "Return an iterator over the keys of a dictionary.")
+_OOOOO0O000O000O0O (itervalues ,"Return an iterator over the values of a dictionary.")#line:611:_add_doc(itervalues, "Return an iterator over the values of a dictionary.")
+_OOOOO0O000O000O0O (iteritems ,"Return an iterator over the (key, value) pairs of a dictionary.")#line:613:"Return an iterator over the (key, value) pairs of a dictionary.")
+_OOOOO0O000O000O0O (iterlists ,"Return an iterator over the (key, [values]) pairs of a dictionary.")#line:615:"Return an iterator over the (key, [values]) pairs of a dictionary.")
+if PY3 :#line:618:if PY3:
+    def b (OOO00OOO000O0OO00 ):#line:619:def b(s):
+        return OOO00OOO000O0OO00 .encode ("latin-1")#line:620:return s.encode("latin-1")
+    def u (OOO0OO0O00OO00O00 ):#line:622:def u(s):
+        return OOO0OO0O00OO00O00 #line:623:return s
+    unichr =chr #line:624:unichr = chr
+    import struct #line:625:import struct
+    int2byte =struct .Struct (">B").pack #line:626:int2byte = struct.Struct(">B").pack
+    del struct #line:627:del struct
+    byte2int =operator .itemgetter (0 )#line:628:byte2int = operator.itemgetter(0)
+    indexbytes =operator .getitem #line:629:indexbytes = operator.getitem
+    iterbytes =iter #line:630:iterbytes = iter
+    import io #line:631:import io
+    StringIO =io .StringIO #line:632:StringIO = io.StringIO
+    BytesIO =io .BytesIO #line:633:BytesIO = io.BytesIO
+    _O00OOO0OO00OO0O00 ="assertCountEqual"#line:634:_assertCountEqual = "assertCountEqual"
+    if sys .version_info [1 ]<=1 :#line:635:if sys.version_info[1] <= 1:
+        _OOO00O0O000000OO0 ="assertRaisesRegexp"#line:636:_assertRaisesRegex = "assertRaisesRegexp"
+        _O0OOOOOOOO0O0OOOO ="assertRegexpMatches"#line:637:_assertRegex = "assertRegexpMatches"
+    else :#line:638:else:
+        _OOO00O0O000000OO0 ="assertRaisesRegex"#line:639:_assertRaisesRegex = "assertRaisesRegex"
+        _O0OOOOOOOO0O0OOOO ="assertRegex"#line:640:_assertRegex = "assertRegex"
+else :#line:641:else:
+    def b (O0000O000OOOOO00O ):#line:642:def b(s):
+        return O0000O000OOOOO00O #line:643:return s
+    def u (OO00OOOO00OO0OO0O ):#line:646:def u(s):
+        return unicode (OO00OOOO00OO0OO0O .replace (r'\\',r'\\\\'),"unicode_escape")#line:647:return unicode(s.replace(r'\\', r'\\\\'), "unicode_escape")
+    unichr =unichr #line:648:unichr = unichr
+    int2byte =chr #line:649:int2byte = chr
+    def byte2int (OO0OO0O0000OOO0O0 ):#line:651:def byte2int(bs):
+        return ord (OO0OO0O0000OOO0O0 [0 ])#line:652:return ord(bs[0])
+    def indexbytes (OOO0OO00O0OOOO0OO ,O0O00O0OO0O0O0OOO ):#line:654:def indexbytes(buf, i):
+        return ord (OOO0OO00O0OOOO0OO [O0O00O0OO0O0O0OOO ])#line:655:return ord(buf[i])
+    iterbytes =functools .partial (itertools .imap ,ord )#line:656:iterbytes = functools.partial(itertools.imap, ord)
+    import StringIO #line:657:import StringIO
+    StringIO =BytesIO =StringIO .StringIO #line:658:StringIO = BytesIO = StringIO.StringIO
+    _O00OOO0OO00OO0O00 ="assertItemsEqual"#line:659:_assertCountEqual = "assertItemsEqual"
+    _OOO00O0O000000OO0 ="assertRaisesRegexp"#line:660:_assertRaisesRegex = "assertRaisesRegexp"
+    _O0OOOOOOOO0O0OOOO ="assertRegexpMatches"#line:661:_assertRegex = "assertRegexpMatches"
+_OOOOO0O000O000O0O (b ,"""Byte literal""")#line:662:_add_doc(b, """Byte literal""")
+_OOOOO0O000O000O0O (u ,"""Text literal""")#line:663:_add_doc(u, """Text literal""")
+def assertCountEqual (OOOOOO0OOO00O00O0 ,*OOOO0O0000O0000O0 ,**O000O0O0O0O000OO0 ):#line:666:def assertCountEqual(self, *args, **kwargs):
+    return getattr (OOOOOO0OOO00O00O0 ,_O00OOO0OO00OO0O00 )(*OOOO0O0000O0000O0 ,**O000O0O0O0O000OO0 )#line:667:return getattr(self, _assertCountEqual)(*args, **kwargs)
+def assertRaisesRegex (O0O000000000O0OOO ,*O000O000O0OO0OO0O ,**OOO000O0OO0OO0O00 ):#line:670:def assertRaisesRegex(self, *args, **kwargs):
+    return getattr (O0O000000000O0OOO ,_OOO00O0O000000OO0 )(*O000O000O0OO0OO0O ,**OOO000O0OO0OO0O00 )#line:671:return getattr(self, _assertRaisesRegex)(*args, **kwargs)
+def assertRegex (O0O0OO0OOOOOO0O00 ,*OOOOOO00000000OO0 ,**OOOOOOO0O000O000O ):#line:674:def assertRegex(self, *args, **kwargs):
+    return getattr (O0O0OO0OOOOOO0O00 ,_O0OOOOOOOO0O0OOOO )(*OOOOOO00000000OO0 ,**OOOOOOO0O000O000O )#line:675:return getattr(self, _assertRegex)(*args, **kwargs)
+if PY3 :#line:678:if PY3:
+    exec_ =getattr (moves .builtins ,"exec")#line:679:exec_ = getattr(moves.builtins, "exec")
+    def reraise (OO000000OO00O0000 ,O0O0O00O0OOOO0O0O ,tb =None ):#line:681:def reraise(tp, value, tb=None):
+        if O0O0O00O0OOOO0O0O is None :#line:682:if value is None:
+            O0O0O00O0OOOO0O0O =OO000000OO00O0000 ()#line:683:value = tp()
+        if O0O0O00O0OOOO0O0O .__traceback__ is not tb :#line:684:if value.__traceback__ is not tb:
+            raise O0O0O00O0OOOO0O0O .with_traceback (tb )#line:685:raise value.with_traceback(tb)
+        raise O0O0O00O0OOOO0O0O #line:686:raise value
+else :#line:688:else:
+    def exec_ (_O0000OOOO0000OO00 ,_globs_ =None ,_locs_ =None ):#line:689:def exec_(_code_, _globs_=None, _locs_=None):
+        ""#line:690:"""Execute code in a namespace."""
+        if _globs_ is None :#line:691:if _globs_ is None:
+            O00000O00O00O0O00 =sys ._getframe (1 )#line:692:frame = sys._getframe(1)
+            _globs_ =O00000O00O00O0O00 .f_globals #line:693:_globs_ = frame.f_globals
+            if _locs_ is None :#line:694:if _locs_ is None:
+                _locs_ =O00000O00O00O0O00 .f_locals #line:695:_locs_ = frame.f_locals
+            del O00000O00O00O0O00 #line:696:del frame
+        elif _locs_ is None :#line:697:elif _locs_ is None:
+            _locs_ =_globs_ #line:698:_locs_ = _globs_
+        exec ("""exec _code_ in _globs_, _locs_""")#line:699:exec("""exec _code_ in _globs_, _locs_""")
+    exec_ ("""def reraise(tp, value, tb=None):
+    raise tp, value, tb
+""")#line:703:""")
+if sys .version_info [:2 ]==(3 ,2 ):#line:706:if sys.version_info[:2] == (3, 2):
+    exec_ ("""def raise_from(value, from_value):
+    if from_value is None:
+        raise value
+    raise value from from_value
+""")#line:711:""")
+elif sys .version_info [:2 ]>(3 ,2 ):#line:712:elif sys.version_info[:2] > (3, 2):
+    exec_ ("""def raise_from(value, from_value):
+    raise value from from_value
+""")#line:715:""")
+else :#line:716:else:
+    def raise_from (OOOO0OO0O0OO000OO ,O0O00O0OOO0OOOO0O ):#line:717:def raise_from(value, from_value):
+        raise OOOO0OO0O0OO000OO #line:718:raise value
+print_ =getattr (moves .builtins ,"print",None )#line:721:print_ = getattr(moves.builtins, "print", None)
+if print_ is None :#line:722:if print_ is None:
+    def print_ (*OO0000000000000OO ,**OOO0000O000O0OOO0 ):#line:723:def print_(*args, **kwargs):
+        ""#line:724:"""The new-style print function for Python 2.4 and 2.5."""
+        OO00000O0OO0O0O0O =OOO0000O000O0OOO0 .pop ("file",sys .stdout )#line:725:fp = kwargs.pop("file", sys.stdout)
+        if OO00000O0OO0O0O0O is None :#line:726:if fp is None:
+            return #line:727:return
+        def O00000OO000000O0O (O0O0O000OOOO0O0OO ):#line:729:def write(data):
+            if not isinstance (O0O0O000OOOO0O0OO ,basestring ):#line:730:if not isinstance(data, basestring):
+                O0O0O000OOOO0O0OO =str (O0O0O000OOOO0O0OO )#line:731:data = str(data)
+            if (isinstance (OO00000O0OO0O0O0O ,file )and isinstance (O0O0O000OOOO0O0OO ,unicode )and OO00000O0OO0O0O0O .encoding is not None ):#line:735:fp.encoding is not None):
+                OOOOOO000O000OO00 =getattr (OO00000O0OO0O0O0O ,"errors",None )#line:736:errors = getattr(fp, "errors", None)
+                if OOOOOO000O000OO00 is None :#line:737:if errors is None:
+                    OOOOOO000O000OO00 ="strict"#line:738:errors = "strict"
+                O0O0O000OOOO0O0OO =O0O0O000OOOO0O0OO .encode (OO00000O0OO0O0O0O .encoding ,OOOOOO000O000OO00 )#line:739:data = data.encode(fp.encoding, errors)
+            OO00000O0OO0O0O0O .write (O0O0O000OOOO0O0OO )#line:740:fp.write(data)
+        OO0O00OO0OO000O0O =False #line:741:want_unicode = False
+        OO00OOO0O0O0OOOO0 =OOO0000O000O0OOO0 .pop ("sep",None )#line:742:sep = kwargs.pop("sep", None)
+        if OO00OOO0O0O0OOOO0 is not None :#line:743:if sep is not None:
+            if isinstance (OO00OOO0O0O0OOOO0 ,unicode ):#line:744:if isinstance(sep, unicode):
+                OO0O00OO0OO000O0O =True #line:745:want_unicode = True
+            elif not isinstance (OO00OOO0O0O0OOOO0 ,str ):#line:746:elif not isinstance(sep, str):
+                raise TypeError ("sep must be None or a string")#line:747:raise TypeError("sep must be None or a string")
+        OO00O000000O00OOO =OOO0000O000O0OOO0 .pop ("end",None )#line:748:end = kwargs.pop("end", None)
+        if OO00O000000O00OOO is not None :#line:749:if end is not None:
+            if isinstance (OO00O000000O00OOO ,unicode ):#line:750:if isinstance(end, unicode):
+                OO0O00OO0OO000O0O =True #line:751:want_unicode = True
+            elif not isinstance (OO00O000000O00OOO ,str ):#line:752:elif not isinstance(end, str):
+                raise TypeError ("end must be None or a string")#line:753:raise TypeError("end must be None or a string")
+        if OOO0000O000O0OOO0 :#line:754:if kwargs:
+            raise TypeError ("invalid keyword arguments to print()")#line:755:raise TypeError("invalid keyword arguments to print()")
+        if not OO0O00OO0OO000O0O :#line:756:if not want_unicode:
+            for OO0O00OOOO0OOOO0O in OO0000000000000OO :#line:757:for arg in args:
+                if isinstance (OO0O00OOOO0OOOO0O ,unicode ):#line:758:if isinstance(arg, unicode):
+                    OO0O00OO0OO000O0O =True #line:759:want_unicode = True
+                    break #line:760:break
+        if OO0O00OO0OO000O0O :#line:761:if want_unicode:
+            OOO0000OO0O0O0OO0 =unicode ("\n")#line:762:newline = unicode("\n")
+            O0O000O0O000000OO =unicode (" ")#line:763:space = unicode(" ")
+        else :#line:764:else:
+            OOO0000OO0O0O0OO0 ="\n"#line:765:newline = "\n"
+            O0O000O0O000000OO =" "#line:766:space = " "
+        if OO00OOO0O0O0OOOO0 is None :#line:767:if sep is None:
+            OO00OOO0O0O0OOOO0 =O0O000O0O000000OO #line:768:sep = space
+        if OO00O000000O00OOO is None :#line:769:if end is None:
+            OO00O000000O00OOO =OOO0000OO0O0O0OO0 #line:770:end = newline
+        for O00O0O00OOO0OOO0O ,OO0O00OOOO0OOOO0O in enumerate (OO0000000000000OO ):#line:771:for i, arg in enumerate(args):
+            if O00O0O00OOO0OOO0O :#line:772:if i:
+                O00000OO000000O0O (OO00OOO0O0O0OOOO0 )#line:773:write(sep)
+            O00000OO000000O0O (OO0O00OOOO0OOOO0O )#line:774:write(arg)
+        O00000OO000000O0O (OO00O000000O00OOO )#line:775:write(end)
+if sys .version_info [:2 ]<(3 ,3 ):#line:776:if sys.version_info[:2] < (3, 3):
+    _O0O000OOOOOO00OO0 =print_ #line:777:_print = print_
+    def print_ (*OOO0O0O0O0OOO0000 ,**O000OOO00OOOOO00O ):#line:779:def print_(*args, **kwargs):
+        OO000OO00OOOOO0OO =O000OOO00OOOOO00O .get ("file",sys .stdout )#line:780:fp = kwargs.get("file", sys.stdout)
+        OOO000000O00OOO0O =O000OOO00OOOOO00O .pop ("flush",False )#line:781:flush = kwargs.pop("flush", False)
+        _O0O000OOOOOO00OO0 (*OOO0O0O0O0OOO0000 ,**O000OOO00OOOOO00O )#line:782:_print(*args, **kwargs)
+        if OOO000000O00OOO0O and OO000OO00OOOOO0OO is not None :#line:783:if flush and fp is not None:
+            OO000OO00OOOOO0OO .flush ()#line:784:fp.flush()
+_OOOOO0O000O000O0O (reraise ,"""Reraise an exception.""")#line:786:_add_doc(reraise, """Reraise an exception.""")
+if sys .version_info [0 :2 ]<(3 ,4 ):#line:788:if sys.version_info[0:2] < (3, 4):
+    def wraps (OO0O00O0OO000OOO0 ,assigned =functools .WRAPPER_ASSIGNMENTS ,updated =functools .WRAPPER_UPDATES ):#line:790:updated=functools.WRAPPER_UPDATES):
+        def OO000O0000000OO00 (O000000OO0O0000O0 ):#line:791:def wrapper(f):
+            O000000OO0O0000O0 =functools .wraps (OO0O00O0OO000OOO0 ,assigned ,updated )(O000000OO0O0000O0 )#line:792:f = functools.wraps(wrapped, assigned, updated)(f)
+            O000000OO0O0000O0 .__wrapped__ =OO0O00O0OO000OOO0 #line:793:f.__wrapped__ = wrapped
+            return O000000OO0O0000O0 #line:794:return f
+        return OO000O0000000OO00 #line:795:return wrapper
+else :#line:796:else:
+    wraps =functools .wraps #line:797:wraps = functools.wraps
+def with_metaclass (O0OO00OO00OOOOOO0 ,*OOOO000OO0OO0O0OO ):#line:800:def with_metaclass(meta, *bases):
+    ""#line:801:"""Create a base class with a metaclass."""
+    class O0OOOO0O0000000O0 (O0OO00OO00OOOOOO0 ):#line:805:class metaclass(meta):
+        def __new__ (O0OOO00000OOO000O ,OO0OO000OO0OO000O ,O000OO0OO0O0000OO ,OO0O0O000000O00OO ):#line:807:def __new__(cls, name, this_bases, d):
+            return O0OO00OO00OOOOOO0 (OO0OO000OO0OO000O ,OOOO000OO0OO0O0OO ,OO0O0O000000O00OO )#line:808:return meta(name, bases, d)
+    return type .__new__ (O0OOOO0O0000000O0 ,'temporary_class',(),{})#line:809:return type.__new__(metaclass, 'temporary_class', (), {})
+def add_metaclass (OO00O0O0O0000O00O ):#line:812:def add_metaclass(metaclass):
+    ""#line:813:"""Class decorator for creating a class with a metaclass."""
+    def O0OOO0O0O0OO0OOO0 (OO0O0OOOOO00000O0 ):#line:814:def wrapper(cls):
+        O000000O000O0OO00 =OO0O0OOOOO00000O0 .__dict__ .copy ()#line:815:orig_vars = cls.__dict__.copy()
+        O0O00O00OOO000000 =O000000O000O0OO00 .get ('__slots__')#line:816:slots = orig_vars.get('__slots__')
+        if O0O00O00OOO000000 is not None :#line:817:if slots is not None:
+            if isinstance (O0O00O00OOO000000 ,str ):#line:818:if isinstance(slots, str):
+                O0O00O00OOO000000 =[O0O00O00OOO000000 ]#line:819:slots = [slots]
+            for O0O0000000OOO00OO in O0O00O00OOO000000 :#line:820:for slots_var in slots:
+                O000000O000O0OO00 .pop (O0O0000000OOO00OO )#line:821:orig_vars.pop(slots_var)
+        O000000O000O0OO00 .pop ('__dict__',None )#line:822:orig_vars.pop('__dict__', None)
+        O000000O000O0OO00 .pop ('__weakref__',None )#line:823:orig_vars.pop('__weakref__', None)
+        return OO00O0O0O0000O00O (OO0O0OOOOO00000O0 .__name__ ,OO0O0OOOOO00000O0 .__bases__ ,O000000O000O0OO00 )#line:824:return metaclass(cls.__name__, cls.__bases__, orig_vars)
+    return O0OOO0O0O0OO0OOO0 #line:825:return wrapper
+def python_2_unicode_compatible (OO00O000O0OO0000O ):#line:828:def python_2_unicode_compatible(klass):
+    ""#line:835:"""
+    if PY2 :#line:836:if PY2:
+        if '__str__'not in OO00O000O0OO0000O .__dict__ :#line:837:if '__str__' not in klass.__dict__:
+            raise ValueError ("@python_2_unicode_compatible cannot be applied " "to %s because it doesn't define __str__()."%OO00O000O0OO0000O .__name__ )#line:840:klass.__name__)
+        OO00O000O0OO0000O .__unicode__ =OO00O000O0OO0000O .__str__ #line:841:klass.__unicode__ = klass.__str__
+        OO00O000O0OO0000O .__str__ =lambda OOOO0000O000O0OOO :OOOO0000O000O0OOO .__unicode__ ().encode ('utf-8')#line:842:klass.__str__ = lambda self: self.__unicode__().encode('utf-8')
+    return OO00O000O0OO0000O #line:843:return klass
+__path__ =[]#line:849:__path__ = []  # required for PEP 302 and PEP 451
+__package__ =__name__ #line:850:__package__ = __name__  # see PEP 366 @ReservedAssignment
+if globals ().get ("__spec__")is not None :#line:851:if globals().get("__spec__") is not None:
+    __spec__ .submodule_search_locations =[]#line:852:__spec__.submodule_search_locations = []  # PEP 451 @UndefinedVariable
+if sys .meta_path :#line:856:if sys.meta_path:
+    for i ,importer in enumerate (sys .meta_path ):#line:857:for i, importer in enumerate(sys.meta_path):
+        if (type (importer ).__name__ =="_SixMetaPathImporter"and importer .name ==__name__ ):#line:863:importer.name == __name__):
+            del sys .meta_path [i ]#line:864:del sys.meta_path[i]
+            break #line:865:break
+    del i ,importer #line:866:del i, importer
+sys .meta_path .append (_O0OOOOO0O0O00O000 )#line:868:sys.meta_path.append(_importer)

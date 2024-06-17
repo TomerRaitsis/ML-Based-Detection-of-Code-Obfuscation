@@ -1,0 +1,280 @@
+#! /usr/bin/env python
+""#line:5:'''
+from __future__ import print_function #line:6:from __future__ import print_function
+from __future__ import unicode_literals #line:7:from __future__ import unicode_literals
+import sys #line:9:import sys
+import os #line:10:import os
+import json #line:11:import json
+import itertools #line:12:import itertools
+import functools #line:13:import functools
+import time #line:14:import time
+import socket #line:15:import socket
+import random #line:16:import random
+import re #line:17:import re
+try :#line:19:try:
+    from urllib .request import build_opener ,Request ,HTTPHandler ,HTTPSHandler #line:21:from urllib.request import build_opener, Request, HTTPHandler, HTTPSHandler
+    from urllib .parse import quote_plus ,urlencode ,unquote_plus ,urljoin #line:22:from urllib.parse import quote_plus, urlencode, unquote_plus, urljoin
+    izip =zip #line:23:izip = zip
+except ImportError :#line:25:except ImportError:
+    from urllib2 import build_opener ,Request ,HTTPHandler ,HTTPSHandler #line:27:from urllib2 import build_opener, Request, HTTPHandler, HTTPSHandler
+    from urllib import urlencode ,unquote_plus ,quote_plus #line:28:from urllib import urlencode, unquote_plus, quote_plus
+    from urlparse import urljoin #line:29:from urlparse import urljoin
+    from itertools import izip #line:30:from itertools import izip
+try :#line:32:try:
+    import concurrent .futures #line:33:import concurrent.futures
+    _O00O000OO0O00OO00 =concurrent .futures .ThreadPoolExecutor (max_workers =120 )#line:34:_g_executor = concurrent.futures.ThreadPoolExecutor(max_workers=120)
+except ImportError :#line:35:except ImportError:
+    _O00O000OO0O00OO00 =None #line:36:_g_executor = None
+__author__ ='ZHUO Qiang'#line:39:__author__ = 'ZHUO Qiang'
+__email__ ='zhuo.qiang@gmail.com'#line:40:__email__ = 'zhuo.qiang@gmail.com'
+__copyright__ ="2013, http://zhuoqiang.me"#line:41:__copyright__ = "2013, http://zhuoqiang.me"
+__license__ ="MIT"#line:42:__license__ = "MIT"
+__date__ ='2013-05-11'#line:43:__date__ = '2013-05-11'
+__version_info__ =(1 ,5 ,1 )#line:44:__version_info__ = (1, 5, 1)
+__version__ ='.'.join (str (O0OOO0OOO00000000 )for O0OOO0OOO00000000 in __version_info__ )#line:45:__version__ = '.'.join(str(i) for i in __version_info__)
+__home__ ='https://bitbucket.org/zhuoqiang/goslate'#line:46:__home__ = 'https://bitbucket.org/zhuoqiang/goslate'
+__download__ ='https://pypi.python.org/pypi/goslate'#line:47:__download__ = 'https://pypi.python.org/pypi/goslate'
+try :#line:50:try:
+    unicode #line:51:unicode
+except NameError :#line:52:except NameError:
+    unicode =str #line:53:unicode = str
+def _OO0OO0OO00O0O000O (OOOO0O0O0O00OOOO0 ):#line:55:def _is_sequence(arg):
+    return (not isinstance (OOOO0O0O0O00OOOO0 ,unicode ))and (not isinstance (OOOO0O0O0O00OOOO0 ,bytes ))and (hasattr (OOOO0O0O0O00OOOO0 ,"__getitem__")or hasattr (OOOO0O0O0O00OOOO0 ,"__iter__"))#line:58:hasattr(arg, "__getitem__") or hasattr(arg, "__iter__"))
+def _OO0OO00O0000OO00O (OOO0OOO0OO0O0OOOO ):#line:60:def _is_bytes(arg):
+    return isinstance (OOO0OOO0OO0O0OOOO ,bytes )#line:61:return isinstance(arg, bytes)
+def _O00OO0O00O000000O (OO00O00O0O0O0000O ):#line:64:def _unwrapper_single_element(elements):
+    if len (OO00O00O0O0O0000O )==1 :#line:65:if len(elements) == 1:
+        return OO00O00O0O0O0000O [0 ]#line:66:return elements[0]
+    return OO00O00O0O0O0000O #line:67:return elements
+class Error (Exception ):#line:70:class Error(Exception):
+    ""#line:72:'''
+    pass #line:73:pass
+_OO00O0OO0000OO00O =re .compile (r',(?=,)')#line:76:_empty_comma = re.compile(r',(?=,)')
+WRITING_NATIVE =('trans',)#line:78:WRITING_NATIVE = ('trans',)
+'''native target language writing system'''#line:79:'''native target language writing system'''
+WRITING_ROMAN =('translit',)#line:81:WRITING_ROMAN = ('translit',)
+'''romanlized writing system. only valid for some langauges, otherwise it outputs empty string'''#line:82:'''romanlized writing system. only valid for some langauges, otherwise it outputs empty string'''
+WRITING_NATIVE_AND_ROMAN =WRITING_NATIVE +WRITING_ROMAN #line:84:WRITING_NATIVE_AND_ROMAN = WRITING_NATIVE + WRITING_ROMAN
+'''both native and roman writing. The output will be a tuple'''#line:85:'''both native and roman writing. The output will be a tuple'''
+class Goslate (object ):#line:87:class Goslate(object):
+    ""#line:144:'''
+    _MAX_LENGTH_PER_QUERY =1800 #line:147:_MAX_LENGTH_PER_QUERY = 1800
+    def __init__ (O000O00O0O00OOO00 ,writing =WRITING_NATIVE ,opener =None ,retry_times =4 ,executor =_O00O000OO0O00OO00 ,timeout =4 ,service_urls =('http://translate.google.com',),debug =False ):#line:150:timeout=4, service_urls=('http://translate.google.com',), debug=False):
+        O000O00O0O00OOO00 ._DEBUG =debug #line:151:self._DEBUG = debug
+        O000O00O0O00OOO00 ._MIN_TASKS_FOR_CONCURRENT =2 #line:152:self._MIN_TASKS_FOR_CONCURRENT = 2
+        O000O00O0O00OOO00 ._opener =opener #line:153:self._opener = opener
+        O000O00O0O00OOO00 ._languages =None #line:154:self._languages = None
+        O000O00O0O00OOO00 ._TIMEOUT =timeout #line:155:self._TIMEOUT = timeout
+        if not O000O00O0O00OOO00 ._opener :#line:156:if not self._opener:
+            O0O000O0OOO0O0O00 =O000O00O0O00OOO00 ._DEBUG and 1 or 0 #line:157:debuglevel = self._DEBUG and 1 or 0
+            O000O00O0O00OOO00 ._opener =build_opener (HTTPHandler (debuglevel =O0O000O0OOO0O0O00 ),HTTPSHandler (debuglevel =O0O000O0OOO0O0O00 ))#line:160:HTTPSHandler(debuglevel=debuglevel))
+        O000O00O0O00OOO00 ._RETRY_TIMES =retry_times #line:162:self._RETRY_TIMES = retry_times
+        O000O00O0O00OOO00 ._executor =executor #line:163:self._executor = executor
+        O000O00O0O00OOO00 ._writing =writing #line:164:self._writing = writing
+        if _OO0OO0OO00O0O000O (service_urls ):#line:165:if _is_sequence(service_urls):
+            O000O00O0O00OOO00 ._service_urls =service_urls #line:166:self._service_urls = service_urls
+        else :#line:167:else:
+            O000O00O0O00OOO00 ._service_urls =(service_urls ,)#line:168:self._service_urls = (service_urls,)
+    def _open_url (O000O00O0OO0O0O00 ,O0O0O00O000O0000O ):#line:170:def _open_url(self, url):
+        if len (O0O0O00O000O0000O )>O000O00O0OO0O0O00 ._MAX_LENGTH_PER_QUERY +100 :#line:171:if len(url) > self._MAX_LENGTH_PER_QUERY+100:
+            raise Error ('input too large')#line:172:raise Error('input too large')
+        OOOO00000O0000OO0 =Request (O0O0O00O000O0000O ,headers ={'User-Agent':'Mozilla/4.0'})#line:175:request = Request(url, headers={'User-Agent':'Mozilla/4.0'})
+        O0OOO0OOO0OOO0O00 =None #line:177:exception = None
+        for OOO0OOOOO00O0OO0O in range (O000O00O0OO0O0O00 ._RETRY_TIMES ):#line:179:for i in range(self._RETRY_TIMES):
+            try :#line:180:try:
+                OO0O00O0000O00OO0 =O000O00O0OO0O0O00 ._opener .open (OOOO00000O0000OO0 ,timeout =O000O00O0OO0O0O00 ._TIMEOUT )#line:181:response = self._opener.open(request, timeout=self._TIMEOUT)
+                OOOO000O0O0O000OO =OO0O00O0000O00OO0 .read ().decode ('utf-8')#line:182:response_content = response.read().decode('utf-8')
+                if O000O00O0OO0O0O00 ._DEBUG :#line:183:if self._DEBUG:
+                    print ('GET Response body:{}'.format (OOOO000O0O0O000OO ))#line:184:print('GET Response body:{}'.format(response_content))
+                return OOOO000O0O0O000OO #line:185:return response_content
+            except socket .error as OO000OO00OO000O00 :#line:186:except socket.error as e:
+                if O000O00O0OO0O0O00 ._DEBUG :#line:187:if self._DEBUG:
+                    import threading #line:188:import threading
+                    print (threading .currentThread (),OO000OO00OO000O00 )#line:189:print(threading.currentThread(), e)
+                if 'Connection reset by peer'not in str (OO000OO00OO000O00 ):#line:190:if 'Connection reset by peer' not in str(e):
+                    raise OO000OO00OO000O00 #line:191:raise e
+                O0OOO0OOO0OOO0O00 =OO000OO00OO000O00 #line:192:exception = e
+                time .sleep (0.0001 )#line:193:time.sleep(0.0001)
+        raise O0OOO0OOO0OOO0O00 #line:194:raise exception
+    def _execute (OOO00O0O0000O00O0 ,OO0O0O000OO0OOOOO ):#line:197:def _execute(self, tasks):
+        OO0O0OO00OO00O0O0 =[next (OO0O0O000OO0OOOOO ,None )for O0OOOO0OOO00OOOO0 in range (OOO00O0O0000O00O0 ._MIN_TASKS_FOR_CONCURRENT )]#line:198:first_tasks = [next(tasks, None) for i in range(self._MIN_TASKS_FOR_CONCURRENT)]
+        OO0O0O000OO0OOOOO =(O00O000O00000O0OO for O00O000O00000O0OO in itertools .chain (OO0O0OO00OO00O0O0 ,OO0O0O000OO0OOOOO )if O00O000O00000O0OO )#line:199:tasks = (task for task in itertools.chain(first_tasks, tasks) if task)
+        if not OO0O0OO00OO00O0O0 [-1 ]or not OOO00O0O0000O00O0 ._executor :#line:201:if not first_tasks[-1] or not self._executor:
+            for OOOO0OO0OOOO00O00 in OO0O0O000OO0OOOOO :#line:202:for each in tasks:
+                yield OOOO0OO0OOOO00O00 ()#line:203:yield each()
+        else :#line:204:else:
+            O00OOOOO00OO0OOO0 =None #line:205:exception = None
+            for OOOO0OO0OOOO00O00 in [OOO00O0O0000O00O0 ._executor .submit (O0OO0OO00OO00O00O )for O0OO0OO00OO00O00O in OO0O0O000OO0OOOOO ]:#line:206:for each in [self._executor.submit(t) for t in tasks]:
+                if O00OOOOO00OO0OOO0 :#line:207:if exception:
+                    OOOO0OO0OOOO00O00 .cancel ()#line:208:each.cancel()
+                else :#line:209:else:
+                    O00OOOOO00OO0OOO0 =OOOO0OO0OOOO00O00 .exception ()#line:210:exception = each.exception()
+                    if not O00OOOOO00OO0OOO0 :#line:211:if not exception:
+                        yield OOOO0OO0OOOO00O00 .result ()#line:212:yield each.result()
+            if O00OOOOO00OO0OOO0 :#line:214:if exception:
+                raise O00OOOOO00OO0OOO0 #line:215:raise exception
+    def _basic_translate (OO0OOOOOOO0O000OO ,OOO00000O00000O0O ,OO000O0OO0OOOOO00 ,O0000OO00OO00O0O0 ):#line:218:def _basic_translate(self, text, target_language, source_language):
+        if not OO000O0OO0OOOOO00 :#line:221:if not target_language:
+            raise Error ('invalid target language')#line:222:raise Error('invalid target language')
+        if not OOO00000O00000O0O .strip ():#line:224:if not text.strip():
+            return tuple (u''for OOOO0OO000OOOO000 in range (len (OO0OOOOOOO0O000OO ._writing ))),unicode (OO000O0OO0OOOOO00 )#line:225:return tuple(u'' for i in range(len(self._writing))) , unicode(target_language)
+        O0OOOO00OOOOOO0O0 =urljoin (random .choice (OO0OOOOOOO0O000OO ._service_urls ),'/translate_a/single')#line:236:GOOGLE_TRASLATE_URL = urljoin(random.choice(self._service_urls), '/translate_a/single')
+        OO00OO00OO0O000OO ={'client':'a','sl':O0000OO00OO00O0O0 ,'tl':OO000O0OO0OOOOO00 ,'ie':'UTF-8','oe':'UTF-8','dt':'t','q':OOO00000O00000O0O ,}#line:245:}
+        OOOOOO0O0O00OOO0O ='?'.join ((O0OOOO00OOOOOO0O0 ,urlencode (OO00OO00OO0O000OO )))#line:247:url = '?'.join((GOOGLE_TRASLATE_URL, urlencode(GOOGLE_TRASLATE_PARAMETERS)))
+        if 'translit'in OO0OOOOOOO0O000OO ._writing :#line:248:if 'translit' in self._writing:
+            OOOOOO0O0O00OOO0O +='&dt=rm'#line:249:url += '&dt=rm'
+        O00OOO0OOO0O0O00O =OO0OOOOOOO0O000OO ._open_url (OOOOOO0O0O00OOO0O )#line:251:response_content = self._open_url(url)
+        OO0O0OO0OO0OOOO00 =json .loads (_OO00O0OO0000OO00O .subn ('',O00OOO0OOO0O0O00O )[0 ].replace (u'\xA0',u' ').replace ('[,','[1,'))#line:252:raw_data = json.loads(_empty_comma.subn('', response_content)[0].replace(u'\xA0', u' ').replace('[,', '[1,'))
+        O0000O000OO0OO0O0 ={'src':OO0O0OO0OO0OOOO00 [-1 ][0 ][0 ]}#line:253:data = {'src': raw_data[-1][0][0]}
+        if OO0O0OO0OO0OOOO00 [0 ][-1 ][0 ]==1 :#line:255:if raw_data[0][-1][0] == 1: # roman writing
+            O0000O000OO0OO0O0 ['translit']=OO0O0OO0OO0OOOO00 [0 ][-1 ][1 ]#line:256:data['translit'] = raw_data[0][-1][1]
+            O0000O000OO0OO0O0 ['trans']=u''.join (OOOO0OOO0O0OO0OOO [0 ]for OOOO0OOO0O0OO0OOO in OO0O0OO0OO0OOOO00 [0 ][:-1 ])#line:257:data['trans'] = u''.join(i[0] for i in raw_data[0][:-1])
+        else :#line:258:else:
+            O0000O000OO0OO0O0 ['translit']=u''#line:259:data['translit'] = u''
+            O0000O000OO0OO0O0 ['trans']=u''.join (OO0OO0OOO0O0O000O [0 ]for OO0OO0OOO0O0O000O in OO0O0OO0OO0OOOO00 [0 ])#line:260:data['trans'] = u''.join(i[0] for i in raw_data[0])
+        OOOOO00O0000OOO0O =tuple (O0000O000OO0OO0O0 [OOOOOOO0O0000OO00 ]for OOOOOOO0O0000OO00 in OO0OOOOOOO0O000OO ._writing )#line:262:translation = tuple(data[part] for part in self._writing)
+        O0O00OOO00OOO0OOO =O0000O000OO0OO0O0 ['src']#line:264:detected_source_language = data['src']
+        return OOOOO00O0000OOO0O ,O0O00OOO00OOO0OOO #line:265:return translation, detected_source_language
+    def get_languages (OOOO0OO0O0OOO0O00 ):#line:268:def get_languages(self):
+        ""#line:286:'''
+        if OOOO0OO0O0OOO0O00 ._languages :#line:287:if self._languages:
+            return OOOO0OO0O0OOO0O00 ._languages #line:288:return self._languages
+        OOO0OOOOOOO00O0O0 ='http://translate.google.com/translate_a/l'#line:290:GOOGLE_TRASLATOR_URL = 'http://translate.google.com/translate_a/l'
+        O00O00O0OOO000O00 ={'client':'t',}#line:293:}
+        OO0000OO000OOOOO0 ='?'.join ((OOO0OOOOOOO00O0O0 ,urlencode (O00O00O0OOO000O00 )))#line:295:url = '?'.join((GOOGLE_TRASLATOR_URL, urlencode(GOOGLE_TRASLATOR_PARAMETERS)))
+        OO0OO00O00OO00OO0 =OOOO0OO0O0OOO0O00 ._open_url (OO0000OO000OOOOO0 )#line:296:response_content = self._open_url(url)
+        O000O00OO00O0OO0O =json .loads (OO0OO00O00OO00OO0 )#line:297:data = json.loads(response_content)
+        OO0OO0000000OOOO0 =O000O00OO00O0OO0O ['sl']#line:299:languages = data['sl']
+        OO0OO0000000OOOO0 .update (O000O00OO00O0OO0O ['tl'])#line:300:languages.update(data['tl'])
+        if 'auto'in OO0OO0000000OOOO0 :#line:301:if 'auto' in languages:
+            del OO0OO0000000OOOO0 ['auto']#line:302:del languages['auto']
+        if 'zh'not in OO0OO0000000OOOO0 :#line:303:if 'zh' not in languages:
+            OO0OO0000000OOOO0 ['zh']='Chinese'#line:304:languages['zh'] = 'Chinese'
+        OOOO0OO0O0OOO0O00 ._languages =OO0OO0000000OOOO0 #line:305:self._languages = languages
+        return OOOO0OO0O0OOO0O00 ._languages #line:306:return self._languages
+    _SEPERATORS =[quote_plus (OOOOO0OO0O0OOOO0O .encode ('utf-8'))for OOOOO0OO0O0OOOO0O in u'.!?,;。，？！:："“”’‘#$%&()（）*×+/<=>@＃￥[\]…［］^`{|}｛｝～~\n\r\t ']#line:310:u'.!?,;。，？！:："“”’‘#$%&()（）*×+/<=>@＃￥[\]…［］^`{|}｛｝～~\n\r\t ']
+    def _translate_single_text (OOO0OOO00OOOOOOOO ,O0O0OO00OO0O000OO ,O00000O000OO0OOO0 ,OOOO00O000O00O0OO ):#line:312:def _translate_single_text(self, text, target_language, source_lauguage):
+        assert _OO0OO00O0000OO00O (O0O0OO00OO0O000OO )#line:313:assert _is_bytes(text)
+        def OO0OO00OOOO000O0O (OOOO000000OOO0000 ):#line:314:def split_text(text):
+            OOO00O0OO000000O0 =0 #line:315:start = 0
+            OOOO000000OOO0000 =quote_plus (OOOO000000OOO0000 )#line:316:text = quote_plus(text)
+            O0O000OO0O00OOO00 =len (OOOO000000OOO0000 )#line:317:length = len(text)
+            while (O0O000OO0O00OOO00 -OOO00O0OO000000O0 )>OOO0OOO00OOOOOOOO ._MAX_LENGTH_PER_QUERY :#line:318:while (length - start) > self._MAX_LENGTH_PER_QUERY:
+                for OO00OOOOOO000OO0O in OOO0OOO00OOOOOOOO ._SEPERATORS :#line:319:for seperator in self._SEPERATORS:
+                    OOOOOOO0O0O0O000O =OOOO000000OOO0000 .rfind (OO00OOOOOO000OO0O ,OOO00O0OO000000O0 ,OOO00O0OO000000O0 +OOO0OOO00OOOOOOOO ._MAX_LENGTH_PER_QUERY )#line:320:index = text.rfind(seperator, start, start+self._MAX_LENGTH_PER_QUERY)
+                    if OOOOOOO0O0O0O000O !=-1 :#line:321:if index != -1:
+                        break #line:322:break
+                else :#line:323:else:
+                    raise Error ('input too large')#line:324:raise Error('input too large')
+                O0O0OOOOOO0OO000O =OOOOOOO0O0O0O000O +len (OO00OOOOOO000OO0O )#line:325:end = index + len(seperator)
+                yield unquote_plus (OOOO000000OOO0000 [OOO00O0OO000000O0 :O0O0OOOOOO0OO000O ])#line:326:yield unquote_plus(text[start:end])
+                OOO00O0OO000000O0 =O0O0OOOOOO0OO000O #line:327:start = end
+            yield unquote_plus (OOOO000000OOO0000 [OOO00O0OO000000O0 :])#line:329:yield unquote_plus(text[start:])
+        def O000000O00OO0O0OO (O0OO0OOOO000O0000 ):#line:331:def make_task(text):
+            return lambda :OOO0OOO00OOOOOOOO ._basic_translate (O0OO0OOOO000O0000 ,O00000O000OO0OOO0 ,OOOO00O000O00O0OO )[0 ]#line:332:return lambda: self._basic_translate(text, target_language, source_lauguage)[0]
+        O0OOOO0OO0OO0OO0O =list (OOO0OOO00OOOOOOOO ._execute (O000000O00OO0O0OO (OOO0O0OO0OO00O000 )for OOO0O0OO0OO00O000 in OO0OO00OOOO000O0O (O0O0OO00OO0O000OO )))#line:334:results = list(self._execute(make_task(i) for i in split_text(text)))
+        return tuple (''.join (O00OOOO0O00OO0O00 [O00O00000O00O0OOO ]for O00OOOO0O00OO0O00 in O0OOOO0OO0OO0OO0O )for O00O00000O00O0OOO in range (len (OOO0OOO00OOOOOOOO ._writing )))#line:335:return tuple(''.join(i[n] for i in results) for n in range(len(self._writing)))
+    def translate (OOO0OO0OOOOO0OOOO ,O0OOO0O00O0OOOOOO ,O000OO0000OO0OO00 ,source_language ='auto'):#line:338:def translate(self, text, target_language, source_language='auto'):
+        ""#line:391:'''
+        if not O000OO0000OO0OO00 :#line:394:if not target_language:
+            raise Error ('invalid target language')#line:395:raise Error('invalid target language')
+        if not source_language :#line:397:if not source_language:
+            source_language ='auto'#line:398:source_language = 'auto'
+        if O000OO0000OO0OO00 .lower ()=='zh':#line:400:if target_language.lower() == 'zh':
+            O000OO0000OO0OO00 ='zh-CN'#line:401:target_language = 'zh-CN'
+        if source_language .lower ()=='zh':#line:403:if source_language.lower() == 'zh':
+            source_language ='zh-CN'#line:404:source_language = 'zh-CN'
+        if not _OO0OO0OO00O0O000O (O0OOO0O00O0OOOOOO ):#line:406:if not _is_sequence(text):
+            if isinstance (O0OOO0O00O0OOOOOO ,unicode ):#line:407:if isinstance(text, unicode):
+                O0OOO0O00O0OOOOOO =O0OOO0O00O0OOOOOO .encode ('utf-8')#line:408:text = text.encode('utf-8')
+            return _O00OO0O00O000000O (OOO0OO0OOOOO0OOOO ._translate_single_text (O0OOO0O00O0OOOOOO ,O000OO0000OO0OO00 ,source_language ))#line:409:return _unwrapper_single_element(self._translate_single_text(text, target_language, source_language))
+        OOOO00O0O0OOO00OO =u'\u26ff'#line:411:JOINT = u'\u26ff'
+        OOO0O000O0000OO0O =(u'\n%s\n'%OOOO00O0O0OOO00OO ).encode ('utf-8')#line:412:UTF8_JOINT = (u'\n%s\n' % JOINT).encode('utf-8')
+        def O0O00O0000000O0O0 (OOOO0OOO0OO000OO0 ):#line:414:def join_texts(texts):
+            def O00OOO0O0O0O0000O (O00O0OO000O0O0000 ):#line:415:def convert_to_utf8(texts):
+                for O00O000O0OOOOOOOO in O00O0OO000O0O0000 :#line:416:for i in texts:
+                    if isinstance (O00O000O0OOOOOOOO ,unicode ):#line:417:if isinstance(i, unicode):
+                        O00O000O0OOOOOOOO =O00O000O0OOOOOOOO .encode ('utf-8')#line:418:i = i.encode('utf-8')
+                    yield O00O000O0OOOOOOOO .strip ()#line:419:yield i.strip()
+            OOOO0OOO0OO000OO0 =O00OOO0O0O0O0000O (OOOO0OOO0OO000OO0 )#line:421:texts = convert_to_utf8(texts)
+            OOOOOO0OO0OOOOOOO =next (OOOO0OOO0OO000OO0 )#line:422:text = next(texts)
+            for O0OOOOO0OO0OO00O0 in OOOO0OOO0OO000OO0 :#line:423:for i in texts:
+                OOO0OOOOOO0O0OO00 =OOO0O000O0000OO0O .join ((OOOOOO0OO0OOOOOOO ,O0OOOOO0OO0OO00O0 ))#line:424:new_text = UTF8_JOINT.join((text, i))
+                if len (quote_plus (OOO0OOOOOO0O0OO00 ))<OOO0OO0OOOOO0OOOO ._MAX_LENGTH_PER_QUERY :#line:425:if len(quote_plus(new_text)) < self._MAX_LENGTH_PER_QUERY:
+                    OOOOOO0OO0OOOOOOO =OOO0OOOOOO0O0OO00 #line:426:text = new_text
+                else :#line:427:else:
+                    yield OOOOOO0OO0OOOOOOO #line:428:yield text
+                    OOOOOO0OO0OOOOOOO =O0OOOOO0OO0OO00O0 #line:429:text = i
+            yield OOOOOO0OO0OOOOOOO #line:430:yield text
+        def OOOOO0O00O00O00O0 (O0O0OO0000O00OO00 ):#line:433:def make_task(text):
+            def O0O00OOOOOOO0O00O ():#line:434:def task():
+                OOOO0000O0000OOOO =OOO0OO0OOOOO0OOOO ._translate_single_text (O0O0OO0000O00OO00 ,O000OO0000OO0OO00 ,source_language )#line:435:r = self._translate_single_text(text, target_language, source_language)
+                OOOO0000O0000OOOO =tuple ([O00OO0OOO0O00O0O0 .strip ('\n')for O00OO0OOO0O00O0O0 in OO00O000O00OOO0OO .split (OOOO00O0O0OOO00OO )]for OO00O000O00OOO0OO in OOOO0000O0000OOOO )#line:436:r = tuple([i.strip('\n') for i in n.split(JOINT)] for n in r)
+                return izip (*OOOO0000O0000OOOO )#line:437:return izip(*r)
+            return O0O00OOOOOOO0O00O #line:439:return task
+        return (_O00OO0O00O000000O (O0OOOOOO00OO00O0O )for O0OOOOOO00OO00O0O in itertools .chain .from_iterable (OOO0OO0OOOOO0OOOO ._execute (OOOOO0O00O00O00O0 (O0O0OO0OOO000O0O0 )for O0O0OO0OOO000O0O0 in O0O00O0000000O0O0 (O0OOO0O00O0OOOOOO ))))#line:442:itertools.chain.from_iterable(self._execute(make_task(i) for i in join_texts(text))))
+    def _detect_language (O0000OO00000O00O0 ,OOO0OOO0O0OO00O0O ):#line:445:def _detect_language(self, text):
+        if _OO0OO00O0000OO00O (OOO0OOO0O0OO00O0O ):#line:446:if _is_bytes(text):
+            OOO0OOO0O0OO00O0O =OOO0OOO0O0OO00O0O .decode ('utf-8')#line:447:text = text.decode('utf-8')
+        return O0000OO00000O00O0 ._basic_translate (OOO0OOO0O0OO00O0O [:50 ].encode ('utf-8'),'en','auto')[1 ]#line:448:return self._basic_translate(text[:50].encode('utf-8'), 'en', 'auto')[1]
+    def detect (OOO0OO0000O0OO00O ,O000O0OO00OOO0OOO ):#line:451:def detect(self, text):
+        ""#line:481:'''
+        if _OO0OO0OO00O0O000O (O000O0OO00OOO0OOO ):#line:482:if _is_sequence(text):
+            return OOO0OO0000O0OO00O ._execute (functools .partial (OOO0OO0000O0OO00O ._detect_language ,O000O0OOO000OO0OO )for O000O0OOO000OO0OO in O000O0OO00OOO0OOO )#line:483:return self._execute(functools.partial(self._detect_language, i) for i in text)
+        return OOO0OO0000O0OO00O ._detect_language (O000O0OO00OOO0OOO )#line:484:return self._detect_language(text)
+    def lookup_dictionary (OOO00O0O00OO0OO0O ,OOOO00OO0OO0OOOOO ,OOOO0O000O00O000O ,source_language ='auto',examples =False ,etymology =False ,pronunciation =False ,related_words =False ,synonyms =False ,antonyms =False ,output_language =None ):#line:495:output_language=None):
+        ""#line:521:'''
+        if not OOOO0O000O00O000O :#line:523:if not target_language:
+            raise Error ('invalid target language')#line:524:raise Error('invalid target language')
+        if not OOOO00OO0OO0OOOOO .strip ():#line:526:if not text.strip():
+            return tuple (u''for OOOOOOO00O0OOOO0O in range (len (OOO00O0O00OO0OO0O ._writing ))),unicode (OOOO0O000O00O000O )#line:527:return tuple(u'' for i in range(len(self._writing))) , unicode(target_language)
+        OO0O0O000O000O0OO =urljoin (random .choice (OOO00O0O00OO0OO0O ._service_urls ),'/translate_a/single')#line:533:GOOGLE_TRASLATE_URL = urljoin(random.choice(self._service_urls), '/translate_a/single')
+        OOO0OOO000O0OO0O0 =[('client','a'),('sl',source_language ),('tl',OOOO0O000O00O000O ),('ie','UTF-8'),('oe','UTF-8'),('dt','t'),('q',OOOO00OO0OO0OOOOO ),('dt','bd'),]#line:544:]
+        if output_language :#line:546:if output_language:
+            OOO0OOO000O0OO0O0 .append (('hl',output_language ))#line:547:parameters.append(('hl', output_language))
+        if examples :#line:548:if examples:
+            OOO0OOO000O0OO0O0 .append (('dt','ex'))#line:549:parameters.append(('dt', 'ex'))
+        if related_words :#line:550:if related_words:
+            OOO0OOO000O0OO0O0 .append (('dt','rw'))#line:551:parameters.append(('dt', 'rw'))
+        if pronunciation :#line:552:if pronunciation:
+            OOO0OOO000O0OO0O0 .append (('dt','rm'))#line:553:parameters.append(('dt', 'rm'))
+        if synonyms :#line:554:if synonyms:
+            OOO0OOO000O0OO0O0 .append (('dt','ss'))#line:555:parameters.append(('dt', 'ss'))
+        if antonyms :#line:556:if antonyms:
+            OOO0OOO000O0OO0O0 .append (('dt','at'))#line:557:parameters.append(('dt', 'at'))
+        O0O00O000O0O0OOO0 ='?'.join ((OO0O0O000O000O0OO ,urlencode (OOO0OOO000O0OO0O0 )))#line:571:url = '?'.join((GOOGLE_TRASLATE_URL, urlencode(parameters)))
+        O0O0O0O0O000OO000 =OOO00O0O00OO0OO0O ._open_url (O0O00O000O0O0OOO0 )#line:574:response_content = self._open_url(url)
+        OO00OOO000000000O =json .loads (_OO00O0OO0000OO00O .subn ('',O0O0O0O0O000OO000 )[0 ].replace (u'\xA0',u' ').replace ('[,','[1,'))#line:575:raw_data = json.loads(_empty_comma.subn('', response_content)[0].replace(u'\xA0', u' ').replace('[,', '[1,'))
+        return OO00OOO000000000O #line:576:return raw_data
+def _OO0O00O000O00OOO0 (OO0OOO0O00OOO000O ):#line:579:def _main(argv):
+    import optparse #line:580:import optparse
+    O000000O00OO0O000 ="usage: %prog [options] <file1 file2 ...>\n<stdin> will be used as input source if no file specified."#line:582:usage = "usage: %prog [options] <file1 file2 ...>\n<stdin> will be used as input source if no file specified."
+    O000OOO0OOOOOOO00 =optparse .OptionParser (usage =O000000O00OO0O000 ,version ="%%prog %s @ Copyright %s"%(__version__ ,__copyright__ ))#line:584:parser = optparse.OptionParser(usage=usage, version="%%prog %s @ Copyright %s" % (__version__, __copyright__))
+    O000OOO0OOOOOOO00 .add_option ('-t','--target-language',metavar ='zh-CN',help ='specify target language to translate the source text into')#line:586:help='specify target language to translate the source text into')
+    O000OOO0OOOOOOO00 .add_option ('-s','--source-language',default ='auto',metavar ='en',help ='specify source language, if not provide it will identify the source language automatically')#line:588:help='specify source language, if not provide it will identify the source language automatically')
+    O000OOO0OOOOOOO00 .add_option ('-i','--input-encoding',default =sys .getfilesystemencoding (),metavar ='utf-8',help ='specify input encoding, default to current console system encoding')#line:590:help='specify input encoding, default to current console system encoding')
+    O000OOO0OOOOOOO00 .add_option ('-o','--output-encoding',default =sys .getfilesystemencoding (),metavar ='utf-8',help ='specify output encoding, default to current console system encoding')#line:592:help='specify output encoding, default to current console system encoding')
+    O000OOO0OOOOOOO00 .add_option ('-r','--roman',action ="store_true",help ='change translation writing to roman (e.g.: output pinyin instead of Chinese charactors for Chinese. It only valid for some of the target languages)')#line:594:help='change translation writing to roman (e.g.: output pinyin instead of Chinese charactors for Chinese. It only valid for some of the target languages)')
+    O0OOO0000O0O0OOO0 ,OO0000O0OOO0O0000 =O000OOO0OOOOOOO00 .parse_args (OO0OOO0O00OOO000O [1 :])#line:597:options, args = parser.parse_args(argv[1:])
+    if not O0OOO0000O0O0OOO0 .target_language :#line:599:if not options.target_language:
+        print ('Error: missing target language!')#line:600:print('Error: missing target language!')
+        O000OOO0OOOOOOO00 .print_help ()#line:601:parser.print_help()
+        return #line:602:return
+    O0OOO0O0O0O00OO00 =WRITING_NATIVE #line:604:writing = WRITING_NATIVE
+    if O0OOO0000O0O0OOO0 .roman :#line:605:if options.roman:
+        O0OOO0O0O0O00OO00 =WRITING_ROMAN #line:606:writing = WRITING_ROMAN
+    OO00O0O00OO000OOO =Goslate (writing =O0OOO0O0O0O00OO00 )#line:608:gs = Goslate(writing=writing)
+    import fileinput #line:609:import fileinput
+    OO0O00O000000OO00 =fileinput .input (OO0000O0OOO0O0000 ,mode ='rb')#line:611:inputs = fileinput.input(args, mode='rb')
+    OO0O00O000000OO00 =(O000OO0OO0000000O .decode (O0OOO0000O0O0OOO0 .input_encoding )for O000OO0OO0000000O in OO0O00O000000OO00 )#line:612:inputs = (i.decode(options.input_encoding) for i in inputs)
+    O0000O00OOOO0000O =OO00O0O00OO000OOO .translate (OO0O00O000000OO00 ,O0OOO0000O0O0OOO0 .target_language ,O0OOO0000O0O0OOO0 .source_language )#line:613:outputs = gs.translate(inputs, options.target_language, options.source_language)
+    for O0OOO000O00000O00 in O0000O00OOOO0000O :#line:614:for i in outputs:
+        sys .stdout .write ((O0OOO000O00000O00 +u'\n').encode (O0OOO0000O0O0OOO0 .output_encoding ))#line:615:sys.stdout.write((i+u'\n').encode(options.output_encoding))
+        sys .stdout .flush ()#line:616:sys.stdout.flush()
+if __name__ =='__main__':#line:619:if __name__ == '__main__':
+    try :#line:620:try:
+        _OO0O00O000O00OOO0 (sys .argv )#line:621:_main(sys.argv)
+    except :#line:622:except:
+        error =sys .exc_info ()[1 ]#line:623:error = sys.exc_info()[1]
+        if len (str (error ))>2 :#line:624:if len(str(error)) > 2:
+            print (error )#line:625:print(error)

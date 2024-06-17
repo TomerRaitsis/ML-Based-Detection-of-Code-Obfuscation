@@ -1,0 +1,152 @@
+from typing import Optional ,List ,Set #line:1:from typing import Optional, List, Set
+from dataclasses import dataclass ,asdict ,is_dataclass #line:2:from dataclasses import dataclass, asdict, is_dataclass
+from datetime import datetime #line:3:from datetime import datetime
+from copy import deepcopy #line:4:from copy import deepcopy
+from tinydb import TinyDB ,Query #line:5:from tinydb import TinyDB, Query
+import uuid #line:6:import uuid
+import json #line:7:import json
+class EnhancedJSONEncoder (json .JSONEncoder ):#line:10:class EnhancedJSONEncoder(json.JSONEncoder):
+    ""#line:19:"""
+    def default (O0OOO0OO0O00O0000 ,O0O0OOO0OO0OOO000 ):#line:21:def default(self, o):
+        if is_dataclass (O0O0OOO0OO0OOO000 ):#line:22:if is_dataclass(o):
+            return asdict (O0O0OOO0OO0OOO000 )#line:23:return asdict(o)
+        return super ().default (O0O0OOO0OO0OOO000 )#line:24:return super().default(o)
+@dataclass #line:27:@dataclass
+class Category :#line:28:class Category:
+    name :str #line:29:name: str
+    subcategory :Optional [str ]=None #line:30:subcategory: Optional[str] = None
+    def __str__ (OO0OOOO0O0OOO00OO ):#line:32:def __str__(self):
+        if OO0OOOO0O0OOO00OO .subcategory is None :#line:33:if self.subcategory is None:
+            return f"{OO0OOOO0O0OOO00OO.name}-NoSubcategory"#line:34:return f"{self.name}-NoSubcategory"
+        else :#line:35:else:
+            return f"{OO0OOOO0O0OOO00OO.name}-{OO0OOOO0O0OOO00OO.subcategory}"#line:36:return f"{self.name}-{self.subcategory}"
+    def __eq__ (OO0OOO00O0OO0OO0O ,OO000OO000OOOOOO0 ):#line:38:def __eq__(self, other):
+        return OO0OOO00O0OO0OO0O .name ==OO000OO000OOOOOO0 .name and OO0OOO00O0OO0OO0O .subcategory ==OO000OO000OOOOOO0 .subcategory #line:39:return self.name == other.name and self.subcategory == other.subcategory
+    def is_same_category_name (OOOO0000000OO0O00 ,OO0OOOOO00000OOO0 ):#line:41:def is_same_category_name(self, other):
+        return OOOO0000000OO0O00 .name ==OO0OOOOO00000OOO0 .name #line:42:return self.name == other.name
+@dataclass #line:45:@dataclass
+class Item :#line:46:class Item:
+    ""#line:51:"""
+    item_id :str #line:53:item_id: str
+    name :str #line:54:name: str
+    amount :float #line:55:amount: float
+    description :str #line:56:description: str
+    date :datetime #line:57:date: datetime
+    category :Optional [Category ]=None #line:58:category: Optional[Category] = None
+    def __str__ (OO00O000000OOOOO0 ):#line:60:def __str__(self):
+        return OO00O000000OOOOO0 .to_json_str (indent =4 )#line:61:return self.to_json_str(indent=4)
+    def get_category_str (OO0000OO0O000OO0O )->str :#line:63:def get_category_str(self) -> str:
+        ""#line:69:"""
+        return "Uncategorized"if OO0000OO0O000OO0O .category is None else str (OO0000OO0O000OO0O .category )#line:70:return "Uncategorized" if self.category is None else str(self.category)
+    @classmethod #line:72:@classmethod
+    def create (O00OO00O0OO0OOOO0 ,O0O00OO0O00O0OOO0 :str ,OO0OOO00OOOO0OOO0 :float ,OOOO0OOO00O0OO00O :str ,O0OOOOO0000O00000 :str ,category :Optional [Category ]=None ,):#line:80:):
+        ""#line:93:"""
+        O0OO0O0OOO00OO0O0 =str (uuid .uuid4 ())#line:94:item_id = str(uuid.uuid4())  # Generate a unique ID
+        OO0000O0OO0OOO00O =datetime .strptime (O0OOOOO0000O00000 ,"%Y-%m-%d")#line:98:)  # Parse the date string into a datetime object
+        return O00OO00O0OO0OOOO0 (item_id =O0OO0O0OOO00OO0O0 ,name =O0O00OO0O00O0OOO0 ,amount =OO0OOO00OOOO0OOO0 ,description =OOOO0OOO00O0OO00O ,date =OO0000O0OO0OOO00O ,category =category ,)#line:106:)
+    @classmethod #line:108:@classmethod
+    def create_expense_item (O00O00O0O00000OO0 ,OO0OOOOO000OOOO00 :str ,OO0OO0OO00000OO00 :float ,O00O0O0O0O0OOOO0O :str ,OO0O00OO0O0OOO0O0 :str ,category :Optional [Category ]=None ,):#line:116:):
+        ""#line:129:"""
+        if OO0OO0OO00000OO00 >=0 :#line:131:if amount >= 0:
+            return O00O00O0O00000OO0 .create (OO0OOOOO000OOOO00 ,-abs (OO0OO0OO00000OO00 ),O00O0O0O0O0OOOO0O ,OO0O00OO0O0OOO0O0 ,category =category )#line:134:)
+        return O00O00O0O00000OO0 .create (OO0OOOOO000OOOO00 ,OO0OO0OO00000OO00 ,O00O0O0O0O0OOOO0O ,OO0O00OO0O0OOO0O0 ,category =category )#line:136:return cls.create(name, amount, description, date_str, category=category)
+    @classmethod #line:138:@classmethod
+    def create_income_item (O0O000OO0OO0OO0OO ,O00OO0OOO0OO000O0 :str ,O0OOO0OOO0O00000O :float ,OO0O000OO00O00000 :str ,O00000O0O0OO0OOOO :str ,category :Optional [Category ]=None ,):#line:146:):
+        ""#line:159:"""
+        return O0O000OO0OO0OO0OO .create (O00OO0OOO0OO000O0 ,abs (O0OOO0OOO0O00000O ),OO0O000OO00O00000 ,O00000O0O0OO0OOOO ,category =category )#line:160:return cls.create(name, abs(amount), description, date_str, category=category)
+    @classmethod #line:162:@classmethod
+    def from_json_str (O0OOOO0O0O00000O0 ,OO00O0O0OOO0OOO00 ):#line:163:def from_json_str(cls, json_str):
+        ""#line:172:"""
+        O00O0O0OO0O0000O0 =json .loads (OO00O0O0OOO0OOO00 )#line:174:data_dict = json.loads(json_str)
+        O00O0O0OO0O0000O0 ["date"]=datetime .strptime (O00O0O0OO0O0000O0 ["date"],"%Y-%m-%d %H:%M:%S")#line:177:data_dict["date"] = datetime.strptime(data_dict["date"], "%Y-%m-%d %H:%M:%S")
+        if O00O0O0OO0O0000O0 ["category"]:#line:180:if data_dict["category"]:
+            O00O0O0OO0O0000O0 ["category"]=Category (**O00O0O0OO0O0000O0 ["category"])#line:181:data_dict["category"] = Category(**data_dict["category"])
+        return O0OOOO0O0O00000O0 (**O00O0O0OO0O0000O0 )#line:183:return cls(**data_dict)
+    def to_json_str (OO0O0000O0O00OO00 ,*OO0O00000O000OOO0 ,**O00OOO00O000OOO0O )->str :#line:185:def to_json_str(self, *args, **kwargs) -> str:
+        ""#line:195:"""
+        return json .dumps (OO0O0000O0O00OO00 .to_serializable_dict (),*OO0O00000O000OOO0 ,cls =EnhancedJSONEncoder ,**O00OOO00O000OOO0O )#line:198:)
+    def to_serializable_dict (O0000OOOOO0OO00OO )->dict :#line:200:def to_serializable_dict(self) -> dict:
+        ""#line:206:"""
+        O00000O000O0OO00O =deepcopy (O0000OOOOO0OO00OO .__dict__ )#line:208:data_dct = deepcopy(self.__dict__)
+        if O00000O000O0OO00O ["category"]:#line:211:if data_dct["category"]:
+            O00000O000O0OO00O ["category"]=asdict (O00000O000O0OO00O ["category"])#line:212:data_dct["category"] = asdict(data_dct["category"])
+        O00000O000O0OO00O ["date"]=str (O00000O000O0OO00O ["date"])#line:215:data_dct["date"] = str(data_dct["date"])
+        return O00000O000O0OO00O #line:216:return data_dct
+class ItemsDB :#line:219:class ItemsDB:
+    ""#line:225:"""
+    def __init__ (OOO0OO00OOOOO0000 ,OO00OOOOO00OO000O :str ):#line:227:def __init__(self, db_path: str):
+        ""#line:233:"""
+        OOO0OO00OOOOO0000 .db_path =OO00OOOOO00OO000O #line:234:self.db_path = db_path
+    def __len__ (OOOOO0000OO0OOOO0 ):#line:236:def __len__(self):
+        ""#line:242:"""
+        with TinyDB (OOOOO0000OO0OOOO0 .db_path )as OOOOO0OOOO000000O :#line:243:with TinyDB(self.db_path) as db:
+            return len (OOOOO0OOOO000000O )#line:244:return len(db)
+    def print_db (O0O0OO00OO000O000 ):#line:246:def print_db(self):
+        ""#line:249:"""
+        for OO0OO0OOOO0OO00OO in O0O0OO00OO000O000 .get_all_items ():#line:251:for item in self.get_all_items():
+            print (OO0OO0OOOO0OO00OO .to_json_str (indent =4 ))#line:252:print(item.to_json_str(indent=4))
+    def insert_item (O00000OOOOOOOO0O0 ,OO0000OO00000OOO0 :Item )->None :#line:254:def insert_item(self, item: Item) -> None:
+        ""#line:260:"""
+        O00O00OO0000OO00O =dict (json .loads (OO0000OO00000OOO0 .to_json_str ()))#line:262:data_dict = dict(json.loads(item.to_json_str()))
+        with TinyDB (O00000OOOOOOOO0O0 .db_path )as OO00OO00000O0O000 :#line:263:with TinyDB(self.db_path) as db:
+            OO00OO00000O0O000 .insert (O00O00OO0000OO00O )#line:264:db.insert(data_dict)
+    def insert_items (OOOOOO0O0O000O0OO ,OOOO0OOO0OOOO0O00 :List [Item ])->None :#line:266:def insert_items(self, items: List[Item]) -> None:
+        ""#line:272:"""
+        with TinyDB (OOOOOO0O0O000O0OO .db_path )as OOOOO0O000O0OOO0O :#line:273:with TinyDB(self.db_path) as db:
+            OOOOO0O000O0OOO0O .insert_multiple ([dict (json .loads (O0O0O00OOO0OO00OO .to_json_str ()))for O0O0O00OOO0OO00OO in OOOO0OOO0OOOO0O00 ])#line:274:db.insert_multiple([dict(json.loads(item.to_json_str())) for item in items])
+    def update_items (OO000O0O0OOOOO0OO ,OOOO0O0OOOO0OO0O0 :dict ,O0O000OOOO0OO0000 :Query )->None :#line:276:def update_items(self, update_dict: dict, query: Query) -> None:
+        ""#line:283:"""
+        with TinyDB (OO000O0O0OOOOO0OO .db_path )as O0OOO000O000O0O0O :#line:284:with TinyDB(self.db_path) as db:
+            O0OOO000O000O0O0O .update (OOOO0O0OOOO0OO0O0 ,O0O000OOOO0OO0000 )#line:285:db.update(update_dict, query)
+    def upsert_item (OO0O0000O00O0OOOO ,O00OO00O00OOOOO0O :Item )->None :#line:287:def upsert_item(self, item: Item) -> None:
+        ""#line:293:"""
+        OOOOO000OO0O000O0 =O00OO00O00OOOOO0O .to_serializable_dict ()#line:294:dct = item.to_serializable_dict()
+        with TinyDB (OO0O0000O00O0OOOO .db_path )as O000OOOOO000OO00O :#line:295:with TinyDB(self.db_path) as db:
+            O000OOOOO000OO00O .upsert (OOOOO000OO0O000O0 ,Query ().item_id ==str (OOOOO000OO0O000O0 ["item_id"]))#line:296:db.upsert(dct, Query().item_id == str(dct["item_id"]))
+    def delete_items (O0000OO0O00O00O00 ,O0OO00O0OO00OOO0O :Query )->None :#line:298:def delete_items(self, cond: Query) -> None:
+        ""#line:304:"""
+        with TinyDB (O0000OO0O00O00O00 .db_path )as O0O000O0OOO0OOO0O :#line:305:with TinyDB(self.db_path) as db:
+            O0O000O0OOO0OOO0O .remove (O0OO00O0OO00OOO0O )#line:306:db.remove(cond)
+    def delete_item (OO0O0OO0O00OO0000 ,O00000OOOO0000OO0 :Item )->None :#line:308:def delete_item(self, item: Item) -> None:
+        ""#line:314:"""
+        OO0O0OO0O00OO0000 .delete_items (Query ().item_id ==O00000OOOO0000OO0 .item_id )#line:315:self.delete_items(Query().item_id == item.item_id)
+    def delete_all_items (OOO0O0OOOO0O0OOO0 ):#line:317:def delete_all_items(self):
+        ""#line:320:"""
+        with TinyDB (OOO0O0OOOO0O0OOO0 .db_path )as OO000OOO000OO0OO0 :#line:321:with TinyDB(self.db_path) as db:
+            OO000OOO000OO0OO0 .truncate ()#line:322:db.truncate()
+    def get_all_items (O0OO0O000O00O00OO )->List [Item ]:#line:324:def get_all_items(self) -> List[Item]:
+        ""#line:330:"""
+        with TinyDB (O0OO0O000O00O00OO .db_path )as O0O0O00OOO0000OOO :#line:331:with TinyDB(self.db_path) as db:
+            return [Item .from_json_str (json .dumps (OO00OO0O0O00OOOO0 ))for OO00OO0O0O00OOOO0 in O0O0O00OOO0000OOO .all ()]#line:332:return [Item.from_json_str(json.dumps(doc)) for doc in db.all()]
+    def get_items_by_date_range (OOOOO000O0OO00OOO ,OOOO0O00O00OO0OO0 :str ,OOOO0OO0O000000O0 :str )->List [Item ]:#line:334:def get_items_by_date_range(self, start: str, end: str) -> List[Item]:
+        ""#line:344:"""
+        O0O00OOO000O00000 =datetime .strptime (OOOO0O00O00OO0OO0 ,"%Y-%m-%d")#line:345:start_date = datetime.strptime(start, "%Y-%m-%d")
+        O00OO00OO0O00O000 =datetime .strptime (OOOO0OO0O000000O0 ,"%Y-%m-%d")#line:346:end_date = datetime.strptime(end, "%Y-%m-%d")
+        return [O000O0OO00O0OO00O for O000O0OO00O0OO00O in OOOOO000O0OO00OOO .get_all_items ()if O0O00OOO000O00000 <=O000O0OO00O0OO00O .date <=O00OO00OO0O00O000 ]#line:349:]
+    def get_items_by_category (O0O0O00000O000O00 ,OOO0OOO0OOOO00OO0 :str )->List [Item ]:#line:351:def get_items_by_category(self, category_name: str) -> List[Item]:
+        ""#line:360:"""
+        return [O0O00OOOOO0000000 for O0O00OOOOO0000000 in O0O0O00000O000O00 .get_all_items ()if O0O00OOOOO0000000 .category is not None and O0O00OOOOO0000000 .category .name ==OOO0OOO0OOOO00OO0 ]#line:365:]
+    def get_items_by_category_and_subcategory (O0O0O0OOO0OO0O000 ,OO0OO000OO0O00O00 :str ,O0O0O000OO0OOO00O :str )->List [Item ]:#line:369:) -> List[Item]:
+        ""#line:379:"""
+        return [O00OOOO0O0000O0O0 for O00OOOO0O0000O0O0 in O0O0O0OOO0OO0O000 .get_all_items ()if O00OOOO0O0000O0O0 .category .name ==OO0OO000OO0O00O00 and O00OOOO0O0000O0O0 .category .subcategory ==O0O0O000OO0OOO00O ]#line:385:]
+    def get_items_uncategorized (OOOOOO00OO0O0OOO0 )->List [Item ]:#line:387:def get_items_uncategorized(self) -> List[Item]:
+        ""#line:393:"""
+        return [OOOO00OOOOO000OO0 for OOOO00OOOOO000OO0 in OOOOOO00OO0O0OOO0 .get_all_items ()if OOOO00OOOOO000OO0 .category is None ]#line:394:return [item for item in self.get_all_items() if item.category is None]
+    def get_items_without_subcategory (OOOOOOOO0OOOOO000 ,OOO0O00OO00O0O0O0 :str )->List [Item ]:#line:396:def get_items_without_subcategory(self, category_name: str) -> List[Item]:
+        ""#line:405:"""
+        return [O0OO00O00OO0O0OOO for O0OO00O00OO0O0OOO in OOOOOOOO0OOOOO000 .get_all_items ()if O0OO00O00OO0O0OOO .category is not None and O0OO00O00OO0O0OOO .category .name ==OOO0O00OO00O0O0O0 and O0OO00O00OO0O0OOO .category .subcategory is None ]#line:413:]
+    def get_items_with_subcategory (OOOO0OOOO0000OOOO ,OOOO0O00O0O0OO0O0 :str )->List [Item ]:#line:415:def get_items_with_subcategory(self, category_name: str) -> List[Item]:
+        ""#line:424:"""
+        return [O000O0O0O0O0O0OO0 for O000O0O0O0O0O0OO0 in OOOO0OOOO0000OOOO .get_all_items ()if O000O0O0O0O0O0OO0 .category is not None and O000O0O0O0O0O0OO0 .category .name ==OOOO0O00O0O0OO0O0 and O000O0O0O0O0O0OO0 .category .subcategory is not None ]#line:432:]
+    def get_category_names (OO0000000OOOOOO00 )->Set [str ]:#line:434:def get_category_names(self) -> Set[str]:
+        ""#line:440:"""
+        return {OO0OOO0OO0O00O00O .category .name for OO0OOO0OO0O00O00O in OO0000000OOOOOO00 .get_all_items ()if OO0OOO0OO0O00O00O .category is not None }#line:446:}
+    def get_subcategory_names (O000O0O0OOOO0000O ,O0O0OOO000O0OOO00 :str )->Set [str ]:#line:448:def get_subcategory_names(self, category_name: str) -> Set[str]:
+        ""#line:457:"""
+        return {OOOO0OO0O000OO0OO .category .subcategory for OOOO0OO0O000OO0OO in O000O0O0OOOO0000O .get_all_items ()if OOOO0OO0O000OO0OO .category is not None and OOOO0OO0O000OO0OO .category .name ==O0O0OOO000O0OOO00 and OOOO0OO0O000OO0OO .category .subcategory is not None }#line:465:}
+    def get_expense_items (O0000OO0O00000OOO ):#line:467:def get_expense_items(self):
+        ""#line:473:"""
+        return [OOOO00OO00OO0O0O0 for OOOO00OO00OO0O0O0 in O0000OO0O00000OOO .get_all_items ()if OOOO00OO00OO0O0O0 .amount <0 ]#line:474:return [item for item in self.get_all_items() if item.amount < 0]
+    def get_income_items (OO0OOOO0O00O0OOO0 ):#line:476:def get_income_items(self):
+        ""#line:482:"""
+        return [OO0OO00000OOO0OO0 for OO0OO00000OOO0OO0 in OO0OOOO0O00O0OOO0 .get_all_items ()if OO0OO00000OOO0OO0 .amount >0 ]#line:483:return [item for item in self.get_all_items() if item.amount > 0]

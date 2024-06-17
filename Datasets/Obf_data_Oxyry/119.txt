@@ -1,0 +1,139 @@
+from __future__ import absolute_import #line:1
+import contextlib #line:3
+import errno #line:4
+import logging #line:5
+import logging .handlers #line:6
+import os #line:7
+import sys #line:8
+from pip ._vendor .six import PY2 #line:10
+from pip ._internal .utils .compat import WINDOWS #line:12
+from pip ._internal .utils .misc import ensure_dir #line:13
+try :#line:15
+    import threading #line:16
+except ImportError :#line:17
+    import dummy_threading as threading #line:18
+try :#line:21
+    from pip ._vendor import colorama #line:22
+except Exception :#line:25
+    colorama =None #line:26
+_OO0000OO0OO0O0O0O =threading .local ()#line:29
+_OO0000OO0OO0O0O0O .indentation =0 #line:30
+class BrokenStdoutLoggingError (Exception ):#line:33
+    ""#line:36
+    pass #line:37
+if WINDOWS :#line:42
+    if PY2 :#line:46
+        def _OO0OO00O00OO0O00O (O0O0O0O000000OO00 ,OO0000O00O00O0000 ):#line:47
+            ""#line:48
+            return (O0O0O0O000000OO00 is IOError and OO0000O00O00O0000 .errno in (errno .EINVAL ,errno .EPIPE ))#line:50
+    else :#line:51
+        def _OO0OO00O00OO0O00O (OOO0OOO00OO00O0O0 ,O0OO0OOO00OOOO0O0 ):#line:53
+            ""#line:54
+            return ((OOO0OOO00OO00O0O0 is BrokenPipeError )or (OOO0OOO00OO00O0O0 is OSError and O0OO0OOO00OOOO0O0 .errno in (errno .EINVAL ,errno .EPIPE )))#line:57
+elif PY2 :#line:58
+    def _OO0OO00O00OO0O00O (OOO00OOOO00000000 ,O0OOOO0OOO00OOO00 ):#line:59
+        ""#line:60
+        return (OOO00OOOO00000000 is IOError and O0OOOO0OOO00OOO00 .errno ==errno .EPIPE )#line:61
+else :#line:62
+    def _OO0OO00O00OO0O00O (O0O00O0000OOOOOO0 ,OOO0O00OOOO000OOO ):#line:64
+        ""#line:71
+        return (O0O00O0000OOOOOO0 is BrokenPipeError )#line:72
+@contextlib .contextmanager #line:75
+def indent_log (num =2 ):#line:76
+    ""#line:80
+    _OO0000OO0OO0O0O0O .indentation +=num #line:81
+    try :#line:82
+        yield #line:83
+    finally :#line:84
+        _OO0000OO0OO0O0O0O .indentation -=num #line:85
+def get_indentation ():#line:88
+    return getattr (_OO0000OO0OO0O0O0O ,'indentation',0 )#line:89
+class IndentingFormatter (logging .Formatter ):#line:92
+    def __init__ (O0OOO000OO000OO0O ,*O0O0O0OO000O0O00O ,**O00OO0000OO0000OO ):#line:93
+        ""#line:99
+        O0OOO000OO000OO0O .add_timestamp =O00OO0000OO0000OO .pop ("add_timestamp",False )#line:100
+        super (IndentingFormatter ,O0OOO000OO000OO0O ).__init__ (*O0O0O0OO000O0O00O ,**O00OO0000OO0000OO )#line:101
+    def format (OO000O00OOOOOO000 ,OOO0O0O0O000OOOO0 ):#line:103
+        ""#line:107
+        O00O0OO0OO0OOO00O =super (IndentingFormatter ,OO000O00OOOOOO000 ).format (OOO0O0O0O000OOOO0 )#line:108
+        O0OOO00OO000O0O0O =''#line:109
+        if OO000O00OOOOOO000 .add_timestamp :#line:110
+            O0OOO00OO000O0O0O =OO000O00OOOOOO000 .formatTime (OOO0O0O0O000OOOO0 ,"%Y-%m-%dT%H:%M:%S ")#line:111
+        O0OOO00OO000O0O0O +=" "*get_indentation ()#line:112
+        O00O0OO0OO0OOO00O ="".join ([O0OOO00OO000O0O0O +O0O00OO0000OOO0O0 for O0O00OO0000OOO0O0 in O00O0OO0OO0OOO00O .splitlines (True )])#line:116
+        return O00O0OO0OO0OOO00O #line:117
+def _OO00OO0OOO0O00O0O (*O00O0000OO0O0000O ):#line:120
+    def OOOOOO0OOO0O000OO (OOOO00000000OO0O0 ):#line:121
+        return "".join (list (O00O0000OO0O0000O )+[OOOO00000000OO0O0 ,colorama .Style .RESET_ALL ])#line:122
+    return OOOOOO0OOO0O000OO #line:123
+class ColorizedStreamHandler (logging .StreamHandler ):#line:126
+    if colorama :#line:129
+        COLORS =[(logging .ERROR ,_OO00OO0OOO0O00O0O (colorama .Fore .RED )),(logging .WARNING ,_OO00OO0OOO0O00O0O (colorama .Fore .YELLOW )),]#line:134
+    else :#line:135
+        COLORS =[]#line:136
+    def __init__ (OOO00OOO0O00O0OO0 ,stream =None ,no_color =None ):#line:138
+        logging .StreamHandler .__init__ (OOO00OOO0O00O0OO0 ,stream )#line:139
+        OOO00OOO0O00O0OO0 ._no_color =no_color #line:140
+        if WINDOWS and colorama :#line:142
+            OOO00OOO0O00O0OO0 .stream =colorama .AnsiToWin32 (OOO00OOO0O00O0OO0 .stream )#line:143
+    def _using_stdout (O00O0O0OOO0O00O0O ):#line:145
+        ""#line:148
+        if WINDOWS and colorama :#line:149
+            return O00O0O0OOO0O00O0O .stream .wrapped is sys .stdout #line:151
+        return O00O0O0OOO0O00O0O .stream is sys .stdout #line:153
+    def should_color (OOOOO0O0O0000000O ):#line:155
+        if not colorama or OOOOO0O0O0000000O ._no_color :#line:157
+            return False #line:158
+        O000000O0O0OOOOOO =(OOOOO0O0O0000000O .stream if not isinstance (OOOOO0O0O0000000O .stream ,colorama .AnsiToWin32 )else OOOOO0O0O0000000O .stream .wrapped )#line:163
+        if hasattr (O000000O0O0OOOOOO ,"isatty")and O000000O0O0OOOOOO .isatty ():#line:166
+            return True #line:167
+        if os .environ .get ("TERM")=="ANSI":#line:170
+            return True #line:171
+        return False #line:174
+    def format (O0O0O0OO00000OOOO ,O00O00OO0O0O0O000 ):#line:176
+        O0O00OOO000O0OOO0 =logging .StreamHandler .format (O0O0O0OO00000OOOO ,O00O00OO0O0O0O000 )#line:177
+        if O0O0O0OO00000OOOO .should_color ():#line:179
+            for O0OO0000OOOO0000O ,OO000OOO00O0O00OO in O0O0O0OO00000OOOO .COLORS :#line:180
+                if O00O00OO0O0O0O000 .levelno >=O0OO0000OOOO0000O :#line:181
+                    O0O00OOO000O0OOO0 =OO000OOO00O0O00OO (O0O00OOO000O0OOO0 )#line:182
+                    break #line:183
+        return O0O00OOO000O0OOO0 #line:185
+    def handleError (O0OO00OO00OO00OOO ,O0OOOO00O000O0O00 ):#line:188
+        OOOOOOO00OO0000OO ,O00OOOO0O000000O0 =sys .exc_info ()[:2 ]#line:189
+        if (OOOOOOO00OO0000OO and O0OO00OO00OO00OOO ._using_stdout ()and _OO0OO00O00OO0O00O (OOOOOOO00OO0000OO ,O00OOOO0O000000O0 )):#line:195
+            raise BrokenStdoutLoggingError ()#line:196
+        return super (ColorizedStreamHandler ,O0OO00OO00OO00OOO ).handleError (O0OOOO00O000O0O00 )#line:198
+class BetterRotatingFileHandler (logging .handlers .RotatingFileHandler ):#line:201
+    def _open (O0OOO00OOOOOO0O0O ):#line:203
+        ensure_dir (os .path .dirname (O0OOO00OOOOOO0O0O .baseFilename ))#line:204
+        return logging .handlers .RotatingFileHandler ._open (O0OOO00OOOOOO0O0O )#line:205
+class MaxLevelFilter (logging .Filter ):#line:208
+    def __init__ (O00OO000O0OO0O000 ,O0000O00000OO0OOO ):#line:210
+        O00OO000O0OO0O000 .level =O0000O00000OO0OOO #line:211
+    def filter (OO0O0O0000O000O00 ,O0OOO0000OO000O00 ):#line:213
+        return O0OOO0000OO000O00 .levelno <OO0O0O0000O000O00 .level #line:214
+def setup_logging (OOOO0OOOOO000OOO0 ,OO0O0OO000OOOO0OO ,O0O000OO0OO0O0O00 ):#line:217
+    ""#line:221
+    if OOOO0OOOOO000OOO0 >=1 :#line:224
+        O0OOOO0000OOOOO00 ="DEBUG"#line:225
+    elif OOOO0OOOOO000OOO0 ==-1 :#line:226
+        O0OOOO0000OOOOO00 ="WARNING"#line:227
+    elif OOOO0OOOOO000OOO0 ==-2 :#line:228
+        O0OOOO0000OOOOO00 ="ERROR"#line:229
+    elif OOOO0OOOOO000OOO0 <=-3 :#line:230
+        O0OOOO0000OOOOO00 ="CRITICAL"#line:231
+    else :#line:232
+        O0OOOO0000OOOOO00 ="INFO"#line:233
+    O0O00O00O0OO000OO =getattr (logging ,O0OOOO0000OOOOO00 )#line:235
+    OOO00O00000O00000 =O0O000OO0OO0O0O00 is not None #line:239
+    if OOO00O00000O00000 :#line:240
+        O0OOOOO00OOO0O0O0 =O0O000OO0OO0O0O00 #line:241
+        OO000O000000000O0 ="DEBUG"#line:242
+    else :#line:243
+        O0OOOOO00OOO0O0O0 ="/dev/null"#line:244
+        OO000O000000000O0 =O0OOOO0000OOOOO00 #line:245
+    OO00O0000O0O0OO00 ="WARNING"if O0OOOO0000OOOOO00 in ["INFO","ERROR"]else "DEBUG"#line:249
+    OOO0OO0O0OOOOOO00 ={"stdout":"ext://sys.stdout","stderr":"ext://sys.stderr",}#line:255
+    OO000O00OO00O000O ={"stream":"pip._internal.utils.logging.ColorizedStreamHandler","file":"pip._internal.utils.logging.BetterRotatingFileHandler",}#line:259
+    logging .config .dictConfig ({"version":1 ,"disable_existing_loggers":False ,"filters":{"exclude_warnings":{"()":"pip._internal.utils.logging.MaxLevelFilter","level":logging .WARNING ,},},"formatters":{"indent":{"()":IndentingFormatter ,"format":"%(message)s",},"indent_with_timestamp":{"()":IndentingFormatter ,"format":"%(message)s","add_timestamp":True ,},},"handlers":{"console":{"level":O0OOOO0000OOOOO00 ,"class":OO000O00OO00O000O ["stream"],"no_color":OO0O0OO000OOOO0OO ,"stream":OOO0OO0O0OOOOOO00 ["stdout"],"filters":["exclude_warnings"],"formatter":"indent",},"console_errors":{"level":"WARNING","class":OO000O00OO00O000O ["stream"],"no_color":OO0O0OO000OOOO0OO ,"stream":OOO0OO0O0OOOOOO00 ["stderr"],"formatter":"indent",},"user_log":{"level":"DEBUG","class":OO000O00OO00O000O ["file"],"filename":O0OOOOO00OOO0O0O0 ,"delay":True ,"formatter":"indent_with_timestamp",},},"root":{"level":OO000O000000000O0 ,"handlers":["console","console_errors"]+(["user_log"]if OOO00O00000O00000 else []),},"loggers":{"pip._vendor":{"level":OO00O0000O0O0OO00 }},})#line:316
+    return O0O00O00O0OO000OO #line:318

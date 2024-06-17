@@ -1,0 +1,156 @@
+from __future__ import absolute_import #line:1:from __future__ import absolute_import
+import errno #line:2:import errno
+import warnings #line:3:import warnings
+import hmac #line:4:import hmac
+import socket #line:5:import socket
+from binascii import hexlify ,unhexlify #line:7:from binascii import hexlify, unhexlify
+from hashlib import md5 ,sha1 ,sha256 #line:8:from hashlib import md5, sha1, sha256
+from ..exceptions import SSLError ,InsecurePlatformWarning ,SNIMissingWarning #line:10:from ..exceptions import SSLError, InsecurePlatformWarning, SNIMissingWarning
+from ..packages import six #line:11:from ..packages import six
+SSLContext =None #line:14:SSLContext = None
+HAS_SNI =False #line:15:HAS_SNI = False
+IS_PYOPENSSL =False #line:16:IS_PYOPENSSL = False
+IS_SECURETRANSPORT =False #line:17:IS_SECURETRANSPORT = False
+HASHFUNC_MAP ={32 :md5 ,40 :sha1 ,64 :sha256 ,}#line:24:}
+def _O00000OOOOO0O0O0O (O000O00OOOOOO0OOO ,OO000OOO0O00OOO0O ):#line:27:def _const_compare_digest_backport(a, b):
+    ""#line:33:"""
+    O0OOO0OO0OOO00OOO =abs (len (O000O00OOOOOO0OOO )-len (OO000OOO0O00OOO0O ))#line:34:result = abs(len(a) - len(b))
+    for O0OO0O00O0OO0OO00 ,OOO0000OOO0O0OOOO in zip (bytearray (O000O00OOOOOO0OOO ),bytearray (OO000OOO0O00OOO0O )):#line:35:for l, r in zip(bytearray(a), bytearray(b)):
+        O0OOO0OO0OOO00OOO |=O0OO0O00O0OO0OO00 ^OOO0000OOO0O0OOOO #line:36:result |= l ^ r
+    return O0OOO0OO0OOO00OOO ==0 #line:37:return result == 0
+_OOO00O0OOO00000OO =getattr (hmac ,'compare_digest',_O00000OOOOO0O0O0O )#line:41:_const_compare_digest_backport)
+try :#line:44:try:  # Test for SSL features
+    import ssl #line:45:import ssl
+    from ssl import wrap_socket ,CERT_NONE ,PROTOCOL_SSLv23 #line:46:from ssl import wrap_socket, CERT_NONE, PROTOCOL_SSLv23
+    from ssl import HAS_SNI #line:47:from ssl import HAS_SNI  # Has SNI?
+except ImportError :#line:48:except ImportError:
+    pass #line:49:pass
+try :#line:52:try:
+    from ssl import OP_NO_SSLv2 ,OP_NO_SSLv3 ,OP_NO_COMPRESSION #line:53:from ssl import OP_NO_SSLv2, OP_NO_SSLv3, OP_NO_COMPRESSION
+except ImportError :#line:54:except ImportError:
+    OP_NO_SSLv2 ,OP_NO_SSLv3 =0x1000000 ,0x2000000 #line:55:OP_NO_SSLv2, OP_NO_SSLv3 = 0x1000000, 0x2000000
+    OP_NO_COMPRESSION =0x20000 #line:56:OP_NO_COMPRESSION = 0x20000
+if hasattr (socket ,'inet_pton'):#line:61:if hasattr(socket, 'inet_pton'):
+    inet_pton =socket .inet_pton #line:62:inet_pton = socket.inet_pton
+else :#line:63:else:
+    try :#line:65:try:
+        from pip ._vendor import ipaddress #line:66:from pip._vendor import ipaddress
+        def inet_pton (_OO00OOOOOO000O0OO ,O0OOOO00O0OO0O0OO ):#line:68:def inet_pton(_, host):
+            if isinstance (O0OOOO00O0OO0O0OO ,bytes ):#line:69:if isinstance(host, bytes):
+                O0OOOO00O0OO0O0OO =O0OOOO00O0OO0O0OO .decode ('ascii')#line:70:host = host.decode('ascii')
+            return ipaddress .ip_address (O0OOOO00O0OO0O0OO )#line:71:return ipaddress.ip_address(host)
+    except ImportError :#line:73:except ImportError:  # Platform-specific: Non-Linux
+        def inet_pton (_O00O00000OOOOO0O0 ,O0O0O0000OO00O000 ):#line:74:def inet_pton(_, host):
+            return socket .inet_aton (O0O0O0000OO00O000 )#line:75:return socket.inet_aton(host)
+DEFAULT_CIPHERS =':'.join (['TLS13-AES-256-GCM-SHA384','TLS13-CHACHA20-POLY1305-SHA256','TLS13-AES-128-GCM-SHA256','ECDH+AESGCM','ECDH+CHACHA20','DH+AESGCM','DH+CHACHA20','ECDH+AES256','DH+AES256','ECDH+AES128','DH+AES','RSA+AESGCM','RSA+AES','!aNULL','!eNULL','!MD5',])#line:110:])
+try :#line:112:try:
+    from ssl import SSLContext #line:113:from ssl import SSLContext  # Modern SSL?
+except ImportError :#line:114:except ImportError:
+    import sys #line:115:import sys
+    class SSLContext (object ):#line:117:class SSLContext(object):  # Platform-specific: Python 2
+        def __init__ (O0OO000OO00O0O0O0 ,OOO0OO00O00OOO00O ):#line:118:def __init__(self, protocol_version):
+            O0OO000OO00O0O0O0 .protocol =OOO0OO00O00OOO00O #line:119:self.protocol = protocol_version
+            O0OO000OO00O0O0O0 .check_hostname =False #line:121:self.check_hostname = False
+            O0OO000OO00O0O0O0 .verify_mode =ssl .CERT_NONE #line:122:self.verify_mode = ssl.CERT_NONE
+            O0OO000OO00O0O0O0 .ca_certs =None #line:123:self.ca_certs = None
+            O0OO000OO00O0O0O0 .options =0 #line:124:self.options = 0
+            O0OO000OO00O0O0O0 .certfile =None #line:125:self.certfile = None
+            O0OO000OO00O0O0O0 .keyfile =None #line:126:self.keyfile = None
+            O0OO000OO00O0O0O0 .ciphers =None #line:127:self.ciphers = None
+        def load_cert_chain (O0000OO00OO0000O0 ,OOO0OO0OO0O0O0O00 ,OO00OO000O00OOOO0 ):#line:129:def load_cert_chain(self, certfile, keyfile):
+            O0000OO00OO0000O0 .certfile =OOO0OO0OO0O0O0O00 #line:130:self.certfile = certfile
+            O0000OO00OO0000O0 .keyfile =OO00OO000O00OOOO0 #line:131:self.keyfile = keyfile
+        def load_verify_locations (O0O0OO0OO00O0O00O ,cafile =None ,capath =None ):#line:133:def load_verify_locations(self, cafile=None, capath=None):
+            O0O0OO0OO00O0O00O .ca_certs =cafile #line:134:self.ca_certs = cafile
+            if capath is not None :#line:136:if capath is not None:
+                raise SSLError ("CA directories not supported in older Pythons")#line:137:raise SSLError("CA directories not supported in older Pythons")
+        def set_ciphers (O00O0O0O00OO0OO00 ,O0O0OO000OOOOOO00 ):#line:139:def set_ciphers(self, cipher_suite):
+            O00O0O0O00OO0OO00 .ciphers =O0O0OO000OOOOOO00 #line:140:self.ciphers = cipher_suite
+        def wrap_socket (OOO0O0OOOO00OOO0O ,OOOO000O0O0OO00O0 ,server_hostname =None ,server_side =False ):#line:142:def wrap_socket(self, socket, server_hostname=None, server_side=False):
+            warnings .warn ('A true SSLContext object is not available. This prevents ' 'urllib3 from configuring SSL appropriately and may cause ' 'certain SSL connections to fail. You can upgrade to a newer ' 'version of Python to solve this. For more information, see ' 'https://urllib3.readthedocs.io/en/latest/advanced-usage.html' '#ssl-warnings',InsecurePlatformWarning )#line:151:)
+            O00OO0OO00OOOO000 ={'keyfile':OOO0O0OOOO00OOO0O .keyfile ,'certfile':OOO0O0OOOO00OOO0O .certfile ,'ca_certs':OOO0O0OOOO00OOO0O .ca_certs ,'cert_reqs':OOO0O0OOOO00OOO0O .verify_mode ,'ssl_version':OOO0O0OOOO00OOO0O .protocol ,'server_side':server_side ,}#line:159:}
+            return wrap_socket (OOOO000O0O0OO00O0 ,ciphers =OOO0O0OOOO00OOO0O .ciphers ,**O00OO0OO00OOOO000 )#line:160:return wrap_socket(socket, ciphers=self.ciphers, **kwargs)
+def assert_fingerprint (O00OO0O00OOOOOOO0 ,O0OOOO0O00O00O0O0 ):#line:163:def assert_fingerprint(cert, fingerprint):
+    ""#line:171:"""
+    O0OOOO0O00O00O0O0 =O0OOOO0O00O00O0O0 .replace (':','').lower ()#line:173:fingerprint = fingerprint.replace(':', '').lower()
+    O0000OO0O00O0OO00 =len (O0OOOO0O00O00O0O0 )#line:174:digest_length = len(fingerprint)
+    OO00O0OOO00O0OO00 =HASHFUNC_MAP .get (O0000OO0O00O0OO00 )#line:175:hashfunc = HASHFUNC_MAP.get(digest_length)
+    if not OO00O0OOO00O0OO00 :#line:176:if not hashfunc:
+        raise SSLError ('Fingerprint of invalid length: {0}'.format (O0OOOO0O00O00O0O0 ))#line:178:'Fingerprint of invalid length: {0}'.format(fingerprint))
+    O0OO000OOOOO0O0OO =unhexlify (O0OOOO0O00O00O0O0 .encode ())#line:181:fingerprint_bytes = unhexlify(fingerprint.encode())
+    OOOO000OOO0OO0OO0 =OO00O0OOO00O0OO00 (O00OO0O00OOOOOOO0 ).digest ()#line:183:cert_digest = hashfunc(cert).digest()
+    if not _OOO00O0OOO00000OO (OOOO000OOO0OO0OO0 ,O0OO000OOOOO0O0OO ):#line:185:if not _const_compare_digest(cert_digest, fingerprint_bytes):
+        raise SSLError ('Fingerprints did not match. Expected "{0}", got "{1}".'.format (O0OOOO0O00O00O0O0 ,hexlify (OOOO000OOO0OO0OO0 )))#line:187:.format(fingerprint, hexlify(cert_digest)))
+def resolve_cert_reqs (OOOO00O000OO0000O ):#line:190:def resolve_cert_reqs(candidate):
+    ""#line:200:"""
+    if OOOO00O000OO0000O is None :#line:201:if candidate is None:
+        return CERT_NONE #line:202:return CERT_NONE
+    if isinstance (OOOO00O000OO0000O ,str ):#line:204:if isinstance(candidate, str):
+        O00000000000000OO =getattr (ssl ,OOOO00O000OO0000O ,None )#line:205:res = getattr(ssl, candidate, None)
+        if O00000000000000OO is None :#line:206:if res is None:
+            O00000000000000OO =getattr (ssl ,'CERT_'+OOOO00O000OO0000O )#line:207:res = getattr(ssl, 'CERT_' + candidate)
+        return O00000000000000OO #line:208:return res
+    return OOOO00O000OO0000O #line:210:return candidate
+def resolve_ssl_version (OOOOO000OO0OO000O ):#line:213:def resolve_ssl_version(candidate):
+    ""#line:216:"""
+    if OOOOO000OO0OO000O is None :#line:217:if candidate is None:
+        return PROTOCOL_SSLv23 #line:218:return PROTOCOL_SSLv23
+    if isinstance (OOOOO000OO0OO000O ,str ):#line:220:if isinstance(candidate, str):
+        O00OOO00OO00OO0OO =getattr (ssl ,OOOOO000OO0OO000O ,None )#line:221:res = getattr(ssl, candidate, None)
+        if O00OOO00OO00OO0OO is None :#line:222:if res is None:
+            O00OOO00OO00OO0OO =getattr (ssl ,'PROTOCOL_'+OOOOO000OO0OO000O )#line:223:res = getattr(ssl, 'PROTOCOL_' + candidate)
+        return O00OOO00OO00OO0OO #line:224:return res
+    return OOOOO000OO0OO000O #line:226:return candidate
+def create_urllib3_context (ssl_version =None ,cert_reqs =None ,options =None ,ciphers =None ):#line:230:options=None, ciphers=None):
+    ""#line:263:"""
+    O00O0OO000O0000O0 =SSLContext (ssl_version or ssl .PROTOCOL_SSLv23 )#line:264:context = SSLContext(ssl_version or ssl.PROTOCOL_SSLv23)
+    O00O0OO000O0000O0 .set_ciphers (ciphers or DEFAULT_CIPHERS )#line:266:context.set_ciphers(ciphers or DEFAULT_CIPHERS)
+    cert_reqs =ssl .CERT_REQUIRED if cert_reqs is None else cert_reqs #line:269:cert_reqs = ssl.CERT_REQUIRED if cert_reqs is None else cert_reqs
+    if options is None :#line:271:if options is None:
+        options =0 #line:272:options = 0
+        options |=OP_NO_SSLv2 #line:274:options |= OP_NO_SSLv2
+        options |=OP_NO_SSLv3 #line:276:options |= OP_NO_SSLv3
+        options |=OP_NO_COMPRESSION #line:279:options |= OP_NO_COMPRESSION
+    O00O0OO000O0000O0 .options |=options #line:281:context.options |= options
+    O00O0OO000O0000O0 .verify_mode =cert_reqs #line:283:context.verify_mode = cert_reqs
+    if getattr (O00O0OO000O0000O0 ,'check_hostname',None )is not None :#line:284:if getattr(context, 'check_hostname', None) is not None:  # Platform-specific: Python 3.2
+        O00O0OO000O0000O0 .check_hostname =False #line:287:context.check_hostname = False
+    return O00O0OO000O0000O0 #line:288:return context
+def ssl_wrap_socket (OO0O00O000O00O0OO ,keyfile =None ,certfile =None ,cert_reqs =None ,ca_certs =None ,server_hostname =None ,ssl_version =None ,ciphers =None ,ssl_context =None ,ca_cert_dir =None ):#line:294:ca_cert_dir=None):
+    ""#line:310:"""
+    O000OO0OO0O000000 =ssl_context #line:311:context = ssl_context
+    if O000OO0OO0O000000 is None :#line:312:if context is None:
+        O000OO0OO0O000000 =create_urllib3_context (ssl_version ,cert_reqs ,ciphers =ciphers )#line:317:ciphers=ciphers)
+    if ca_certs or ca_cert_dir :#line:319:if ca_certs or ca_cert_dir:
+        try :#line:320:try:
+            O000OO0OO0O000000 .load_verify_locations (ca_certs ,ca_cert_dir )#line:321:context.load_verify_locations(ca_certs, ca_cert_dir)
+        except IOError as OOOOO0O0OOO000OOO :#line:322:except IOError as e:  # Platform-specific: Python 2.7
+            raise SSLError (OOOOO0O0OOO000OOO )#line:323:raise SSLError(e)
+        except OSError as OOOOO0O0OOO000OOO :#line:326:except OSError as e:  # Platform-specific: Python 3.3 and beyond
+            if OOOOO0O0OOO000OOO .errno ==errno .ENOENT :#line:327:if e.errno == errno.ENOENT:
+                raise SSLError (OOOOO0O0OOO000OOO )#line:328:raise SSLError(e)
+            raise #line:329:raise
+    elif getattr (O000OO0OO0O000000 ,'load_default_certs',None )is not None :#line:330:elif getattr(context, 'load_default_certs', None) is not None:
+        O000OO0OO0O000000 .load_default_certs ()#line:332:context.load_default_certs()
+    if certfile :#line:334:if certfile:
+        O000OO0OO0O000000 .load_cert_chain (certfile ,keyfile )#line:335:context.load_cert_chain(certfile, keyfile)
+    if ((server_hostname is not None and not is_ipaddress (server_hostname ))or IS_SECURETRANSPORT ):#line:342:or IS_SECURETRANSPORT):
+        if HAS_SNI and server_hostname is not None :#line:343:if HAS_SNI and server_hostname is not None:
+            return O000OO0OO0O000000 .wrap_socket (OO0O00O000O00O0OO ,server_hostname =server_hostname )#line:344:return context.wrap_socket(sock, server_hostname=server_hostname)
+        warnings .warn ('An HTTPS request has been made, but the SNI (Server Name ' 'Indication) extension to TLS is not available on this platform. ' 'This may cause the server to present an incorrect TLS ' 'certificate, which can cause validation failures. You can upgrade to ' 'a newer version of Python to solve this. For more information, see ' 'https://urllib3.readthedocs.io/en/latest/advanced-usage.html' '#ssl-warnings',SNIMissingWarning )#line:355:)
+    return O000OO0OO0O000000 .wrap_socket (OO0O00O000O00O0OO )#line:357:return context.wrap_socket(sock)
+def is_ipaddress (OOOOOOOO00OO00000 ):#line:360:def is_ipaddress(hostname):
+    ""#line:365:"""
+    if six .PY3 and isinstance (OOOOOOOO00OO00000 ,bytes ):#line:366:if six.PY3 and isinstance(hostname, bytes):
+        OOOOOOOO00OO00000 =OOOOOOOO00OO00000 .decode ('ascii')#line:368:hostname = hostname.decode('ascii')
+    OOO0O0OOOO00OOO00 =[socket .AF_INET ]#line:370:families = [socket.AF_INET]
+    if hasattr (socket ,'AF_INET6'):#line:371:if hasattr(socket, 'AF_INET6'):
+        OOO0O0OOOO00OOO00 .append (socket .AF_INET6 )#line:372:families.append(socket.AF_INET6)
+    for OOOO0OOO000OO000O in OOO0O0OOOO00OOO00 :#line:374:for af in families:
+        try :#line:375:try:
+            inet_pton (OOOO0OOO000OO000O ,OOOOOOOO00OO00000 )#line:376:inet_pton(af, hostname)
+        except (socket .error ,ValueError ,OSError ):#line:377:except (socket.error, ValueError, OSError):
+            pass #line:378:pass
+        else :#line:379:else:
+            return True #line:380:return True
+    return False #line:381:return False

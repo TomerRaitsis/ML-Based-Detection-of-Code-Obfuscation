@@ -1,0 +1,116 @@
+import tkinter as tk #line:1
+from tkinter import ttk #line:2
+LARGEFONT =("Times New Roman",35 )#line:4
+class tkinterApp (tk .Tk ):#line:7
+    def __init__ (OOOO00O0OO0O0O000 ,*O0OO000OO0OOOOO00 ,**O0O00O0OOO0000000 ):#line:9
+        tk .Tk .__init__ (OOOO00O0OO0O0O000 ,*O0OO000OO0OOOOO00 ,**O0O00O0OOO0000000 )#line:11
+        OOO0O00000OO0O000 =tk .Frame (OOOO00O0OO0O0O000 )#line:14
+        OOO0O00000OO0O000 .pack (side ="top",fill ="both",expand =True )#line:15
+        OOO0O00000OO0O000 .grid_rowconfigure (0 ,weight =1 )#line:17
+        OOO0O00000OO0O000 .grid_columnconfigure (0 ,weight =1 )#line:18
+        OOOO00O0OO0O0O000 .frames ={}#line:21
+        for O0O0OOO00O000000O in (std_ca ,LandPage ,accnt ,lgin ):#line:25
+            O0O0OO000000O0000 =O0O0OOO00O000000O (OOO0O00000OO0O000 ,OOOO00O0OO0O0O000 )#line:26
+            OOOO00O0OO0O0O000 .frames [O0O0OOO00O000000O ]=O0O0OO000000O0000 #line:31
+            O0O0OO000000O0000 .grid (row =0 ,column =0 ,sticky ="nsew")#line:33
+        OOOO00O0OO0O0O000 .show_frame (std_ca )#line:35
+    def show_frame (O0OO000OO0O00000O ,O0O00OO000000O0OO ):#line:39
+        OOO000O00OO0000O0 =O0OO000OO0O00000O .frames [O0O00OO000000O0OO ]#line:40
+        OOO000O00OO0000O0 ["bg"]="sea green"#line:41
+        OOO000O00OO0000O0 .tkraise ()#line:42
+class std_ca (tk .Frame ):#line:48
+    def __init__ (OO0O0000OOO0O0OO0 ,OOOO00OO0OO0O0O00 ,OO00O00OOO0O0OO00 ):#line:49
+        tk .Frame .__init__ (OO0O0000OOO0O0OO0 ,OOOO00OO0OO0O0O00 )#line:50
+        OOO0O0OOOOO00O0OO =ttk .Label (OO0O0000OOO0O0OO0 ,text ="You are Student or College Authority ?",font =("Times New Roman",36 ),)#line:56
+        OOO0O0OOOOO00O0OO .place (x =400 ,y =100 )#line:57
+        O00O0O00OO0OOOO00 =ttk .Button (OO0O0000OOO0O0OO0 ,text ="Student",command =lambda :OO00O00OOO0O0OO00 .show_frame (LandPage ))#line:60
+        O00O0O00OO0OOOO00 .place (x =550 ,y =200 ,height =60 ,width =150 )#line:61
+        O0OOO0OOOO0000OOO =ttk .Button (OO0O0000OOO0O0OO0 ,text ="College Authority",command =lambda :OO00O00OOO0O0OO00 .show_frame (LandPage ),)#line:67
+        O0OOO0OOOO0000OOO .place (x =800 ,y =200 ,height =60 ,width =150 )#line:68
+class LandPage (tk .Frame ):#line:74
+    def __init__ (OO00OO00OO0O0O0O0 ,OO000O0OOO0O00OOO ,OOO0O000000O0OO0O ):#line:75
+        tk .Frame .__init__ (OO00OO00OO0O0O0O0 ,OO000O0OOO0O00OOO )#line:76
+        O0OOO000000000O00 =ttk .Label (OO00OO00OO0O0O0O0 ,text ="Welcome..!!",font =LARGEFONT )#line:78
+        O0O000OOO0O00OOO0 =ttk .Label (OO00OO00OO0O0O0O0 ,text ="New User? Create New Account",font =24 )#line:79
+        O0OOO000000000O00 .place (x =620 ,y =10 )#line:80
+        O0O000OOO0O00OOO0 .place (x =620 ,y =100 )#line:81
+        O0000O0O0O00O0OO0 =ttk .Button (OO00OO00OO0O0O0O0 ,text ="Create New Account",command =lambda :OOO0O000000O0OO0O .show_frame (accnt ),)#line:87
+        O0000O0O0O00O0OO0 .place (x =550 ,y =200 ,height =60 ,width =150 )#line:88
+        OOO00O0O00O00O0OO =ttk .Button (OO00OO00OO0O0O0O0 ,text ="Login",command =lambda :OOO0O000000O0OO0O .show_frame (lgin ))#line:92
+        OOO00O0O00O00O0OO .place (x =800 ,y =200 ,height =60 ,width =150 )#line:93
+        O0O00O00O0OOOO0O0 =ttk .Button (OO00OO00OO0O0O0O0 ,text ="Back",command =lambda :OOO0O000000O0OO0O .show_frame (std_ca ))#line:97
+        O0O00O00O0OOOO0O0 .place (x =680 ,y =300 ,height =60 ,width =150 )#line:98
+class accnt (tk .Frame ):#line:102
+    def __init__ (OO00O0O0O0O0OO00O ,O000OO00O00O0O0O0 ,OOO0OO0000O0O0000 ):#line:103
+        tk .Frame .__init__ (OO00O0O0O0O0OO00O ,O000OO00O00O0O0O0 )#line:104
+        OOO000OO0OO0OO000 =ttk .Label (OO00O0O0O0O0OO00O ,text ="Create your account",font =LARGEFONT )#line:105
+        OOO000OO0OO0OO000 .grid (row =0 ,column =6 ,padx =10 ,pady =10 )#line:106
+        OO0O0O00OO0O0O00O =ttk .Label (OO00O0O0O0O0OO00O ,text ="Enter your Name:",font =("Times New Roman",14 ))#line:110
+        OO0O0O00OO0O0O00O .grid (row =1 ,column =4 ,padx =10 ,pady =10 )#line:111
+        OO0O0O00000000O0O =ttk .Entry (OO00O0O0O0O0OO00O ,width =25 ,font =("Times New Roman",12 ))#line:112
+        OO0O0O00000000O0O .grid (row =1 ,column =5 ,padx =10 ,pady =10 )#line:113
+        OO000OOO0OOO00O00 =OO0O0O00000000O0O .get ()#line:114
+        OOO00OO0O0OO0OO0O =ttk .Label (OO00O0O0O0O0OO00O ,text ="Enter your email:",font =("Times New Roman",14 ))#line:118
+        OOO00OO0O0OO0OO0O .grid (row =1 ,column =6 ,padx =10 ,pady =10 )#line:119
+        O00O0OOOOO000O0O0 =ttk .Entry (OO00O0O0O0O0OO00O ,width =25 ,font =("Times New Roman",12 ))#line:120
+        O00O0OOOOO000O0O0 .grid (row =1 ,column =7 ,padx =10 ,pady =10 )#line:121
+        O0O0OO000O0OO0O0O =O00O0OOOOO000O0O0 .get ()#line:122
+        ttk .Label (OO00O0O0O0O0OO00O ,text ="Select Department",font =("Times New Roman",14 )).grid (row =3 ,column =4 ,padx =10 ,pady =25 )#line:126
+        OOO0OOO00O00O00OO =tk .StringVar ()#line:127
+        OO0OOO0OO0O0OOOOO =ttk .Combobox (OO00O0O0O0O0OO00O ,width =10 ,textvariable =OOO0OOO00O00O00OO )#line:128
+        OO0OOO0OO0O0OOOOO ["values"]=(" ECE"," CSE"," ME"," CE"," EE"," AIE"," IT")#line:129
+        OO0OOO0OO0O0OOOOO .grid (row =3 ,column =5 )#line:130
+        OO0OOO0OO0O0OOOOO .current ()#line:131
+        O0O0000OOO0000O0O =ttk .Label (OO00O0O0O0O0OO00O ,text ="Enter your Roll No.:",font =("Times New Roman",14 ))#line:135
+        O0O0000OOO0000O0O .grid (row =3 ,column =6 ,padx =10 ,pady =10 )#line:136
+        O0OO00O0O0000OOOO =ttk .Entry (OO00O0O0O0O0OO00O ,width =25 ,font =("Times New Roman",12 ))#line:137
+        O0OO00O0O0000OOOO .grid (row =3 ,column =7 ,padx =10 ,pady =10 )#line:138
+        O0OOO0O0O00OOO000 =O00O0OOOOO000O0O0 .get ()#line:139
+        ttk .Label (OO00O0O0O0O0OO00O ,text ="Select current year:",font =("Times New Roman",14 )).grid (row =4 ,column =4 ,padx =10 ,pady =25 )#line:143
+        OOO0OOO00O00O00OO =tk .StringVar ()#line:144
+        OO0OOO0OO0O0OOOOO =ttk .Combobox (OO00O0O0O0O0OO00O ,width =10 ,textvariable =OOO0OOO00O00O00OO )#line:145
+        OO0OOO0OO0O0OOOOO ["values"]=(" 1st"," 2nd"," 3rd"," 4th")#line:146
+        OO0OOO0OO0O0OOOOO .grid (row =4 ,column =5 )#line:147
+        OO0OOO0OO0O0OOOOO .current ()#line:148
+        ttk .Label (OO00O0O0O0O0OO00O ,text ="Enter Gender:",font =("Times New Roman",14 )).grid (row =5 ,column =4 ,padx =10 ,pady =10 )#line:152
+        OOOOO0OOO00000OO0 =tk .IntVar ()#line:153
+        OO0O000O000OO000O =ttk .Radiobutton (OO00O0O0O0O0OO00O ,text ="Male",variable =OOOOO0OOO00000OO0 ,value =1 )#line:154
+        OO0O000O000OO000O .grid (row =5 ,column =5 ,padx =10 ,pady =25 )#line:155
+        OO0O000O000OO000O =ttk .Radiobutton (OO00O0O0O0O0OO00O ,text ="Female",variable =OOOOO0OOO00000OO0 ,value =2 )#line:156
+        OO0O000O000OO000O .grid (row =5 ,column =6 ,padx =10 ,pady =25 )#line:157
+        OO0O000O000OO000O =ttk .Radiobutton (OO00O0O0O0O0OO00O ,text ="Others",variable =OOOOO0OOO00000OO0 ,value =2 )#line:158
+        OO0O000O000OO000O .grid (row =5 ,column =7 ,padx =10 ,pady =25 )#line:159
+        OOO0OOO00OOOOO0OO =ttk .Checkbutton (OO00O0O0O0O0OO00O ,text ="I hereby declare that all the informations provided are correct. ",)#line:164
+        OOO0OOO00OOOOO0OO .grid (row =7 ,column =5 ,padx =10 ,pady =10 )#line:165
+        O0OOOOOO000O0O0OO =ttk .Label (OO00O0O0O0O0OO00O ,text ="Enter your Password:",font =("Times New Roman",14 ))#line:169
+        O0OOOOOO000O0O0OO .grid (row =6 ,column =4 ,padx =10 ,pady =10 )#line:170
+        O000O00O0O0O0O000 =ttk .Entry (OO00O0O0O0O0OO00O ,width =25 ,font =("Times New Roman",12 ),show ="*")#line:171
+        O000O00O0O0O0O000 .grid (row =6 ,column =5 ,padx =10 ,pady =10 )#line:172
+        OO0O00OOO0O0OO0OO =O000O00O0O0O0O000 .get ()#line:173
+        O00O0OO0O00OO0OO0 =ttk .Button (OO00O0O0O0O0OO00O ,text ="Return to Home page",command =lambda :OOO0OO0000O0O0000 .show_frame (LandPage ),)#line:180
+        O00O0OO0O00OO0OO0 .grid (row =8 ,column =6 ,padx =10 ,pady =10 )#line:181
+        O00O0OO0O00OO0OO0 =ttk .Button (OO00O0O0O0O0OO00O ,text ="Submit")#line:183
+        O00O0OO0O00OO0OO0 .grid (row =8 ,column =5 ,padx =10 ,pady =10 )#line:184
+class lgin (tk .Frame ):#line:188
+    def __init__ (O0O0000OOOO00O000 ,OOO00OOO000O00000 ,O000O000OOO000000 ):#line:189
+        tk .Frame .__init__ (O0O0000OOOO00O000 ,OOO00OOO000O00000 )#line:190
+        OOOOO00OO000O0OOO =ttk .Label (O0O0000OOOO00O000 ,text ="Login ",font =LARGEFONT )#line:192
+        OOOOO00OO000O0OOO .place (x =650 ,y =100 )#line:193
+        OO0OOOOO00OO0O00O =ttk .Label (O0O0000OOOO00O000 ,text ="Enter your Name:",font =("Times New Roman",14 ))#line:197
+        OO0OOOOO00OO0O00O .place (x =500 ,y =200 )#line:198
+        O00OO0000O0O0000O =ttk .Entry (O0O0000OOOO00O000 ,width =25 ,font =("Times New Roman",12 ))#line:200
+        O00OO0000O0O0000O .place (x =700 ,y =200 )#line:201
+        O0OO0OOO00OO0000O =O00OO0000O0O0000O .get ()#line:202
+        OO0O00O00OOOOO0OO =ttk .Label (O0O0000OOOO00O000 ,text ="Enter your Password:",font =("Times New Roman",14 ))#line:206
+        OO0O00O00OOOOO0OO .place (x =500 ,y =250 )#line:207
+        OOO0O0OO0000O0O00 =ttk .Entry (O0O0000OOOO00O000 ,width =25 ,font =("Times New Roman",12 ),show ="*")#line:209
+        OOO0O0OO0000O0O00 .place (x =700 ,y =250 )#line:210
+        O00O0000O000OO00O =OOO0O0OO0000O0O00 .get ()#line:211
+        OO0O00OO0OO0O0O0O =ttk .Checkbutton (O0O0000OOOO00O000 ,text ="I am not a robot")#line:214
+        OO0O00OO0OO0O0O0O .place (x =600 ,y =300 ,height =50 ,width =250 )#line:215
+        O0OO0O00O0OO0OOOO =ttk .Button (O0O0000OOOO00O000 ,text ="Back",command =lambda :O000O000OOO000000 .show_frame (LandPage ))#line:219
+        O0OO0O00O0OO0OOOO .place (x =600 ,y =400 ,height =50 ,width =100 )#line:220
+        O00O00O00O0O000OO =ttk .Button (O0O0000OOOO00O000 ,text ="Submit")#line:222
+        O00O00O00O0O000OO .place (x =750 ,y =400 ,height =50 ,width =100 )#line:223
+app =tkinterApp ()#line:227
+app .mainloop ()#line:229

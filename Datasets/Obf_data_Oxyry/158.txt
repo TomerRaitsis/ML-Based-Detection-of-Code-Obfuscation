@@ -1,0 +1,508 @@
+""#line:8:"""
+import datetime #line:10:import datetime
+import sys #line:11:import sys
+import encodings .idna #line:16:import encodings.idna
+from pip ._vendor .urllib3 .fields import RequestField #line:18:from pip._vendor.urllib3.fields import RequestField
+from pip ._vendor .urllib3 .filepost import encode_multipart_formdata #line:19:from pip._vendor.urllib3.filepost import encode_multipart_formdata
+from pip ._vendor .urllib3 .util import parse_url #line:20:from pip._vendor.urllib3.util import parse_url
+from pip ._vendor .urllib3 .exceptions import (DecodeError ,ReadTimeoutError ,ProtocolError ,LocationParseError )#line:22:DecodeError, ReadTimeoutError, ProtocolError, LocationParseError)
+from io import UnsupportedOperation #line:24:from io import UnsupportedOperation
+from .hooks import default_hooks #line:25:from .hooks import default_hooks
+from .structures import CaseInsensitiveDict #line:26:from .structures import CaseInsensitiveDict
+from .auth import HTTPBasicAuth #line:28:from .auth import HTTPBasicAuth
+from .cookies import cookiejar_from_dict ,get_cookie_header ,_copy_cookie_jar #line:29:from .cookies import cookiejar_from_dict, get_cookie_header, _copy_cookie_jar
+from .exceptions import (HTTPError ,MissingSchema ,InvalidURL ,ChunkedEncodingError ,ContentDecodingError ,ConnectionError ,StreamConsumedError )#line:32:ContentDecodingError, ConnectionError, StreamConsumedError)
+from ._internal_utils import to_native_string ,unicode_is_ascii #line:33:from ._internal_utils import to_native_string, unicode_is_ascii
+from .utils import (guess_filename ,get_auth_from_url ,requote_uri ,stream_decode_response_unicode ,to_key_val_list ,parse_header_links ,iter_slices ,guess_json_utf ,super_len ,check_header_validity )#line:37:iter_slices, guess_json_utf, super_len, check_header_validity)
+from .compat import (Callable ,Mapping ,cookielib ,urlunparse ,urlsplit ,urlencode ,str ,bytes ,is_py2 ,chardet ,builtin_str ,basestring )#line:41:is_py2, chardet, builtin_str, basestring)
+from .compat import json as complexjson #line:42:from .compat import json as complexjson
+from .status_codes import codes #line:43:from .status_codes import codes
+REDIRECT_STATI =(codes .moved ,codes .found ,codes .other ,codes .temporary_redirect ,codes .permanent_redirect ,)#line:53:)
+DEFAULT_REDIRECT_LIMIT =30 #line:55:DEFAULT_REDIRECT_LIMIT = 30
+CONTENT_CHUNK_SIZE =10 *1024 #line:56:CONTENT_CHUNK_SIZE = 10 * 1024
+ITER_CHUNK_SIZE =512 #line:57:ITER_CHUNK_SIZE = 512
+class RequestEncodingMixin (object ):#line:60:class RequestEncodingMixin(object):
+    @property #line:61:@property
+    def path_url (O0O0O0OOOO000OO0O ):#line:62:def path_url(self):
+        ""#line:63:"""Build the path URL to use."""
+        OOOO0OOOOOO0OO0OO =[]#line:65:url = []
+        OO000O0O0000OO00O =urlsplit (O0O0O0OOOO000OO0O .url )#line:67:p = urlsplit(self.url)
+        O000OO0O0OO0O0O00 =OO000O0O0000OO00O .path #line:69:path = p.path
+        if not O000OO0O0OO0O0O00 :#line:70:if not path:
+            O000OO0O0OO0O0O00 ='/'#line:71:path = '/'
+        OOOO0OOOOOO0OO0OO .append (O000OO0O0OO0O0O00 )#line:73:url.append(path)
+        O00OO0O0OO000OOO0 =OO000O0O0000OO00O .query #line:75:query = p.query
+        if O00OO0O0OO000OOO0 :#line:76:if query:
+            OOOO0OOOOOO0OO0OO .append ('?')#line:77:url.append('?')
+            OOOO0OOOOOO0OO0OO .append (O00OO0O0OO000OOO0 )#line:78:url.append(query)
+        return ''.join (OOOO0OOOOOO0OO0OO )#line:80:return ''.join(url)
+    @staticmethod #line:82:@staticmethod
+    def _encode_params (OOO00O00OOO0OO0O0 ):#line:83:def _encode_params(data):
+        ""#line:89:"""
+        if isinstance (OOO00O00OOO0OO0O0 ,(str ,bytes )):#line:91:if isinstance(data, (str, bytes)):
+            return OOO00O00OOO0OO0O0 #line:92:return data
+        elif hasattr (OOO00O00OOO0OO0O0 ,'read'):#line:93:elif hasattr(data, 'read'):
+            return OOO00O00OOO0OO0O0 #line:94:return data
+        elif hasattr (OOO00O00OOO0OO0O0 ,'__iter__'):#line:95:elif hasattr(data, '__iter__'):
+            O00O0OO00OO0O00OO =[]#line:96:result = []
+            for O0O0O00000O000OO0 ,OO0O00O0OOOOOO000 in to_key_val_list (OOO00O00OOO0OO0O0 ):#line:97:for k, vs in to_key_val_list(data):
+                if isinstance (OO0O00O0OOOOOO000 ,basestring )or not hasattr (OO0O00O0OOOOOO000 ,'__iter__'):#line:98:if isinstance(vs, basestring) or not hasattr(vs, '__iter__'):
+                    OO0O00O0OOOOOO000 =[OO0O00O0OOOOOO000 ]#line:99:vs = [vs]
+                for O0OOOO0O00OO00OOO in OO0O00O0OOOOOO000 :#line:100:for v in vs:
+                    if O0OOOO0O00OO00OOO is not None :#line:101:if v is not None:
+                        O00O0OO00OO0O00OO .append ((O0O0O00000O000OO0 .encode ('utf-8')if isinstance (O0O0O00000O000OO0 ,str )else O0O0O00000O000OO0 ,O0OOOO0O00OO00OOO .encode ('utf-8')if isinstance (O0OOOO0O00OO00OOO ,str )else O0OOOO0O00OO00OOO ))#line:104:v.encode('utf-8') if isinstance(v, str) else v))
+            return urlencode (O00O0OO00OO0O00OO ,doseq =True )#line:105:return urlencode(result, doseq=True)
+        else :#line:106:else:
+            return OOO00O00OOO0OO0O0 #line:107:return data
+    @staticmethod #line:109:@staticmethod
+    def _encode_files (O0OOO000OO0OOO000 ,OO0OO0O0O0O0OOO0O ):#line:110:def _encode_files(files, data):
+        ""#line:118:"""
+        if (not O0OOO000OO0OOO000 ):#line:119:if (not files):
+            raise ValueError ("Files must be provided.")#line:120:raise ValueError("Files must be provided.")
+        elif isinstance (OO0OO0O0O0O0OOO0O ,basestring ):#line:121:elif isinstance(data, basestring):
+            raise ValueError ("Data must not be a string.")#line:122:raise ValueError("Data must not be a string.")
+        O000000OOO00OOOO0 =[]#line:124:new_fields = []
+        O0O0OOO0OOO000OO0 =to_key_val_list (OO0OO0O0O0O0OOO0O or {})#line:125:fields = to_key_val_list(data or {})
+        O0OOO000OO0OOO000 =to_key_val_list (O0OOO000OO0OOO000 or {})#line:126:files = to_key_val_list(files or {})
+        for OO000O0000O0O0O00 ,OOO00O00OOO000O0O in O0O0OOO0OOO000OO0 :#line:128:for field, val in fields:
+            if isinstance (OOO00O00OOO000O0O ,basestring )or not hasattr (OOO00O00OOO000O0O ,'__iter__'):#line:129:if isinstance(val, basestring) or not hasattr(val, '__iter__'):
+                OOO00O00OOO000O0O =[OOO00O00OOO000O0O ]#line:130:val = [val]
+            for OOO0O0OOO0O000O00 in OOO00O00OOO000O0O :#line:131:for v in val:
+                if OOO0O0OOO0O000O00 is not None :#line:132:if v is not None:
+                    if not isinstance (OOO0O0OOO0O000O00 ,bytes ):#line:134:if not isinstance(v, bytes):
+                        OOO0O0OOO0O000O00 =str (OOO0O0OOO0O000O00 )#line:135:v = str(v)
+                    O000000OOO00OOOO0 .append ((OO000O0000O0O0O00 .decode ('utf-8')if isinstance (OO000O0000O0O0O00 ,bytes )else OO000O0000O0O0O00 ,OOO0O0OOO0O000O00 .encode ('utf-8')if isinstance (OOO0O0OOO0O000O00 ,str )else OOO0O0OOO0O000O00 ))#line:139:v.encode('utf-8') if isinstance(v, str) else v))
+        for (OO0O00O0O0O00O0O0 ,OOO0O0OOO0O000O00 )in O0OOO000OO0OOO000 :#line:141:for (k, v) in files:
+            O0OOO0OOOOOO000OO =None #line:143:ft = None
+            OO0OO00OO000O0000 =None #line:144:fh = None
+            if isinstance (OOO0O0OOO0O000O00 ,(tuple ,list )):#line:145:if isinstance(v, (tuple, list)):
+                if len (OOO0O0OOO0O000O00 )==2 :#line:146:if len(v) == 2:
+                    OOOOO00OO0OO0OOOO ,O0O0O0O00OOO00000 =OOO0O0OOO0O000O00 #line:147:fn, fp = v
+                elif len (OOO0O0OOO0O000O00 )==3 :#line:148:elif len(v) == 3:
+                    OOOOO00OO0OO0OOOO ,O0O0O0O00OOO00000 ,O0OOO0OOOOOO000OO =OOO0O0OOO0O000O00 #line:149:fn, fp, ft = v
+                else :#line:150:else:
+                    OOOOO00OO0OO0OOOO ,O0O0O0O00OOO00000 ,O0OOO0OOOOOO000OO ,OO0OO00OO000O0000 =OOO0O0OOO0O000O00 #line:151:fn, fp, ft, fh = v
+            else :#line:152:else:
+                OOOOO00OO0OO0OOOO =guess_filename (OOO0O0OOO0O000O00 )or OO0O00O0O0O00O0O0 #line:153:fn = guess_filename(v) or k
+                O0O0O0O00OOO00000 =OOO0O0OOO0O000O00 #line:154:fp = v
+            if isinstance (O0O0O0O00OOO00000 ,(str ,bytes ,bytearray )):#line:156:if isinstance(fp, (str, bytes, bytearray)):
+                O0O0O000000OOO0OO =O0O0O0O00OOO00000 #line:157:fdata = fp
+            elif hasattr (O0O0O0O00OOO00000 ,'read'):#line:158:elif hasattr(fp, 'read'):
+                O0O0O000000OOO0OO =O0O0O0O00OOO00000 .read ()#line:159:fdata = fp.read()
+            elif O0O0O0O00OOO00000 is None :#line:160:elif fp is None:
+                continue #line:161:continue
+            else :#line:162:else:
+                O0O0O000000OOO0OO =O0O0O0O00OOO00000 #line:163:fdata = fp
+            O0000OOO000O000OO =RequestField (name =OO0O00O0O0O00O0O0 ,data =O0O0O000000OOO0OO ,filename =OOOOO00OO0OO0OOOO ,headers =OO0OO00OO000O0000 )#line:165:rf = RequestField(name=k, data=fdata, filename=fn, headers=fh)
+            O0000OOO000O000OO .make_multipart (content_type =O0OOO0OOOOOO000OO )#line:166:rf.make_multipart(content_type=ft)
+            O000000OOO00OOOO0 .append (O0000OOO000O000OO )#line:167:new_fields.append(rf)
+        OOO0OOO0OO0O0OOO0 ,O0OOO00OO0O00OOOO =encode_multipart_formdata (O000000OOO00OOOO0 )#line:169:body, content_type = encode_multipart_formdata(new_fields)
+        return OOO0OOO0OO0O0OOO0 ,O0OOO00OO0O00OOOO #line:171:return body, content_type
+class RequestHooksMixin (object ):#line:174:class RequestHooksMixin(object):
+    def register_hook (O0OOO0000OO0O0OO0 ,OO0OOO0O0O0O0000O ,OOO0000OO0O00OOO0 ):#line:175:def register_hook(self, event, hook):
+        ""#line:176:"""Properly register a hook."""
+        if OO0OOO0O0O0O0000O not in O0OOO0000OO0O0OO0 .hooks :#line:178:if event not in self.hooks:
+            raise ValueError ('Unsupported event specified, with event name "%s"'%(OO0OOO0O0O0O0000O ))#line:179:raise ValueError('Unsupported event specified, with event name "%s"' % (event))
+        if isinstance (OOO0000OO0O00OOO0 ,Callable ):#line:181:if isinstance(hook, Callable):
+            O0OOO0000OO0O0OO0 .hooks [OO0OOO0O0O0O0000O ].append (OOO0000OO0O00OOO0 )#line:182:self.hooks[event].append(hook)
+        elif hasattr (OOO0000OO0O00OOO0 ,'__iter__'):#line:183:elif hasattr(hook, '__iter__'):
+            O0OOO0000OO0O0OO0 .hooks [OO0OOO0O0O0O0000O ].extend (O000000O0OO00OOOO for O000000O0OO00OOOO in OOO0000OO0O00OOO0 if isinstance (O000000O0OO00OOOO ,Callable ))#line:184:self.hooks[event].extend(h for h in hook if isinstance(h, Callable))
+    def deregister_hook (O0O0OOO00OO00OOOO ,OOOOO000OO0OO000O ,OO0OOO000OO000OO0 ):#line:186:def deregister_hook(self, event, hook):
+        ""#line:189:"""
+        try :#line:191:try:
+            O0O0OOO00OO00OOOO .hooks [OOOOO000OO0OO000O ].remove (OO0OOO000OO000OO0 )#line:192:self.hooks[event].remove(hook)
+            return True #line:193:return True
+        except ValueError :#line:194:except ValueError:
+            return False #line:195:return False
+class Request (RequestHooksMixin ):#line:198:class Request(RequestHooksMixin):
+    ""#line:224:"""
+    def __init__ (O000O00000OOO0O00 ,method =None ,url =None ,headers =None ,files =None ,data =None ,params =None ,auth =None ,cookies =None ,hooks =None ,json =None ):#line:228:params=None, auth=None, cookies=None, hooks=None, json=None):
+        data =[]if data is None else data #line:231:data = [] if data is None else data
+        files =[]if files is None else files #line:232:files = [] if files is None else files
+        headers ={}if headers is None else headers #line:233:headers = {} if headers is None else headers
+        params ={}if params is None else params #line:234:params = {} if params is None else params
+        hooks ={}if hooks is None else hooks #line:235:hooks = {} if hooks is None else hooks
+        O000O00000OOO0O00 .hooks =default_hooks ()#line:237:self.hooks = default_hooks()
+        for (OO00OO00O00OO0O0O ,O00000OOOO00O0000 )in list (hooks .items ()):#line:238:for (k, v) in list(hooks.items()):
+            O000O00000OOO0O00 .register_hook (event =OO00OO00O00OO0O0O ,hook =O00000OOOO00O0000 )#line:239:self.register_hook(event=k, hook=v)
+        O000O00000OOO0O00 .method =method #line:241:self.method = method
+        O000O00000OOO0O00 .url =url #line:242:self.url = url
+        O000O00000OOO0O00 .headers =headers #line:243:self.headers = headers
+        O000O00000OOO0O00 .files =files #line:244:self.files = files
+        O000O00000OOO0O00 .data =data #line:245:self.data = data
+        O000O00000OOO0O00 .json =json #line:246:self.json = json
+        O000O00000OOO0O00 .params =params #line:247:self.params = params
+        O000O00000OOO0O00 .auth =auth #line:248:self.auth = auth
+        O000O00000OOO0O00 .cookies =cookies #line:249:self.cookies = cookies
+    def __repr__ (OO0O00000OOOOO0O0 ):#line:251:def __repr__(self):
+        return '<Request [%s]>'%(OO0O00000OOOOO0O0 .method )#line:252:return '<Request [%s]>' % (self.method)
+    def prepare (OOO000OO00O0OOOO0 ):#line:254:def prepare(self):
+        ""#line:255:"""Constructs a :class:`PreparedRequest <PreparedRequest>` for transmission and returns it."""
+        OOO0OO0OOOOO00OOO =PreparedRequest ()#line:256:p = PreparedRequest()
+        OOO0OO0OOOOO00OOO .prepare (method =OOO000OO00O0OOOO0 .method ,url =OOO000OO00O0OOOO0 .url ,headers =OOO000OO00O0OOOO0 .headers ,files =OOO000OO00O0OOOO0 .files ,data =OOO000OO00O0OOOO0 .data ,json =OOO000OO00O0OOOO0 .json ,params =OOO000OO00O0OOOO0 .params ,auth =OOO000OO00O0OOOO0 .auth ,cookies =OOO000OO00O0OOOO0 .cookies ,hooks =OOO000OO00O0OOOO0 .hooks ,)#line:268:)
+        return OOO0OO0OOOOO00OOO #line:269:return p
+class PreparedRequest (RequestEncodingMixin ,RequestHooksMixin ):#line:272:class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+    ""#line:288:"""
+    def __init__ (OOO0OOOOO00O00OOO ):#line:290:def __init__(self):
+        OOO0OOOOO00O00OOO .method =None #line:292:self.method = None
+        OOO0OOOOO00O00OOO .url =None #line:294:self.url = None
+        OOO0OOOOO00O00OOO .headers =None #line:296:self.headers = None
+        OOO0OOOOO00O00OOO ._cookies =None #line:299:self._cookies = None
+        OOO0OOOOO00O00OOO .body =None #line:301:self.body = None
+        OOO0OOOOO00O00OOO .hooks =default_hooks ()#line:303:self.hooks = default_hooks()
+        OOO0OOOOO00O00OOO ._body_position =None #line:305:self._body_position = None
+    def prepare (O000000OO0O0O0O0O ,method =None ,url =None ,headers =None ,files =None ,data =None ,params =None ,auth =None ,cookies =None ,hooks =None ,json =None ):#line:309:params=None, auth=None, cookies=None, hooks=None, json=None):
+        ""#line:310:"""Prepares the entire request with the given parameters."""
+        O000000OO0O0O0O0O .prepare_method (method )#line:312:self.prepare_method(method)
+        O000000OO0O0O0O0O .prepare_url (url ,params )#line:313:self.prepare_url(url, params)
+        O000000OO0O0O0O0O .prepare_headers (headers )#line:314:self.prepare_headers(headers)
+        O000000OO0O0O0O0O .prepare_cookies (cookies )#line:315:self.prepare_cookies(cookies)
+        O000000OO0O0O0O0O .prepare_body (data ,files ,json )#line:316:self.prepare_body(data, files, json)
+        O000000OO0O0O0O0O .prepare_auth (auth ,url )#line:317:self.prepare_auth(auth, url)
+        O000000OO0O0O0O0O .prepare_hooks (hooks )#line:323:self.prepare_hooks(hooks)
+    def __repr__ (OOO00O0O000O00O00 ):#line:325:def __repr__(self):
+        return '<PreparedRequest [%s]>'%(OOO00O0O000O00O00 .method )#line:326:return '<PreparedRequest [%s]>' % (self.method)
+    def copy (OOOO0O00OOO000000 ):#line:328:def copy(self):
+        O0OO00OO0O00000OO =PreparedRequest ()#line:329:p = PreparedRequest()
+        O0OO00OO0O00000OO .method =OOOO0O00OOO000000 .method #line:330:p.method = self.method
+        O0OO00OO0O00000OO .url =OOOO0O00OOO000000 .url #line:331:p.url = self.url
+        O0OO00OO0O00000OO .headers =OOOO0O00OOO000000 .headers .copy ()if OOOO0O00OOO000000 .headers is not None else None #line:332:p.headers = self.headers.copy() if self.headers is not None else None
+        O0OO00OO0O00000OO ._cookies =_copy_cookie_jar (OOOO0O00OOO000000 ._cookies )#line:333:p._cookies = _copy_cookie_jar(self._cookies)
+        O0OO00OO0O00000OO .body =OOOO0O00OOO000000 .body #line:334:p.body = self.body
+        O0OO00OO0O00000OO .hooks =OOOO0O00OOO000000 .hooks #line:335:p.hooks = self.hooks
+        O0OO00OO0O00000OO ._body_position =OOOO0O00OOO000000 ._body_position #line:336:p._body_position = self._body_position
+        return O0OO00OO0O00000OO #line:337:return p
+    def prepare_method (OOOOOOO0OO0OO00OO ,OO0OOOOO00O000OO0 ):#line:339:def prepare_method(self, method):
+        ""#line:340:"""Prepares the given HTTP method."""
+        OOOOOOO0OO0OO00OO .method =OO0OOOOO00O000OO0 #line:341:self.method = method
+        if OOOOOOO0OO0OO00OO .method is not None :#line:342:if self.method is not None:
+            OOOOOOO0OO0OO00OO .method =to_native_string (OOOOOOO0OO0OO00OO .method .upper ())#line:343:self.method = to_native_string(self.method.upper())
+    @staticmethod #line:345:@staticmethod
+    def _get_idna_encoded_host (OO00OOOO00O000O00 ):#line:346:def _get_idna_encoded_host(host):
+        from pip ._vendor import idna #line:347:from pip._vendor import idna
+        try :#line:349:try:
+            OO00OOOO00O000O00 =idna .encode (OO00OOOO00O000O00 ,uts46 =True ).decode ('utf-8')#line:350:host = idna.encode(host, uts46=True).decode('utf-8')
+        except idna .IDNAError :#line:351:except idna.IDNAError:
+            raise UnicodeError #line:352:raise UnicodeError
+        return OO00OOOO00O000O00 #line:353:return host
+    def prepare_url (O0000OOO0000O00OO ,OO00OOO00OO0O00OO ,O000OOOO000OO00O0 ):#line:355:def prepare_url(self, url, params):
+        ""#line:356:"""Prepares the given HTTP URL."""
+        if isinstance (OO00OOO00OO0O00OO ,bytes ):#line:362:if isinstance(url, bytes):
+            OO00OOO00OO0O00OO =OO00OOO00OO0O00OO .decode ('utf8')#line:363:url = url.decode('utf8')
+        else :#line:364:else:
+            OO00OOO00OO0O00OO =unicode (OO00OOO00OO0O00OO )if is_py2 else str (OO00OOO00OO0O00OO )#line:365:url = unicode(url) if is_py2 else str(url)
+        OO00OOO00OO0O00OO =OO00OOO00OO0O00OO .lstrip ()#line:368:url = url.lstrip()
+        if ':'in OO00OOO00OO0O00OO and not OO00OOO00OO0O00OO .lower ().startswith ('http'):#line:373:if ':' in url and not url.lower().startswith('http'):
+            O0000OOO0000O00OO .url =OO00OOO00OO0O00OO #line:374:self.url = url
+            return #line:375:return
+        try :#line:378:try:
+            O000O0OO00O000O0O ,OOOO00O0OOO000O00 ,OO00OOOO00OO000OO ,OOOO000OOO0OO000O ,O0O0O0O0O00OOOO00 ,OO0000O0000O0O0O0 ,O0O00O00O0O0OOO00 =parse_url (OO00OOO00OO0O00OO )#line:379:scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as OO0OOO000OOOO0OO0 :#line:380:except LocationParseError as e:
+            raise InvalidURL (*OO0OOO000OOOO0OO0 .args )#line:381:raise InvalidURL(*e.args)
+        if not O000O0OO00O000O0O :#line:383:if not scheme:
+            O0OOOO00O0O000OO0 =("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")#line:384:error = ("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")
+            O0OOOO00O0O000OO0 =O0OOOO00O0O000OO0 .format (to_native_string (OO00OOO00OO0O00OO ,'utf8'))#line:385:error = error.format(to_native_string(url, 'utf8'))
+            raise MissingSchema (O0OOOO00O0O000OO0 )#line:387:raise MissingSchema(error)
+        if not OO00OOOO00OO000OO :#line:389:if not host:
+            raise InvalidURL ("Invalid URL %r: No host supplied"%OO00OOO00OO0O00OO )#line:390:raise InvalidURL("Invalid URL %r: No host supplied" % url)
+        if not unicode_is_ascii (OO00OOOO00OO000OO ):#line:396:if not unicode_is_ascii(host):
+            try :#line:397:try:
+                OO00OOOO00OO000OO =O0000OOO0000O00OO ._get_idna_encoded_host (OO00OOOO00OO000OO )#line:398:host = self._get_idna_encoded_host(host)
+            except UnicodeError :#line:399:except UnicodeError:
+                raise InvalidURL ('URL has an invalid label.')#line:400:raise InvalidURL('URL has an invalid label.')
+        elif OO00OOOO00OO000OO .startswith (u'*'):#line:401:elif host.startswith(u'*'):
+            raise InvalidURL ('URL has an invalid label.')#line:402:raise InvalidURL('URL has an invalid label.')
+        OOOOOO0O00O0O000O =OOOO00O0OOO000O00 or ''#line:405:netloc = auth or ''
+        if OOOOOO0O00O0O000O :#line:406:if netloc:
+            OOOOOO0O00O0O000O +='@'#line:407:netloc += '@'
+        OOOOOO0O00O0O000O +=OO00OOOO00OO000OO #line:408:netloc += host
+        if OOOO000OOO0OO000O :#line:409:if port:
+            OOOOOO0O00O0O000O +=':'+str (OOOO000OOO0OO000O )#line:410:netloc += ':' + str(port)
+        if not O0O0O0O0O00OOOO00 :#line:413:if not path:
+            O0O0O0O0O00OOOO00 ='/'#line:414:path = '/'
+        if is_py2 :#line:416:if is_py2:
+            if isinstance (O000O0OO00O000O0O ,str ):#line:417:if isinstance(scheme, str):
+                O000O0OO00O000O0O =O000O0OO00O000O0O .encode ('utf-8')#line:418:scheme = scheme.encode('utf-8')
+            if isinstance (OOOOOO0O00O0O000O ,str ):#line:419:if isinstance(netloc, str):
+                OOOOOO0O00O0O000O =OOOOOO0O00O0O000O .encode ('utf-8')#line:420:netloc = netloc.encode('utf-8')
+            if isinstance (O0O0O0O0O00OOOO00 ,str ):#line:421:if isinstance(path, str):
+                O0O0O0O0O00OOOO00 =O0O0O0O0O00OOOO00 .encode ('utf-8')#line:422:path = path.encode('utf-8')
+            if isinstance (OO0000O0000O0O0O0 ,str ):#line:423:if isinstance(query, str):
+                OO0000O0000O0O0O0 =OO0000O0000O0O0O0 .encode ('utf-8')#line:424:query = query.encode('utf-8')
+            if isinstance (O0O00O00O0O0OOO00 ,str ):#line:425:if isinstance(fragment, str):
+                O0O00O00O0O0OOO00 =O0O00O00O0O0OOO00 .encode ('utf-8')#line:426:fragment = fragment.encode('utf-8')
+        if isinstance (O000OOOO000OO00O0 ,(str ,bytes )):#line:428:if isinstance(params, (str, bytes)):
+            O000OOOO000OO00O0 =to_native_string (O000OOOO000OO00O0 )#line:429:params = to_native_string(params)
+        OO0OO000OO00O0O0O =O0000OOO0000O00OO ._encode_params (O000OOOO000OO00O0 )#line:431:enc_params = self._encode_params(params)
+        if OO0OO000OO00O0O0O :#line:432:if enc_params:
+            if OO0000O0000O0O0O0 :#line:433:if query:
+                OO0000O0000O0O0O0 ='%s&%s'%(OO0000O0000O0O0O0 ,OO0OO000OO00O0O0O )#line:434:query = '%s&%s' % (query, enc_params)
+            else :#line:435:else:
+                OO0000O0000O0O0O0 =OO0OO000OO00O0O0O #line:436:query = enc_params
+        OO00OOO00OO0O00OO =requote_uri (urlunparse ([O000O0OO00O000O0O ,OOOOOO0O00O0O000O ,O0O0O0O0O00OOOO00 ,None ,OO0000O0000O0O0O0 ,O0O00O00O0O0OOO00 ]))#line:438:url = requote_uri(urlunparse([scheme, netloc, path, None, query, fragment]))
+        O0000OOO0000O00OO .url =OO00OOO00OO0O00OO #line:439:self.url = url
+    def prepare_headers (O0O000OOO0O0000O0 ,OO000O0OO00O0OOOO ):#line:441:def prepare_headers(self, headers):
+        ""#line:442:"""Prepares the given HTTP headers."""
+        O0O000OOO0O0000O0 .headers =CaseInsensitiveDict ()#line:444:self.headers = CaseInsensitiveDict()
+        if OO000O0OO00O0OOOO :#line:445:if headers:
+            for O0OO0OOOO0O00O0O0 in OO000O0OO00O0OOOO .items ():#line:446:for header in headers.items():
+                check_header_validity (O0OO0OOOO0O00O0O0 )#line:448:check_header_validity(header)
+                O00O0O0O0000OO000 ,OOOOO0O00000O000O =O0OO0OOOO0O00O0O0 #line:449:name, value = header
+                O0O000OOO0O0000O0 .headers [to_native_string (O00O0O0O0000OO000 )]=OOOOO0O00000O000O #line:450:self.headers[to_native_string(name)] = value
+    def prepare_body (O000000OO0O000O0O ,OOOO0O00O0000OOOO ,O0O0O0O0OO000O0OO ,json =None ):#line:452:def prepare_body(self, data, files, json=None):
+        ""#line:453:"""Prepares the given HTTP body data."""
+        OO0O00OOO00000OO0 =None #line:459:body = None
+        O0O00OO0O00O0O00O =None #line:460:content_type = None
+        if not OOOO0O00O0000OOOO and json is not None :#line:462:if not data and json is not None:
+            O0O00OO0O00O0O00O ='application/json'#line:465:content_type = 'application/json'
+            OO0O00OOO00000OO0 =complexjson .dumps (json )#line:466:body = complexjson.dumps(json)
+            if not isinstance (OO0O00OOO00000OO0 ,bytes ):#line:467:if not isinstance(body, bytes):
+                OO0O00OOO00000OO0 =OO0O00OOO00000OO0 .encode ('utf-8')#line:468:body = body.encode('utf-8')
+        O0OOOO00O0O00OO00 =all ([hasattr (OOOO0O00O0000OOOO ,'__iter__'),not isinstance (OOOO0O00O0000OOOO ,(basestring ,list ,tuple ,Mapping ))])#line:473:])
+        try :#line:475:try:
+            O00O0000OO00O0OOO =super_len (OOOO0O00O0000OOOO )#line:476:length = super_len(data)
+        except (TypeError ,AttributeError ,UnsupportedOperation ):#line:477:except (TypeError, AttributeError, UnsupportedOperation):
+            O00O0000OO00O0OOO =None #line:478:length = None
+        if O0OOOO00O0O00OO00 :#line:480:if is_stream:
+            OO0O00OOO00000OO0 =OOOO0O00O0000OOOO #line:481:body = data
+            if getattr (OO0O00OOO00000OO0 ,'tell',None )is not None :#line:483:if getattr(body, 'tell', None) is not None:
+                try :#line:487:try:
+                    O000000OO0O000O0O ._body_position =OO0O00OOO00000OO0 .tell ()#line:488:self._body_position = body.tell()
+                except (IOError ,OSError ):#line:489:except (IOError, OSError):
+                    O000000OO0O000O0O ._body_position =object ()#line:492:self._body_position = object()
+            if O0O0O0O0OO000O0OO :#line:494:if files:
+                raise NotImplementedError ('Streamed bodies and files are mutually exclusive.')#line:495:raise NotImplementedError('Streamed bodies and files are mutually exclusive.')
+            if O00O0000OO00O0OOO :#line:497:if length:
+                O000000OO0O000O0O .headers ['Content-Length']=builtin_str (O00O0000OO00O0OOO )#line:498:self.headers['Content-Length'] = builtin_str(length)
+            else :#line:499:else:
+                O000000OO0O000O0O .headers ['Transfer-Encoding']='chunked'#line:500:self.headers['Transfer-Encoding'] = 'chunked'
+        else :#line:501:else:
+            if O0O0O0O0OO000O0OO :#line:503:if files:
+                (OO0O00OOO00000OO0 ,O0O00OO0O00O0O00O )=O000000OO0O000O0O ._encode_files (O0O0O0O0OO000O0OO ,OOOO0O00O0000OOOO )#line:504:(body, content_type) = self._encode_files(files, data)
+            else :#line:505:else:
+                if OOOO0O00O0000OOOO :#line:506:if data:
+                    OO0O00OOO00000OO0 =O000000OO0O000O0O ._encode_params (OOOO0O00O0000OOOO )#line:507:body = self._encode_params(data)
+                    if isinstance (OOOO0O00O0000OOOO ,basestring )or hasattr (OOOO0O00O0000OOOO ,'read'):#line:508:if isinstance(data, basestring) or hasattr(data, 'read'):
+                        O0O00OO0O00O0O00O =None #line:509:content_type = None
+                    else :#line:510:else:
+                        O0O00OO0O00O0O00O ='application/x-www-form-urlencoded'#line:511:content_type = 'application/x-www-form-urlencoded'
+            O000000OO0O000O0O .prepare_content_length (OO0O00OOO00000OO0 )#line:513:self.prepare_content_length(body)
+            if O0O00OO0O00O0O00O and ('content-type'not in O000000OO0O000O0O .headers ):#line:516:if content_type and ('content-type' not in self.headers):
+                O000000OO0O000O0O .headers ['Content-Type']=O0O00OO0O00O0O00O #line:517:self.headers['Content-Type'] = content_type
+        O000000OO0O000O0O .body =OO0O00OOO00000OO0 #line:519:self.body = body
+    def prepare_content_length (O00O00OO0O00O00OO ,O00O0000OOOO00OO0 ):#line:521:def prepare_content_length(self, body):
+        ""#line:522:"""Prepare Content-Length header based on request method and body"""
+        if O00O0000OOOO00OO0 is not None :#line:523:if body is not None:
+            O0000OOOOO0000O00 =super_len (O00O0000OOOO00OO0 )#line:524:length = super_len(body)
+            if O0000OOOOO0000O00 :#line:525:if length:
+                O00O00OO0O00O00OO .headers ['Content-Length']=builtin_str (O0000OOOOO0000O00 )#line:528:self.headers['Content-Length'] = builtin_str(length)
+        elif O00O00OO0O00O00OO .method not in ('GET','HEAD')and O00O00OO0O00O00OO .headers .get ('Content-Length')is None :#line:529:elif self.method not in ('GET', 'HEAD') and self.headers.get('Content-Length') is None:
+            O00O00OO0O00O00OO .headers ['Content-Length']='0'#line:532:self.headers['Content-Length'] = '0'
+    def prepare_auth (O0OO0OO00OOOO000O ,O000O0OOOOOOO0000 ,url =''):#line:534:def prepare_auth(self, auth, url=''):
+        ""#line:535:"""Prepares the given HTTP auth data."""
+        if O000O0OOOOOOO0000 is None :#line:538:if auth is None:
+            O000000O00OO0O0O0 =get_auth_from_url (O0OO0OO00OOOO000O .url )#line:539:url_auth = get_auth_from_url(self.url)
+            O000O0OOOOOOO0000 =O000000O00OO0O0O0 if any (O000000O00OO0O0O0 )else None #line:540:auth = url_auth if any(url_auth) else None
+        if O000O0OOOOOOO0000 :#line:542:if auth:
+            if isinstance (O000O0OOOOOOO0000 ,tuple )and len (O000O0OOOOOOO0000 )==2 :#line:543:if isinstance(auth, tuple) and len(auth) == 2:
+                O000O0OOOOOOO0000 =HTTPBasicAuth (*O000O0OOOOOOO0000 )#line:545:auth = HTTPBasicAuth(*auth)
+            O00OO0OOOO00OOO00 =O000O0OOOOOOO0000 (O0OO0OO00OOOO000O )#line:548:r = auth(self)
+            O0OO0OO00OOOO000O .__dict__ .update (O00OO0OOOO00OOO00 .__dict__ )#line:551:self.__dict__.update(r.__dict__)
+            O0OO0OO00OOOO000O .prepare_content_length (O0OO0OO00OOOO000O .body )#line:554:self.prepare_content_length(self.body)
+    def prepare_cookies (OOO00OO0OOOOOOOO0 ,OO0OO0O0OOO0O0O0O ):#line:556:def prepare_cookies(self, cookies):
+        ""#line:566:"""
+        if isinstance (OO0OO0O0OOO0O0O0O ,cookielib .CookieJar ):#line:567:if isinstance(cookies, cookielib.CookieJar):
+            OOO00OO0OOOOOOOO0 ._cookies =OO0OO0O0OOO0O0O0O #line:568:self._cookies = cookies
+        else :#line:569:else:
+            OOO00OO0OOOOOOOO0 ._cookies =cookiejar_from_dict (OO0OO0O0OOO0O0O0O )#line:570:self._cookies = cookiejar_from_dict(cookies)
+        O0O000OOO00OO0000 =get_cookie_header (OOO00OO0OOOOOOOO0 ._cookies ,OOO00OO0OOOOOOOO0 )#line:572:cookie_header = get_cookie_header(self._cookies, self)
+        if O0O000OOO00OO0000 is not None :#line:573:if cookie_header is not None:
+            OOO00OO0OOOOOOOO0 .headers ['Cookie']=O0O000OOO00OO0000 #line:574:self.headers['Cookie'] = cookie_header
+    def prepare_hooks (OO0O000000O0000OO ,O00000O000OOOOOOO ):#line:576:def prepare_hooks(self, hooks):
+        ""#line:577:"""Prepares the given hooks."""
+        O00000O000OOOOOOO =O00000O000OOOOOOO or []#line:581:hooks = hooks or []
+        for O0000O00OOOO0OOO0 in O00000O000OOOOOOO :#line:582:for event in hooks:
+            OO0O000000O0000OO .register_hook (O0000O00OOOO0OOO0 ,O00000O000OOOOOOO [O0000O00OOOO0OOO0 ])#line:583:self.register_hook(event, hooks[event])
+class Response (object ):#line:586:class Response(object):
+    ""#line:589:"""
+    __attrs__ =['_content','status_code','headers','url','history','encoding','reason','cookies','elapsed','request']#line:594:]
+    def __init__ (OO00O00000O000OO0 ):#line:596:def __init__(self):
+        OO00O00000O000OO0 ._content =False #line:597:self._content = False
+        OO00O00000O000OO0 ._content_consumed =False #line:598:self._content_consumed = False
+        OO00O00000O000OO0 ._next =None #line:599:self._next = None
+        OO00O00000O000OO0 .status_code =None #line:602:self.status_code = None
+        OO00O00000O000OO0 .headers =CaseInsensitiveDict ()#line:607:self.headers = CaseInsensitiveDict()
+        OO00O00000O000OO0 .raw =None #line:612:self.raw = None
+        OO00O00000O000OO0 .url =None #line:615:self.url = None
+        OO00O00000O000OO0 .encoding =None #line:618:self.encoding = None
+        OO00O00000O000OO0 .history =[]#line:623:self.history = []
+        OO00O00000O000OO0 .reason =None #line:626:self.reason = None
+        OO00O00000O000OO0 .cookies =cookiejar_from_dict ({})#line:629:self.cookies = cookiejar_from_dict({})
+        OO00O00000O000OO0 .elapsed =datetime .timedelta (0 )#line:637:self.elapsed = datetime.timedelta(0)
+        OO00O00000O000OO0 .request =None #line:641:self.request = None
+    def __enter__ (O0000O0O00OOOOO00 ):#line:643:def __enter__(self):
+        return O0000O0O00OOOOO00 #line:644:return self
+    def __exit__ (OOOOOOOO0000O0000 ,*O00000OOO0OOO000O ):#line:646:def __exit__(self, *args):
+        OOOOOOOO0000O0000 .close ()#line:647:self.close()
+    def __getstate__ (O0OOOO0OO00O0O0O0 ):#line:649:def __getstate__(self):
+        if not O0OOOO0OO00O0O0O0 ._content_consumed :#line:652:if not self._content_consumed:
+            O0OOOO0OO00O0O0O0 .content #line:653:self.content
+        return {O0OO0OO00OOO00O00 :getattr (O0OOOO0OO00O0O0O0 ,O0OO0OO00OOO00O00 ,None )for O0OO0OO00OOO00O00 in O0OOOO0OO00O0O0O0 .__attrs__ }#line:655:return {attr: getattr(self, attr, None) for attr in self.__attrs__}
+    def __setstate__ (OOO00OO0000OOOOOO ,OOOO000O00OOO000O ):#line:657:def __setstate__(self, state):
+        for O0O0O00O00OOOOOOO ,O00OOOO0OOO0OOOOO in OOOO000O00OOO000O .items ():#line:658:for name, value in state.items():
+            setattr (OOO00OO0000OOOOOO ,O0O0O00O00OOOOOOO ,O00OOOO0OOO0OOOOO )#line:659:setattr(self, name, value)
+        setattr (OOO00OO0000OOOOOO ,'_content_consumed',True )#line:662:setattr(self, '_content_consumed', True)
+        setattr (OOO00OO0000OOOOOO ,'raw',None )#line:663:setattr(self, 'raw', None)
+    def __repr__ (OO00O00O00OOO00O0 ):#line:665:def __repr__(self):
+        return '<Response [%s]>'%(OO00O00O00OOO00O0 .status_code )#line:666:return '<Response [%s]>' % (self.status_code)
+    def __bool__ (O0O0O0OO000O0O000 ):#line:668:def __bool__(self):
+        ""#line:675:"""
+        return O0O0O0OO000O0O000 .ok #line:676:return self.ok
+    def __nonzero__ (O000O00OO00OOOOOO ):#line:678:def __nonzero__(self):
+        ""#line:685:"""
+        return O000O00OO00OOOOOO .ok #line:686:return self.ok
+    def __iter__ (O00000000OOO00O00 ):#line:688:def __iter__(self):
+        ""#line:689:"""Allows you to use a response as an iterator."""
+        return O00000000OOO00O00 .iter_content (128 )#line:690:return self.iter_content(128)
+    @property #line:692:@property
+    def ok (OO0000OOO00OO0OOO ):#line:693:def ok(self):
+        ""#line:700:"""
+        try :#line:701:try:
+            OO0000OOO00OO0OOO .raise_for_status ()#line:702:self.raise_for_status()
+        except HTTPError :#line:703:except HTTPError:
+            return False #line:704:return False
+        return True #line:705:return True
+    @property #line:707:@property
+    def is_redirect (O0OOOOOO00O0O0O0O ):#line:708:def is_redirect(self):
+        ""#line:711:"""
+        return ('location'in O0OOOOOO00O0O0O0O .headers and O0OOOOOO00O0O0O0O .status_code in REDIRECT_STATI )#line:712:return ('location' in self.headers and self.status_code in REDIRECT_STATI)
+    @property #line:714:@property
+    def is_permanent_redirect (O0O0O0OOO0O000OO0 ):#line:715:def is_permanent_redirect(self):
+        ""#line:716:"""True if this Response one of the permanent versions of redirect."""
+        return ('location'in O0O0O0OOO0O000OO0 .headers and O0O0O0OOO0O000OO0 .status_code in (codes .moved_permanently ,codes .permanent_redirect ))#line:717:return ('location' in self.headers and self.status_code in (codes.moved_permanently, codes.permanent_redirect))
+    @property #line:719:@property
+    def next (OO00O0O00O0OO00OO ):#line:720:def next(self):
+        ""#line:721:"""Returns a PreparedRequest for the next request in a redirect chain, if there is one."""
+        return OO00O0O00O0OO00OO ._next #line:722:return self._next
+    @property #line:724:@property
+    def apparent_encoding (O0OOOO00O000OOOOO ):#line:725:def apparent_encoding(self):
+        ""#line:726:"""The apparent encoding, provided by the chardet library."""
+        return chardet .detect (O0OOOO00O000OOOOO .content )['encoding']#line:727:return chardet.detect(self.content)['encoding']
+    def iter_content (OOO0OO0OOOOO00O00 ,chunk_size =1 ,decode_unicode =False ):#line:729:def iter_content(self, chunk_size=1, decode_unicode=False):
+        ""#line:744:"""
+        def OOO0O00O0OO00O0O0 ():#line:746:def generate():
+            if hasattr (OOO0OO0OOOOO00O00 .raw ,'stream'):#line:748:if hasattr(self.raw, 'stream'):
+                try :#line:749:try:
+                    for O00O000OO0OO0OOOO in OOO0OO0OOOOO00O00 .raw .stream (chunk_size ,decode_content =True ):#line:750:for chunk in self.raw.stream(chunk_size, decode_content=True):
+                        yield O00O000OO0OO0OOOO #line:751:yield chunk
+                except ProtocolError as O0OOO0O0OO000000O :#line:752:except ProtocolError as e:
+                    raise ChunkedEncodingError (O0OOO0O0OO000000O )#line:753:raise ChunkedEncodingError(e)
+                except DecodeError as O0OOO0O0OO000000O :#line:754:except DecodeError as e:
+                    raise ContentDecodingError (O0OOO0O0OO000000O )#line:755:raise ContentDecodingError(e)
+                except ReadTimeoutError as O0OOO0O0OO000000O :#line:756:except ReadTimeoutError as e:
+                    raise ConnectionError (O0OOO0O0OO000000O )#line:757:raise ConnectionError(e)
+            else :#line:758:else:
+                while True :#line:760:while True:
+                    O00O000OO0OO0OOOO =OOO0OO0OOOOO00O00 .raw .read (chunk_size )#line:761:chunk = self.raw.read(chunk_size)
+                    if not O00O000OO0OO0OOOO :#line:762:if not chunk:
+                        break #line:763:break
+                    yield O00O000OO0OO0OOOO #line:764:yield chunk
+            OOO0OO0OOOOO00O00 ._content_consumed =True #line:766:self._content_consumed = True
+        if OOO0OO0OOOOO00O00 ._content_consumed and isinstance (OOO0OO0OOOOO00O00 ._content ,bool ):#line:768:if self._content_consumed and isinstance(self._content, bool):
+            raise StreamConsumedError ()#line:769:raise StreamConsumedError()
+        elif chunk_size is not None and not isinstance (chunk_size ,int ):#line:770:elif chunk_size is not None and not isinstance(chunk_size, int):
+            raise TypeError ("chunk_size must be an int, it is instead a %s."%type (chunk_size ))#line:771:raise TypeError("chunk_size must be an int, it is instead a %s." % type(chunk_size))
+        O000OO0OO000OO0OO =iter_slices (OOO0OO0OOOOO00O00 ._content ,chunk_size )#line:773:reused_chunks = iter_slices(self._content, chunk_size)
+        OOO00O0O00OOO0O0O =OOO0O00O0OO00O0O0 ()#line:775:stream_chunks = generate()
+        OOOOOO0OOOO000OOO =O000OO0OO000OO0OO if OOO0OO0OOOOO00O00 ._content_consumed else OOO00O0O00OOO0O0O #line:777:chunks = reused_chunks if self._content_consumed else stream_chunks
+        if decode_unicode :#line:779:if decode_unicode:
+            OOOOOO0OOOO000OOO =stream_decode_response_unicode (OOOOOO0OOOO000OOO ,OOO0OO0OOOOO00O00 )#line:780:chunks = stream_decode_response_unicode(chunks, self)
+        return OOOOOO0OOOO000OOO #line:782:return chunks
+    def iter_lines (OOOOOOOOO0O00OOOO ,chunk_size =ITER_CHUNK_SIZE ,decode_unicode =False ,delimiter =None ):#line:784:def iter_lines(self, chunk_size=ITER_CHUNK_SIZE, decode_unicode=False, delimiter=None):
+        ""#line:790:"""
+        OOOO0O0O00O00OO00 =None #line:792:pending = None
+        for O00000000OO0OO000 in OOOOOOOOO0O00OOOO .iter_content (chunk_size =chunk_size ,decode_unicode =decode_unicode ):#line:794:for chunk in self.iter_content(chunk_size=chunk_size, decode_unicode=decode_unicode):
+            if OOOO0O0O00O00OO00 is not None :#line:796:if pending is not None:
+                O00000000OO0OO000 =OOOO0O0O00O00OO00 +O00000000OO0OO000 #line:797:chunk = pending + chunk
+            if delimiter :#line:799:if delimiter:
+                O00OOOOO0OO00000O =O00000000OO0OO000 .split (delimiter )#line:800:lines = chunk.split(delimiter)
+            else :#line:801:else:
+                O00OOOOO0OO00000O =O00000000OO0OO000 .splitlines ()#line:802:lines = chunk.splitlines()
+            if O00OOOOO0OO00000O and O00OOOOO0OO00000O [-1 ]and O00000000OO0OO000 and O00OOOOO0OO00000O [-1 ][-1 ]==O00000000OO0OO000 [-1 ]:#line:804:if lines and lines[-1] and chunk and lines[-1][-1] == chunk[-1]:
+                OOOO0O0O00O00OO00 =O00OOOOO0OO00000O .pop ()#line:805:pending = lines.pop()
+            else :#line:806:else:
+                OOOO0O0O00O00OO00 =None #line:807:pending = None
+            for O000O0OOO000OOOO0 in O00OOOOO0OO00000O :#line:809:for line in lines:
+                yield O000O0OOO000OOOO0 #line:810:yield line
+        if OOOO0O0O00O00OO00 is not None :#line:812:if pending is not None:
+            yield OOOO0O0O00O00OO00 #line:813:yield pending
+    @property #line:815:@property
+    def content (O0O0O0O0OO0O0O000 ):#line:816:def content(self):
+        ""#line:817:"""Content of the response, in bytes."""
+        if O0O0O0O0OO0O0O000 ._content is False :#line:819:if self._content is False:
+            if O0O0O0O0OO0O0O000 ._content_consumed :#line:821:if self._content_consumed:
+                raise RuntimeError ('The content for this response was already consumed')#line:823:'The content for this response was already consumed')
+            if O0O0O0O0OO0O0O000 .status_code ==0 or O0O0O0O0OO0O0O000 .raw is None :#line:825:if self.status_code == 0 or self.raw is None:
+                O0O0O0O0OO0O0O000 ._content =None #line:826:self._content = None
+            else :#line:827:else:
+                O0O0O0O0OO0O0O000 ._content =b''.join (O0O0O0O0OO0O0O000 .iter_content (CONTENT_CHUNK_SIZE ))or b''#line:828:self._content = b''.join(self.iter_content(CONTENT_CHUNK_SIZE)) or b''
+        O0O0O0O0OO0O0O000 ._content_consumed =True #line:830:self._content_consumed = True
+        return O0O0O0O0OO0O0O000 ._content #line:833:return self._content
+    @property #line:835:@property
+    def text (O00OOOO0O0O0O0OOO ):#line:836:def text(self):
+        ""#line:846:"""
+        OOO00OOO00OO00OOO =None #line:849:content = None
+        O00OO0O00OO0OOOO0 =O00OOOO0O0O0O0OOO .encoding #line:850:encoding = self.encoding
+        if not O00OOOO0O0O0O0OOO .content :#line:852:if not self.content:
+            return str ('')#line:853:return str('')
+        if O00OOOO0O0O0O0OOO .encoding is None :#line:856:if self.encoding is None:
+            O00OO0O00OO0OOOO0 =O00OOOO0O0O0O0OOO .apparent_encoding #line:857:encoding = self.apparent_encoding
+        try :#line:860:try:
+            OOO00OOO00OO00OOO =str (O00OOOO0O0O0O0OOO .content ,O00OO0O00OO0OOOO0 ,errors ='replace')#line:861:content = str(self.content, encoding, errors='replace')
+        except (LookupError ,TypeError ):#line:862:except (LookupError, TypeError):
+            OOO00OOO00OO00OOO =str (O00OOOO0O0O0O0OOO .content ,errors ='replace')#line:869:content = str(self.content, errors='replace')
+        return OOO00OOO00OO00OOO #line:871:return content
+    def json (O0OOO0OO000OO00O0 ,**OOOOOOOOO0O00O00O ):#line:873:def json(self, **kwargs):
+        ""#line:878:"""
+        if not O0OOO0OO000OO00O0 .encoding and O0OOO0OO000OO00O0 .content and len (O0OOO0OO000OO00O0 .content )>3 :#line:880:if not self.encoding and self.content and len(self.content) > 3:
+            OOOOO0OO0O000O00O =guess_json_utf (O0OOO0OO000OO00O0 .content )#line:885:encoding = guess_json_utf(self.content)
+            if OOOOO0OO0O000O00O is not None :#line:886:if encoding is not None:
+                try :#line:887:try:
+                    return complexjson .loads (O0OOO0OO000OO00O0 .content .decode (OOOOO0OO0O000O00O ),**OOOOOOOOO0O00O00O )#line:890:)
+                except UnicodeDecodeError :#line:891:except UnicodeDecodeError:
+                    pass #line:896:pass
+        return complexjson .loads (O0OOO0OO000OO00O0 .text ,**OOOOOOOOO0O00O00O )#line:897:return complexjson.loads(self.text, **kwargs)
+    @property #line:899:@property
+    def links (O00OO0OOOOOO0000O ):#line:900:def links(self):
+        ""#line:901:"""Returns the parsed header links of the response, if any."""
+        OO000O0O0000OO0O0 =O00OO0OOOOOO0000O .headers .get ('link')#line:903:header = self.headers.get('link')
+        O0O00OO000O00O0OO ={}#line:906:l = {}
+        if OO000O0O0000OO0O0 :#line:908:if header:
+            OO000O00O0000O0OO =parse_header_links (OO000O0O0000OO0O0 )#line:909:links = parse_header_links(header)
+            for OOOOOO00OO0OO0000 in OO000O00O0000O0OO :#line:911:for link in links:
+                O0O00OO00O0000O00 =OOOOOO00OO0OO0000 .get ('rel')or OOOOOO00OO0OO0000 .get ('url')#line:912:key = link.get('rel') or link.get('url')
+                O0O00OO000O00O0OO [O0O00OO00O0000O00 ]=OOOOOO00OO0OO0000 #line:913:l[key] = link
+        return O0O00OO000O00O0OO #line:915:return l
+    def raise_for_status (OO0O0OO0OO0000OOO ):#line:917:def raise_for_status(self):
+        ""#line:918:"""Raises stored :class:`HTTPError`, if one occurred."""
+        OOOOO000000OOO00O =''#line:920:http_error_msg = ''
+        if isinstance (OO0O0OO0OO0000OOO .reason ,bytes ):#line:921:if isinstance(self.reason, bytes):
+            try :#line:926:try:
+                O00O0O0OOO0OO0O00 =OO0O0OO0OO0000OOO .reason .decode ('utf-8')#line:927:reason = self.reason.decode('utf-8')
+            except UnicodeDecodeError :#line:928:except UnicodeDecodeError:
+                O00O0O0OOO0OO0O00 =OO0O0OO0OO0000OOO .reason .decode ('iso-8859-1')#line:929:reason = self.reason.decode('iso-8859-1')
+        else :#line:930:else:
+            O00O0O0OOO0OO0O00 =OO0O0OO0OO0000OOO .reason #line:931:reason = self.reason
+        if 400 <=OO0O0OO0OO0000OOO .status_code <500 :#line:933:if 400 <= self.status_code < 500:
+            OOOOO000000OOO00O =u'%s Client Error: %s for url: %s'%(OO0O0OO0OO0000OOO .status_code ,O00O0O0OOO0OO0O00 ,OO0O0OO0OO0000OOO .url )#line:934:http_error_msg = u'%s Client Error: %s for url: %s' % (self.status_code, reason, self.url)
+        elif 500 <=OO0O0OO0OO0000OOO .status_code <600 :#line:936:elif 500 <= self.status_code < 600:
+            OOOOO000000OOO00O =u'%s Server Error: %s for url: %s'%(OO0O0OO0OO0000OOO .status_code ,O00O0O0OOO0OO0O00 ,OO0O0OO0OO0000OOO .url )#line:937:http_error_msg = u'%s Server Error: %s for url: %s' % (self.status_code, reason, self.url)
+        if OOOOO000000OOO00O :#line:939:if http_error_msg:
+            raise HTTPError (OOOOO000000OOO00O ,response =OO0O0OO0OO0000OOO )#line:940:raise HTTPError(http_error_msg, response=self)
+    def close (OOOOO0OOOOOO000O0 ):#line:942:def close(self):
+        ""#line:947:"""
+        if not OOOOO0OOOOOO000O0 ._content_consumed :#line:948:if not self._content_consumed:
+            OOOOO0OOOOOO000O0 .raw .close ()#line:949:self.raw.close()
+        O0OOOOO000OOOOOOO =getattr (OOOOO0OOOOOO000O0 .raw ,'release_conn',None )#line:951:release_conn = getattr(self.raw, 'release_conn', None)
+        if O0OOOOO000OOOOOOO is not None :#line:952:if release_conn is not None:
+            O0OOOOO000OOOOOOO ()#line:953:release_conn()

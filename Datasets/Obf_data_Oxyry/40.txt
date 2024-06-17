@@ -1,0 +1,168 @@
+""#line:2:"""
+import logging #line:4:import logging
+import os #line:5:import os
+from pip ._vendor import pkg_resources ,requests #line:7:from pip._vendor import pkg_resources, requests
+from pip ._internal .build_env import BuildEnvironment #line:9:from pip._internal.build_env import BuildEnvironment
+from pip ._internal .download import (is_dir_url ,is_file_url ,is_vcs_url ,unpack_url ,url_to_path ,)#line:12:)
+from pip ._internal .exceptions import (DirectoryUrlHashUnsupported ,HashUnpinned ,InstallationError ,PreviousBuildDirError ,VcsHashUnsupported ,)#line:16:)
+from pip ._internal .utils .compat import expanduser #line:17:from pip._internal.utils.compat import expanduser
+from pip ._internal .utils .hashes import MissingHashes #line:18:from pip._internal.utils.hashes import MissingHashes
+from pip ._internal .utils .logging import indent_log #line:19:from pip._internal.utils.logging import indent_log
+from pip ._internal .utils .misc import display_path ,normalize_path #line:20:from pip._internal.utils.misc import display_path, normalize_path
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:21:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip ._internal .vcs import vcs #line:22:from pip._internal.vcs import vcs
+if MYPY_CHECK_RUNNING :#line:24:if MYPY_CHECK_RUNNING:
+    from typing import Any ,Optional #line:25:from typing import Any, Optional  # noqa: F401
+    from pip ._internal .req .req_install import InstallRequirement #line:26:from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+    from pip ._internal .index import PackageFinder #line:27:from pip._internal.index import PackageFinder  # noqa: F401
+    from pip ._internal .download import PipSession #line:28:from pip._internal.download import PipSession  # noqa: F401
+    from pip ._internal .req .req_tracker import RequirementTracker #line:29:from pip._internal.req.req_tracker import RequirementTracker  # noqa: F401
+logger =logging .getLogger (__name__ )#line:31:logger = logging.getLogger(__name__)
+def make_abstract_dist (OO0OO00O00O00OOOO ):#line:34:def make_abstract_dist(req):
+    ""#line:42:"""
+    if OO0OO00O00O00OOOO .editable :#line:43:if req.editable:
+        return IsSDist (OO0OO00O00O00OOOO )#line:44:return IsSDist(req)
+    elif OO0OO00O00O00OOOO .link and OO0OO00O00O00OOOO .link .is_wheel :#line:45:elif req.link and req.link.is_wheel:
+        return IsWheel (OO0OO00O00O00OOOO )#line:46:return IsWheel(req)
+    else :#line:47:else:
+        return IsSDist (OO0OO00O00O00OOOO )#line:48:return IsSDist(req)
+class DistAbstraction (object ):#line:51:class DistAbstraction(object):
+    ""#line:68:"""
+    def __init__ (O0OOO000OOO00OOOO ,O000OOOOOO00O0000 ):#line:70:def __init__(self, req):
+        O0OOO000OOO00OOOO .req =O000OOOOOO00O0000 #line:72:self.req = req  # type: InstallRequirement
+    def dist (O0OOO00O0OOO0O000 ):#line:74:def dist(self):
+        ""#line:76:"""Return a setuptools Dist object."""
+        raise NotImplementedError #line:77:raise NotImplementedError
+    def prep_for_dist (OO0OO00O0000OOO0O ,O0OO0OOO00O000000 ,OOO00O00O000OO000 ):#line:79:def prep_for_dist(self, finder, build_isolation):
+        ""#line:81:"""Ensure that we can get a Dist for this requirement."""
+        raise NotImplementedError #line:82:raise NotImplementedError
+class IsWheel (DistAbstraction ):#line:85:class IsWheel(DistAbstraction):
+    def dist (OO0OO00O0000O0O00 ):#line:87:def dist(self):
+        return list (pkg_resources .find_distributions (OO0OO00O0000O0O00 .req .source_dir ))[0 ]#line:90:self.req.source_dir))[0]
+    def prep_for_dist (OOO000OOOO00OOOO0 ,O0000OOO0O0O0OOOO ,OOOOO0O00OOOOOO00 ):#line:92:def prep_for_dist(self, finder, build_isolation):
+        pass #line:95:pass
+class IsSDist (DistAbstraction ):#line:98:class IsSDist(DistAbstraction):
+    def dist (OO00OO00OOOO00O00 ):#line:100:def dist(self):
+        return OO00OO00OOOO00O00 .req .get_dist ()#line:101:return self.req.get_dist()
+    def prep_for_dist (O0000O0OO0O0OO0O0 ,OOO0O00000OOO0O0O ,OOO000OOOOOO0OO00 ):#line:103:def prep_for_dist(self, finder, build_isolation):
+        O0000O0OO0O0OO0O0 .req .load_pyproject_toml ()#line:109:self.req.load_pyproject_toml()
+        O0OO00O0OO0O0000O =O0000O0OO0O0OO0O0 .req .use_pep517 and OOO000OOOOOO0OO00 #line:110:should_isolate = self.req.use_pep517 and build_isolation
+        def _OOO00O0O0OO0OO0O0 (O0O0O0000OOO000OO ,OO0O00O0OO0O000OO ):#line:112:def _raise_conflicts(conflicting_with, conflicting_reqs):
+            raise InstallationError ("Some build dependencies for %s conflict with %s: %s."%(O0000O0OO0O0OO0O0 .req ,O0O0O0000OOO000OO ,', '.join ('%s is incompatible with %s'%(OOOOO0OOOO0OO0000 ,OOO000OOOO0OO0OO0 )for OOOOO0OOOO0OO0000 ,OOO000OOOO0OO0OO0 in sorted (O00O0OO0O0OO0OOO0 ))))#line:117:for installed, wanted in sorted(conflicting))))
+        if O0OO00O0OO0O0000O :#line:119:if should_isolate:
+            O0000O0OO0O0OO0O0 .req .build_env =BuildEnvironment ()#line:122:self.req.build_env = BuildEnvironment()
+            O0000O0OO0O0OO0O0 .req .build_env .install_requirements (OOO0O00000OOO0O0O ,O0000O0OO0O0OO0O0 .req .pyproject_requires ,'overlay',"Installing build dependencies")#line:126:)
+            O00O0OO0O0OO0OOO0 ,O0O00O000OOOO0O0O =O0000O0OO0O0OO0O0 .req .build_env .check_requirements (O0000O0OO0O0OO0O0 .req .requirements_to_check )#line:129:)
+            if O00O0OO0O0OO0OOO0 :#line:130:if conflicting:
+                _OOO00O0O0OO0OO0O0 ("PEP 517/518 supported requirements",O00O0OO0O0OO0OOO0 )#line:132:conflicting)
+            if O0O00O000OOOO0O0O :#line:133:if missing:
+                logger .warning ("Missing build requirements in pyproject.toml for %s.",O0000O0OO0O0OO0O0 .req ,)#line:137:)
+                logger .warning ("The project does not specify a build backend, and " "pip cannot fall back to setuptools without %s."," and ".join (map (repr ,sorted (O0O00O000OOOO0O0O ))))#line:142:)
+            with O0000O0OO0O0OO0O0 .req .build_env :#line:146:with self.req.build_env:
+                O0000O0OO0O0OO0O0 .req .spin_message ="Getting requirements to build wheel"#line:148:self.req.spin_message = "Getting requirements to build wheel"
+                OO0OO00OOOOO0OOO0 =O0000O0OO0O0OO0O0 .req .pep517_backend .get_requires_for_build_wheel ()#line:149:reqs = self.req.pep517_backend.get_requires_for_build_wheel()
+            O00O0OO0O0OO0OOO0 ,O0O00O000OOOO0O0O =O0000O0OO0O0OO0O0 .req .build_env .check_requirements (OO0OO00OOOOO0OOO0 )#line:150:conflicting, missing = self.req.build_env.check_requirements(reqs)
+            if O00O0OO0O0OO0OOO0 :#line:151:if conflicting:
+                _OOO00O0O0OO0OO0O0 ("the backend dependencies",O00O0OO0O0OO0OOO0 )#line:152:_raise_conflicts("the backend dependencies", conflicting)
+            O0000O0OO0O0OO0O0 .req .build_env .install_requirements (OOO0O00000OOO0O0O ,O0O00O000OOOO0O0O ,'normal',"Installing backend dependencies")#line:156:)
+        O0000O0OO0O0OO0O0 .req .prepare_metadata ()#line:158:self.req.prepare_metadata()
+        O0000O0OO0O0OO0O0 .req .assert_source_matches_version ()#line:159:self.req.assert_source_matches_version()
+class Installed (DistAbstraction ):#line:162:class Installed(DistAbstraction):
+    def dist (O0000OOO0O000OO00 ):#line:164:def dist(self):
+        return O0000OOO0O000OO00 .req .satisfied_by #line:166:return self.req.satisfied_by
+    def prep_for_dist (OO00OOO0OOO0OOO0O ,OOO00OO00OOOO000O ,O0OO0OO0O0OO0O0OO ):#line:168:def prep_for_dist(self, finder, build_isolation):
+        pass #line:170:pass
+class RequirementPreparer (object ):#line:173:class RequirementPreparer(object):
+    ""#line:175:"""
+    def __init__ (OO00O0O000O0OOO00 ,OOOOOOO000000000O ,O0OO00O0000OOO00O ,O0OOO00O0OO0OOO00 ,OOOOOO000OOOO0O00 ,OOOOOO000OOOO0O0O ,O0OOO0O0OO000O0O0 ,O000OO0O0000OO00O ):#line:186:):
+        super (RequirementPreparer ,OO00O0O000O0OOO00 ).__init__ ()#line:188:super(RequirementPreparer, self).__init__()
+        OO00O0O000O0OOO00 .src_dir =O0OOO00O0OO0OOO00 #line:190:self.src_dir = src_dir
+        OO00O0O000O0OOO00 .build_dir =OOOOOOO000000000O #line:191:self.build_dir = build_dir
+        OO00O0O000O0OOO00 .req_tracker =O000OO0O0000OO00O #line:192:self.req_tracker = req_tracker
+        OO00O0O000O0OOO00 .download_dir =O0OO00O0000OOO00O #line:196:self.download_dir = download_dir
+        if OOOOOO000OOOO0O00 :#line:201:if wheel_download_dir:
+            OOOOOO000OOOO0O00 =normalize_path (OOOOOO000OOOO0O00 )#line:202:wheel_download_dir = normalize_path(wheel_download_dir)
+        OO00O0O000O0OOO00 .wheel_download_dir =OOOOOO000OOOO0O00 #line:203:self.wheel_download_dir = wheel_download_dir
+        OO00O0O000O0OOO00 .progress_bar =OOOOOO000OOOO0O0O #line:210:self.progress_bar = progress_bar
+        OO00O0O000O0OOO00 .build_isolation =O0OOO0O0OO000O0O0 #line:213:self.build_isolation = build_isolation
+    @property #line:215:@property
+    def _download_should_save (OO0OOOO0OOO0O0OOO ):#line:216:def _download_should_save(self):
+        if OO0OOOO0OOO0O0OOO .download_dir :#line:219:if self.download_dir:
+            OO0OOOO0OOO0O0OOO .download_dir =expanduser (OO0OOOO0OOO0O0OOO .download_dir )#line:220:self.download_dir = expanduser(self.download_dir)
+            if os .path .exists (OO0OOOO0OOO0O0OOO .download_dir ):#line:221:if os.path.exists(self.download_dir):
+                return True #line:222:return True
+            else :#line:223:else:
+                logger .critical ('Could not find download directory')#line:224:logger.critical('Could not find download directory')
+                raise InstallationError ("Could not find or access download directory '%s'"%display_path (OO0OOOO0OOO0O0OOO .download_dir ))#line:227:% display_path(self.download_dir))
+        return False #line:228:return False
+    def prepare_linked_requirement (O000000O0OOOO0O00 ,O0OO00000O000000O ,O0OOOO000OOO0OOO0 ,OOOO0000OO0O0OO00 ,OO0O00000000000OO ,OO0O000OOOOOOO0O0 ):#line:237:):
+        ""#line:240:"""
+        if O0OO00000O000000O .link and O0OO00000O000000O .link .scheme =='file':#line:242:if req.link and req.link.scheme == 'file':
+            OO0OO000O0OO00O00 =url_to_path (O0OO00000O000000O .link .url )#line:243:path = url_to_path(req.link.url)
+            logger .info ('Processing %s',display_path (OO0OO000O0OO00O00 ))#line:244:logger.info('Processing %s', display_path(path))
+        else :#line:245:else:
+            logger .info ('Collecting %s',O0OO00000O000000O )#line:246:logger.info('Collecting %s', req)
+        with indent_log ():#line:248:with indent_log():
+            O0OO00000O000000O .ensure_has_source_dir (O000000O0OOOO0O00 .build_dir )#line:253:req.ensure_has_source_dir(self.build_dir)
+            if os .path .exists (os .path .join (O0OO00000O000000O .source_dir ,'setup.py')):#line:260:if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
+                raise PreviousBuildDirError ("pip can't proceed with requirements '%s' due to a" " pre-existing build directory (%s). This is " "likely due to a previous installation that failed" ". pip is being responsible and not assuming it " "can delete this. Please delete it and try again."%(O0OO00000O000000O ,O0OO00000O000000O .source_dir ))#line:268:)
+            O0OO00000O000000O .populate_link (OOOO0000OO0O0OO00 ,OO0O00000000000OO ,OO0O000OOOOOOO0O0 )#line:269:req.populate_link(finder, upgrade_allowed, require_hashes)
+            assert O0OO00000O000000O .link #line:278:assert req.link
+            OO0000OO0O000000O =O0OO00000O000000O .link #line:279:link = req.link
+            if OO0O000OOOOOOO0O0 :#line:285:if require_hashes:
+                if is_vcs_url (OO0000OO0O000000O ):#line:291:if is_vcs_url(link):
+                    raise VcsHashUnsupported ()#line:292:raise VcsHashUnsupported()
+                elif is_file_url (OO0000OO0O000000O )and is_dir_url (OO0000OO0O000000O ):#line:293:elif is_file_url(link) and is_dir_url(link):
+                    raise DirectoryUrlHashUnsupported ()#line:294:raise DirectoryUrlHashUnsupported()
+                if not O0OO00000O000000O .original_link and not O0OO00000O000000O .is_pinned :#line:295:if not req.original_link and not req.is_pinned:
+                    raise HashUnpinned ()#line:303:raise HashUnpinned()
+            OO0O00O0OOO000OO0 =O0OO00000O000000O .hashes (trust_internet =not OO0O000OOOOOOO0O0 )#line:305:hashes = req.hashes(trust_internet=not require_hashes)
+            if OO0O000OOOOOOO0O0 and not OO0O00O0OOO000OO0 :#line:306:if require_hashes and not hashes:
+                OO0O00O0OOO000OO0 =MissingHashes ()#line:311:hashes = MissingHashes()
+            try :#line:313:try:
+                OOO0OOO000OOOO0O0 =O000000O0OOOO0O00 .download_dir #line:314:download_dir = self.download_dir
+                O00O0O0000OO0000O =True #line:316:autodelete_unpacked = True
+                if O0OO00000O000000O .link .is_wheel and O000000O0OOOO0O00 .wheel_download_dir :#line:317:if req.link.is_wheel and self.wheel_download_dir:
+                    OOO0OOO000OOOO0O0 =O000000O0OOOO0O00 .wheel_download_dir #line:320:download_dir = self.wheel_download_dir
+                if O0OO00000O000000O .link .is_wheel :#line:321:if req.link.is_wheel:
+                    if OOO0OOO000OOOO0O0 :#line:322:if download_dir:
+                        O00O0O0000OO0000O =True #line:325:autodelete_unpacked = True
+                    else :#line:326:else:
+                        O00O0O0000OO0000O =False #line:329:autodelete_unpacked = False
+                unpack_url (O0OO00000O000000O .link ,O0OO00000O000000O .source_dir ,OOO0OOO000OOOO0O0 ,O00O0O0000OO0000O ,session =O0OOOO000OOO0OOO0 ,hashes =OO0O00O0OOO000OO0 ,progress_bar =O000000O0OOOO0O00 .progress_bar )#line:335:)
+            except requests .HTTPError as OO0O0O0000OOO0000 :#line:336:except requests.HTTPError as exc:
+                logger .critical ('Could not install requirement %s because of error %s',O0OO00000O000000O ,OO0O0O0000OOO0000 ,)#line:341:)
+                raise InstallationError ('Could not install requirement %s because of HTTP ' 'error %s for URL %s'%(O0OO00000O000000O ,OO0O0O0000OOO0000 ,O0OO00000O000000O .link ))#line:346:)
+            OO0OOOOO0O0OOOOO0 =make_abstract_dist (O0OO00000O000000O )#line:347:abstract_dist = make_abstract_dist(req)
+            with O000000O0OOOO0O00 .req_tracker .track (O0OO00000O000000O ):#line:348:with self.req_tracker.track(req):
+                OO0OOOOO0O0OOOOO0 .prep_for_dist (OOOO0000OO0O0OO00 ,O000000O0OOOO0O00 .build_isolation )#line:349:abstract_dist.prep_for_dist(finder, self.build_isolation)
+            if O000000O0OOOO0O00 ._download_should_save :#line:350:if self._download_should_save:
+                if O0OO00000O000000O .link .scheme in vcs .all_schemes :#line:352:if req.link.scheme in vcs.all_schemes:
+                    O0OO00000O000000O .archive (O000000O0OOOO0O00 .download_dir )#line:353:req.archive(self.download_dir)
+        return OO0OOOOO0O0OOOOO0 #line:354:return abstract_dist
+    def prepare_editable_requirement (OO0OOOOO00O0OO00O ,OOOO0O000O0000O00 ,O0OOO000000O0OOOO ,O00OOO00OOO00O0O0 ,OO0O00O00OOOO0O00 ):#line:362:):
+        ""#line:365:"""
+        assert OOOO0O000O0000O00 .editable ,"cannot prepare a non-editable req as editable"#line:366:assert req.editable, "cannot prepare a non-editable req as editable"
+        logger .info ('Obtaining %s',OOOO0O000O0000O00 )#line:368:logger.info('Obtaining %s', req)
+        with indent_log ():#line:370:with indent_log():
+            if O0OOO000000O0OOOO :#line:371:if require_hashes:
+                raise InstallationError ('The editable requirement %s cannot be installed when ' 'requiring hashes, because there is no single file to ' 'hash.'%OOOO0O000O0000O00 )#line:376:)
+            OOOO0O000O0000O00 .ensure_has_source_dir (OO0OOOOO00O0OO00O .src_dir )#line:377:req.ensure_has_source_dir(self.src_dir)
+            OOOO0O000O0000O00 .update_editable (not OO0OOOOO00O0OO00O ._download_should_save )#line:378:req.update_editable(not self._download_should_save)
+            OOOOO0O0OO00OO0O0 =make_abstract_dist (OOOO0O000O0000O00 )#line:380:abstract_dist = make_abstract_dist(req)
+            with OO0OOOOO00O0OO00O .req_tracker .track (OOOO0O000O0000O00 ):#line:381:with self.req_tracker.track(req):
+                OOOOO0O0OO00OO0O0 .prep_for_dist (OO0O00O00OOOO0O00 ,OO0OOOOO00O0OO00O .build_isolation )#line:382:abstract_dist.prep_for_dist(finder, self.build_isolation)
+            if OO0OOOOO00O0OO00O ._download_should_save :#line:384:if self._download_should_save:
+                OOOO0O000O0000O00 .archive (OO0OOOOO00O0OO00O .download_dir )#line:385:req.archive(self.download_dir)
+            OOOO0O000O0000O00 .check_if_exists (O00OOO00OOO00O0O0 )#line:386:req.check_if_exists(use_user_site)
+        return OOOOO0O0OO00OO0O0 #line:388:return abstract_dist
+    def prepare_installed_requirement (O000OO0O0O0OOO000 ,O00O0OO000O0OOO00 ,OO000O0OO000OO0OO ,OOOO0O0O0OOOOOOOO ):#line:390:def prepare_installed_requirement(self, req, require_hashes, skip_reason):
+        ""#line:393:"""
+        assert O00O0OO000O0OOO00 .satisfied_by ,"req should have been satisfied but isn't"#line:394:assert req.satisfied_by, "req should have been satisfied but isn't"
+        assert OOOO0O0O0OOOOOOOO is not None ,("did not get skip reason skipped but req.satisfied_by " "is set to %r"%(O00O0OO000O0OOO00 .satisfied_by ,))#line:398:)
+        logger .info ('Requirement %s: %s (%s)',OOOO0O0O0OOOOOOOO ,O00O0OO000O0OOO00 ,O00O0OO000O0OOO00 .satisfied_by .version )#line:402:)
+        with indent_log ():#line:403:with indent_log():
+            if OO000O0OO000OO0OO :#line:404:if require_hashes:
+                logger .debug ('Since it is already installed, we are trusting this ' 'package without checking its hash. To ensure a ' 'completely repeatable environment, install into an ' 'empty virtualenv.')#line:410:)
+            OO0O0O00OOO00O000 =Installed (O00O0OO000O0OOO00 )#line:411:abstract_dist = Installed(req)
+        return OO0O0O00OOO00O000 #line:413:return abstract_dist

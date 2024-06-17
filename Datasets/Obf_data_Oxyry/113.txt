@@ -1,0 +1,99 @@
+""#line:5:"""
+from tkinter import *#line:7:from tkinter import *
+from tkinter .filedialog import (askopenfile ,asksaveasfile ,askopenfilename ,asksaveasfilename ,)#line:13:)
+import os #line:14:import os
+from pygments import highlight #line:15:from pygments import highlight
+counter =1 #line:17:counter = 1
+class TextEditor :#line:20:class TextEditor:
+    def donothing (O000O0OOOO000OO00 ):#line:21:def donothing(self):
+        O000O0OOOO000OO00 .filewin =Toplevel (O000O0OOOO000OO00 .root )#line:22:self.filewin = Toplevel(self.root)
+        OOO00O0O00O0000O0 =Button (O000O0OOOO000OO00 .filewin ,text ="Do not do anything")#line:23:button = Button(self.filewin, text="Do not do anything")
+        OOO00O0O00O0000O0 .pack ()#line:24:button.pack()
+    def open_file (O0OO00O000000O0OO ):#line:26:def open_file(self):
+        O0OO00O000000O0OO .file =askopenfile (mode ="r")#line:27:self.file = askopenfile(mode="r")
+        if O0OO00O000000O0OO .file is not None :#line:28:if self.file is not None:
+            O0OO00O000000O0OO .text .delete (1.0 ,"end-1c")#line:29:self.text.delete(1.0, "end-1c")
+            OOOO0OOOO0OOOOOOO =O0OO00O000000O0OO .file .read ()#line:30:content = self.file.read()
+            O0OO00O000000O0OO .filename =O0OO00O000000O0OO .file .name #line:31:self.filename = self.file.name
+            O0OO00O000000O0OO .text .insert (INSERT ,OOOO0OOOO0OOOOOOO )#line:32:self.text.insert(INSERT, content)
+            O0OO00O000000O0OO .filename_only =O0OO00O000000O0OO .filename .split ("/")[-1 ]#line:33:self.filename_only = self.filename.split("/")[-1]
+            O0OO00O000000O0OO .root .title (O0OO00O000000O0OO .filename_only +"-TryCatch Text Editor")#line:34:self.root.title(self.filename_only + "-TryCatch Text Editor")
+    def save_file (O0O0OOO0OOOO0OOOO ):#line:36:def save_file(self):
+        if O0O0OOO0OOOO0OOOO .filename !=None and O0O0OOO0OOOO0OOOO .file !=None :#line:37:if self.filename != None and self.file != None:
+            O0OO0OOO0000OO000 =open (O0O0OOO0OOOO0OOOO .filename ,"r+")#line:38:f = open(self.filename, "r+")
+            O0OO0OOO0000OO000 .seek (0 )#line:39:f.seek(0)
+            O0OO0OOO0000OO000 .truncate ()#line:40:f.truncate()
+            O0O0OOO0OOOO0OOOO .text_data =O0O0OOO0OOOO0OOOO .text .get (1.0 ,"end-1c")#line:41:self.text_data = self.text.get(1.0, "end-1c")
+            O0OO0OOO0000OO000 .write (O0O0OOO0OOOO0OOOO .text_data )#line:42:f.write(self.text_data)
+        else :#line:44:else:
+            O0O0OOO0OOOO0OOOO .file =asksaveasfile ()#line:45:self.file = asksaveasfile()
+            O0O0OOO0OOOO0OOOO .filename =O0O0OOO0OOOO0OOOO .file .name #line:46:self.filename = self.file.name
+            O0O0OOO0OOOO0OOOO .text_data =O0O0OOO0OOOO0OOOO .text .get (1.0 ,"end-1c")#line:47:self.text_data = self.text.get(1.0, "end-1c")
+            O0OO0OOO0000OO000 =open (O0O0OOO0OOOO0OOOO .filename ,"r+")#line:48:f = open(self.filename, "r+")
+            O0OO0OOO0000OO000 .write (O0O0OOO0OOOO0OOOO .text_data )#line:49:f.write(self.text_data)
+            O0O0OOO0OOOO0OOOO .filename_only =O0O0OOO0OOOO0OOOO .filename .split ("/")[-1 ]#line:50:self.filename_only = self.filename.split("/")[-1]
+            O0O0OOO0OOOO0OOOO .root .title (O0O0OOO0OOOO0OOOO .filename_only +"-TryCatch Text Editor")#line:51:self.root.title(self.filename_only + "-TryCatch Text Editor")
+    def save_as_file (OO000O0OOO00O000O ):#line:53:def save_as_file(self):
+        OO000O0OOO00O000O .file =asksaveasfile ()#line:54:self.file = asksaveasfile()
+        OO000O0OOO00O000O .filename =OO000O0OOO00O000O .file .name #line:55:self.filename = self.file.name
+        OO000O0OOO00O000O .text_data =OO000O0OOO00O000O .text .get (1.0 ,"end-1c")#line:56:self.text_data = self.text.get(1.0, "end-1c")
+        OO0O00O0000OO0OO0 =open (OO000O0OOO00O000O .filename ,"r+")#line:57:f = open(self.filename, "r+")
+        OO0O00O0000OO0OO0 .write (OO000O0OOO00O000O .text_data )#line:58:f.write(self.text_data)
+        OO000O0OOO00O000O .filename_only =OO000O0OOO00O000O .filename .split ("/")[-1 ]#line:59:self.filename_only = self.filename.split("/")[-1]
+        OO000O0OOO00O000O .root .title (OO000O0OOO00O000O .filename_only +"-TryCatch Text Editor")#line:60:self.root.title(self.filename_only + "-TryCatch Text Editor")
+    def close_file (OOOOOO0O0O0OO0OOO ):#line:62:def close_file(self):
+        OOOOOO0O0O0OO0OOO .text .delete (1.0 ,"end-1c")#line:63:self.text.delete(1.0, "end-1c")
+        OOOOOO0O0O0OO0OOO .root .title ("Untitled"+"-TryCatch Text Editor")#line:64:self.root.title("Untitled" + "-TryCatch Text Editor")
+        OOOOOO0O0O0OO0OOO .file .close ()#line:65:self.file.close()
+        OOOOOO0O0O0OO0OOO .file =None #line:66:self.file = None
+        OOOOOO0O0O0OO0OOO .filename =None #line:67:self.filename = None
+    def new (O000OO0OO0000OOO0 ):#line:69:def new(self):
+        global counter ,win #line:70:global counter, win
+        counter +=1 #line:72:counter += 1
+        win [counter ]=TextEditor ()#line:73:win[counter] = TextEditor()
+    def dark (OO00O0O0OO00O00O0 ):#line:75:def dark(self):
+        OO00O0O0OO00O00O0 .text .config (foreground ="white",background ="black",insertbackground ="white")#line:78:)
+    def light (O0O0O000O0O00000O ):#line:80:def light(self):
+        O0O0O000O0O00000O .text .config (foreground ="black",background ="white",insertbackground ="black")#line:83:)
+    def __init__ (OO0O00O0OO0O0000O ):#line:85:def __init__(self):
+        OO0O00O0OO0O0000O .root =Tk ()#line:86:self.root = Tk()
+        O0OOOO0OOOOO0O0OO =Scrollbar (OO0O00O0OO0O0000O .root )#line:89:scrollbar = Scrollbar(self.root)
+        O0OOOO0OOOOO0O0OO .pack (side =RIGHT ,fill =Y )#line:90:scrollbar.pack(side=RIGHT, fill=Y)
+        OO0O00O0OO0O0000O .root .title ("Untitled-TryCatch Text Editor")#line:91:self.root.title("Untitled-TryCatch Text Editor")
+        OO0O00O0OO0O0000O .file =None #line:93:self.file = None
+        OO0O00O0OO0O0000O .filename =None #line:94:self.filename = None
+        O00OOO0OO0OOO000O =Menu (OO0O00O0OO0O0000O .root )#line:97:menubar = Menu(self.root)
+        OO0O00O0OO0O0000O .filemenu =Menu (O00OOO0OO0OOO000O ,tearoff =0 )#line:98:self.filemenu = Menu(menubar, tearoff=0)
+        OO0O00O0OO0O0000O .filemenu .add_command (label ="New",command =OO0O00O0OO0O0000O .new )#line:99:self.filemenu.add_command(label="New", command=self.new)
+        OO0O00O0OO0O0000O .filemenu .add_command (label ="Open",command =OO0O00O0OO0O0000O .open_file )#line:100:self.filemenu.add_command(label="Open", command=self.open_file)
+        OO0O00O0OO0O0000O .filemenu .add_command (label ="Save",command =OO0O00O0OO0O0000O .save_file )#line:101:self.filemenu.add_command(label="Save", command=self.save_file)
+        OO0O00O0OO0O0000O .filemenu .add_command (label ="Save as...",command =OO0O00O0OO0O0000O .save_as_file )#line:102:self.filemenu.add_command(label="Save as...", command=self.save_as_file)
+        OO0O00O0OO0O0000O .filemenu .add_command (label ="Close",command =OO0O00O0OO0O0000O .close_file )#line:103:self.filemenu.add_command(label="Close", command=self.close_file)
+        OO0O00O0OO0O0000O .filemenu .add_separator ()#line:105:self.filemenu.add_separator()
+        OO0O00O0OO0O0000O .filemenu .add_command (label ="Exit",command =OO0O00O0OO0O0000O .root .quit )#line:107:self.filemenu.add_command(label="Exit", command=self.root.quit)
+        O00OOO0OO0OOO000O .add_cascade (label ="File",menu =OO0O00O0OO0O0000O .filemenu )#line:108:menubar.add_cascade(label="File", menu=self.filemenu)
+        OO00O0OOO0OO0O00O =Menu (O00OOO0OO0OOO000O ,tearoff =0 )#line:110:editmenu = Menu(menubar, tearoff=0)
+        OO00O0OOO0OO0O00O .add_command (label ="Dark",command =OO0O00O0OO0O0000O .dark )#line:118:editmenu.add_command(label="Dark", command=self.dark)
+        OO00O0OOO0OO0O00O .add_command (label ="Light",command =OO0O00O0OO0O0000O .light )#line:119:editmenu.add_command(label="Light", command=self.light)
+        O00OOO0OO0OOO000O .add_cascade (label ="Theme",menu =OO00O0OOO0OO0O00O )#line:120:menubar.add_cascade(label="Theme", menu=editmenu)
+        OOO0OOOOO0OOO0O00 =Menu (O00OOO0OO0OOO000O ,tearoff =0 )#line:122:helpmenu = Menu(menubar, tearoff=0)
+        OOO0OOOOO0OOO0O00 .add_command (label ="Help Index",command =OO0O00O0OO0O0000O .donothing )#line:123:helpmenu.add_command(label="Help Index", command=self.donothing)
+        OOO0OOOOO0OOO0O00 .add_command (label ="About...",command =OO0O00O0OO0O0000O .donothing )#line:124:helpmenu.add_command(label="About...", command=self.donothing)
+        O00OOO0OO0OOO000O .add_cascade (label ="Help",menu =OOO0OOOOO0OOO0O00 )#line:125:menubar.add_cascade(label="Help", menu=helpmenu)
+        OO0O00O0OO0O0000O .root .config (menu =O00OOO0OO0OOO000O )#line:127:self.root.config(menu=menubar)
+        OO0O00O0OO0O0000O .text =Text (OO0O00O0OO0O0000O .root )#line:130:self.text = Text(self.root)
+        OO0O00O0OO0O0000O .text .pack ()#line:131:self.text.pack()
+        OO0O00O0OO0O0000O .text .tag_add ("here","1.0","1.4")#line:132:self.text.tag_add("here", "1.0", "1.4")
+        OO0O00O0OO0O0000O .text .tag_add ("start","1.8","1.13")#line:133:self.text.tag_add("start", "1.8", "1.13")
+        OO0O00O0OO0O0000O .text .tag_config ("here",background ="yellow",foreground ="blue")#line:134:self.text.tag_config("here", background="yellow", foreground="blue")
+        OO0O00O0OO0O0000O .text .tag_config ("start",background ="aqua",foreground ="green")#line:135:self.text.tag_config("start", background="aqua", foreground="green")
+        OO0O00O0OO0O0000O .text .config (insertbackground ="black")#line:136:self.text.config(insertbackground="black")
+        OO0O00O0OO0O0000O .photo =PhotoImage (file ="Projects-1/edit-text.png")#line:138:self.photo = PhotoImage(file="Projects-1/edit-text.png")
+        OO0O00O0OO0O0000O .root .iconphoto (False ,OO0O00O0OO0O0000O .photo )#line:139:self.root.iconphoto(False, self.photo)
+        OO0O00O0OO0O0000O .root .mainloop ()#line:142:self.root.mainloop()
+win =dict ()#line:146:win = dict()
+"""
+For initial, we have created an instance of Class Text editor and stored that instance in dictionary
+Then if user clicks on new then a new instance is created and appended in dictionary.
+"""#line:151:"""
+win [counter ]=TextEditor ()#line:152:win[counter] = TextEditor()

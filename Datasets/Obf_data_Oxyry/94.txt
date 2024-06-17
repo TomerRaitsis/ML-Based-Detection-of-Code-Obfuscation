@@ -1,0 +1,57 @@
+import logging #line:29:import logging
+import re #line:30:import re
+from .enums import ProbingState #line:32:from .enums import ProbingState
+class CharSetProber (object ):#line:35:class CharSetProber(object):
+    SHORTCUT_THRESHOLD =0.95 #line:37:SHORTCUT_THRESHOLD = 0.95
+    def __init__ (O0OOO00OO000OOO0O ,lang_filter =None ):#line:39:def __init__(self, lang_filter=None):
+        O0OOO00OO000OOO0O ._state =None #line:40:self._state = None
+        O0OOO00OO000OOO0O .lang_filter =lang_filter #line:41:self.lang_filter = lang_filter
+        O0OOO00OO000OOO0O .logger =logging .getLogger (__name__ )#line:42:self.logger = logging.getLogger(__name__)
+    def reset (OOOOOOO000OOO00OO ):#line:44:def reset(self):
+        OOOOOOO000OOO00OO ._state =ProbingState .DETECTING #line:45:self._state = ProbingState.DETECTING
+    @property #line:47:@property
+    def charset_name (OOO000OOOO0O00000 ):#line:48:def charset_name(self):
+        return None #line:49:return None
+    def feed (OOOO0OO00OO00000O ,OOO0O0O0000OOOOO0 ):#line:51:def feed(self, buf):
+        pass #line:52:pass
+    @property #line:54:@property
+    def state (OO00O0O00O00O0000 ):#line:55:def state(self):
+        return OO00O0O00O00O0000 ._state #line:56:return self._state
+    def get_confidence (O0OO0OOO00OOOO000 ):#line:58:def get_confidence(self):
+        return 0.0 #line:59:return 0.0
+    @staticmethod #line:61:@staticmethod
+    def filter_high_byte_only (O00OOOOO00OO00OOO ):#line:62:def filter_high_byte_only(buf):
+        O00OOOOO00OO00OOO =re .sub (b'([\x00-\x7F])+',b' ',O00OOOOO00OO00OOO )#line:63:buf = re.sub(b'([\x00-\x7F])+', b' ', buf)
+        return O00OOOOO00OO00OOO #line:64:return buf
+    @staticmethod #line:66:@staticmethod
+    def filter_international_words (O0O0O000O0O0O0OOO ):#line:67:def filter_international_words(buf):
+        ""#line:80:"""
+        OOO0O0OO00O0O0000 =bytearray ()#line:81:filtered = bytearray()
+        OO0OO0O0000OOO00O =re .findall (b'[a-zA-Z]*[\x80-\xFF]+[a-zA-Z]*[^a-zA-Z\x80-\xFF]?',O0O0O000O0O0O0OOO )#line:87:buf)
+        for OO0OOOOOOOO0OOOOO in OO0OO0O0000OOO00O :#line:89:for word in words:
+            OOO0O0OO00O0O0000 .extend (OO0OOOOOOOO0OOOOO [:-1 ])#line:90:filtered.extend(word[:-1])
+            OO0O00OOO0O0O0OOO =OO0OOOOOOOO0OOOOO [-1 :]#line:96:last_char = word[-1:]
+            if not OO0O00OOO0O0O0OOO .isalpha ()and OO0O00OOO0O0O0OOO <b'\x80':#line:97:if not last_char.isalpha() and last_char < b'\x80':
+                OO0O00OOO0O0O0OOO =b' '#line:98:last_char = b' '
+            OOO0O0OO00O0O0000 .extend (OO0O00OOO0O0O0OOO )#line:99:filtered.extend(last_char)
+        return OOO0O0OO00O0O0000 #line:101:return filtered
+    @staticmethod #line:103:@staticmethod
+    def filter_with_english_letters (O0O000O000O00000O ):#line:104:def filter_with_english_letters(buf):
+        ""#line:114:"""
+        OOOO00O0O0000OOO0 =bytearray ()#line:115:filtered = bytearray()
+        O000O00O0O0O00O00 =False #line:116:in_tag = False
+        O00000OOO00OOOO00 =0 #line:117:prev = 0
+        for OOOO0OO000OOOO00O in range (len (O0O000O000O00000O )):#line:119:for curr in range(len(buf)):
+            OOO0OO00OOO000OO0 =O0O000O000O00000O [OOOO0OO000OOOO00O :OOOO0OO000OOOO00O +1 ]#line:121:buf_char = buf[curr:curr + 1]
+            if OOO0OO00OOO000OO0 ==b'>':#line:123:if buf_char == b'>':
+                O000O00O0O0O00O00 =False #line:124:in_tag = False
+            elif OOO0OO00OOO000OO0 ==b'<':#line:125:elif buf_char == b'<':
+                O000O00O0O0O00O00 =True #line:126:in_tag = True
+            if OOO0OO00OOO000OO0 <b'\x80'and not OOO0OO00OOO000OO0 .isalpha ():#line:129:if buf_char < b'\x80' and not buf_char.isalpha():
+                if OOOO0OO000OOOO00O >O00000OOO00OOOO00 and not O000O00O0O0O00O00 :#line:131:if curr > prev and not in_tag:
+                    OOOO00O0O0000OOO0 .extend (O0O000O000O00000O [O00000OOO00OOOO00 :OOOO0OO000OOOO00O ])#line:134:filtered.extend(buf[prev:curr])
+                    OOOO00O0O0000OOO0 .extend (b' ')#line:136:filtered.extend(b' ')
+                O00000OOO00OOOO00 =OOOO0OO000OOOO00O +1 #line:137:prev = curr + 1
+        if not O000O00O0O0O00O00 :#line:140:if not in_tag:
+            OOOO00O0O0000OOO0 .extend (O0O000O000O00000O [O00000OOO00OOOO00 :])#line:143:filtered.extend(buf[prev:])
+        return OOOO00O0O0000OOO0 #line:145:return filtered

@@ -1,0 +1,797 @@
+""#line:6:"""PEP 376 implementation."""
+from __future__ import unicode_literals #line:8:from __future__ import unicode_literals
+import base64 #line:10:import base64
+import codecs #line:11:import codecs
+import contextlib #line:12:import contextlib
+import hashlib #line:13:import hashlib
+import logging #line:14:import logging
+import os #line:15:import os
+import posixpath #line:16:import posixpath
+import sys #line:17:import sys
+import zipimport #line:18:import zipimport
+from .import DistlibException ,resources #line:20:from . import DistlibException, resources
+from .compat import StringIO #line:21:from .compat import StringIO
+from .version import get_scheme ,UnsupportedVersionError #line:22:from .version import get_scheme, UnsupportedVersionError
+from .metadata import (Metadata ,METADATA_FILENAME ,WHEEL_METADATA_FILENAME ,LEGACY_METADATA_FILENAME )#line:24:LEGACY_METADATA_FILENAME)
+from .util import (parse_requirement ,cached_property ,parse_name_and_version ,read_exports ,write_exports ,CSVReader ,CSVWriter )#line:26:read_exports, write_exports, CSVReader, CSVWriter)
+__all__ =['Distribution','BaseInstalledDistribution','InstalledDistribution','EggInfoDistribution','DistributionPath']#line:31:'DistributionPath']
+O0O0OOOOO0O0OO000 =logging .getLogger (__name__ )#line:34:logger = logging.getLogger(__name__)
+OOOO0OO0O0OOOOOOO ='pydist-exports.json'#line:36:EXPORTS_FILENAME = 'pydist-exports.json'
+OO0O0OO0OOO00O000 ='pydist-commands.json'#line:37:COMMANDS_FILENAME = 'pydist-commands.json'
+O0OO0O0OOOO00O000 =('INSTALLER',METADATA_FILENAME ,'RECORD','REQUESTED','RESOURCES',OOOO0OO0O0OOOOOOO ,'SHARED')#line:40:'RESOURCES', EXPORTS_FILENAME, 'SHARED')
+O0O000O00O00O0OO0 ='.dist-info'#line:42:DISTINFO_EXT = '.dist-info'
+class _O00O000000OOO0OO0 (object ):#line:45:class _Cache(object):
+    ""#line:48:"""
+    def __init__ (O00O00OOOO0O00OO0 ):#line:49:def __init__(self):
+        ""#line:52:"""
+        O00O00OOOO0O00OO0 .name ={}#line:53:self.name = {}
+        O00O00OOOO0O00OO0 .path ={}#line:54:self.path = {}
+        O00O00OOOO0O00OO0 .generated =False #line:55:self.generated = False
+    def clear (OOOOO0000O0OO0OO0 ):#line:57:def clear(self):
+        ""#line:60:"""
+        OOOOO0000O0OO0OO0 .name .clear ()#line:61:self.name.clear()
+        OOOOO0000O0OO0OO0 .path .clear ()#line:62:self.path.clear()
+        OOOOO0000O0OO0OO0 .generated =False #line:63:self.generated = False
+    def add (OO0000O0O00OOOOOO ,OO000OOOOOOOO0OO0 ):#line:65:def add(self, dist):
+        ""#line:69:"""
+        if OO000OOOOOOOO0OO0 .path not in OO0000O0O00OOOOOO .path :#line:70:if dist.path not in self.path:
+            OO0000O0O00OOOOOO .path [OO000OOOOOOOO0OO0 .path ]=OO000OOOOOOOO0OO0 #line:71:self.path[dist.path] = dist
+            OO0000O0O00OOOOOO .name .setdefault (OO000OOOOOOOO0OO0 .key ,[]).append (OO000OOOOOOOO0OO0 )#line:72:self.name.setdefault(dist.key, []).append(dist)
+class DistributionPath (object ):#line:75:class DistributionPath(object):
+    ""#line:78:"""
+    def __init__ (OO00O0O0000O0OOOO ,path =None ,include_egg =False ):#line:79:def __init__(self, path=None, include_egg=False):
+        ""#line:87:"""
+        if path is None :#line:88:if path is None:
+            path =sys .path #line:89:path = sys.path
+        OO00O0O0000O0OOOO .path =path #line:90:self.path = path
+        OO00O0O0000O0OOOO ._include_dist =True #line:91:self._include_dist = True
+        OO00O0O0000O0OOOO ._include_egg =include_egg #line:92:self._include_egg = include_egg
+        OO00O0O0000O0OOOO ._cache =_O00O000000OOO0OO0 ()#line:94:self._cache = _Cache()
+        OO00O0O0000O0OOOO ._cache_egg =_O00O000000OOO0OO0 ()#line:95:self._cache_egg = _Cache()
+        OO00O0O0000O0OOOO ._cache_enabled =True #line:96:self._cache_enabled = True
+        OO00O0O0000O0OOOO ._scheme =get_scheme ('default')#line:97:self._scheme = get_scheme('default')
+    def _get_cache_enabled (OO000OO0O0O0000OO ):#line:99:def _get_cache_enabled(self):
+        return OO000OO0O0O0000OO ._cache_enabled #line:100:return self._cache_enabled
+    def _set_cache_enabled (OOOOOO0000OO0000O ,O000O00O000O00O0O ):#line:102:def _set_cache_enabled(self, value):
+        OOOOOO0000OO0000O ._cache_enabled =O000O00O000O00O0O #line:103:self._cache_enabled = value
+    cache_enabled =property (_get_cache_enabled ,_set_cache_enabled )#line:105:cache_enabled = property(_get_cache_enabled, _set_cache_enabled)
+    def clear_cache (O0O000OOO0O0O0OO0 ):#line:107:def clear_cache(self):
+        ""#line:110:"""
+        O0O000OOO0O0O0OO0 ._cache .clear ()#line:111:self._cache.clear()
+        O0O000OOO0O0O0OO0 ._cache_egg .clear ()#line:112:self._cache_egg.clear()
+    def _yield_distributions (O0O00OOO0O00OOOO0 ):#line:115:def _yield_distributions(self):
+        ""#line:118:"""
+        O000O0O0000OOO00O =set ()#line:122:seen = set()
+        for O00O0000OO0OOOOO0 in O0O00OOO0O00OOOO0 .path :#line:123:for path in self.path:
+            O0O0000O0OO00O00O =resources .finder_for_path (O00O0000OO0OOOOO0 )#line:124:finder = resources.finder_for_path(path)
+            if O0O0000O0OO00O00O is None :#line:125:if finder is None:
+                continue #line:126:continue
+            O00OOOO0O0OOOOOOO =O0O0000O0OO00O00O .find ('')#line:127:r = finder.find('')
+            if not O00OOOO0O0OOOOOOO or not O00OOOO0O0OOOOOOO .is_container :#line:128:if not r or not r.is_container:
+                continue #line:129:continue
+            O0O0O0O0O00O000O0 =sorted (O00OOOO0O0OOOOOOO .resources )#line:130:rset = sorted(r.resources)
+            for O0000OOOO0O00O0O0 in O0O0O0O0O00O000O0 :#line:131:for entry in rset:
+                O00OOOO0O0OOOOOOO =O0O0000O0OO00O00O .find (O0000OOOO0O00O0O0 )#line:132:r = finder.find(entry)
+                if not O00OOOO0O0OOOOOOO or O00OOOO0O0OOOOOOO .path in O000O0O0000OOO00O :#line:133:if not r or r.path in seen:
+                    continue #line:134:continue
+                if O0O00OOO0O00OOOO0 ._include_dist and O0000OOOO0O00O0O0 .endswith (O0O000O00O00O0OO0 ):#line:135:if self._include_dist and entry.endswith(DISTINFO_EXT):
+                    OOO00OOO0O0OOO00O =[METADATA_FILENAME ,WHEEL_METADATA_FILENAME ,LEGACY_METADATA_FILENAME ]#line:138:LEGACY_METADATA_FILENAME]
+                    for O00OOO0OOOOO00O00 in OOO00OOO0O0OOO00O :#line:139:for metadata_filename in possible_filenames:
+                        O0OO0OOOO0O0OOO0O =posixpath .join (O0000OOOO0O00O0O0 ,O00OOO0OOOOO00O00 )#line:140:metadata_path = posixpath.join(entry, metadata_filename)
+                        OOO0OO00O0000OOO0 =O0O0000O0OO00O00O .find (O0OO0OOOO0O0OOO0O )#line:141:pydist = finder.find(metadata_path)
+                        if OOO0OO00O0000OOO0 :#line:142:if pydist:
+                            break #line:143:break
+                    else :#line:144:else:
+                        continue #line:145:continue
+                    with contextlib .closing (OOO0OO00O0000OOO0 .as_stream ())as O0OO00O0OOOOOOO0O :#line:147:with contextlib.closing(pydist.as_stream()) as stream:
+                        O0OO0OO0O0O0OO0O0 =Metadata (fileobj =O0OO00O0OOOOOOO0O ,scheme ='legacy')#line:148:metadata = Metadata(fileobj=stream, scheme='legacy')
+                    O0O0OOOOO0O0OO000 .debug ('Found %s',O00OOOO0O0OOOOOOO .path )#line:149:logger.debug('Found %s', r.path)
+                    O000O0O0000OOO00O .add (O00OOOO0O0OOOOOOO .path )#line:150:seen.add(r.path)
+                    yield O00OO000000000000 (O00OOOO0O0OOOOOOO .path ,metadata =O0OO0OO0O0O0OO0O0 ,env =O0O00OOO0O00OOOO0 )#line:152:env=self)
+                elif O0O00OOO0O00OOOO0 ._include_egg and O0000OOOO0O00O0O0 .endswith (('.egg-info','.egg')):#line:154:'.egg')):
+                    O0O0OOOOO0O0OO000 .debug ('Found %s',O00OOOO0O0OOOOOOO .path )#line:155:logger.debug('Found %s', r.path)
+                    O000O0O0000OOO00O .add (O00OOOO0O0OOOOOOO .path )#line:156:seen.add(r.path)
+                    yield OOOOOO0OOOO00O0O0 (O00OOOO0O0OOOOOOO .path ,O0O00OOO0O00OOOO0 )#line:157:yield old_dist_class(r.path, self)
+    def _generate_cache (O0O0OO00OOOO00O0O ):#line:159:def _generate_cache(self):
+        ""#line:163:"""
+        OO00O0OO0OO0O0O0O =not O0O0OO00OOOO00O0O ._cache .generated #line:164:gen_dist = not self._cache.generated
+        O00OOO0OOO0OOO0OO =O0O0OO00OOOO00O0O ._include_egg and not O0O0OO00OOOO00O0O ._cache_egg .generated #line:165:gen_egg = self._include_egg and not self._cache_egg.generated
+        if OO00O0OO0OO0O0O0O or O00OOO0OOO0OOO0OO :#line:166:if gen_dist or gen_egg:
+            for OO00OOO000OO000OO in O0O0OO00OOOO00O0O ._yield_distributions ():#line:167:for dist in self._yield_distributions():
+                if isinstance (OO00OOO000OO000OO ,InstalledDistribution ):#line:168:if isinstance(dist, InstalledDistribution):
+                    O0O0OO00OOOO00O0O ._cache .add (OO00OOO000OO000OO )#line:169:self._cache.add(dist)
+                else :#line:170:else:
+                    O0O0OO00OOOO00O0O ._cache_egg .add (OO00OOO000OO000OO )#line:171:self._cache_egg.add(dist)
+            if OO00O0OO0OO0O0O0O :#line:173:if gen_dist:
+                O0O0OO00OOOO00O0O ._cache .generated =True #line:174:self._cache.generated = True
+            if O00OOO0OOO0OOO0OO :#line:175:if gen_egg:
+                O0O0OO00OOOO00O0O ._cache_egg .generated =True #line:176:self._cache_egg.generated = True
+    @classmethod #line:178:@classmethod
+    def distinfo_dirname (O0000O000O0O0O000 ,O00OO0O0OOOO0O000 ,OOOO00O0O00OOO0OO ):#line:179:def distinfo_dirname(cls, name, version):
+        ""#line:196::rtype: string"""
+        O00OO0O0OOOO0O000 =O00OO0O0OOOO0O000 .replace ('-','_')#line:197:name = name.replace('-', '_')
+        return '-'.join ([O00OO0O0OOOO0O000 ,OOOO00O0O00OOO0OO ])+O0O000O00O00O0OO0 #line:198:return '-'.join([name, version]) + DISTINFO_EXT
+    def get_distributions (OOO00O0O00O0O00OO ):#line:200:def get_distributions(self):
+        ""#line:208:"""
+        if not OOO00O0O00O0O00OO ._cache_enabled :#line:209:if not self._cache_enabled:
+            for OOO00O0OO00OO000O in OOO00O0O00O0O00OO ._yield_distributions ():#line:210:for dist in self._yield_distributions():
+                yield OOO00O0OO00OO000O #line:211:yield dist
+        else :#line:212:else:
+            OOO00O0O00O0O00OO ._generate_cache ()#line:213:self._generate_cache()
+            for OOO00O0OO00OO000O in OOO00O0O00O0O00OO ._cache .path .values ():#line:215:for dist in self._cache.path.values():
+                yield OOO00O0OO00OO000O #line:216:yield dist
+            if OOO00O0O00O0O00OO ._include_egg :#line:218:if self._include_egg:
+                for OOO00O0OO00OO000O in OOO00O0O00O0O00OO ._cache_egg .path .values ():#line:219:for dist in self._cache_egg.path.values():
+                    yield OOO00O0OO00OO000O #line:220:yield dist
+    def get_distribution (OO00OOOOO0OO00OO0 ,O0O00OO0O0OO0OO00 ):#line:222:def get_distribution(self, name):
+        ""#line:231:"""
+        OO0O00O00O0O0O000 =None #line:232:result = None
+        O0O00OO0O0OO0OO00 =O0O00OO0O0OO0OO00 .lower ()#line:233:name = name.lower()
+        if not OO00OOOOO0OO00OO0 ._cache_enabled :#line:234:if not self._cache_enabled:
+            for O00O00O0O000O00O0 in OO00OOOOO0OO00OO0 ._yield_distributions ():#line:235:for dist in self._yield_distributions():
+                if O00O00O0O000O00O0 .key ==O0O00OO0O0OO0OO00 :#line:236:if dist.key == name:
+                    OO0O00O00O0O0O000 =O00O00O0O000O00O0 #line:237:result = dist
+                    break #line:238:break
+        else :#line:239:else:
+            OO00OOOOO0OO00OO0 ._generate_cache ()#line:240:self._generate_cache()
+            if O0O00OO0O0OO0OO00 in OO00OOOOO0OO00OO0 ._cache .name :#line:242:if name in self._cache.name:
+                OO0O00O00O0O0O000 =OO00OOOOO0OO00OO0 ._cache .name [O0O00OO0O0OO0OO00 ][0 ]#line:243:result = self._cache.name[name][0]
+            elif OO00OOOOO0OO00OO0 ._include_egg and O0O00OO0O0OO0OO00 in OO00OOOOO0OO00OO0 ._cache_egg .name :#line:244:elif self._include_egg and name in self._cache_egg.name:
+                OO0O00O00O0O0O000 =OO00OOOOO0OO00OO0 ._cache_egg .name [O0O00OO0O0OO0OO00 ][0 ]#line:245:result = self._cache_egg.name[name][0]
+        return OO0O00O00O0O0O000 #line:246:return result
+    def provides_distribution (O000O0OO0000O00O0 ,OOO0OOO0O0O00000O ,version =None ):#line:248:def provides_distribution(self, name, version=None):
+        ""#line:261:"""
+        O0O00OOOO0O0OO00O =None #line:262:matcher = None
+        if version is not None :#line:263:if version is not None:
+            try :#line:264:try:
+                O0O00OOOO0O0OO00O =O000O0OO0000O00O0 ._scheme .matcher ('%s (%s)'%(OOO0OOO0O0O00000O ,version ))#line:265:matcher = self._scheme.matcher('%s (%s)' % (name, version))
+            except ValueError :#line:266:except ValueError:
+                raise DistlibException ('invalid name or version: %r, %r'%(OOO0OOO0O0O00000O ,version ))#line:268:(name, version))
+        for O00O000OO0OOO00O0 in O000O0OO0000O00O0 .get_distributions ():#line:270:for dist in self.get_distributions():
+            if not hasattr (O00O000OO0OOO00O0 ,'provides'):#line:273:if not hasattr(dist, 'provides'):
+                O0O0OOOOO0O0OO000 .debug ('No "provides": %s',O00O000OO0OOO00O0 )#line:274:logger.debug('No "provides": %s', dist)
+            else :#line:275:else:
+                OOOO00OO000OO0000 =O00O000OO0OOO00O0 .provides #line:276:provided = dist.provides
+                for OO000O0O000OOO0O0 in OOOO00OO000OO0000 :#line:278:for p in provided:
+                    OO000OOOOO00OOOO0 ,O00O0O00O0O00OO0O =parse_name_and_version (OO000O0O000OOO0O0 )#line:279:p_name, p_ver = parse_name_and_version(p)
+                    if O0O00OOOO0O0OO00O is None :#line:280:if matcher is None:
+                        if OO000OOOOO00OOOO0 ==OOO0OOO0O0O00000O :#line:281:if p_name == name:
+                            yield O00O000OO0OOO00O0 #line:282:yield dist
+                            break #line:283:break
+                    else :#line:284:else:
+                        if OO000OOOOO00OOOO0 ==OOO0OOO0O0O00000O and O0O00OOOO0O0OO00O .match (O00O0O00O0O00OO0O ):#line:285:if p_name == name and matcher.match(p_ver):
+                            yield O00O000OO0OOO00O0 #line:286:yield dist
+                            break #line:287:break
+    def get_file_path (O00OOOOO0OO0OOOO0 ,OOOO000O0O000O000 ,O00O0000O00OO00O0 ):#line:289:def get_file_path(self, name, relative_path):
+        ""#line:292:"""
+        O00OO0000OOOO00OO =O00OOOOO0OO0OOOO0 .get_distribution (OOOO000O0O000O000 )#line:293:dist = self.get_distribution(name)
+        if O00OO0000OOOO00OO is None :#line:294:if dist is None:
+            raise LookupError ('no distribution named %r found'%OOOO000O0O000O000 )#line:295:raise LookupError('no distribution named %r found' % name)
+        return O00OO0000OOOO00OO .get_resource_path (O00O0000O00OO00O0 )#line:296:return dist.get_resource_path(relative_path)
+    def get_exported_entries (O0O0O00OO0000O0OO ,OO0O0O0OO00O0O00O ,name =None ):#line:298:def get_exported_entries(self, category, name=None):
+        ""#line:304:"""
+        for OOOO0O0OOOO0O0O00 in O0O0O00OO0000O0OO .get_distributions ():#line:305:for dist in self.get_distributions():
+            O0OOOOOOOO0O0OOOO =OOOO0O0OOOO0O0O00 .exports #line:306:r = dist.exports
+            if OO0O0O0OO00O0O00O in O0OOOOOOOO0O0OOOO :#line:307:if category in r:
+                O00O0OO0OO00OO0O0 =O0OOOOOOOO0O0OOOO [OO0O0O0OO00O0O00O ]#line:308:d = r[category]
+                if name is not None :#line:309:if name is not None:
+                    if name in O00O0OO0OO00OO0O0 :#line:310:if name in d:
+                        yield O00O0OO0OO00OO0O0 [name ]#line:311:yield d[name]
+                else :#line:312:else:
+                    for O0O000000000000O0 in O00O0OO0OO00OO0O0 .values ():#line:313:for v in d.values():
+                        yield O0O000000000000O0 #line:314:yield v
+class Distribution (object ):#line:317:class Distribution(object):
+    ""#line:322:"""
+    build_time_dependency =False #line:324:build_time_dependency = False
+    """
+    Set to True if it's known to be only a build-time dependency (i.e.
+    not needed after installation).
+    """#line:328:"""
+    requested =False #line:330:requested = False
+    """A boolean that indicates whether the ``REQUESTED`` metadata file is
+    present (in other words, whether the package was installed by user
+    request or it was installed as a dependency)."""#line:333:request or it was installed as a dependency)."""
+    def __init__ (O0O0OO0OOOO00OOOO ,OOOOOOO0OOOOOO00O ):#line:335:def __init__(self, metadata):
+        ""#line:340:"""
+        O0O0OO0OOOO00OOOO .metadata =OOOOOOO0OOOOOO00O #line:341:self.metadata = metadata
+        O0O0OO0OOOO00OOOO .name =OOOOOOO0OOOOOO00O .name #line:342:self.name = metadata.name
+        O0O0OO0OOOO00OOOO .key =O0O0OO0OOOO00OOOO .name .lower ()#line:343:self.key = self.name.lower()    # for case-insensitive comparisons
+        O0O0OO0OOOO00OOOO .version =OOOOOOO0OOOOOO00O .version #line:344:self.version = metadata.version
+        O0O0OO0OOOO00OOOO .locator =None #line:345:self.locator = None
+        O0O0OO0OOOO00OOOO .digest =None #line:346:self.digest = None
+        O0O0OO0OOOO00OOOO .extras =None #line:347:self.extras = None      # additional features requested
+        O0O0OO0OOOO00OOOO .context =None #line:348:self.context = None     # environment marker overrides
+        O0O0OO0OOOO00OOOO .download_urls =set ()#line:349:self.download_urls = set()
+        O0O0OO0OOOO00OOOO .digests ={}#line:350:self.digests = {}
+    @property #line:352:@property
+    def source_url (OOOOOOO00OO00OO00 ):#line:353:def source_url(self):
+        ""#line:356:"""
+        return OOOOOOO00OO00OO00 .metadata .source_url #line:357:return self.metadata.source_url
+    download_url =source_url #line:359:download_url = source_url   # Backward compatibility
+    @property #line:361:@property
+    def name_and_version (OO0O0000O00OOOO00 ):#line:362:def name_and_version(self):
+        ""#line:365:"""
+        return '%s (%s)'%(OO0O0000O00OOOO00 .name ,OO0O0000O00OOOO00 .version )#line:366:return '%s (%s)' % (self.name, self.version)
+    @property #line:368:@property
+    def provides (OOO0O0000OOOOOOOO ):#line:369:def provides(self):
+        ""#line:373:"""
+        O0O000O0O00O00O00 =OOO0O0000OOOOOOOO .metadata .provides #line:374:plist = self.metadata.provides
+        O0OOO0OOOOOO00OO0 ='%s (%s)'%(OOO0O0000OOOOOOOO .name ,OOO0O0000OOOOOOOO .version )#line:375:s = '%s (%s)' % (self.name, self.version)
+        if O0OOO0OOOOOO00OO0 not in O0O000O0O00O00O00 :#line:376:if s not in plist:
+            O0O000O0O00O00O00 .append (O0OOO0OOOOOO00OO0 )#line:377:plist.append(s)
+        return O0O000O0O00O00O00 #line:378:return plist
+    def _get_requirements (O000OO0O00O0OO0O0 ,O0O00O0OOOO000000 ):#line:380:def _get_requirements(self, req_attr):
+        OOOOOOO0O00000O00 =O000OO0O00O0OO0O0 .metadata #line:381:md = self.metadata
+        O0O0OOOOO0O0OO000 .debug ('Getting requirements from metadata %r',OOOOOOO0O00000O00 .todict ())#line:382:logger.debug('Getting requirements from metadata %r', md.todict())
+        OOOO0000O0OOO0OOO =getattr (OOOOOOO0O00000O00 ,O0O00O0OOOO000000 )#line:383:reqts = getattr(md, req_attr)
+        return set (OOOOOOO0O00000O00 .get_requirements (OOOO0000O0OOO0OOO ,extras =O000OO0O00O0OO0O0 .extras ,env =O000OO0O00O0OO0O0 .context ))#line:385:env=self.context))
+    @property #line:387:@property
+    def run_requires (O0O0OOOO0OOO000OO ):#line:388:def run_requires(self):
+        return O0O0OOOO0OOO000OO ._get_requirements ('run_requires')#line:389:return self._get_requirements('run_requires')
+    @property #line:391:@property
+    def meta_requires (O00OOOO0OOO0O00OO ):#line:392:def meta_requires(self):
+        return O00OOOO0OOO0O00OO ._get_requirements ('meta_requires')#line:393:return self._get_requirements('meta_requires')
+    @property #line:395:@property
+    def build_requires (OOO0OO00O0OOOO00O ):#line:396:def build_requires(self):
+        return OOO0OO00O0OOOO00O ._get_requirements ('build_requires')#line:397:return self._get_requirements('build_requires')
+    @property #line:399:@property
+    def test_requires (OOO00OO00O00O0OOO ):#line:400:def test_requires(self):
+        return OOO00OO00O00O0OOO ._get_requirements ('test_requires')#line:401:return self._get_requirements('test_requires')
+    @property #line:403:@property
+    def dev_requires (O0000OOO0OO000O00 ):#line:404:def dev_requires(self):
+        return O0000OOO0OO000O00 ._get_requirements ('dev_requires')#line:405:return self._get_requirements('dev_requires')
+    def matches_requirement (O00O0O00O000OO00O ,O0OO0000OO0O0O000 ):#line:407:def matches_requirement(self, req):
+        ""#line:413:"""
+        O0OOOOO0O0O00OO0O =parse_requirement (O0OO0000OO0O0O000 )#line:416:r = parse_requirement(req)
+        O0OOOO0OOOO00OOO0 =get_scheme (O00O0O00O000OO00O .metadata .scheme )#line:417:scheme = get_scheme(self.metadata.scheme)
+        try :#line:418:try:
+            OO00O0O00OOOOOOO0 =O0OOOO0OOOO00OOO0 .matcher (O0OOOOO0O0O00OO0O .requirement )#line:419:matcher = scheme.matcher(r.requirement)
+        except UnsupportedVersionError :#line:420:except UnsupportedVersionError:
+            O0O0OOOOO0O0OO000 .warning ('could not read version %r - using name only',O0OO0000OO0O0O000 )#line:423:req)
+            OO0OOO0OO0O000O0O =O0OO0000OO0O0O000 .split ()[0 ]#line:424:name = req.split()[0]
+            OO00O0O00OOOOOOO0 =O0OOOO0OOOO00OOO0 .matcher (OO0OOO0OO0O000O0O )#line:425:matcher = scheme.matcher(name)
+        OO0OOO0OO0O000O0O =OO00O0O00OOOOOOO0 .key #line:427:name = matcher.key   # case-insensitive
+        OO0OOO00O0O0OOOOO =False #line:429:result = False
+        for O0OO0O00000OO00OO in O00O0O00O000OO00O .provides :#line:430:for p in self.provides:
+            O0O0O0OO0O00OO0O0 ,O0OO000000OOO0000 =parse_name_and_version (O0OO0O00000OO00OO )#line:431:p_name, p_ver = parse_name_and_version(p)
+            if O0O0O0OO0O00OO0O0 !=OO0OOO0OO0O000O0O :#line:432:if p_name != name:
+                continue #line:433:continue
+            try :#line:434:try:
+                OO0OOO00O0O0OOOOO =OO00O0O00OOOOOOO0 .match (O0OO000000OOO0000 )#line:435:result = matcher.match(p_ver)
+                break #line:436:break
+            except UnsupportedVersionError :#line:437:except UnsupportedVersionError:
+                pass #line:438:pass
+        return OO0OOO00O0O0OOOOO #line:439:return result
+    def __repr__ (OO0O0OOO000000O0O ):#line:441:def __repr__(self):
+        ""#line:444:"""
+        if OO0O0OOO000000O0O .source_url :#line:445:if self.source_url:
+            OOO00O000OOO0OOO0 =' [%s]'%OO0O0OOO000000O0O .source_url #line:446:suffix = ' [%s]' % self.source_url
+        else :#line:447:else:
+            OOO00O000OOO0OOO0 =''#line:448:suffix = ''
+        return '<Distribution %s (%s)%s>'%(OO0O0OOO000000O0O .name ,OO0O0OOO000000O0O .version ,OOO00O000OOO0OOO0 )#line:449:return '<Distribution %s (%s)%s>' % (self.name, self.version, suffix)
+    def __eq__ (OO0OOOO0O00O00000 ,OO0O0OO0O000O0O0O ):#line:451:def __eq__(self, other):
+        ""#line:458:"""
+        if type (OO0O0OO0O000O0O0O )is not type (OO0OOOO0O00O00000 ):#line:459:if type(other) is not type(self):
+            OO0OO000O00O0000O =False #line:460:result = False
+        else :#line:461:else:
+            OO0OO000O00O0000O =(OO0OOOO0O00O00000 .name ==OO0O0OO0O000O0O0O .name and OO0OOOO0O00O00000 .version ==OO0O0OO0O000O0O0O .version and OO0OOOO0O00O00000 .source_url ==OO0O0OO0O000O0O0O .source_url )#line:464:self.source_url == other.source_url)
+        return OO0OO000O00O0000O #line:465:return result
+    def __hash__ (OOOO0OO00OOO0O0OO ):#line:467:def __hash__(self):
+        ""#line:470:"""
+        return hash (OOOO0OO00OOO0O0OO .name )+hash (OOOO0OO00OOO0O0OO .version )+hash (OOOO0OO00OOO0O0OO .source_url )#line:471:return hash(self.name) + hash(self.version) + hash(self.source_url)
+class BaseInstalledDistribution (Distribution ):#line:474:class BaseInstalledDistribution(Distribution):
+    ""#line:478:"""
+    hasher =None #line:480:hasher = None
+    def __init__ (OOOO0O00OO0O0OO0O ,OO0000000O0000O00 ,OOO00O000O00OOO00 ,env =None ):#line:482:def __init__(self, metadata, path, env=None):
+        ""#line:492:"""
+        super (BaseInstalledDistribution ,OOOO0O00OO0O0OO0O ).__init__ (OO0000000O0000O00 )#line:493:super(BaseInstalledDistribution, self).__init__(metadata)
+        OOOO0O00OO0O0OO0O .path =OOO00O000O00OOO00 #line:494:self.path = path
+        OOOO0O00OO0O0OO0O .dist_path =env #line:495:self.dist_path = env
+    def get_hash (OO0O0O0OOOOOO0OO0 ,OOOO0O0OO0OO000OO ,hasher =None ):#line:497:def get_hash(self, data, hasher=None):
+        ""#line:515:"""
+        if hasher is None :#line:516:if hasher is None:
+            hasher =OO0O0O0OOOOOO0OO0 .hasher #line:517:hasher = self.hasher
+        if hasher is None :#line:518:if hasher is None:
+            hasher =hashlib .md5 #line:519:hasher = hashlib.md5
+            O000O000OO0O0OO0O =''#line:520:prefix = ''
+        else :#line:521:else:
+            hasher =getattr (hashlib ,hasher )#line:522:hasher = getattr(hashlib, hasher)
+            O000O000OO0O0OO0O ='%s='%OO0O0O0OOOOOO0OO0 .hasher #line:523:prefix = '%s=' % self.hasher
+        OO0000000O00OOO00 =hasher (OOOO0O0OO0OO000OO ).digest ()#line:524:digest = hasher(data).digest()
+        OO0000000O00OOO00 =base64 .urlsafe_b64encode (OO0000000O00OOO00 ).rstrip (b'=').decode ('ascii')#line:525:digest = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
+        return '%s%s'%(O000O000OO0O0OO0O ,OO0000000O00OOO00 )#line:526:return '%s%s' % (prefix, digest)
+class InstalledDistribution (BaseInstalledDistribution ):#line:529:class InstalledDistribution(BaseInstalledDistribution):
+    ""#line:535:"""
+    hasher ='sha256'#line:537:hasher = 'sha256'
+    def __init__ (OO00OO00O00000O00 ,OOO0OO0OO0OOOO00O ,metadata =None ,env =None ):#line:539:def __init__(self, path, metadata=None, env=None):
+        OO00OO00O00000O00 .modules =[]#line:540:self.modules = []
+        OO00OO00O00000O00 .finder =O00O000OO00OO0O0O =resources .finder_for_path (OOO0OO0OO0OOOO00O )#line:541:self.finder = finder = resources.finder_for_path(path)
+        if O00O000OO00OO0O0O is None :#line:542:if finder is None:
+            raise ValueError ('finder unavailable for %s'%OOO0OO0OO0OOOO00O )#line:543:raise ValueError('finder unavailable for %s' % path)
+        if env and env ._cache_enabled and OOO0OO0OO0OOOO00O in env ._cache .path :#line:544:if env and env._cache_enabled and path in env._cache.path:
+            metadata =env ._cache .path [OOO0OO0OO0OOOO00O ].metadata #line:545:metadata = env._cache.path[path].metadata
+        elif metadata is None :#line:546:elif metadata is None:
+            OOO000OOO0O0O0OOO =O00O000OO00OO0O0O .find (METADATA_FILENAME )#line:547:r = finder.find(METADATA_FILENAME)
+            if OOO000OOO0O0O0OOO is None :#line:549:if r is None:
+                OOO000OOO0O0O0OOO =O00O000OO00OO0O0O .find (WHEEL_METADATA_FILENAME )#line:550:r = finder.find(WHEEL_METADATA_FILENAME)
+            if OOO000OOO0O0O0OOO is None :#line:552:if r is None:
+                OOO000OOO0O0O0OOO =O00O000OO00OO0O0O .find ('METADATA')#line:553:r = finder.find('METADATA')
+            if OOO000OOO0O0O0OOO is None :#line:554:if r is None:
+                raise ValueError ('no %s found in %s'%(METADATA_FILENAME ,OOO0OO0OO0OOOO00O ))#line:556:path))
+            with contextlib .closing (OOO000OOO0O0O0OOO .as_stream ())as O0000OOO0OO000O0O :#line:557:with contextlib.closing(r.as_stream()) as stream:
+                metadata =Metadata (fileobj =O0000OOO0OO000O0O ,scheme ='legacy')#line:558:metadata = Metadata(fileobj=stream, scheme='legacy')
+        super (InstalledDistribution ,OO00OO00O00000O00 ).__init__ (metadata ,OOO0OO0OO0OOOO00O ,env )#line:560:super(InstalledDistribution, self).__init__(metadata, path, env)
+        if env and env ._cache_enabled :#line:562:if env and env._cache_enabled:
+            env ._cache .add (OO00OO00O00000O00 )#line:563:env._cache.add(self)
+        OOO000OOO0O0O0OOO =O00O000OO00OO0O0O .find ('REQUESTED')#line:565:r = finder.find('REQUESTED')
+        OO00OO00O00000O00 .requested =OOO000OOO0O0O0OOO is not None #line:566:self.requested = r is not None
+        O0OOO0OO00O0OOOO0 =os .path .join (OOO0OO0OO0OOOO00O ,'top_level.txt')#line:567:p  = os.path.join(path, 'top_level.txt')
+        if os .path .exists (O0OOO0OO00O0OOOO0 ):#line:568:if os.path.exists(p):
+            with open (O0OOO0OO00O0OOOO0 ,'rb')as OOO00000OO0O0O0OO :#line:569:with open(p, 'rb') as f:
+                OOOO0000OO000000O =OOO00000OO0O0O0OO .read ()#line:570:data = f.read()
+            OO00OO00O00000O00 .modules =OOOO0000OO000000O .splitlines ()#line:571:self.modules = data.splitlines()
+    def __repr__ (OOO0OO0OOOO000O00 ):#line:573:def __repr__(self):
+        return '<InstalledDistribution %r %s at %r>'%(OOO0OO0OOOO000O00 .name ,OOO0OO0OOOO000O00 .version ,OOO0OO0OOOO000O00 .path )#line:575:self.name, self.version, self.path)
+    def __str__ (OOO0O0OOO00000O0O ):#line:577:def __str__(self):
+        return "%s %s"%(OOO0O0OOO00000O0O .name ,OOO0O0OOO00000O0O .version )#line:578:return "%s %s" % (self.name, self.version)
+    def _get_records (OO0O00OO0OO000O0O ):#line:580:def _get_records(self):
+        ""#line:586:"""
+        O0OO000OO00O00000 =[]#line:587:results = []
+        OO00O0O00O000OO0O =OO0O00OO0OO000O0O .get_distinfo_resource ('RECORD')#line:588:r = self.get_distinfo_resource('RECORD')
+        with contextlib .closing (OO00O0O00O000OO0O .as_stream ())as OOO0O0O000000O0OO :#line:589:with contextlib.closing(r.as_stream()) as stream:
+            with CSVReader (stream =OOO0O0O000000O0OO )as O0OO00O0OO000000O :#line:590:with CSVReader(stream=stream) as record_reader:
+                for O000O0O00000O0OOO in O0OO00O0OO000000O :#line:594:for row in record_reader:
+                    O00O00OO0OOOO0000 =[None for O000O000OO00OOO0O in range (len (O000O0O00000O0OOO ),3 )]#line:595:missing = [None for i in range(len(row), 3)]
+                    OOOO000000OOOO000 ,OO000000O0000O0O0 ,O000OO0O00O0O0OO0 =O000O0O00000O0OOO +O00O00OO0OOOO0000 #line:596:path, checksum, size = row + missing
+                    O0OO000OO00O00000 .append ((OOOO000000OOOO000 ,OO000000O0000O0O0 ,O000OO0O00O0O0OO0 ))#line:600:results.append((path, checksum, size))
+        return O0OO000OO00O00000 #line:601:return results
+    @cached_property #line:603:@cached_property
+    def exports (O00OO0OOOO0OOO000 ):#line:604:def exports(self):
+        ""#line:610:"""
+        OO0O0O00000000OOO ={}#line:611:result = {}
+        OO0OO0O000O0OO00O =O00OO0OOOO0OOO000 .get_distinfo_resource (OOOO0OO0O0OOOOOOO )#line:612:r = self.get_distinfo_resource(EXPORTS_FILENAME)
+        if OO0OO0O000O0OO00O :#line:613:if r:
+            OO0O0O00000000OOO =O00OO0OOOO0OOO000 .read_exports ()#line:614:result = self.read_exports()
+        return OO0O0O00000000OOO #line:615:return result
+    def read_exports (O00000OO0O0O0O000 ):#line:617:def read_exports(self):
+        ""#line:624:"""
+        OOO0O00OOO00OOOO0 ={}#line:625:result = {}
+        O00O00O0O000O00OO =O00000OO0O0O0O000 .get_distinfo_resource (OOOO0OO0O0OOOOOOO )#line:626:r = self.get_distinfo_resource(EXPORTS_FILENAME)
+        if O00O00O0O000O00OO :#line:627:if r:
+            with contextlib .closing (O00O00O0O000O00OO .as_stream ())as O00OO00OO000O0O0O :#line:628:with contextlib.closing(r.as_stream()) as stream:
+                OOO0O00OOO00OOOO0 =read_exports (O00OO00OO000O0O0O )#line:629:result = read_exports(stream)
+        return OOO0O00OOO00OOOO0 #line:630:return result
+    def write_exports (OOOO0OO00OOO0OO00 ,O0O0O0O00OOOO0OO0 ):#line:632:def write_exports(self, exports):
+        ""#line:638:"""
+        O0OOOOOO00000OOOO =OOOO0OO00OOO0OO00 .get_distinfo_file (OOOO0OO0O0OOOOOOO )#line:639:rf = self.get_distinfo_file(EXPORTS_FILENAME)
+        with open (O0OOOOOO00000OOOO ,'w')as O00OOOOO00O0000OO :#line:640:with open(rf, 'w') as f:
+            write_exports (O0O0O0O00OOOO0OO0 ,O00OOOOO00O0000OO )#line:641:write_exports(exports, f)
+    def get_resource_path (OOO0O000OO0OO00O0 ,OO0O000OO0OO0O00O ):#line:643:def get_resource_path(self, relative_path):
+        ""#line:653:"""
+        OO00O00000000O0O0 =OOO0O000OO0OO00O0 .get_distinfo_resource ('RESOURCES')#line:654:r = self.get_distinfo_resource('RESOURCES')
+        with contextlib .closing (OO00O00000000O0O0 .as_stream ())as OOOOOO0000OO00000 :#line:655:with contextlib.closing(r.as_stream()) as stream:
+            with CSVReader (stream =OOOOOO0000OO00000 )as OO000OO0000O0OOO0 :#line:656:with CSVReader(stream=stream) as resources_reader:
+                for O0OO00OO00O0000O0 ,O00000O0O0O00OO0O in OO000OO0000O0OOO0 :#line:657:for relative, destination in resources_reader:
+                    if O0OO00OO00O0000O0 ==OO0O000OO0OO0O00O :#line:658:if relative == relative_path:
+                        return O00000O0O0O00OO0O #line:659:return destination
+        raise KeyError ('no resource file with relative path %r ' 'is installed'%OO0O000OO0OO0O00O )#line:661:'is installed' % relative_path)
+    def list_installed_files (OO0000O0000OO00OO ):#line:663:def list_installed_files(self):
+        ""#line:669:"""
+        for O0O0OOOO00OO00OOO in OO0000O0000OO00OO ._get_records ():#line:670:for result in self._get_records():
+            yield O0O0OOOO00OO00OOO #line:671:yield result
+    def write_installed_files (OO0OO0OO0O0OOOOOO ,OO00O000OO00OO0OO ,OO0O000O000OOOO0O ,dry_run =False ):#line:673:def write_installed_files(self, paths, prefix, dry_run=False):
+        ""#line:679:"""
+        OO0O000O000OOOO0O =os .path .join (OO0O000O000OOOO0O ,'')#line:680:prefix = os.path.join(prefix, '')
+        O00O0OOOOO00OOO0O =os .path .dirname (OO0OO0OO0O0OOOOOO .path )#line:681:base = os.path.dirname(self.path)
+        OOO00O0OO0O00OO00 =O00O0OOOOO00OOO0O .startswith (OO0O000O000OOOO0O )#line:682:base_under_prefix = base.startswith(prefix)
+        O00O0OOOOO00OOO0O =os .path .join (O00O0OOOOO00OOO0O ,'')#line:683:base = os.path.join(base, '')
+        O00OO00O0OOO00O0O =OO0OO0OO0O0OOOOOO .get_distinfo_file ('RECORD')#line:684:record_path = self.get_distinfo_file('RECORD')
+        O0O0OOOOO0O0OO000 .info ('creating %s',O00OO00O0OOO00O0O )#line:685:logger.info('creating %s', record_path)
+        if dry_run :#line:686:if dry_run:
+            return None #line:687:return None
+        with CSVWriter (O00OO00O0OOO00O0O )as O00OO0O0OOO000OO0 :#line:688:with CSVWriter(record_path) as writer:
+            for OO0OOO00OO00O0O00 in OO00O000OO00OO0OO :#line:689:for path in paths:
+                if os .path .isdir (OO0OOO00OO00O0O00 )or OO0OOO00OO00O0O00 .endswith (('.pyc','.pyo')):#line:690:if os.path.isdir(path) or path.endswith(('.pyc', '.pyo')):
+                    OO00000OOO0O0O0O0 =O00000O0O000OO0O0 =''#line:692:hash_value = size = ''
+                else :#line:693:else:
+                    O00000O0O000OO0O0 ='%d'%os .path .getsize (OO0OOO00OO00O0O00 )#line:694:size = '%d' % os.path.getsize(path)
+                    with open (OO0OOO00OO00O0O00 ,'rb')as O00OO00000O0OO000 :#line:695:with open(path, 'rb') as fp:
+                        OO00000OOO0O0O0O0 =OO0OO0OO0O0OOOOOO .get_hash (O00OO00000O0OO000 .read ())#line:696:hash_value = self.get_hash(fp.read())
+                if OO0OOO00OO00O0O00 .startswith (O00O0OOOOO00OOO0O )or (OOO00O0OO0O00OO00 and OO0OOO00OO00O0O00 .startswith (OO0O000O000OOOO0O )):#line:698:path.startswith(prefix)):
+                    OO0OOO00OO00O0O00 =os .path .relpath (OO0OOO00OO00O0O00 ,O00O0OOOOO00OOO0O )#line:699:path = os.path.relpath(path, base)
+                O00OO0O0OOO000OO0 .writerow ((OO0OOO00OO00O0O00 ,OO00000OOO0O0O0O0 ,O00000O0O000OO0O0 ))#line:700:writer.writerow((path, hash_value, size))
+            if O00OO00O0OOO00O0O .startswith (O00O0OOOOO00OOO0O ):#line:703:if record_path.startswith(base):
+                O00OO00O0OOO00O0O =os .path .relpath (O00OO00O0OOO00O0O ,O00O0OOOOO00OOO0O )#line:704:record_path = os.path.relpath(record_path, base)
+            O00OO0O0OOO000OO0 .writerow ((O00OO00O0OOO00O0O ,'',''))#line:705:writer.writerow((record_path, '', ''))
+        return O00OO00O0OOO00O0O #line:706:return record_path
+    def check_installed_files (OO000O00O00OO0000 ):#line:708:def check_installed_files(self):
+        ""#line:716:"""
+        OOO0O0O0OOO00OO00 =[]#line:717:mismatches = []
+        OOO00O000OO000OOO =os .path .dirname (OO000O00O00OO0000 .path )#line:718:base = os.path.dirname(self.path)
+        O0O00OO000O0OOO00 =OO000O00O00OO0000 .get_distinfo_file ('RECORD')#line:719:record_path = self.get_distinfo_file('RECORD')
+        for O00OO00000O0OO0OO ,OOOO0O0OO0O0O00O0 ,O00000O0O00OOOO0O in OO000O00O00OO0000 .list_installed_files ():#line:720:for path, hash_value, size in self.list_installed_files():
+            if not os .path .isabs (O00OO00000O0OO0OO ):#line:721:if not os.path.isabs(path):
+                O00OO00000O0OO0OO =os .path .join (OOO00O000OO000OOO ,O00OO00000O0OO0OO )#line:722:path = os.path.join(base, path)
+            if O00OO00000O0OO0OO ==O0O00OO000O0OOO00 :#line:723:if path == record_path:
+                continue #line:724:continue
+            if not os .path .exists (O00OO00000O0OO0OO ):#line:725:if not os.path.exists(path):
+                OOO0O0O0OOO00OO00 .append ((O00OO00000O0OO0OO ,'exists',True ,False ))#line:726:mismatches.append((path, 'exists', True, False))
+            elif os .path .isfile (O00OO00000O0OO0OO ):#line:727:elif os.path.isfile(path):
+                OOOOO00OOO000O0OO =str (os .path .getsize (O00OO00000O0OO0OO ))#line:728:actual_size = str(os.path.getsize(path))
+                if O00000O0O00OOOO0O and OOOOO00OOO000O0OO !=O00000O0O00OOOO0O :#line:729:if size and actual_size != size:
+                    OOO0O0O0OOO00OO00 .append ((O00OO00000O0OO0OO ,'size',O00000O0O00OOOO0O ,OOOOO00OOO000O0OO ))#line:730:mismatches.append((path, 'size', size, actual_size))
+                elif OOOO0O0OO0O0O00O0 :#line:731:elif hash_value:
+                    if '='in OOOO0O0OO0O0O00O0 :#line:732:if '=' in hash_value:
+                        O00000OO0OO00O00O =OOOO0O0OO0O0O00O0 .split ('=',1 )[0 ]#line:733:hasher = hash_value.split('=', 1)[0]
+                    else :#line:734:else:
+                        O00000OO0OO00O00O =None #line:735:hasher = None
+                    with open (O00OO00000O0OO0OO ,'rb')as O000OO0O00O0OOO00 :#line:737:with open(path, 'rb') as f:
+                        O000O000O00000OO0 =OO000O00O00OO0000 .get_hash (O000OO0O00O0OOO00 .read (),O00000OO0OO00O00O )#line:738:actual_hash = self.get_hash(f.read(), hasher)
+                        if O000O000O00000OO0 !=OOOO0O0OO0O0O00O0 :#line:739:if actual_hash != hash_value:
+                            OOO0O0O0OOO00OO00 .append ((O00OO00000O0OO0OO ,'hash',OOOO0O0OO0O0O00O0 ,O000O000O00000OO0 ))#line:740:mismatches.append((path, 'hash', hash_value, actual_hash))
+        return OOO0O0O0OOO00OO00 #line:741:return mismatches
+    @cached_property #line:743:@cached_property
+    def shared_locations (O0O0O00O00O0O0O00 ):#line:744:def shared_locations(self):
+        ""#line:756:"""
+        OOOO0000OO0OO0OOO ={}#line:757:result = {}
+        OOOO000O000OOO00O =os .path .join (O0O0O00O00O0O0O00 .path ,'SHARED')#line:758:shared_path = os.path.join(self.path, 'SHARED')
+        if os .path .isfile (OOOO000O000OOO00O ):#line:759:if os.path.isfile(shared_path):
+            with codecs .open (OOOO000O000OOO00O ,'r',encoding ='utf-8')as O00O000O0000O0O00 :#line:760:with codecs.open(shared_path, 'r', encoding='utf-8') as f:
+                O0OO0OOO0O0O0OOO0 =O00O000O0000O0O00 .read ().splitlines ()#line:761:lines = f.read().splitlines()
+            for OOO000000OO0OOO00 in O0OO0OOO0O0O0OOO0 :#line:762:for line in lines:
+                O00OOO0000O0O00OO ,O0000O00O000O0OO0 =OOO000000OO0OOO00 .split ('=',1 )#line:763:key, value = line.split('=', 1)
+                if O00OOO0000O0O00OO =='namespace':#line:764:if key == 'namespace':
+                    OOOO0000OO0OO0OOO .setdefault (O00OOO0000O0O00OO ,[]).append (O0000O00O000O0OO0 )#line:765:result.setdefault(key, []).append(value)
+                else :#line:766:else:
+                    OOOO0000OO0OO0OOO [O00OOO0000O0O00OO ]=O0000O00O000O0OO0 #line:767:result[key] = value
+        return OOOO0000OO0OO0OOO #line:768:return result
+    def write_shared_locations (O00O000000OOOOOOO ,OOO0000O000O000O0 ,dry_run =False ):#line:770:def write_shared_locations(self, paths, dry_run=False):
+        ""#line:778:"""
+        OO0OOOO00000O00OO =os .path .join (O00O000000OOOOOOO .path ,'SHARED')#line:779:shared_path = os.path.join(self.path, 'SHARED')
+        O0O0OOOOO0O0OO000 .info ('creating %s',OO0OOOO00000O00OO )#line:780:logger.info('creating %s', shared_path)
+        if dry_run :#line:781:if dry_run:
+            return None #line:782:return None
+        OOO0OOOO00O00000O =[]#line:783:lines = []
+        for OOOOOOOO00OOO0000 in ('prefix','lib','headers','scripts','data'):#line:784:for key in ('prefix', 'lib', 'headers', 'scripts', 'data'):
+            OO0O00O0O0O00OOO0 =OOO0000O000O000O0 [OOOOOOOO00OOO0000 ]#line:785:path = paths[key]
+            if os .path .isdir (OOO0000O000O000O0 [OOOOOOOO00OOO0000 ]):#line:786:if os.path.isdir(paths[key]):
+                OOO0OOOO00O00000O .append ('%s=%s'%(OOOOOOOO00OOO0000 ,OO0O00O0O0O00OOO0 ))#line:787:lines.append('%s=%s' % (key,  path))
+        for OO0O0O000OOO000OO in OOO0000O000O000O0 .get ('namespace',()):#line:788:for ns in paths.get('namespace', ()):
+            OOO0OOOO00O00000O .append ('namespace=%s'%OO0O0O000OOO000OO )#line:789:lines.append('namespace=%s' % ns)
+        with codecs .open (OO0OOOO00000O00OO ,'w',encoding ='utf-8')as OO00OOO000O0OOOO0 :#line:791:with codecs.open(shared_path, 'w', encoding='utf-8') as f:
+            OO00OOO000O0OOOO0 .write ('\n'.join (OOO0OOOO00O00000O ))#line:792:f.write('\n'.join(lines))
+        return OO0OOOO00000O00OO #line:793:return shared_path
+    def get_distinfo_resource (OO0000000000O0000 ,O00OO00O0O00O00OO ):#line:795:def get_distinfo_resource(self, path):
+        if O00OO00O0O00O00OO not in O0OO0O0OOOO00O000 :#line:796:if path not in DIST_FILES:
+            raise DistlibException ('invalid path for a dist-info file: ' '%r at %r'%(O00OO00O0O00O00OO ,OO0000000000O0000 .path ))#line:798:'%r at %r' % (path, self.path))
+        O0O0O0OOOOO0O0OO0 =resources .finder_for_path (OO0000000000O0000 .path )#line:799:finder = resources.finder_for_path(self.path)
+        if O0O0O0OOOOO0O0OO0 is None :#line:800:if finder is None:
+            raise DistlibException ('Unable to get a finder for %s'%OO0000000000O0000 .path )#line:801:raise DistlibException('Unable to get a finder for %s' % self.path)
+        return O0O0O0OOOOO0O0OO0 .find (O00OO00O0O00O00OO )#line:802:return finder.find(path)
+    def get_distinfo_file (OOO0O0O0O0OOO0000 ,OOOOO000O0000000O ):#line:804:def get_distinfo_file(self, path):
+        ""#line:816:"""
+        if OOOOO000O0000000O .find (os .sep )>=0 :#line:818:if path.find(os.sep) >= 0:
+            O0OO000OOOO0O0OO0 ,OOOOO000O0000000O =OOOOO000O0000000O .split (os .sep )[-2 :]#line:820:distinfo_dirname, path = path.split(os.sep)[-2:]
+            if O0OO000OOOO0O0OO0 !=OOO0O0O0O0OOO0000 .path .split (os .sep )[-1 ]:#line:821:if distinfo_dirname != self.path.split(os.sep)[-1]:
+                raise DistlibException ('dist-info file %r does not belong to the %r %s ' 'distribution'%(OOOOO000O0000000O ,OOO0O0O0O0OOO0000 .name ,OOO0O0O0O0OOO0000 .version ))#line:824:'distribution' % (path, self.name, self.version))
+        if OOOOO000O0000000O not in O0OO0O0OOOO00O000 :#line:827:if path not in DIST_FILES:
+            raise DistlibException ('invalid path for a dist-info file: ' '%r at %r'%(OOOOO000O0000000O ,OOO0O0O0O0OOO0000 .path ))#line:829:'%r at %r' % (path, self.path))
+        return os .path .join (OOO0O0O0O0OOO0000 .path ,OOOOO000O0000000O )#line:831:return os.path.join(self.path, path)
+    def list_distinfo_files (O0OOOO0OO0OO0000O ):#line:833:def list_distinfo_files(self):
+        ""#line:840:"""
+        OOOOO00O0O00000O0 =os .path .dirname (O0OOOO0OO0OO0000O .path )#line:841:base = os.path.dirname(self.path)
+        for O0OOO0O0O0OO0OO0O ,O0000O0O00OOO0OOO ,OO0O0O0O0OOO00O00 in O0OOOO0OO0OO0000O ._get_records ():#line:842:for path, checksum, size in self._get_records():
+            if not os .path .isabs (O0OOO0O0O0OO0OO0O ):#line:844:if not os.path.isabs(path):
+                O0OOO0O0O0OO0OO0O =os .path .join (OOOOO00O0O00000O0 ,O0OOO0O0O0OO0OO0O )#line:845:path = os.path.join(base, path)
+            if O0OOO0O0O0OO0OO0O .startswith (O0OOOO0OO0OO0000O .path ):#line:846:if path.startswith(self.path):
+                yield O0OOO0O0O0OO0OO0O #line:847:yield path
+    def __eq__ (O0OO0000O00OOOOOO ,OO0O0000OOO000OOO ):#line:849:def __eq__(self, other):
+        return (isinstance (OO0O0000OOO000OOO ,InstalledDistribution )and O0OO0000O00OOOOOO .path ==OO0O0000OOO000OOO .path )#line:851:self.path == other.path)
+    __hash__ =object .__hash__ #line:854:__hash__ = object.__hash__
+class EggInfoDistribution (BaseInstalledDistribution ):#line:857:class EggInfoDistribution(BaseInstalledDistribution):
+    ""#line:861:file ``PKG-INFO`` under that directory."""
+    requested =True #line:863:requested = True    # as we have no way of knowing, assume it was
+    shared_locations ={}#line:864:shared_locations = {}
+    def __init__ (O0O0000O0O000OOOO ,O00O0OOOO0OO0O000 ,env =None ):#line:866:def __init__(self, path, env=None):
+        def OO000O0000O0O0O0O (O0OO0O0OOO0O0OOO0 ,O00O00OO0O00OOOOO ,OOO0OOOO0O0O000OO ):#line:867:def set_name_and_version(s, n, v):
+            O0OO0O0OOO0O0OOO0 .name =O00O00OO0O00OOOOO #line:868:s.name = n
+            O0OO0O0OOO0O0OOO0 .key =O00O00OO0O00OOOOO .lower ()#line:869:s.key = n.lower()   # for case-insensitive comparisons
+            O0OO0O0OOO0O0OOO0 .version =OOO0OOOO0O0O000OO #line:870:s.version = v
+        O0O0000O0O000OOOO .path =O00O0OOOO0OO0O000 #line:872:self.path = path
+        O0O0000O0O000OOOO .dist_path =env #line:873:self.dist_path = env
+        if env and env ._cache_enabled and O00O0OOOO0OO0O000 in env ._cache_egg .path :#line:874:if env and env._cache_enabled and path in env._cache_egg.path:
+            O0000OO0O0O0O000O =env ._cache_egg .path [O00O0OOOO0OO0O000 ].metadata #line:875:metadata = env._cache_egg.path[path].metadata
+            OO000O0000O0O0O0O (O0O0000O0O000OOOO ,O0000OO0O0O0O000O .name ,O0000OO0O0O0O000O .version )#line:876:set_name_and_version(self, metadata.name, metadata.version)
+        else :#line:877:else:
+            O0000OO0O0O0O000O =O0O0000O0O000OOOO ._get_metadata (O00O0OOOO0OO0O000 )#line:878:metadata = self._get_metadata(path)
+            OO000O0000O0O0O0O (O0O0000O0O000OOOO ,O0000OO0O0O0O000O .name ,O0000OO0O0O0O000O .version )#line:881:set_name_and_version(self, metadata.name, metadata.version)
+            if env and env ._cache_enabled :#line:883:if env and env._cache_enabled:
+                env ._cache_egg .add (O0O0000O0O000OOOO )#line:884:env._cache_egg.add(self)
+        super (EggInfoDistribution ,O0O0000O0O000OOOO ).__init__ (O0000OO0O0O0O000O ,O00O0OOOO0OO0O000 ,env )#line:885:super(EggInfoDistribution, self).__init__(metadata, path, env)
+    def _get_metadata (O00000O00OOO0OO0O ,OOO00OO000O0O0O0O ):#line:887:def _get_metadata(self, path):
+        OO0000OO00000OOOO =None #line:888:requires = None
+        def O000O0OO0O0000OOO (O00O00OOO00O0O000 ):#line:890:def parse_requires_data(data):
+            ""#line:894:"""
+            O000O00OO00O000OO =[]#line:895:reqs = []
+            O0000OOOOO00O0O0O =O00O00OOO00O0O000 .splitlines ()#line:896:lines = data.splitlines()
+            for OO0O0OO00OO0O0O00 in O0000OOOOO00O0O0O :#line:897:for line in lines:
+                OO0O0OO00OO0O0O00 =OO0O0OO00OO0O0O00 .strip ()#line:898:line = line.strip()
+                if OO0O0OO00OO0O0O00 .startswith ('['):#line:899:if line.startswith('['):
+                    O0O0OOOOO0O0OO000 .warning ('Unexpected line: quitting requirement scan: %r',OO0O0OO00OO0O0O00 )#line:901:line)
+                    break #line:902:break
+                OO0O0O000OOOOO000 =parse_requirement (OO0O0OO00OO0O0O00 )#line:903:r = parse_requirement(line)
+                if not OO0O0O000OOOOO000 :#line:904:if not r:
+                    O0O0OOOOO0O0OO000 .warning ('Not recognised as a requirement: %r',OO0O0OO00OO0O0O00 )#line:905:logger.warning('Not recognised as a requirement: %r', line)
+                    continue #line:906:continue
+                if OO0O0O000OOOOO000 .extras :#line:907:if r.extras:
+                    O0O0OOOOO0O0OO000 .warning ('extra requirements in requires.txt are ' 'not supported')#line:909:'not supported')
+                if not OO0O0O000OOOOO000 .constraints :#line:910:if not r.constraints:
+                    O000O00OO00O000OO .append (OO0O0O000OOOOO000 .name )#line:911:reqs.append(r.name)
+                else :#line:912:else:
+                    O00OOO000OOO000O0 =', '.join ('%s%s'%OO0O0OO0000O0000O for OO0O0OO0000O0000O in OO0O0O000OOOOO000 .constraints )#line:913:cons = ', '.join('%s%s' % c for c in r.constraints)
+                    O000O00OO00O000OO .append ('%s (%s)'%(OO0O0O000OOOOO000 .name ,O00OOO000OOO000O0 ))#line:914:reqs.append('%s (%s)' % (r.name, cons))
+            return O000O00OO00O000OO #line:915:return reqs
+        def O000OO00O00O00000 (OOOO00OO0O0000000 ):#line:917:def parse_requires_path(req_path):
+            ""#line:921:"""
+            OOOO0OOOOOO0O00O0 =[]#line:923:reqs = []
+            try :#line:924:try:
+                with codecs .open (OOOO00OO0O0000000 ,'r','utf-8')as O0OOO0O00000OO00O :#line:925:with codecs.open(req_path, 'r', 'utf-8') as fp:
+                    OOOO0OOOOOO0O00O0 =O000O0OO0O0000OOO (O0OOO0O00000OO00O .read ())#line:926:reqs = parse_requires_data(fp.read())
+            except IOError :#line:927:except IOError:
+                pass #line:928:pass
+            return OOOO0OOOOOO0O00O0 #line:929:return reqs
+        O0OO00000OO000O0O =O00OO000OOO00O000 =None #line:931:tl_path = tl_data = None
+        if OOO00OO000O0O0O0O .endswith ('.egg'):#line:932:if path.endswith('.egg'):
+            if os .path .isdir (OOO00OO000O0O0O0O ):#line:933:if os.path.isdir(path):
+                OO0OO00O0000000O0 =os .path .join (OOO00OO000O0O0O0O ,'EGG-INFO')#line:934:p = os.path.join(path, 'EGG-INFO')
+                O0OOOO0000O00O0OO =os .path .join (OO0OO00O0000000O0 ,'PKG-INFO')#line:935:meta_path = os.path.join(p, 'PKG-INFO')
+                O00OOOO00OOO0OO0O =Metadata (path =O0OOOO0000O00O0OO ,scheme ='legacy')#line:936:metadata = Metadata(path=meta_path, scheme='legacy')
+                O0OOO0O0O00OO0000 =os .path .join (OO0OO00O0000000O0 ,'requires.txt')#line:937:req_path = os.path.join(p, 'requires.txt')
+                O0OO00000OO000O0O =os .path .join (OO0OO00O0000000O0 ,'top_level.txt')#line:938:tl_path = os.path.join(p, 'top_level.txt')
+                OO0000OO00000OOOO =O000OO00O00O00000 (O0OOO0O0O00OO0000 )#line:939:requires = parse_requires_path(req_path)
+            else :#line:940:else:
+                OOOOO00O0000OO0OO =zipimport .zipimporter (OOO00OO000O0O0O0O )#line:942:zipf = zipimport.zipimporter(path)
+                O00OOO00OOOO0OO00 =StringIO (OOOOO00O0000OO0OO .get_data ('EGG-INFO/PKG-INFO').decode ('utf8'))#line:944:zipf.get_data('EGG-INFO/PKG-INFO').decode('utf8'))
+                O00OOOO00OOO0OO0O =Metadata (fileobj =O00OOO00OOOO0OO00 ,scheme ='legacy')#line:945:metadata = Metadata(fileobj=fileobj, scheme='legacy')
+                try :#line:946:try:
+                    OO0OO000O00000000 =OOOOO00O0000OO0OO .get_data ('EGG-INFO/requires.txt')#line:947:data = zipf.get_data('EGG-INFO/requires.txt')
+                    O00OO000OOO00O000 =OOOOO00O0000OO0OO .get_data ('EGG-INFO/top_level.txt').decode ('utf-8')#line:948:tl_data = zipf.get_data('EGG-INFO/top_level.txt').decode('utf-8')
+                    OO0000OO00000OOOO =O000O0OO0O0000OOO (OO0OO000O00000000 .decode ('utf-8'))#line:949:requires = parse_requires_data(data.decode('utf-8'))
+                except IOError :#line:950:except IOError:
+                    OO0000OO00000OOOO =None #line:951:requires = None
+        elif OOO00OO000O0O0O0O .endswith ('.egg-info'):#line:952:elif path.endswith('.egg-info'):
+            if os .path .isdir (OOO00OO000O0O0O0O ):#line:953:if os.path.isdir(path):
+                O0OOO0O0O00OO0000 =os .path .join (OOO00OO000O0O0O0O ,'requires.txt')#line:954:req_path = os.path.join(path, 'requires.txt')
+                OO0000OO00000OOOO =O000OO00O00O00000 (O0OOO0O0O00OO0000 )#line:955:requires = parse_requires_path(req_path)
+                OOO00OO000O0O0O0O =os .path .join (OOO00OO000O0O0O0O ,'PKG-INFO')#line:956:path = os.path.join(path, 'PKG-INFO')
+                O0OO00000OO000O0O =os .path .join (OOO00OO000O0O0O0O ,'top_level.txt')#line:957:tl_path = os.path.join(path, 'top_level.txt')
+            O00OOOO00OOO0OO0O =Metadata (path =OOO00OO000O0O0O0O ,scheme ='legacy')#line:958:metadata = Metadata(path=path, scheme='legacy')
+        else :#line:959:else:
+            raise DistlibException ('path must end with .egg-info or .egg, ' 'got %r'%OOO00OO000O0O0O0O )#line:961:'got %r' % path)
+        if OO0000OO00000OOOO :#line:963:if requires:
+            O00OOOO00OOO0OO0O .add_requirements (OO0000OO00000OOOO )#line:964:metadata.add_requirements(requires)
+        if O00OO000OOO00O000 is None :#line:966:if tl_data is None:
+            if O0OO00000OO000O0O is not None and os .path .exists (O0OO00000OO000O0O ):#line:967:if tl_path is not None and os.path.exists(tl_path):
+                with open (O0OO00000OO000O0O ,'rb')as OOOO00OOO00O0000O :#line:968:with open(tl_path, 'rb') as f:
+                    O00OO000OOO00O000 =OOOO00OOO00O0000O .read ().decode ('utf-8')#line:969:tl_data = f.read().decode('utf-8')
+        if not O00OO000OOO00O000 :#line:970:if not tl_data:
+            O00OO000OOO00O000 =[]#line:971:tl_data = []
+        else :#line:972:else:
+            O00OO000OOO00O000 =O00OO000OOO00O000 .splitlines ()#line:973:tl_data = tl_data.splitlines()
+        O00000O00OOO0OO0O .modules =O00OO000OOO00O000 #line:974:self.modules = tl_data
+        return O00OOOO00OOO0OO0O #line:975:return metadata
+    def __repr__ (O000OOOOO00OO0O00 ):#line:977:def __repr__(self):
+        return '<EggInfoDistribution %r %s at %r>'%(O000OOOOO00OO0O00 .name ,O000OOOOO00OO0O00 .version ,O000OOOOO00OO0O00 .path )#line:979:self.name, self.version, self.path)
+    def __str__ (O0O0O0OO0O0OO00OO ):#line:981:def __str__(self):
+        return "%s %s"%(O0O0O0OO0O0OO00OO .name ,O0O0O0OO0O0OO00OO .version )#line:982:return "%s %s" % (self.name, self.version)
+    def check_installed_files (OOOOOOO00O00OOO00 ):#line:984:def check_installed_files(self):
+        ""#line:992:"""
+        OOO0OO00OOO000OOO =[]#line:993:mismatches = []
+        OOO00O000O0OO00OO =os .path .join (OOOOOOO00O00OOO00 .path ,'installed-files.txt')#line:994:record_path = os.path.join(self.path, 'installed-files.txt')
+        if os .path .exists (OOO00O000O0OO00OO ):#line:995:if os.path.exists(record_path):
+            for O0000OO00O0O00O00 ,_OOO00OO0O00O0O000 ,_OOO00OO0O00O0O000 in OOOOOOO00O00OOO00 .list_installed_files ():#line:996:for path, _, _ in self.list_installed_files():
+                if O0000OO00O0O00O00 ==OOO00O000O0OO00OO :#line:997:if path == record_path:
+                    continue #line:998:continue
+                if not os .path .exists (O0000OO00O0O00O00 ):#line:999:if not os.path.exists(path):
+                    OOO0OO00OOO000OOO .append ((O0000OO00O0O00O00 ,'exists',True ,False ))#line:1000:mismatches.append((path, 'exists', True, False))
+        return OOO0OO00OOO000OOO #line:1001:return mismatches
+    def list_installed_files (OOOO0000OOO00O0OO ):#line:1003:def list_installed_files(self):
+        ""#line:1009:"""
+        def _O0O000O00O00O00OO (OOO00O00OO0OO0000 ):#line:1011:def _md5(path):
+            O0OO000OO0OO00OO0 =open (OOO00O00OO0OO0000 ,'rb')#line:1012:f = open(path, 'rb')
+            try :#line:1013:try:
+                OO000OOO0OO0000O0 =O0OO000OO0OO00OO0 .read ()#line:1014:content = f.read()
+            finally :#line:1015:finally:
+                O0OO000OO0OO00OO0 .close ()#line:1016:f.close()
+            return hashlib .md5 (OO000OOO0OO0000O0 ).hexdigest ()#line:1017:return hashlib.md5(content).hexdigest()
+        def _OOO00OOO00OOO0O0O (O00000O0O0O0O0O00 ):#line:1019:def _size(path):
+            return os .stat (O00000O0O0O0O0O00 ).st_size #line:1020:return os.stat(path).st_size
+        OOO0OOOOOOOO0OOO0 =os .path .join (OOOO0000OOO00O0OO .path ,'installed-files.txt')#line:1022:record_path = os.path.join(self.path, 'installed-files.txt')
+        O0000O00O0O0O00O0 =[]#line:1023:result = []
+        if os .path .exists (OOO0OOOOOOOO0OOO0 ):#line:1024:if os.path.exists(record_path):
+            with codecs .open (OOO0OOOOOOOO0OOO0 ,'r',encoding ='utf-8')as OO0O00OO0OOOOO00O :#line:1025:with codecs.open(record_path, 'r', encoding='utf-8') as f:
+                for OO0O0OOO0000O00O0 in OO0O00OO0OOOOO00O :#line:1026:for line in f:
+                    OO0O0OOO0000O00O0 =OO0O0OOO0000O00O0 .strip ()#line:1027:line = line.strip()
+                    OOOO000OO0OO0O0OO =os .path .normpath (os .path .join (OOOO0000OOO00O0OO .path ,OO0O0OOO0000O00O0 ))#line:1028:p = os.path.normpath(os.path.join(self.path, line))
+                    if not os .path .exists (OOOO000OO0OO0O0OO ):#line:1031:if not os.path.exists(p):
+                        O0O0OOOOO0O0OO000 .warning ('Non-existent file: %s',OOOO000OO0OO0O0OO )#line:1032:logger.warning('Non-existent file: %s', p)
+                        if OOOO000OO0OO0O0OO .endswith (('.pyc','.pyo')):#line:1033:if p.endswith(('.pyc', '.pyo')):
+                            continue #line:1034:continue
+                    if not os .path .isdir (OOOO000OO0OO0O0OO ):#line:1036:if not os.path.isdir(p):
+                        O0000O00O0O0O00O0 .append ((OOOO000OO0OO0O0OO ,_O0O000O00O00O00OO (OOOO000OO0OO0O0OO ),_OOO00OOO00OOO0O0O (OOOO000OO0OO0O0OO )))#line:1037:result.append((p, _md5(p), _size(p)))
+            O0000O00O0O0O00O0 .append ((OOO0OOOOOOOO0OOO0 ,None ,None ))#line:1038:result.append((record_path, None, None))
+        return O0000O00O0O0O00O0 #line:1039:return result
+    def list_distinfo_files (O0OOOO0O00O00000O ,absolute =False ):#line:1041:def list_distinfo_files(self, absolute=False):
+        ""#line:1052:"""
+        O0O00O0OO0O0O00O0 =os .path .join (O0OOOO0O00O00000O .path ,'installed-files.txt')#line:1053:record_path = os.path.join(self.path, 'installed-files.txt')
+        if os .path .exists (O0O00O0OO0O0O00O0 ):#line:1054:if os.path.exists(record_path):
+            O0O00OO000000000O =True #line:1055:skip = True
+            with codecs .open (O0O00O0OO0O0O00O0 ,'r',encoding ='utf-8')as OOO0OOOO00O0000O0 :#line:1056:with codecs.open(record_path, 'r', encoding='utf-8') as f:
+                for O0OO0OOO00OOOOO00 in OOO0OOOO00O0000O0 :#line:1057:for line in f:
+                    O0OO0OOO00OOOOO00 =O0OO0OOO00OOOOO00 .strip ()#line:1058:line = line.strip()
+                    if O0OO0OOO00OOOOO00 =='./':#line:1059:if line == './':
+                        O0O00OO000000000O =False #line:1060:skip = False
+                        continue #line:1061:continue
+                    if not O0O00OO000000000O :#line:1062:if not skip:
+                        O0O0O000OO00000O0 =os .path .normpath (os .path .join (O0OOOO0O00O00000O .path ,O0OO0OOO00OOOOO00 ))#line:1063:p = os.path.normpath(os.path.join(self.path, line))
+                        if O0O0O000OO00000O0 .startswith (O0OOOO0O00O00000O .path ):#line:1064:if p.startswith(self.path):
+                            if absolute :#line:1065:if absolute:
+                                yield O0O0O000OO00000O0 #line:1066:yield p
+                            else :#line:1067:else:
+                                yield O0OO0OOO00OOOOO00 #line:1068:yield line
+    def __eq__ (OOO00O0OO0O0OOOO0 ,OOO00O000000OO000 ):#line:1070:def __eq__(self, other):
+        return (isinstance (OOO00O000000OO000 ,EggInfoDistribution )and OOO00O0OO0O0OOOO0 .path ==OOO00O000000OO000 .path )#line:1072:self.path == other.path)
+    __hash__ =object .__hash__ #line:1075:__hash__ = object.__hash__
+O00OO000000000000 =InstalledDistribution #line:1077:new_dist_class = InstalledDistribution
+OOOOOO0OOOO00O0O0 =EggInfoDistribution #line:1078:old_dist_class = EggInfoDistribution
+class O0OOO0OOO00O000O0 (object ):#line:1081:class DependencyGraph(object):
+    ""#line:1095:"""
+    def __init__ (O00O000OO0OO0O0O0 ):#line:1097:def __init__(self):
+        O00O000OO0OO0O0O0 .adjacency_list ={}#line:1098:self.adjacency_list = {}
+        O00O000OO0OO0O0O0 .reverse_list ={}#line:1099:self.reverse_list = {}
+        O00O000OO0OO0O0O0 .missing ={}#line:1100:self.missing = {}
+    def add_distribution (O00O0O0O00OOO0OOO ,OOOOOOO0O0000OOO0 ):#line:1102:def add_distribution(self, distribution):
+        ""#line:1107:"""
+        O00O0O0O00OOO0OOO .adjacency_list [OOOOOOO0O0000OOO0 ]=[]#line:1108:self.adjacency_list[distribution] = []
+        O00O0O0O00OOO0OOO .reverse_list [OOOOOOO0O0000OOO0 ]=[]#line:1109:self.reverse_list[distribution] = []
+    def add_edge (OO00O00O000O0O00O ,O0OO000OO0000O0OO ,OO00O0OOOOO0O00O0 ,label =None ):#line:1112:def add_edge(self, x, y, label=None):
+        ""#line:1121:"""
+        OO00O00O000O0O00O .adjacency_list [O0OO000OO0000O0OO ].append ((OO00O0OOOOO0O00O0 ,label ))#line:1122:self.adjacency_list[x].append((y, label))
+        if O0OO000OO0000O0OO not in OO00O00O000O0O00O .reverse_list [OO00O0OOOOO0O00O0 ]:#line:1124:if x not in self.reverse_list[y]:
+            OO00O00O000O0O00O .reverse_list [OO00O0OOOOO0O00O0 ].append (O0OO000OO0000O0OO )#line:1125:self.reverse_list[y].append(x)
+    def add_missing (OOO0OOO0O000OO0O0 ,OOO0000O00OOOOO00 ,OOO0OO00O0000O00O ):#line:1127:def add_missing(self, distribution, requirement):
+        ""#line:1134:"""
+        O0O0OOOOO0O0OO000 .debug ('%s missing %r',OOO0000O00OOOOO00 ,OOO0OO00O0000O00O )#line:1135:logger.debug('%s missing %r', distribution, requirement)
+        OOO0OOO0O000OO0O0 .missing .setdefault (OOO0000O00OOOOO00 ,[]).append (OOO0OO00O0000O00O )#line:1136:self.missing.setdefault(distribution, []).append(requirement)
+    def _repr_dist (O0OOO0OOOO0O00OOO ,OO0OO0OO0O00OOO00 ):#line:1138:def _repr_dist(self, dist):
+        return '%s %s'%(OO0OO0OO0O00OOO00 .name ,OO0OO0OO0O00OOO00 .version )#line:1139:return '%s %s' % (dist.name, dist.version)
+    def repr_node (OO000000O000OO0O0 ,OO0OOO00O000O0000 ,level =1 ):#line:1141:def repr_node(self, dist, level=1):
+        ""#line:1142:"""Prints only a subgraph"""
+        O0O00O0OO000000OO =[OO000000O000OO0O0 ._repr_dist (OO0OOO00O000O0000 )]#line:1143:output = [self._repr_dist(dist)]
+        for OOO0OOOO00O0OOOOO ,O0OO0000OOO000O0O in OO000000O000OO0O0 .adjacency_list [OO0OOO00O000O0000 ]:#line:1144:for other, label in self.adjacency_list[dist]:
+            OO0OOO00O000O0000 =OO000000O000OO0O0 ._repr_dist (OOO0OOOO00O0OOOOO )#line:1145:dist = self._repr_dist(other)
+            if O0OO0000OOO000O0O is not None :#line:1146:if label is not None:
+                OO0OOO00O000O0000 ='%s [%s]'%(OO0OOO00O000O0000 ,O0OO0000OOO000O0O )#line:1147:dist = '%s [%s]' % (dist, label)
+            O0O00O0OO000000OO .append ('    '*level +str (OO0OOO00O000O0000 ))#line:1148:output.append('    ' * level + str(dist))
+            OO000OOOO0OO000OO =OO000000O000OO0O0 .repr_node (OOO0OOOO00O0OOOOO ,level +1 )#line:1149:suboutput = self.repr_node(other, level + 1)
+            OO0O00O0O0OO00O00 =OO000OOOO0OO000OO .split ('\n')#line:1150:subs = suboutput.split('\n')
+            O0O00O0OO000000OO .extend (OO0O00O0O0OO00O00 [1 :])#line:1151:output.extend(subs[1:])
+        return '\n'.join (O0O00O0OO000000OO )#line:1152:return '\n'.join(output)
+    def to_dot (OOO0OOOO0OOO0O0O0 ,O0OOOOO00OOO00000 ,skip_disconnected =True ):#line:1154:def to_dot(self, f, skip_disconnected=True):
+        ""#line:1162:"""
+        OOOO0OO0O00OOO0OO =[]#line:1163:disconnected = []
+        O0OOOOO00OOO00000 .write ("digraph dependencies {\n")#line:1165:f.write("digraph dependencies {\n")
+        for OOO00OOOO000000OO ,OOO0O000O0OOO0O0O in OOO0OOOO0OOO0O0O0 .adjacency_list .items ():#line:1166:for dist, adjs in self.adjacency_list.items():
+            if len (OOO0O000O0OOO0O0O )==0 and not skip_disconnected :#line:1167:if len(adjs) == 0 and not skip_disconnected:
+                OOOO0OO0O00OOO0OO .append (OOO00OOOO000000OO )#line:1168:disconnected.append(dist)
+            for O00O00OO000OO0O00 ,O000OOOOO0OOOOO0O in OOO0O000O0OOO0O0O :#line:1169:for other, label in adjs:
+                if not O000OOOOO0OOOOO0O is None :#line:1170:if not label is None:
+                    O0OOOOO00OOO00000 .write ('"%s" -> "%s" [label="%s"]\n'%(OOO00OOOO000000OO .name ,O00O00OO000OO0O00 .name ,O000OOOOO0OOOOO0O ))#line:1172:(dist.name, other.name, label))
+                else :#line:1173:else:
+                    O0OOOOO00OOO00000 .write ('"%s" -> "%s"\n'%(OOO00OOOO000000OO .name ,O00O00OO000OO0O00 .name ))#line:1174:f.write('"%s" -> "%s"\n' % (dist.name, other.name))
+        if not skip_disconnected and len (OOOO0OO0O00OOO0OO )>0 :#line:1175:if not skip_disconnected and len(disconnected) > 0:
+            O0OOOOO00OOO00000 .write ('subgraph disconnected {\n')#line:1176:f.write('subgraph disconnected {\n')
+            O0OOOOO00OOO00000 .write ('label = "Disconnected"\n')#line:1177:f.write('label = "Disconnected"\n')
+            O0OOOOO00OOO00000 .write ('bgcolor = red\n')#line:1178:f.write('bgcolor = red\n')
+            for OOO00OOOO000000OO in OOOO0OO0O00OOO0OO :#line:1180:for dist in disconnected:
+                O0OOOOO00OOO00000 .write ('"%s"'%OOO00OOOO000000OO .name )#line:1181:f.write('"%s"' % dist.name)
+                O0OOOOO00OOO00000 .write ('\n')#line:1182:f.write('\n')
+            O0OOOOO00OOO00000 .write ('}\n')#line:1183:f.write('}\n')
+        O0OOOOO00OOO00000 .write ('}\n')#line:1184:f.write('}\n')
+    def topological_sort (O0OO00000OOO0OOOO ):#line:1186:def topological_sort(self):
+        ""#line:1193:"""
+        O00OOOOO00OOOOO00 =[]#line:1194:result = []
+        OO000000OO00O00O0 ={}#line:1196:alist = {}
+        for O00O00OO000OOOO0O ,O0OO00000000OO0OO in O0OO00000OOO0OOOO .adjacency_list .items ():#line:1197:for k, v in self.adjacency_list.items():
+            OO000000OO00O00O0 [O00O00OO000OOOO0O ]=O0OO00000000OO0OO [:]#line:1198:alist[k] = v[:]
+        while True :#line:1199:while True:
+            OO0O00O0OOOOO0OOO =[]#line:1201:to_remove = []
+            for O00O00OO000OOOO0O ,O0OO00000000OO0OO in list (OO000000OO00O00O0 .items ())[:]:#line:1202:for k, v in list(alist.items())[:]:
+                if not O0OO00000000OO0OO :#line:1203:if not v:
+                    OO0O00O0OOOOO0OOO .append (O00O00OO000OOOO0O )#line:1204:to_remove.append(k)
+                    del OO000000OO00O00O0 [O00O00OO000OOOO0O ]#line:1205:del alist[k]
+            if not OO0O00O0OOOOO0OOO :#line:1206:if not to_remove:
+                break #line:1208:break
+            for O00O00OO000OOOO0O ,O0OO00000000OO0OO in OO000000OO00O00O0 .items ():#line:1210:for k, v in alist.items():
+                OO000000OO00O00O0 [O00O00OO000OOOO0O ]=[(OO0O0OO00O0O00O0O ,OOO00000O0O0OOOO0 )for OO0O0OO00O0O00O0O ,OOO00000O0O0OOOO0 in O0OO00000000OO0OO if OO0O0OO00O0O00O0O not in OO0O00O0OOOOO0OOO ]#line:1211:alist[k] = [(d, r) for d, r in v if d not in to_remove]
+            O0O0OOOOO0O0OO000 .debug ('Moving to result: %s',['%s (%s)'%(OOOO0O00O0O0O000O .name ,OOOO0O00O0O0O000O .version )for OOOO0O00O0O0O000O in OO0O00O0OOOOO0OOO ])#line:1213:['%s (%s)' % (d.name, d.version) for d in to_remove])
+            O00OOOOO00OOOOO00 .extend (OO0O00O0OOOOO0OOO )#line:1214:result.extend(to_remove)
+        return O00OOOOO00OOOOO00 ,list (OO000000OO00O00O0 .keys ())#line:1215:return result, list(alist.keys())
+    def __repr__ (O0OO00O00O0O000OO ):#line:1217:def __repr__(self):
+        ""#line:1218:"""Representation of the graph"""
+        O00000OOO0O00O00O =[]#line:1219:output = []
+        for OOO0OOOOOO00OOO0O ,O00O0O00OOOO0OOOO in O0OO00O00O0O000OO .adjacency_list .items ():#line:1220:for dist, adjs in self.adjacency_list.items():
+            O00000OOO0O00O00O .append (O0OO00O00O0O000OO .repr_node (OOO0OOOOOO00OOO0O ))#line:1221:output.append(self.repr_node(dist))
+        return '\n'.join (O00000OOO0O00O00O )#line:1222:return '\n'.join(output)
+def OOO00000OOOO0OO00 (OOO0000O0000OOOOO ,scheme ='default'):#line:1225:def make_graph(dists, scheme='default'):
+    ""#line:1232:"""
+    scheme =get_scheme (scheme )#line:1233:scheme = get_scheme(scheme)
+    O0OO0000OOO00OO0O =O0OOO0OOO00O000O0 ()#line:1234:graph = DependencyGraph()
+    OOO0OO00OOOO00O00 ={}#line:1235:provided = {}  # maps names to lists of (version, dist) tuples
+    for O0000O0OOOOO00000 in OOO0000O0000OOOOO :#line:1238:for dist in dists:
+        O0OO0000OOO00OO0O .add_distribution (O0000O0OOOOO00000 )#line:1239:graph.add_distribution(dist)
+        for O00OOOOOO00OO00OO in O0000O0OOOOO00000 .provides :#line:1241:for p in dist.provides:
+            OO0O0OOOO00OO000O ,OO0O000OOOO0O00O0 =parse_name_and_version (O00OOOOOO00OO00OO )#line:1242:name, version = parse_name_and_version(p)
+            O0O0OOOOO0O0OO000 .debug ('Add to provided: %s, %s, %s',OO0O0OOOO00OO000O ,OO0O000OOOO0O00O0 ,O0000O0OOOOO00000 )#line:1243:logger.debug('Add to provided: %s, %s, %s', name, version, dist)
+            OOO0OO00OOOO00O00 .setdefault (OO0O0OOOO00OO000O ,[]).append ((OO0O000OOOO0O00O0 ,O0000O0OOOOO00000 ))#line:1244:provided.setdefault(name, []).append((version, dist))
+    for O0000O0OOOOO00000 in OOO0000O0000OOOOO :#line:1247:for dist in dists:
+        OO000O0O0O00O0OO0 =(O0000O0OOOOO00000 .run_requires |O0000O0OOOOO00000 .meta_requires |O0000O0OOOOO00000 .build_requires |O0000O0OOOOO00000 .dev_requires )#line:1249:dist.build_requires | dist.dev_requires)
+        for O0000O00000O0O000 in OO000O0O0O00O0OO0 :#line:1250:for req in requires:
+            try :#line:1251:try:
+                O0O00O00O0O000O00 =scheme .matcher (O0000O00000O0O000 )#line:1252:matcher = scheme.matcher(req)
+            except UnsupportedVersionError :#line:1253:except UnsupportedVersionError:
+                O0O0OOOOO0O0OO000 .warning ('could not read version %r - using name only',O0000O00000O0O000 )#line:1256:req)
+                OO0O0OOOO00OO000O =O0000O00000O0O000 .split ()[0 ]#line:1257:name = req.split()[0]
+                O0O00O00O0O000O00 =scheme .matcher (OO0O0OOOO00OO000O )#line:1258:matcher = scheme.matcher(name)
+            OO0O0OOOO00OO000O =O0O00O00O0O000O00 .key #line:1260:name = matcher.key   # case-insensitive
+            O00OO0000OO000O0O =False #line:1262:matched = False
+            if OO0O0OOOO00OO000O in OOO0OO00OOOO00O00 :#line:1263:if name in provided:
+                for OO0O000OOOO0O00O0 ,O0OO0O00O0OOO00O0 in OOO0OO00OOOO00O00 [OO0O0OOOO00OO000O ]:#line:1264:for version, provider in provided[name]:
+                    try :#line:1265:try:
+                        O00OO00O0O0O00OOO =O0O00O00O0O000O00 .match (OO0O000OOOO0O00O0 )#line:1266:match = matcher.match(version)
+                    except UnsupportedVersionError :#line:1267:except UnsupportedVersionError:
+                        O00OO00O0O0O00OOO =False #line:1268:match = False
+                    if O00OO00O0O0O00OOO :#line:1270:if match:
+                        O0OO0000OOO00OO0O .add_edge (O0000O0OOOOO00000 ,O0OO0O00O0OOO00O0 ,O0000O00000O0O000 )#line:1271:graph.add_edge(dist, provider, req)
+                        O00OO0000OO000O0O =True #line:1272:matched = True
+                        break #line:1273:break
+            if not O00OO0000OO000O0O :#line:1274:if not matched:
+                O0OO0000OOO00OO0O .add_missing (O0000O0OOOOO00000 ,O0000O00000O0O000 )#line:1275:graph.add_missing(dist, req)
+    return O0OO0000OOO00OO0O #line:1276:return graph
+def OOOOO0OOOO0O0000O (O0OOO0O0O0O00OOOO ,O00OO000OO000O00O ):#line:1279:def get_dependent_dists(dists, dist):
+    ""#line:1285:"""
+    if O00OO000OO000O00O not in O0OOO0O0O0O00OOOO :#line:1286:if dist not in dists:
+        raise DistlibException ('given distribution %r is not a member ' 'of the list'%O00OO000OO000O00O .name )#line:1288:'of the list' % dist.name)
+    OO0OOOOOOO0O0000O =OOO00000OOOO0OO00 (O0OOO0O0O0O00OOOO )#line:1289:graph = make_graph(dists)
+    OO00O0OO0000000OO =[O00OO000OO000O00O ]#line:1291:dep = [dist]  # dependent distributions
+    O0O0000OO00O0OOOO =OO0OOOOOOO0O0000O .reverse_list [O00OO000OO000O00O ]#line:1292:todo = graph.reverse_list[dist]  # list of nodes we should inspect
+    while O0O0000OO00O0OOOO :#line:1294:while todo:
+        O00O0000OO0O0O00O =O0O0000OO00O0OOOO .pop ()#line:1295:d = todo.pop()
+        OO00O0OO0000000OO .append (O00O0000OO0O0O00O )#line:1296:dep.append(d)
+        for OOOOOO00OO00O0O0O in OO0OOOOOOO0O0000O .reverse_list [O00O0000OO0O0O00O ]:#line:1297:for succ in graph.reverse_list[d]:
+            if OOOOOO00OO00O0O0O not in OO00O0OO0000000OO :#line:1298:if succ not in dep:
+                O0O0000OO00O0OOOO .append (OOOOOO00OO00O0O0O )#line:1299:todo.append(succ)
+    OO00O0OO0000000OO .pop (0 )#line:1301:dep.pop(0)  # remove dist from dep, was there to prevent infinite loops
+    return OO00O0OO0000000OO #line:1302:return dep
+def OOOO000O0OOOOO00O (OO00000O0OO000OOO ,OOO0OO0O0O0OO0OOO ):#line:1305:def get_required_dists(dists, dist):
+    ""#line:1311:"""
+    if OOO0OO0O0O0OO0OOO not in OO00000O0OO000OOO :#line:1312:if dist not in dists:
+        raise DistlibException ('given distribution %r is not a member ' 'of the list'%OOO0OO0O0O0OO0OOO .name )#line:1314:'of the list' % dist.name)
+    O00OO00O00O0OOO00 =OOO00000OOOO0OO00 (OO00000O0OO000OOO )#line:1315:graph = make_graph(dists)
+    OO0O00O00O00O0000 =[]#line:1317:req = []  # required distributions
+    O0OOOOO00OO00O0OO =O00OO00O00O0OOO00 .adjacency_list [OOO0OO0O0O0OO0OOO ]#line:1318:todo = graph.adjacency_list[dist]  # list of nodes we should inspect
+    while O0OOOOO00OO00O0OO :#line:1320:while todo:
+        OOO0OO0O0O00OOOO0 =O0OOOOO00OO00O0OO .pop ()[0 ]#line:1321:d = todo.pop()[0]
+        OO0O00O00O00O0000 .append (OOO0OO0O0O00OOOO0 )#line:1322:req.append(d)
+        for OO0000O00OO0000OO in O00OO00O00O0OOO00 .adjacency_list [OOO0OO0O0O00OOOO0 ]:#line:1323:for pred in graph.adjacency_list[d]:
+            if OO0000O00OO0000OO not in OO0O00O00O00O0000 :#line:1324:if pred not in req:
+                O0OOOOO00OO00O0OO .append (OO0000O00OO0000OO )#line:1325:todo.append(pred)
+    return OO0O00O00O00O0000 #line:1327:return req
+def OO00O00OO000OO0OO (O00OOO0OO00O0OOOO ,OO00OOOO000000OO0 ,**O0O0O0OO00O0OOOOO ):#line:1330:def make_dist(name, version, **kwargs):
+    ""#line:1333:"""
+    O0O0O0000O00000O0 =O0O0O0OO00O0OOOOO .pop ('summary','Placeholder for summary')#line:1334:summary = kwargs.pop('summary', 'Placeholder for summary')
+    O000O0000O0O00O00 =Metadata (**O0O0O0OO00O0OOOOO )#line:1335:md = Metadata(**kwargs)
+    O000O0000O0O00O00 .name =O00OOO0OO00O0OOOO #line:1336:md.name = name
+    O000O0000O0O00O00 .version =OO00OOOO000000OO0 #line:1337:md.version = version
+    O000O0000O0O00O00 .summary =O0O0O0000O00000O0 or 'Placeholder for summary'#line:1338:md.summary = summary or 'Placeholder for summary'
+    return Distribution (O000O0000O0O00O00 )#line:1339:return Distribution(md)

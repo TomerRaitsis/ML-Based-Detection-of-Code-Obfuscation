@@ -1,0 +1,247 @@
+import unittest #line:1:import unittest
+from utils import *#line:3:from utils import *
+from exceptions import *#line:4:from exceptions import *
+from player import Player #line:5:from player import Player
+from board import Board #line:6:from board import Board
+from game import Game #line:7:from game import Game
+class TestShip (unittest .TestCase ):#line:10:class TestShip(unittest.TestCase):
+    ""#line:11:"""Test cases for the Ship class."""
+    def test_valid_ship_instantiation (OOO0O00000OOOOOO0 ):#line:13:def test_valid_ship_instantiation(self):
+        ""#line:14:"""Test valid ship instantiation for both row and column ships."""
+        for OO000O00OOOO00000 in generate_row_ship_cells (5 ):#line:16:for cells in generate_row_ship_cells(5):
+            O00OO0O0O0OO0O000 =Ship (OO000O00OOOO00000 )#line:17:ship = Ship(cells)
+            OOO0O00000OOOOOO0 .assertFalse (O00OO0O0O0OO0O000 .is_destroyed )#line:18:self.assertFalse(ship.is_destroyed)
+            OOO0O00000OOOOOO0 .assertEqual (O00OO0O0O0OO0O000 .num_hits ,0 )#line:19:self.assertEqual(ship.num_hits, 0)
+        for OO000O00OOOO00000 in generate_column_ship_cells (5 ):#line:21:for cells in generate_column_ship_cells(5):
+            O00OO0O0O0OO0O000 =Ship (OO000O00OOOO00000 )#line:22:ship = Ship(cells)
+            OOO0O00000OOOOOO0 .assertFalse (O00OO0O0O0OO0O000 .is_destroyed )#line:23:self.assertFalse(ship.is_destroyed)
+            OOO0O00000OOOOOO0 .assertEqual (O00OO0O0O0OO0O000 .num_hits ,0 )#line:24:self.assertEqual(ship.num_hits, 0)
+    def test_invalid_ship_instantiation (O0O0O0OO00O0OOO0O ):#line:26:def test_invalid_ship_instantiation(self):
+        ""#line:27:"""Test invalid ship instantiation with various arguments."""
+        OO000O0O0OO0O0O00 =[[],[(-1 ,2 ),(51 ,2 ),(2 ,2 )],[(0 ,2 ),(1 ,-12 ),(2 ,2 )],[(0 ,2 ),(1 ,1 ),(2 ,0 )],[(0 ,2 ),(1 ,2 ),(2 ,2 ),(1 ,2 )],]#line:35:]
+        for O0O0OO0OOO0OO0OO0 in OO000O0O0OO0O0O00 :#line:37:for ship_arg in ship_args:
+            with O0O0O0OO00O0OOO0O .assertRaises (InvalidShipCoordinateException ):#line:38:with self.assertRaises(InvalidShipCoordinateException):
+                Ship (O0O0OO0OOO0OO0OO0 )#line:39:Ship(ship_arg)
+        OO000O0O0OO0O0O00 =[[(0 ,2 ),(1 ,2 ),(4 ,2 )],[(1 ,0 ),(1 ,2 ),(1 ,3 )]]#line:41:ship_args = [[(0, 2), (1, 2), (4, 2)], [(1, 0), (1, 2), (1, 3)]]
+        for O0O0OO0OOO0OO0OO0 in OO000O0O0OO0O0O00 :#line:43:for ship_arg in ship_args:
+            with O0O0O0OO00O0OOO0O .assertRaises (AssertionError ):#line:44:with self.assertRaises(AssertionError):
+                Ship (O0O0OO0OOO0OO0OO0 )#line:45:Ship(ship_arg)
+    def test_ship_damaged_but_not_destroyed (OOO0OO0OO000OO0OO ):#line:47:def test_ship_damaged_but_not_destroyed(self):
+        ""#line:48:"""Test ship instance when it's damaged but not destroyed."""
+        OOO0O0O0000O00O00 =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:50:ship = Ship([(0, 2), (1, 2), (2, 2)])
+        OOO0O0O0000O00O00 .hit_ship (0 ,2 )#line:51:ship.hit_ship(0, 2)
+        OOO0O0O0000O00O00 .hit_ship (1 ,2 )#line:52:ship.hit_ship(1, 2)
+        OOO0OO0OO000OO0OO .assertEqual (OOO0O0O0000O00O00 .num_hits ,2 )#line:54:self.assertEqual(ship.num_hits, 2)
+        OOO0OO0OO000OO0OO .assertEqual (len (OOO0O0O0000O00O00 .un_hit_cells ),1 )#line:55:self.assertEqual(len(ship.un_hit_cells), 1)
+        OOO0OO0OO000OO0OO .assertFalse (OOO0O0O0000O00O00 .is_destroyed )#line:56:self.assertFalse(ship.is_destroyed)
+    def test_ship_destroyed (OOOO0OOO0OO0OO0OO ):#line:58:def test_ship_destroyed(self):
+        ""#line:59:"""Test ship instance when it's destroyed."""
+        OOOO0OO0O00O00000 =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:61:ship = Ship([(0, 2), (1, 2), (2, 2)])
+        OOOO0OO0O00O00000 .hit_ship (0 ,2 )#line:62:ship.hit_ship(0, 2)
+        OOOO0OO0O00O00000 .hit_ship (1 ,2 )#line:63:ship.hit_ship(1, 2)
+        OOOO0OO0O00O00000 .hit_ship (2 ,2 )#line:64:ship.hit_ship(2, 2)
+        OOOO0OOO0OO0OO0OO .assertEqual (OOOO0OO0O00O00000 .num_hits ,3 )#line:66:self.assertEqual(ship.num_hits, 3)
+        OOOO0OOO0OO0OO0OO .assertEqual (len (OOOO0OO0O00O00000 .un_hit_cells ),0 )#line:67:self.assertEqual(len(ship.un_hit_cells), 0)
+        OOOO0OOO0OO0OO0OO .assertTrue (OOOO0OO0O00O00000 .is_destroyed )#line:68:self.assertTrue(ship.is_destroyed)
+    def test_no_ship_overlap (OOO0OOOOOOOOOO000 ):#line:70:def test_no_ship_overlap(self):
+        ""#line:71:"""Test when there is no overlap between two ships."""
+        OO00OOO00OO00O00O =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:73:ship1 = Ship([(0, 2), (1, 2), (2, 2)])
+        OOO0O00O00OO0O00O =Ship ([(2 ,0 ),(2 ,1 )])#line:74:ship2 = Ship([(2, 0), (2, 1)])
+        OO000O00OO0O0O000 =OO00OOO00OO00O00O .is_ship_overlap (OOO0O00O00OO0O00O )#line:76:result = ship1.is_ship_overlap(ship2)
+        OOO0OOOOOOOOOO000 .assertFalse (OO000O00OO0O0O000 )#line:77:self.assertFalse(result)
+    def test_ships_overlap (O0O0O0O0000O000OO ):#line:79:def test_ships_overlap(self):
+        ""#line:80:"""Test when two ships overlap."""
+        OO00OO0000O0OOOOO =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:82:ship1 = Ship([(0, 2), (1, 2), (2, 2)])
+        OOOO0OOO00OO0O0OO =Ship ([(2 ,0 ),(2 ,1 ),(2 ,2 )])#line:83:ship2 = Ship([(2, 0), (2, 1), (2, 2)])
+        O0O0OO0000OOOOOOO =OO00OO0000O0OOOOO .is_ship_overlap (OOOO0OOO00OO0O0OO )#line:85:result = ship1.is_ship_overlap(ship2)
+        O0O0O0O0000O000OO .assertTrue (O0O0OO0000OOOOOOO )#line:86:self.assertTrue(result)
+class TestBoard (unittest .TestCase ):#line:89:class TestBoard(unittest.TestCase):
+    ""#line:90:"""Test cases for the Board class."""
+    def setUp (OOOOO0OO0O0O00OOO ):#line:92:def setUp(self):
+        ""#line:93:"""Set up with a predefined board and ship positions."""
+        OOOOO0OO0O0O00OOO .board =Board (5 )#line:95:self.board = Board(5)
+        OOOOO0OO0O0O00OOO .ships_positions =[[(0 ,0 ),(0 ,1 ),(0 ,2 ),(0 ,3 ),(0 ,4 )],[(1 ,3 ),(2 ,3 ),(3 ,3 ),(4 ,3 )],[(1 ,4 ),(2 ,4 ),(3 ,4 )],[(1 ,0 ),(1 ,1 )],[(3 ,0 )],]#line:117:]
+    def add_ships_to_board (OO0OOOOO0OO0O00O0 ):#line:119:def add_ships_to_board(self):
+        ""#line:120:"""Add ships to the board based on predefined ship positions."""
+        for O0O00O0O00OOO000O in OO0OOOOO0OO0O00O0 .ships_positions :#line:122:for position in self.ships_positions:
+            OO0OOOOO0OO0O00O0 .board .place_ship (O0O00O0O00OOO000O )#line:123:self.board.place_ship(position)
+    def print_boards (O000O0000OO0OOO00 ):#line:125:def print_boards(self):
+        ""#line:126:"""Print the player's and enemy's POV boards."""
+        O000OOOOOOOO0OOOO =O000O0000OO0OOO00 .board .get_board_for_player ()#line:128:board = self.board.get_board_for_player()
+        print ("Player's POV Board")#line:129:print("Player's POV Board")
+        Board .print_board (O000OOOOOOOO0OOOO )#line:130:Board.print_board(board)
+        print ("\nEnemy's POV Board")#line:131:print("\nEnemy's POV Board")
+        O000OOOOOOOO0OOOO =O000O0000OO0OOO00 .board .get_board_for_enemy ()#line:132:board = self.board.get_board_for_enemy()
+        Board .print_board (O000OOOOOOOO0OOOO )#line:133:Board.print_board(board)
+    def test_place_ships (O000OOOOOOOOOO0OO ):#line:135:def test_place_ships(self):
+        ""#line:136:"""Test placing ships on the board."""
+        O000OOOOOOOOOO0OO .add_ships_to_board ()#line:138:self.add_ships_to_board()
+        O000OOOOOOOOOO0OO .assertEqual (len (O000OOOOOOOOOO0OO .board .occupied_cells ),15 )#line:139:self.assertEqual(len(self.board.occupied_cells), 15)
+    def test_place_ship_on_occupied_cell (O00O0000O0OOOOOOO ):#line:141:def test_place_ship_on_occupied_cell(self):
+        ""#line:142:"""Test placing a ship on an already occupied cell."""
+        O00O0000O0OOOOOOO .board .place_ship ([(0 ,0 ),(0 ,1 )])#line:144:self.board.place_ship([(0, 0), (0, 1)])
+        with O00O0000O0OOOOOOO .assertRaises (BoardException ):#line:145:with self.assertRaises(BoardException):
+            O00O0000O0OOOOOOO .board .place_ship ([(0 ,0 ),(1 ,0 )])#line:146:self.board.place_ship([(0, 0), (1, 0)])
+    def test_place_ship_with_invalid_cell (OOOOO0OOOO0O0O00O ):#line:148:def test_place_ship_with_invalid_cell(self):
+        ""#line:149:"""Test placing a ship with invalid cell coordinates."""
+        with OOOOO0OOOO0O0O00O .assertRaises (BoardException ):#line:151:with self.assertRaises(BoardException):
+            OOOOO0OOOO0O0O00O .board .place_ship ([(6 ,0 ),(5 ,0 )])#line:152:self.board.place_ship([(6, 0), (5, 0)])
+    def test_enemy_move_hit (OO00000O0OOO0O0OO ):#line:154:def test_enemy_move_hit(self):
+        ""#line:155:"""Test enemy's move resulting in a hit."""
+        OO00000O0OOO0O0OO .add_ships_to_board ()#line:157:self.add_ships_to_board()
+        OO00000O0OOO0O0OO .board .enemy_move (0 ,0 )#line:159:self.board.enemy_move(0, 0)
+        OO00000O0OOO0O0OO .board .enemy_move (3 ,0 )#line:160:self.board.enemy_move(3, 0)
+        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .dead_ships ),1 )#line:162:self.assertEqual(len(self.board.dead_ships), 1)
+        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .hit_cells ),2 )#line:163:self.assertEqual(len(self.board.hit_cells), 2)
+        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .un_hit_cells ),13 )#line:164:self.assertEqual(len(self.board.un_hit_cells), 13)
+        OO00000O0OOO0O0OO .assertFalse (OO00000O0OOO0O0OO .board .is_player_lost )#line:165:self.assertFalse(self.board.is_player_lost)
+        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .valid_moves ),23 )#line:166:self.assertEqual(len(self.board.valid_moves), 23)
+    def test_enemy_move_missed (O0000OO0O00OO00OO ):#line:168:def test_enemy_move_missed(self):
+        ""#line:169:"""Test enemy's move resulting in a miss."""
+        O0000OO0O00OO00OO .add_ships_to_board ()#line:171:self.add_ships_to_board()
+        O0000OO0O00OO00OO .board .enemy_move (1 ,2 )#line:173:self.board.enemy_move(1, 2)
+        O0000OO0O00OO00OO .board .enemy_move (4 ,4 )#line:174:self.board.enemy_move(4, 4)
+        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .dead_ships ),0 )#line:176:self.assertEqual(len(self.board.dead_ships), 0)
+        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .hit_cells ),0 )#line:177:self.assertEqual(len(self.board.hit_cells), 0)
+        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .un_hit_cells ),15 )#line:178:self.assertEqual(len(self.board.un_hit_cells), 15)
+        O0000OO0O00OO00OO .assertFalse (O0000OO0O00OO00OO .board .is_player_lost )#line:179:self.assertFalse(self.board.is_player_lost)
+        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .valid_moves ),23 )#line:180:self.assertEqual(len(self.board.valid_moves), 23)
+    def test_player_lost (O0OO0O0OOO0OO0OOO ):#line:182:def test_player_lost(self):
+        ""#line:183:"""Test scenario where player loses the game."""
+        O0OO0O0OOO0OO0OOO .board .place_ship ([(1 ,4 ),(2 ,4 ),(3 ,4 )])#line:185:self.board.place_ship([(1, 4), (2, 4), (3, 4)])
+        O0OO0O0OOO0OO0OOO .board .place_ship ([(1 ,0 ),(1 ,1 )])#line:186:self.board.place_ship([(1, 0), (1, 1)])
+        OO0O00OO0O0O00O00 =[(1 ,4 ),(2 ,4 ),(3 ,4 ),(1 ,0 ),(1 ,1 )]#line:191:attack_moves = [(1, 4), (2, 4), (3, 4), (1, 0), (1, 1)]
+        for O000000OO0000O0O0 in OO0O00OO0O0O00O00 :#line:193:for attack_move in attack_moves:
+            O0OO0O0OOO0OO0OOO .board .enemy_move (*O000000OO0000O0O0 )#line:194:self.board.enemy_move(*attack_move)
+        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .dead_ships ),2 )#line:199:self.assertEqual(len(self.board.dead_ships), 2)
+        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .hit_cells ),5 )#line:200:self.assertEqual(len(self.board.hit_cells), 5)
+        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .un_hit_cells ),0 )#line:201:self.assertEqual(len(self.board.un_hit_cells), 0)
+        O0OO0O0OOO0OO0OOO .assertTrue (O0OO0O0OOO0OO0OOO .board .is_player_lost )#line:202:self.assertTrue(self.board.is_player_lost)
+        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .valid_moves ),20 )#line:203:self.assertEqual(len(self.board.valid_moves), 20)
+class ConcreteGame (Game ):#line:206:class ConcreteGame(Game):
+    ""#line:207:"""A concrete implementation of the Game abstract class."""
+    def init (O0O0OOOOO0O0000OO ):#line:209:def init(self):
+        ""#line:210:"""Initialize the game by setting the initial player."""
+        O0O0OOOOO0O0000OO .current_player =O0O0OOOOO0O0000OO .player_1 #line:212:self.current_player = self.player_1
+    def run (OOO0O00OO0OOOO0O0 ,OOO0O0O00O00OOOOO ,O0O0OO0O0O000O00O ):#line:214:def run(self, row, col):
+        ""#line:215:"""Run the game by making the current player's attack at the specified row and column."""
+        OO0OO0OOOO000O0OO =OOO0O00OO0OOOO0O0 .make_current_player_attack (OOO0O0O00O00OOOOO ,O0O0OO0O0O000O00O )#line:216:winner_or_none = self.make_current_player_attack(row, col)
+    def place_ships (O00O00O0O00000OOO ,O0OOOOO00OOO0O000 :str ,OO00OOO0O0O000O0O :list ):#line:218:def place_ships(self, player_name: str, ships_coordinates: list):
+        ""#line:228:"""
+        if O0OOOOO00OOO0O000 not in [O00O00O0O00000OOO .player_1 .name ,O00O00O0O00000OOO .player_2 .name ]:#line:229:if player_name not in [self.player_1.name, self.player_2.name]:
+            raise ValueError ("The given player does not belong to this ConcreteGame.")#line:230:raise ValueError("The given player does not belong to this ConcreteGame.")
+        if O0OOOOO00OOO0O000 ==O00O00O0O00000OOO .player_1 .name :#line:232:if player_name == self.player_1.name:
+            for O00OOOO00O0O0OO00 in OO00OOO0O0O000O0O :#line:233:for ship_coordinates in ships_coordinates:
+                O00O00O0O00000OOO .player_2 .place_ship (O00OOOO00O0O0OO00 )#line:235:self.player_2.place_ship(ship_coordinates)
+        elif O0OOOOO00OOO0O000 ==O00O00O0O00000OOO .player_2 .name :#line:236:elif player_name == self.player_2.name:
+            for O00OOOO00O0O0OO00 in OO00OOO0O0O000O0O :#line:237:for ship_coordinates in ships_coordinates:
+                O00O00O0O00000OOO .player_1 .place_ship (O00OOOO00O0O0OO00 )#line:239:self.player_1.place_ship(ship_coordinates)
+class TestGame (unittest .TestCase ):#line:242:class TestGame(unittest.TestCase):
+    ""#line:243:"""Test cases for the Game class."""
+    def setUp (OO0O0000OO00000O0 ):#line:245:def setUp(self):
+        ""#line:260:"""
+        O0OOO000OO0O00O0O =5 #line:261:board_size = 5
+        O0OO000OOOOO00O0O ="Player 1"#line:262:player_1_name = "Player 1"
+        OOO0O0OO00OOO000O ="Player 2"#line:263:player_2_name = "Player 2"
+        OO0O0000OO00000O0 .concrete_game =ConcreteGame (O0OOO000OO0O00O0O ,O0OO000OOOOO00O0O ,OOO0O0OO00OOO000O )#line:264:self.concrete_game = ConcreteGame(board_size, player_1_name, player_2_name)
+        OO0O0000OO00000O0 .concrete_game .init ()#line:267:self.concrete_game.init()
+        OO0O0000OO00000O0 ._setup_place_ships ()#line:270:self._setup_place_ships()
+        OO0O0000OO00000O0 ._set_player_moves ()#line:273:self._set_player_moves()
+    def _setup_place_ships (OOOOO00OOOOOO000O ):#line:275:def _setup_place_ships(self):
+        ""#line:276:"""Helper method to place ships for both players."""
+        O000O0OOO0OOOOOOO =[[(2 ,0 ),(2 ,1 ),(2 ,2 ),(2 ,3 ),(2 ,4 )],[(3 ,1 ),(3 ,2 ),(3 ,3 ),(3 ,4 )],[(4 ,2 ),(4 ,3 ),(4 ,4 )],[(0 ,2 ),(1 ,2 )],[(3 ,0 )],]#line:285:]
+        OOOOO00OOOOOO000O .concrete_game .place_ships (OOOOO00OOOOOO000O .concrete_game .player_1 .name ,O000O0OOO0OOOOOOO )#line:286:self.concrete_game.place_ships(self.concrete_game.player_1.name, ships)
+        O000O0OOO0OOOOOOO =[[(0 ,2 ),(1 ,2 ),(2 ,2 ),(3 ,2 ),(4 ,2 )],[(0 ,1 ),(1 ,1 ),(2 ,1 ),(3 ,1 )],[(2 ,3 ),(3 ,3 ),(4 ,3 )],[(3 ,4 ),(4 ,4 )],[(3 ,0 )],]#line:295:]
+        OOOOO00OOOOOO000O .concrete_game .place_ships (OOOOO00OOOOOO000O .concrete_game .player_2 .name ,O000O0OOO0OOOOOOO )#line:296:self.concrete_game.place_ships(self.concrete_game.player_2.name, ships)
+    def _set_player_moves (OOO0O0O00O0O000O0 ):#line:298:def _set_player_moves(self):
+        ""#line:299:"""Set player moves."""
+        OOO0O0O00O0O000O0 .PLAYER_1_WINS_PLAYER_1_MOVES =[(3 ,1 ),(0 ,1 ),(0 ,0 ),(4 ,0 ),(1 ,1 ),(0 ,3 ),(3 ,0 ),(1 ,0 ),(1 ,2 ),(4 ,3 ),(3 ,2 ),(1 ,4 ),(0 ,4 ),(2 ,4 ),(1 ,3 ),(4 ,2 ),(3 ,3 ),(0 ,2 ),(2 ,2 ),(3 ,4 ),(2 ,1 ),(4 ,4 ),(2 ,3 ),(4 ,1 ),(2 ,0 ),]#line:330:]
+        OOO0O0O00O0O000O0 .PLAYER_1_WINS_PLAYER_2_MOVES =[(0 ,4 ),(0 ,2 ),(3 ,4 ),(1 ,0 ),(4 ,0 ),(1 ,3 ),(2 ,1 ),(1 ,2 ),(2 ,0 ),(2 ,3 ),(3 ,1 ),(0 ,3 ),(2 ,4 ),(0 ,0 ),(1 ,4 ),(2 ,2 ),(0 ,1 ),(1 ,1 ),(3 ,3 ),(4 ,3 ),(3 ,2 ),(3 ,0 ),(4 ,1 ),(4 ,4 ),(4 ,2 ),]#line:357:]
+        OOO0O0O00O0O000O0 .PLAYER_2_WINS_PLAYER_1_MOVES =[(1 ,3 ),(2 ,1 ),(2 ,2 ),(2 ,3 ),(0 ,4 ),(4 ,3 ),(3 ,0 ),(0 ,3 ),(1 ,0 ),(0 ,0 ),(2 ,0 ),(0 ,2 ),(4 ,2 ),(3 ,3 ),(1 ,2 ),(1 ,1 ),(4 ,0 ),(4 ,4 ),(2 ,4 ),(0 ,1 ),(3 ,2 ),(4 ,1 ),(3 ,1 ),(1 ,4 ),(3 ,4 ),]#line:386:]
+        OOO0O0O00O0O000O0 .PLAYER_2_WINS_PLAYER_2_MOVES =[(3 ,1 ),(1 ,3 ),(0 ,4 ),(2 ,0 ),(2 ,3 ),(2 ,2 ),(3 ,2 ),(4 ,3 ),(3 ,3 ),(0 ,2 ),(4 ,2 ),(1 ,1 ),(4 ,4 ),(4 ,1 ),(0 ,0 ),(3 ,0 ),(0 ,1 ),(0 ,3 ),(1 ,2 ),(2 ,1 ),(3 ,4 ),(2 ,4 ),(1 ,0 ),(1 ,4 ),(4 ,0 ),]#line:413:]
+    def test_game_initialization (OO000O00OOO0OO00O ):#line:415:def test_game_initialization(self):
+        ""#line:416:"""Test game initialization."""
+        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .player_1 .name ,"Player 1")#line:419:self.assertEqual(self.concrete_game.player_1.name, "Player 1")
+        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .player_2 .name ,"Player 2")#line:420:self.assertEqual(self.concrete_game.player_2.name, "Player 2")
+        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .board_size ,5 )#line:422:self.assertEqual(self.concrete_game.board_size, 5)
+        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .current_player ,OO000O00OOO0OO00O .concrete_game .player_1 )#line:423:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
+        OO000O00OOO0OO00O .assertNotEqual (OO000O00OOO0OO00O .concrete_game .current_player ,OO000O00OOO0OO00O .concrete_game .player_2 )#line:426:)
+        OO000O00OOO0OO00O .assertIsNone (OO000O00OOO0OO00O .concrete_game .get_winner ())#line:427:self.assertIsNone(self.concrete_game.get_winner())
+        OOOO0OOO0O00OO0O0 =[[(2 ,0 ),(2 ,1 ),(2 ,2 ),(2 ,3 ),(2 ,4 )],[(3 ,1 ),(3 ,2 ),(3 ,3 ),(3 ,4 )],[(4 ,2 ),(4 ,3 ),(4 ,4 )],[(0 ,2 ),(1 ,2 )],[(3 ,0 )],]#line:436:]
+        O0O0OO0000000O000 =OO000O00OOO0OO00O .concrete_game .player_2 .enemy_board .occupied_cells #line:437:player_1_occupied_cells = self.concrete_game.player_2.enemy_board.occupied_cells
+        for O0OOO0OO0OOOO0OOO in (OO0O00OO0O00O0OOO for OOOO0OOOOO0OOO00O in OOOO0OOO0O00OO0O0 for OO0O00OO0O00O0OOO in OOOO0OOOOO0OOO00O ):#line:438:for cell in (tup for ship_coordinates in ships for tup in ship_coordinates):
+            OO000O00OOO0OO00O .assertIn (O0OOO0OO0OOOO0OOO ,O0O0OO0000000O000 )#line:439:self.assertIn(cell, player_1_occupied_cells)
+        OOOO0OOO0O00OO0O0 =[[(0 ,2 ),(1 ,2 ),(2 ,2 ),(3 ,2 ),(4 ,2 )],[(0 ,1 ),(1 ,1 ),(2 ,1 ),(3 ,1 )],[(2 ,3 ),(3 ,3 ),(4 ,3 )],[(3 ,4 ),(4 ,4 )],[(3 ,0 )],]#line:448:]
+        O0OOO0OOO00O00OOO =OO000O00OOO0OO00O .concrete_game .player_1 .enemy_board .occupied_cells #line:449:player_2_occupied_cells = self.concrete_game.player_1.enemy_board.occupied_cells
+        for O0OOO0OO0OOOO0OOO in (O000OOOO00OO0000O for O0O0O00000OOOOOO0 in OOOO0OOO0O00OO0O0 for O000OOOO00OO0000O in O0O0O00000OOOOOO0 ):#line:450:for cell in (tup for ship_coordinates in ships for tup in ship_coordinates):
+            OO000O00OOO0OO00O .assertIn (O0OOO0OO0OOOO0OOO ,O0OOO0OOO00O00OOO )#line:451:self.assertIn(cell, player_2_occupied_cells)
+    def test_current_player_updating (O00O0OOO00O0O0O0O ):#line:453:def test_current_player_updating(self):
+        ""#line:454:"""Test whether the current player is updated correctly after each move."""
+        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .previous_player ,O00O0OOO00O0O0O0O .concrete_game .player_2 )#line:458:)
+        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .current_player ,O00O0OOO00O0O0O0O .concrete_game .player_1 )#line:459:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
+        O00O0OOO00O0O0O0O .concrete_game .make_current_player_attack (0 ,0 )#line:462:self.concrete_game.make_current_player_attack(0, 0)
+        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .previous_player ,O00O0OOO00O0O0O0O .concrete_game .player_1 )#line:465:)
+        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .current_player ,O00O0OOO00O0O0O0O .concrete_game .player_2 )#line:466:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_2)
+        O00O0OOO00O0O0O0O .concrete_game .make_current_player_attack (0 ,0 )#line:469:self.concrete_game.make_current_player_attack(0, 0)
+        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .previous_player ,O00O0OOO00O0O0O0O .concrete_game .player_2 )#line:472:)
+        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .current_player ,O00O0OOO00O0O0O0O .concrete_game .player_1 )#line:473:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
+    def test_current_player_hits_target (O00OOO000OOOOOOO0 ):#line:475:def test_current_player_hits_target(self):
+        ""#line:476:"""Test whether the current player successfully hits the target."""
+        O00OOO000OOOOOOO0 .assertEqual (O00OOO000OOOOOOO0 .concrete_game .current_player ,O00OOO000OOOOOOO0 .concrete_game .player_1 )#line:478:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
+        O00OOO000OOOOOOO0 .concrete_game .make_current_player_attack (0 ,2 )#line:480:self.concrete_game.make_current_player_attack(0, 2)
+        O00OOO000OOOOOOO0 .assertEqual (len (O00OOO000OOOOOOO0 .concrete_game .player_1 .enemy_board .hit_cells ),1 )#line:482:self.assertEqual(len(self.concrete_game.player_1.enemy_board.hit_cells), 1)
+        O00000OO0OO00OO00 =(O00OOO000OOOOOOO0 .concrete_game .player_1 .enemy_board .get_board_for_enemy ())#line:486:)
+        O00OOO000OOOOOOO0 .assertEqual (O00000OO0OO00OO00 [0 ][2 ],"X")#line:487:self.assertEqual(player_1_hit_or_missed_board[0][2], "X")
+    def test_current_player_missed_target (OO0O0000O0O0OO0O0 ):#line:489:def test_current_player_missed_target(self):
+        ""#line:490:"""Test whether the current player misses the target."""
+        OO0O0000O0O0OO0O0 .assertEqual (OO0O0000O0O0OO0O0 .concrete_game .current_player ,OO0O0000O0O0OO0O0 .concrete_game .player_1 )#line:492:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
+        OO0O0000O0O0OO0O0 .concrete_game .make_current_player_attack (0 ,3 )#line:494:self.concrete_game.make_current_player_attack(0, 3)
+        OO0O0000O0O0OO0O0 .assertEqual (len (OO0O0000O0O0OO0O0 .concrete_game .player_1 .enemy_board .hit_cells ),0 )#line:496:self.assertEqual(len(self.concrete_game.player_1.enemy_board.hit_cells), 0)
+        OO00OO000O0OOOO00 =(OO0O0000O0O0OO0O0 .concrete_game .player_1 .enemy_board .get_board_for_enemy ())#line:500:)
+        OO0O0000O0O0OO0O0 .assertEqual (OO00OO000O0OOOO00 [0 ][3 ],"O")#line:501:self.assertEqual(player_1_hit_or_missed_board[0][3], "O")
+    def test_current_player_wins_game (OO0OOO00OO0OOO000 ):#line:503:def test_current_player_wins_game(self):
+        ""#line:504:"""Test whether the current player wins the game."""
+        OO0OOO00OO0OOO000 .assertEqual (OO0OOO00OO0OOO000 .concrete_game .current_player ,OO0OOO00OO0OOO000 .concrete_game .player_1 )#line:506:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
+        OO000OOOOOO0OO000 =OO0OOO00OO0OOO000 .concrete_game .get_winner ()#line:508:winner_or_none = self.concrete_game.get_winner()
+        while OO000OOOOOO0OO000 is None :#line:509:while winner_or_none is None:
+            if OO0OOO00OO0OOO000 .concrete_game .current_player ==OO0OOO00OO0OOO000 .concrete_game .player_1 :#line:510:if self.concrete_game.current_player == self.concrete_game.player_1:
+                try :#line:511:try:
+                    O0OO0OOO00O0O000O =OO0OOO00OO0OOO000 .PLAYER_1_WINS_PLAYER_1_MOVES .pop (0 )#line:512:move = self.PLAYER_1_WINS_PLAYER_1_MOVES.pop(0)
+                    OO0OOO00OO0OOO000 .concrete_game .make_current_player_attack (*O0OO0OOO00O0O000O )#line:513:self.concrete_game.make_current_player_attack(*move)
+                except IndexError :#line:514:except IndexError:
+                    print ("There are no more moves for Player 1.")#line:515:print("There are no more moves for Player 1.")
+            elif OO0OOO00OO0OOO000 .concrete_game .current_player ==OO0OOO00OO0OOO000 .concrete_game .player_2 :#line:517:elif self.concrete_game.current_player == self.concrete_game.player_2:
+                try :#line:518:try:
+                    O0OO0OOO00O0O000O =OO0OOO00OO0OOO000 .PLAYER_1_WINS_PLAYER_2_MOVES .pop (0 )#line:519:move = self.PLAYER_1_WINS_PLAYER_2_MOVES.pop(0)
+                    OO0OOO00OO0OOO000 .concrete_game .make_current_player_attack (*O0OO0OOO00O0O000O )#line:520:self.concrete_game.make_current_player_attack(*move)
+                except IndexError :#line:521:except IndexError:
+                    print ("There are no more moves for Player 2.")#line:522:print("There are no more moves for Player 2.")
+            OO000OOOOOO0OO000 =OO0OOO00OO0OOO000 .concrete_game .get_winner ()#line:524:winner_or_none = self.concrete_game.get_winner()
+        OO0OOO00OO0OOO000 .assertIsInstance (OO000OOOOOO0OO000 ,Player )#line:526:self.assertIsInstance(winner_or_none, Player)
+        OO0OOO00OO0OOO000 .assertEqual (OO000OOOOOO0OO000 ,OO0OOO00OO0OOO000 .concrete_game .player_1 )#line:527:self.assertEqual(winner_or_none, self.concrete_game.player_1)
+        OO0OOO00OO0OOO000 .assertTrue (OO0OOO00OO0OOO000 .concrete_game .player_1 .enemy_board .is_player_lost )#line:530:)  # Player 2 Lost
+        OO0OOO00OO0OOO000 .assertFalse (OO0OOO00OO0OOO000 .concrete_game .player_2 .enemy_board .is_player_lost )#line:533:)  # Player 1 Not Lost
+    def test_current_player_loses_game (O0OO00OOOO00OOOO0 ):#line:535:def test_current_player_loses_game(self):
+        ""#line:536:"""Test whether the current player loses the game."""
+        O0OO00OOOO00OOOO0 .assertEqual (O0OO00OOOO00OOOO0 .concrete_game .current_player ,O0OO00OOOO00OOOO0 .concrete_game .player_1 )#line:538:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
+        OO0OO0000OOO0000O =O0OO00OOOO00OOOO0 .concrete_game .get_winner ()#line:540:winner_or_none = self.concrete_game.get_winner()
+        while OO0OO0000OOO0000O is None :#line:541:while winner_or_none is None:
+            if O0OO00OOOO00OOOO0 .concrete_game .current_player ==O0OO00OOOO00OOOO0 .concrete_game .player_1 :#line:542:if self.concrete_game.current_player == self.concrete_game.player_1:
+                try :#line:543:try:
+                    OOO0O00O0O0OO0OOO =O0OO00OOOO00OOOO0 .PLAYER_2_WINS_PLAYER_1_MOVES .pop (0 )#line:544:move = self.PLAYER_2_WINS_PLAYER_1_MOVES.pop(0)
+                    O0OO00OOOO00OOOO0 .concrete_game .make_current_player_attack (*OOO0O00O0O0OO0OOO )#line:545:self.concrete_game.make_current_player_attack(*move)
+                except IndexError :#line:546:except IndexError:
+                    print ("There are no more moves for Player 1.")#line:547:print("There are no more moves for Player 1.")
+            elif O0OO00OOOO00OOOO0 .concrete_game .current_player ==O0OO00OOOO00OOOO0 .concrete_game .player_2 :#line:549:elif self.concrete_game.current_player == self.concrete_game.player_2:
+                try :#line:550:try:
+                    OOO0O00O0O0OO0OOO =O0OO00OOOO00OOOO0 .PLAYER_2_WINS_PLAYER_2_MOVES .pop (0 )#line:551:move = self.PLAYER_2_WINS_PLAYER_2_MOVES.pop(0)
+                    O0OO00OOOO00OOOO0 .concrete_game .make_current_player_attack (*OOO0O00O0O0OO0OOO )#line:552:self.concrete_game.make_current_player_attack(*move)
+                except IndexError :#line:553:except IndexError:
+                    print ("There are no more moves for Player 2.")#line:554:print("There are no more moves for Player 2.")
+            OO0OO0000OOO0000O =O0OO00OOOO00OOOO0 .concrete_game .get_winner ()#line:556:winner_or_none = self.concrete_game.get_winner()
+        O0OO00OOOO00OOOO0 .assertIsInstance (OO0OO0000OOO0000O ,Player )#line:558:self.assertIsInstance(winner_or_none, Player)
+        O0OO00OOOO00OOOO0 .assertEqual (OO0OO0000OOO0000O ,O0OO00OOOO00OOOO0 .concrete_game .player_2 )#line:559:self.assertEqual(winner_or_none, self.concrete_game.player_2)
+        O0OO00OOOO00OOOO0 .assertTrue (O0OO00OOOO00OOOO0 .concrete_game .player_2 .enemy_board .is_player_lost )#line:562:)  # Player 1 Lost
+        O0OO00OOOO00OOOO0 .assertFalse (O0OO00OOOO00OOOO0 .concrete_game .player_1 .enemy_board .is_player_lost )#line:565:)  # Player 2 Not Lost
+if __name__ =="__main__":#line:568:if __name__ == "__main__":
+    unittest .main ()#line:569:unittest.main()

@@ -1,0 +1,609 @@
+from __future__ import absolute_import ,division ,unicode_literals #line:1:from __future__ import absolute_import, division, unicode_literals
+from pip ._vendor .six import text_type ,binary_type #line:3:from pip._vendor.six import text_type, binary_type
+from pip ._vendor .six .moves import http_client ,urllib #line:4:from pip._vendor.six.moves import http_client, urllib
+import codecs #line:6:import codecs
+import re #line:7:import re
+from pip ._vendor import webencodings #line:9:from pip._vendor import webencodings
+from .constants import EOF ,spaceCharacters ,asciiLetters ,asciiUppercase #line:11:from .constants import EOF, spaceCharacters, asciiLetters, asciiUppercase
+from .constants import _ReparseException #line:12:from .constants import _ReparseException
+from .import _utils #line:13:from . import _utils
+from io import StringIO #line:15:from io import StringIO
+try :#line:17:try:
+    from io import BytesIO #line:18:from io import BytesIO
+except ImportError :#line:19:except ImportError:
+    BytesIO =StringIO #line:20:BytesIO = StringIO
+spaceCharactersBytes =frozenset ([O00OOOO000OOO0O0O .encode ("ascii")for O00OOOO000OOO0O0O in spaceCharacters ])#line:23:spaceCharactersBytes = frozenset([item.encode("ascii") for item in spaceCharacters])
+asciiLettersBytes =frozenset ([O000O00O0O0O0O0O0 .encode ("ascii")for O000O00O0O0O0O0O0 in asciiLetters ])#line:24:asciiLettersBytes = frozenset([item.encode("ascii") for item in asciiLetters])
+asciiUppercaseBytes =frozenset ([OOO0O00000OO0OOO0 .encode ("ascii")for OOO0O00000OO0OOO0 in asciiUppercase ])#line:25:asciiUppercaseBytes = frozenset([item.encode("ascii") for item in asciiUppercase])
+spacesAngleBrackets =spaceCharactersBytes |frozenset ([b">",b"<"])#line:26:spacesAngleBrackets = spaceCharactersBytes | frozenset([b">", b"<"])
+invalid_unicode_no_surrogate ="[\u0001-\u0008\u000B\u000E-\u001F\u007F-\u009F\uFDD0-\uFDEF\uFFFE\uFFFF\U0001FFFE\U0001FFFF\U0002FFFE\U0002FFFF\U0003FFFE\U0003FFFF\U0004FFFE\U0004FFFF\U0005FFFE\U0005FFFF\U0006FFFE\U0006FFFF\U0007FFFE\U0007FFFF\U0008FFFE\U0008FFFF\U0009FFFE\U0009FFFF\U000AFFFE\U000AFFFF\U000BFFFE\U000BFFFF\U000CFFFE\U000CFFFF\U000DFFFE\U000DFFFF\U000EFFFE\U000EFFFF\U000FFFFE\U000FFFFF\U0010FFFE\U0010FFFF]"#line:29:invalid_unicode_no_surrogate = "[\u0001-\u0008\u000B\u000E-\u001F\u007F-\u009F\uFDD0-\uFDEF\uFFFE\uFFFF\U0001FFFE\U0001FFFF\U0002FFFE\U0002FFFF\U0003FFFE\U0003FFFF\U0004FFFE\U0004FFFF\U0005FFFE\U0005FFFF\U0006FFFE\U0006FFFF\U0007FFFE\U0007FFFF\U0008FFFE\U0008FFFF\U0009FFFE\U0009FFFF\U000AFFFE\U000AFFFF\U000BFFFE\U000BFFFF\U000CFFFE\U000CFFFF\U000DFFFE\U000DFFFF\U000EFFFE\U000EFFFF\U000FFFFE\U000FFFFF\U0010FFFE\U0010FFFF]"  # noqa
+if _utils .supports_lone_surrogates :#line:31:if _utils.supports_lone_surrogates:
+    assert invalid_unicode_no_surrogate [-1 ]=="]"and invalid_unicode_no_surrogate .count ("]")==1 #line:36:assert invalid_unicode_no_surrogate[-1] == "]" and invalid_unicode_no_surrogate.count("]") == 1
+    invalid_unicode_re =re .compile (invalid_unicode_no_surrogate [:-1 ]+eval ('"\\uD800-\\uDFFF"')+"]")#line:39:"]")
+else :#line:40:else:
+    invalid_unicode_re =re .compile (invalid_unicode_no_surrogate )#line:41:invalid_unicode_re = re.compile(invalid_unicode_no_surrogate)
+non_bmp_invalid_codepoints =set ([0x1FFFE ,0x1FFFF ,0x2FFFE ,0x2FFFF ,0x3FFFE ,0x3FFFF ,0x4FFFE ,0x4FFFF ,0x5FFFE ,0x5FFFF ,0x6FFFE ,0x6FFFF ,0x7FFFE ,0x7FFFF ,0x8FFFE ,0x8FFFF ,0x9FFFE ,0x9FFFF ,0xAFFFE ,0xAFFFF ,0xBFFFE ,0xBFFFF ,0xCFFFE ,0xCFFFF ,0xDFFFE ,0xDFFFF ,0xEFFFE ,0xEFFFF ,0xFFFFE ,0xFFFFF ,0x10FFFE ,0x10FFFF ])#line:49:0x10FFFE, 0x10FFFF])
+ascii_punctuation_re =re .compile ("[\u0009-\u000D\u0020-\u002F\u003A-\u0040\u005C\u005B-\u0060\u007B-\u007E]")#line:51:ascii_punctuation_re = re.compile("[\u0009-\u000D\u0020-\u002F\u003A-\u0040\u005C\u005B-\u0060\u007B-\u007E]")
+charsUntilRegEx ={}#line:54:charsUntilRegEx = {}
+class BufferedStream (object ):#line:57:class BufferedStream(object):
+    ""#line:62:"""
+    def __init__ (OOOOO000O0OOO0O0O ,O00O0OOOO0OOO00OO ):#line:64:def __init__(self, stream):
+        OOOOO000O0OOO0O0O .stream =O00O0OOOO0OOO00OO #line:65:self.stream = stream
+        OOOOO000O0OOO0O0O .buffer =[]#line:66:self.buffer = []
+        OOOOO000O0OOO0O0O .position =[-1 ,0 ]#line:67:self.position = [-1, 0]  # chunk number, offset
+    def tell (O000O00O0OO000O00 ):#line:69:def tell(self):
+        O00OOOO000O0OO0OO =0 #line:70:pos = 0
+        for O000OOO0OO000O0OO in O000O00O0OO000O00 .buffer [:O000O00O0OO000O00 .position [0 ]]:#line:71:for chunk in self.buffer[:self.position[0]]:
+            O00OOOO000O0OO0OO +=len (O000OOO0OO000O0OO )#line:72:pos += len(chunk)
+        O00OOOO000O0OO0OO +=O000O00O0OO000O00 .position [1 ]#line:73:pos += self.position[1]
+        return O00OOOO000O0OO0OO #line:74:return pos
+    def seek (O0OOO0OO0O0OO0000 ,OOOOO0OOO0OOOO00O ):#line:76:def seek(self, pos):
+        assert OOOOO0OOO0OOOO00O <=O0OOO0OO0O0OO0000 ._bufferedBytes ()#line:77:assert pos <= self._bufferedBytes()
+        OOO0O0O0OO00OOO0O =OOOOO0OOO0OOOO00O #line:78:offset = pos
+        O000O0O0O00O0OOO0 =0 #line:79:i = 0
+        while len (O0OOO0OO0O0OO0000 .buffer [O000O0O0O00O0OOO0 ])<OOO0O0O0OO00OOO0O :#line:80:while len(self.buffer[i]) < offset:
+            OOO0O0O0OO00OOO0O -=len (O0OOO0OO0O0OO0000 .buffer [O000O0O0O00O0OOO0 ])#line:81:offset -= len(self.buffer[i])
+            O000O0O0O00O0OOO0 +=1 #line:82:i += 1
+        O0OOO0OO0O0OO0000 .position =[O000O0O0O00O0OOO0 ,OOO0O0O0OO00OOO0O ]#line:83:self.position = [i, offset]
+    def read (O000O0OOO00000O0O ,O0O0O0OO00O0OOOO0 ):#line:85:def read(self, bytes):
+        if not O000O0OOO00000O0O .buffer :#line:86:if not self.buffer:
+            return O000O0OOO00000O0O ._readStream (O0O0O0OO00O0OOOO0 )#line:87:return self._readStream(bytes)
+        elif (O000O0OOO00000O0O .position [0 ]==len (O000O0OOO00000O0O .buffer )and O000O0OOO00000O0O .position [1 ]==len (O000O0OOO00000O0O .buffer [-1 ])):#line:89:self.position[1] == len(self.buffer[-1])):
+            return O000O0OOO00000O0O ._readStream (O0O0O0OO00O0OOOO0 )#line:90:return self._readStream(bytes)
+        else :#line:91:else:
+            return O000O0OOO00000O0O ._readFromBuffer (O0O0O0OO00O0OOOO0 )#line:92:return self._readFromBuffer(bytes)
+    def _bufferedBytes (O0O00OOOO00O00OOO ):#line:94:def _bufferedBytes(self):
+        return sum ([len (OO0OOO0000O0OOO0O )for OO0OOO0000O0OOO0O in O0O00OOOO00O00OOO .buffer ])#line:95:return sum([len(item) for item in self.buffer])
+    def _readStream (O0OOO000O0OO0OOO0 ,OO0OOO0O0O0OOO00O ):#line:97:def _readStream(self, bytes):
+        OOO000000OOOOOO00 =O0OOO000O0OO0OOO0 .stream .read (OO0OOO0O0O0OOO00O )#line:98:data = self.stream.read(bytes)
+        O0OOO000O0OO0OOO0 .buffer .append (OOO000000OOOOOO00 )#line:99:self.buffer.append(data)
+        O0OOO000O0OO0OOO0 .position [0 ]+=1 #line:100:self.position[0] += 1
+        O0OOO000O0OO0OOO0 .position [1 ]=len (OOO000000OOOOOO00 )#line:101:self.position[1] = len(data)
+        return OOO000000OOOOOO00 #line:102:return data
+    def _readFromBuffer (O00O00000O0OO000O ,O0000OO0O0OO0OOO0 ):#line:104:def _readFromBuffer(self, bytes):
+        OOOO000OOO0OOOOO0 =O0000OO0O0OO0OOO0 #line:105:remainingBytes = bytes
+        O0O0OO0O000OO00OO =[]#line:106:rv = []
+        OOO0OOOOOO0O00OOO =O00O00000O0OO000O .position [0 ]#line:107:bufferIndex = self.position[0]
+        OO000O000OOOOOOOO =O00O00000O0OO000O .position [1 ]#line:108:bufferOffset = self.position[1]
+        while OOO0OOOOOO0O00OOO <len (O00O00000O0OO000O .buffer )and OOOO000OOO0OOOOO0 !=0 :#line:109:while bufferIndex < len(self.buffer) and remainingBytes != 0:
+            assert OOOO000OOO0OOOOO0 >0 #line:110:assert remainingBytes > 0
+            O0000O0O0OOOOOOO0 =O00O00000O0OO000O .buffer [OOO0OOOOOO0O00OOO ]#line:111:bufferedData = self.buffer[bufferIndex]
+            if OOOO000OOO0OOOOO0 <=len (O0000O0O0OOOOOOO0 )-OO000O000OOOOOOOO :#line:113:if remainingBytes <= len(bufferedData) - bufferOffset:
+                O00OO0OOOOO0O0000 =OOOO000OOO0OOOOO0 #line:114:bytesToRead = remainingBytes
+                O00O00000O0OO000O .position =[OOO0OOOOOO0O00OOO ,OO000O000OOOOOOOO +O00OO0OOOOO0O0000 ]#line:115:self.position = [bufferIndex, bufferOffset + bytesToRead]
+            else :#line:116:else:
+                O00OO0OOOOO0O0000 =len (O0000O0O0OOOOOOO0 )-OO000O000OOOOOOOO #line:117:bytesToRead = len(bufferedData) - bufferOffset
+                O00O00000O0OO000O .position =[OOO0OOOOOO0O00OOO ,len (O0000O0O0OOOOOOO0 )]#line:118:self.position = [bufferIndex, len(bufferedData)]
+                OOO0OOOOOO0O00OOO +=1 #line:119:bufferIndex += 1
+            O0O0OO0O000OO00OO .append (O0000O0O0OOOOOOO0 [OO000O000OOOOOOOO :OO000O000OOOOOOOO +O00OO0OOOOO0O0000 ])#line:120:rv.append(bufferedData[bufferOffset:bufferOffset + bytesToRead])
+            OOOO000OOO0OOOOO0 -=O00OO0OOOOO0O0000 #line:121:remainingBytes -= bytesToRead
+            OO000O000OOOOOOOO =0 #line:123:bufferOffset = 0
+        if OOOO000OOO0OOOOO0 :#line:125:if remainingBytes:
+            O0O0OO0O000OO00OO .append (O00O00000O0OO000O ._readStream (OOOO000OOO0OOOOO0 ))#line:126:rv.append(self._readStream(remainingBytes))
+        return b"".join (O0O0OO0O000OO00OO )#line:128:return b"".join(rv)
+def HTMLInputStream (OO0000000O00O00OO ,**O0O00OO00O00OOOOO ):#line:131:def HTMLInputStream(source, **kwargs):
+    if (isinstance (OO0000000O00O00OO ,http_client .HTTPResponse )or (isinstance (OO0000000O00O00OO ,urllib .response .addbase )and isinstance (OO0000000O00O00OO .fp ,http_client .HTTPResponse ))):#line:137:isinstance(source.fp, http_client.HTTPResponse))):
+        OO000O00O000O0OOO =False #line:138:isUnicode = False
+    elif hasattr (OO0000000O00O00OO ,"read"):#line:139:elif hasattr(source, "read"):
+        OO000O00O000O0OOO =isinstance (OO0000000O00O00OO .read (0 ),text_type )#line:140:isUnicode = isinstance(source.read(0), text_type)
+    else :#line:141:else:
+        OO000O00O000O0OOO =isinstance (OO0000000O00O00OO ,text_type )#line:142:isUnicode = isinstance(source, text_type)
+    if OO000O00O000O0OOO :#line:144:if isUnicode:
+        OO0OOO00O000O0O00 =[O0OO0O0O0O0O0OOOO for O0OO0O0O0O0O0OOOO in O0O00OO00O00OOOOO if O0OO0O0O0O0O0OOOO .endswith ("_encoding")]#line:145:encodings = [x for x in kwargs if x.endswith("_encoding")]
+        if OO0OOO00O000O0O00 :#line:146:if encodings:
+            raise TypeError ("Cannot set an encoding with a unicode input, set %r"%OO0OOO00O000O0O00 )#line:147:raise TypeError("Cannot set an encoding with a unicode input, set %r" % encodings)
+        return HTMLUnicodeInputStream (OO0000000O00O00OO ,**O0O00OO00O00OOOOO )#line:149:return HTMLUnicodeInputStream(source, **kwargs)
+    else :#line:150:else:
+        return HTMLBinaryInputStream (OO0000000O00O00OO ,**O0O00OO00O00OOOOO )#line:151:return HTMLBinaryInputStream(source, **kwargs)
+class HTMLUnicodeInputStream (object ):#line:154:class HTMLUnicodeInputStream(object):
+    ""#line:160:"""
+    _defaultChunkSize =10240 #line:162:_defaultChunkSize = 10240
+    def __init__ (OO0OOO0OOO000OO00 ,OO000O00O00OOO0OO ):#line:164:def __init__(self, source):
+        ""#line:177:"""
+        if not _utils .supports_lone_surrogates :#line:179:if not _utils.supports_lone_surrogates:
+            OO0OOO0OOO000OO00 .reportCharacterErrors =None #line:182:self.reportCharacterErrors = None
+        elif len ("\U0010FFFF")==1 :#line:183:elif len("\U0010FFFF") == 1:
+            OO0OOO0OOO000OO00 .reportCharacterErrors =OO0OOO0OOO000OO00 .characterErrorsUCS4 #line:184:self.reportCharacterErrors = self.characterErrorsUCS4
+        else :#line:185:else:
+            OO0OOO0OOO000OO00 .reportCharacterErrors =OO0OOO0OOO000OO00 .characterErrorsUCS2 #line:186:self.reportCharacterErrors = self.characterErrorsUCS2
+        OO0OOO0OOO000OO00 .newLines =[0 ]#line:189:self.newLines = [0]
+        OO0OOO0OOO000OO00 .charEncoding =(lookupEncoding ("utf-8"),"certain")#line:191:self.charEncoding = (lookupEncoding("utf-8"), "certain")
+        OO0OOO0OOO000OO00 .dataStream =OO0OOO0OOO000OO00 .openStream (OO000O00O00OOO0OO )#line:192:self.dataStream = self.openStream(source)
+        OO0OOO0OOO000OO00 .reset ()#line:194:self.reset()
+    def reset (OOO000O0OO000OO0O ):#line:196:def reset(self):
+        OOO000O0OO000OO0O .chunk =""#line:197:self.chunk = ""
+        OOO000O0OO000OO0O .chunkSize =0 #line:198:self.chunkSize = 0
+        OOO000O0OO000OO0O .chunkOffset =0 #line:199:self.chunkOffset = 0
+        OOO000O0OO000OO0O .errors =[]#line:200:self.errors = []
+        OOO000O0OO000OO0O .prevNumLines =0 #line:203:self.prevNumLines = 0
+        OOO000O0OO000OO0O .prevNumCols =0 #line:205:self.prevNumCols = 0
+        OOO000O0OO000OO0O ._bufferedCharacter =None #line:208:self._bufferedCharacter = None
+    def openStream (OOOO000O0O0OOO000 ,O0O00OOOO0OOO0OOO ):#line:210:def openStream(self, source):
+        ""#line:215:"""
+        if hasattr (O0O00OOOO0OOO0OOO ,'read'):#line:217:if hasattr(source, 'read'):
+            OO00O0O00O00000O0 =O0O00OOOO0OOO0OOO #line:218:stream = source
+        else :#line:219:else:
+            OO00O0O00O00000O0 =StringIO (O0O00OOOO0OOO0OOO )#line:220:stream = StringIO(source)
+        return OO00O0O00O00000O0 #line:222:return stream
+    def _position (O0OOOO000O0OO0O0O ,O0O00O000O000OOO0 ):#line:224:def _position(self, offset):
+        O000O00OO0OOO0OO0 =O0OOOO000O0OO0O0O .chunk #line:225:chunk = self.chunk
+        OO0000O00OOO0OOO0 =O000O00OO0OOO0OO0 .count ('\n',0 ,O0O00O000O000OOO0 )#line:226:nLines = chunk.count('\n', 0, offset)
+        O00OOO00O000O0OO0 =O0OOOO000O0OO0O0O .prevNumLines +OO0000O00OOO0OOO0 #line:227:positionLine = self.prevNumLines + nLines
+        O0O0OOOOOO0O0OOO0 =O000O00OO0OOO0OO0 .rfind ('\n',0 ,O0O00O000O000OOO0 )#line:228:lastLinePos = chunk.rfind('\n', 0, offset)
+        if O0O0OOOOOO0O0OOO0 ==-1 :#line:229:if lastLinePos == -1:
+            O00OO0O00O00O0000 =O0OOOO000O0OO0O0O .prevNumCols +O0O00O000O000OOO0 #line:230:positionColumn = self.prevNumCols + offset
+        else :#line:231:else:
+            O00OO0O00O00O0000 =O0O00O000O000OOO0 -(O0O0OOOOOO0O0OOO0 +1 )#line:232:positionColumn = offset - (lastLinePos + 1)
+        return (O00OOO00O000O0OO0 ,O00OO0O00O00O0000 )#line:233:return (positionLine, positionColumn)
+    def position (O0OOO0OO000O00OO0 ):#line:235:def position(self):
+        ""#line:236:"""Returns (line, col) of the current position in the stream."""
+        OOO00OO00O0O0O0O0 ,O0O000000O00OO000 =O0OOO0OO000O00OO0 ._position (O0OOO0OO000O00OO0 .chunkOffset )#line:237:line, col = self._position(self.chunkOffset)
+        return (OOO00OO00O0O0O0O0 +1 ,O0O000000O00OO000 )#line:238:return (line + 1, col)
+    def char (OOOO000O00OO0OOO0 ):#line:240:def char(self):
+        ""#line:243:"""
+        if OOOO000O00OO0OOO0 .chunkOffset >=OOOO000O00OO0OOO0 .chunkSize :#line:245:if self.chunkOffset >= self.chunkSize:
+            if not OOOO000O00OO0OOO0 .readChunk ():#line:246:if not self.readChunk():
+                return EOF #line:247:return EOF
+        O0OO00O000O0OOO00 =OOOO000O00OO0OOO0 .chunkOffset #line:249:chunkOffset = self.chunkOffset
+        OO00000O0OOOO0O0O =OOOO000O00OO0OOO0 .chunk [O0OO00O000O0OOO00 ]#line:250:char = self.chunk[chunkOffset]
+        OOOO000O00OO0OOO0 .chunkOffset =O0OO00O000O0OOO00 +1 #line:251:self.chunkOffset = chunkOffset + 1
+        return OO00000O0OOOO0O0O #line:253:return char
+    def readChunk (OO0OOOO0000OOO0OO ,chunkSize =None ):#line:255:def readChunk(self, chunkSize=None):
+        if chunkSize is None :#line:256:if chunkSize is None:
+            chunkSize =OO0OOOO0000OOO0OO ._defaultChunkSize #line:257:chunkSize = self._defaultChunkSize
+        OO0OOOO0000OOO0OO .prevNumLines ,OO0OOOO0000OOO0OO .prevNumCols =OO0OOOO0000OOO0OO ._position (OO0OOOO0000OOO0OO .chunkSize )#line:259:self.prevNumLines, self.prevNumCols = self._position(self.chunkSize)
+        OO0OOOO0000OOO0OO .chunk =""#line:261:self.chunk = ""
+        OO0OOOO0000OOO0OO .chunkSize =0 #line:262:self.chunkSize = 0
+        OO0OOOO0000OOO0OO .chunkOffset =0 #line:263:self.chunkOffset = 0
+        OO00O00OOO0O0O00O =OO0OOOO0000OOO0OO .dataStream .read (chunkSize )#line:265:data = self.dataStream.read(chunkSize)
+        if OO0OOOO0000OOO0OO ._bufferedCharacter :#line:268:if self._bufferedCharacter:
+            OO00O00OOO0O0O00O =OO0OOOO0000OOO0OO ._bufferedCharacter +OO00O00OOO0O0O00O #line:269:data = self._bufferedCharacter + data
+            OO0OOOO0000OOO0OO ._bufferedCharacter =None #line:270:self._bufferedCharacter = None
+        elif not OO00O00OOO0O0O00O :#line:271:elif not data:
+            return False #line:273:return False
+        if len (OO00O00OOO0O0O00O )>1 :#line:275:if len(data) > 1:
+            OO0O000OOO00000OO =ord (OO00O00OOO0O0O00O [-1 ])#line:276:lastv = ord(data[-1])
+            if OO0O000OOO00000OO ==0x0D or 0xD800 <=OO0O000OOO00000OO <=0xDBFF :#line:277:if lastv == 0x0D or 0xD800 <= lastv <= 0xDBFF:
+                OO0OOOO0000OOO0OO ._bufferedCharacter =OO00O00OOO0O0O00O [-1 ]#line:278:self._bufferedCharacter = data[-1]
+                OO00O00OOO0O0O00O =OO00O00OOO0O0O00O [:-1 ]#line:279:data = data[:-1]
+        if OO0OOOO0000OOO0OO .reportCharacterErrors :#line:281:if self.reportCharacterErrors:
+            OO0OOOO0000OOO0OO .reportCharacterErrors (OO00O00OOO0O0O00O )#line:282:self.reportCharacterErrors(data)
+        OO00O00OOO0O0O00O =OO00O00OOO0O0O00O .replace ("\r\n","\n")#line:285:data = data.replace("\r\n", "\n")
+        OO00O00OOO0O0O00O =OO00O00OOO0O0O00O .replace ("\r","\n")#line:286:data = data.replace("\r", "\n")
+        OO0OOOO0000OOO0OO .chunk =OO00O00OOO0O0O00O #line:288:self.chunk = data
+        OO0OOOO0000OOO0OO .chunkSize =len (OO00O00OOO0O0O00O )#line:289:self.chunkSize = len(data)
+        return True #line:291:return True
+    def characterErrorsUCS4 (O0OO0OOO0OO00O000 ,O000O00000O0O0OO0 ):#line:293:def characterErrorsUCS4(self, data):
+        for _OO0O0000O0OO0O0OO in range (len (invalid_unicode_re .findall (O000O00000O0O0OO0 ))):#line:294:for _ in range(len(invalid_unicode_re.findall(data))):
+            O0OO0OOO0OO00O000 .errors .append ("invalid-codepoint")#line:295:self.errors.append("invalid-codepoint")
+    def characterErrorsUCS2 (O0OO00O00OO0O0OOO ,O000OOOOOO0O0O000 ):#line:297:def characterErrorsUCS2(self, data):
+        O0O0OO0O0OO0O0O0O =False #line:300:skip = False
+        for OO0OOO0OO0OO0O00O in invalid_unicode_re .finditer (O000OOOOOO0O0O000 ):#line:301:for match in invalid_unicode_re.finditer(data):
+            if O0O0OO0O0OO0O0O0O :#line:302:if skip:
+                continue #line:303:continue
+            OOO0O0OO00O0000O0 =ord (OO0OOO0OO0OO0O00O .group ())#line:304:codepoint = ord(match.group())
+            OOOOOO0OOOO000O00 =OO0OOO0OO0OO0O00O .start ()#line:305:pos = match.start()
+            if _utils .isSurrogatePair (O000OOOOOO0O0O000 [OOOOOO0OOOO000O00 :OOOOOO0OOOO000O00 +2 ]):#line:307:if _utils.isSurrogatePair(data[pos:pos + 2]):
+                OO00O0O000O0O0000 =_utils .surrogatePairToCodepoint (O000OOOOOO0O0O000 [OOOOOO0OOOO000O00 :OOOOOO0OOOO000O00 +2 ])#line:309:char_val = _utils.surrogatePairToCodepoint(data[pos:pos + 2])
+                if OO00O0O000O0O0000 in non_bmp_invalid_codepoints :#line:310:if char_val in non_bmp_invalid_codepoints:
+                    O0OO00O00OO0O0OOO .errors .append ("invalid-codepoint")#line:311:self.errors.append("invalid-codepoint")
+                O0O0OO0O0OO0O0O0O =True #line:312:skip = True
+            elif (OOO0O0OO00O0000O0 >=0xD800 and OOO0O0OO00O0000O0 <=0xDFFF and OOOOOO0OOOO000O00 ==len (O000OOOOOO0O0O000 )-1 ):#line:314:pos == len(data) - 1):
+                O0OO00O00OO0O0OOO .errors .append ("invalid-codepoint")#line:315:self.errors.append("invalid-codepoint")
+            else :#line:316:else:
+                O0O0OO0O0OO0O0O0O =False #line:317:skip = False
+                O0OO00O00OO0O0OOO .errors .append ("invalid-codepoint")#line:318:self.errors.append("invalid-codepoint")
+    def charsUntil (O00OOO0000OOO000O ,OOO00O0000OO00O00 ,opposite =False ):#line:320:def charsUntil(self, characters, opposite=False):
+        ""#line:325:"""
+        try :#line:328:try:
+            O0000OOOOO0O0OO0O =charsUntilRegEx [(OOO00O0000OO00O00 ,opposite )]#line:329:chars = charsUntilRegEx[(characters, opposite)]
+        except KeyError :#line:330:except KeyError:
+            if __debug__ :#line:331:if __debug__:
+                for OOOO0OO00OOO0OOO0 in OOO00O0000OO00O00 :#line:332:for c in characters:
+                    assert (ord (OOOO0OO00OOO0OOO0 )<128 )#line:333:assert(ord(c) < 128)
+            OO0OOO0O0O0OOO0O0 ="".join (["\\x%02x"%ord (O000OOOO000O000OO )for O000OOOO000O000OO in OOO00O0000OO00O00 ])#line:334:regex = "".join(["\\x%02x" % ord(c) for c in characters])
+            if not opposite :#line:335:if not opposite:
+                OO0OOO0O0O0OOO0O0 ="^%s"%OO0OOO0O0O0OOO0O0 #line:336:regex = "^%s" % regex
+            O0000OOOOO0O0OO0O =charsUntilRegEx [(OOO00O0000OO00O00 ,opposite )]=re .compile ("[%s]+"%OO0OOO0O0O0OOO0O0 )#line:337:chars = charsUntilRegEx[(characters, opposite)] = re.compile("[%s]+" % regex)
+        O0OOOOO0OOOO00OO0 =[]#line:339:rv = []
+        while True :#line:341:while True:
+            OOO00O0O000000O00 =O0000OOOOO0O0OO0O .match (O00OOO0000OOO000O .chunk ,O00OOO0000OOO000O .chunkOffset )#line:343:m = chars.match(self.chunk, self.chunkOffset)
+            if OOO00O0O000000O00 is None :#line:344:if m is None:
+                if O00OOO0000OOO000O .chunkOffset !=O00OOO0000OOO000O .chunkSize :#line:347:if self.chunkOffset != self.chunkSize:
+                    break #line:348:break
+            else :#line:349:else:
+                OO00O000O000000OO =OOO00O0O000000O00 .end ()#line:350:end = m.end()
+                if OO00O000O000000OO !=O00OOO0000OOO000O .chunkSize :#line:353:if end != self.chunkSize:
+                    O0OOOOO0OOOO00OO0 .append (O00OOO0000OOO000O .chunk [O00OOO0000OOO000O .chunkOffset :OO00O000O000000OO ])#line:354:rv.append(self.chunk[self.chunkOffset:end])
+                    O00OOO0000OOO000O .chunkOffset =OO00O000O000000OO #line:355:self.chunkOffset = end
+                    break #line:356:break
+            O0OOOOO0OOOO00OO0 .append (O00OOO0000OOO000O .chunk [O00OOO0000OOO000O .chunkOffset :])#line:359:rv.append(self.chunk[self.chunkOffset:])
+            if not O00OOO0000OOO000O .readChunk ():#line:360:if not self.readChunk():
+                break #line:362:break
+        O0O00O0O0O00OO00O ="".join (O0OOOOO0OOOO00OO0 )#line:364:r = "".join(rv)
+        return O0O00O0O0O00OO00O #line:365:return r
+    def unget (OOOOOO000O0OO0O00 ,O00OOO0O00000O00O ):#line:367:def unget(self, char):
+        if O00OOO0O00000O00O is not None :#line:370:if char is not None:
+            if OOOOOO000O0OO0O00 .chunkOffset ==0 :#line:371:if self.chunkOffset == 0:
+                OOOOOO000O0OO0O00 .chunk =O00OOO0O00000O00O +OOOOOO000O0OO0O00 .chunk #line:377:self.chunk = char + self.chunk
+                OOOOOO000O0OO0O00 .chunkSize +=1 #line:378:self.chunkSize += 1
+            else :#line:379:else:
+                OOOOOO000O0OO0O00 .chunkOffset -=1 #line:380:self.chunkOffset -= 1
+                assert OOOOOO000O0OO0O00 .chunk [OOOOOO000O0OO0O00 .chunkOffset ]==O00OOO0O00000O00O #line:381:assert self.chunk[self.chunkOffset] == char
+class HTMLBinaryInputStream (HTMLUnicodeInputStream ):#line:384:class HTMLBinaryInputStream(HTMLUnicodeInputStream):
+    ""#line:390:"""
+    def __init__ (OO00O0O00000000OO ,OOOO000OO0O0OOO0O ,override_encoding =None ,transport_encoding =None ,same_origin_parent_encoding =None ,likely_encoding =None ,default_encoding ="windows-1252",useChardet =True ):#line:394:default_encoding="windows-1252", useChardet=True):
+        ""#line:407:"""
+        OO00O0O00000000OO .rawStream =OO00O0O00000000OO .openStream (OOOO000OO0O0OOO0O )#line:410:self.rawStream = self.openStream(source)
+        HTMLUnicodeInputStream .__init__ (OO00O0O00000000OO ,OO00O0O00000000OO .rawStream )#line:412:HTMLUnicodeInputStream.__init__(self, self.rawStream)
+        OO00O0O00000000OO .numBytesMeta =1024 #line:417:self.numBytesMeta = 1024
+        OO00O0O00000000OO .numBytesChardet =100 #line:419:self.numBytesChardet = 100
+        OO00O0O00000000OO .override_encoding =override_encoding #line:421:self.override_encoding = override_encoding
+        OO00O0O00000000OO .transport_encoding =transport_encoding #line:422:self.transport_encoding = transport_encoding
+        OO00O0O00000000OO .same_origin_parent_encoding =same_origin_parent_encoding #line:423:self.same_origin_parent_encoding = same_origin_parent_encoding
+        OO00O0O00000000OO .likely_encoding =likely_encoding #line:424:self.likely_encoding = likely_encoding
+        OO00O0O00000000OO .default_encoding =default_encoding #line:425:self.default_encoding = default_encoding
+        OO00O0O00000000OO .charEncoding =OO00O0O00000000OO .determineEncoding (useChardet )#line:428:self.charEncoding = self.determineEncoding(useChardet)
+        assert OO00O0O00000000OO .charEncoding [0 ]is not None #line:429:assert self.charEncoding[0] is not None
+        OO00O0O00000000OO .reset ()#line:432:self.reset()
+    def reset (OO0O0O000OOOOO0O0 ):#line:434:def reset(self):
+        OO0O0O000OOOOO0O0 .dataStream =OO0O0O000OOOOO0O0 .charEncoding [0 ].codec_info .streamreader (OO0O0O000OOOOO0O0 .rawStream ,'replace')#line:435:self.dataStream = self.charEncoding[0].codec_info.streamreader(self.rawStream, 'replace')
+        HTMLUnicodeInputStream .reset (OO0O0O000OOOOO0O0 )#line:436:HTMLUnicodeInputStream.reset(self)
+    def openStream (O000OOO00000OOO00 ,OO0000O0OO0O00OO0 ):#line:438:def openStream(self, source):
+        ""#line:443:"""
+        if hasattr (OO0000O0OO0O00OO0 ,'read'):#line:445:if hasattr(source, 'read'):
+            OO000OO00OO0OO000 =OO0000O0OO0O00OO0 #line:446:stream = source
+        else :#line:447:else:
+            OO000OO00OO0OO000 =BytesIO (OO0000O0OO0O00OO0 )#line:448:stream = BytesIO(source)
+        try :#line:450:try:
+            OO000OO00OO0OO000 .seek (OO000OO00OO0OO000 .tell ())#line:451:stream.seek(stream.tell())
+        except :#line:452:except:  # pylint:disable=bare-except
+            OO000OO00OO0OO000 =BufferedStream (OO000OO00OO0OO000 )#line:453:stream = BufferedStream(stream)
+        return OO000OO00OO0OO000 #line:455:return stream
+    def determineEncoding (O00O0O0OO0O0OO00O ,chardet =True ):#line:457:def determineEncoding(self, chardet=True):
+        OO00O00O0O000OOOO =O00O0O0OO0O0OO00O .detectBOM (),"certain"#line:460:charEncoding = self.detectBOM(), "certain"
+        if OO00O00O0O000OOOO [0 ]is not None :#line:461:if charEncoding[0] is not None:
+            return OO00O00O0O000OOOO #line:462:return charEncoding
+        OO00O00O0O000OOOO =lookupEncoding (O00O0O0OO0O0OO00O .override_encoding ),"certain"#line:465:charEncoding = lookupEncoding(self.override_encoding), "certain"
+        if OO00O00O0O000OOOO [0 ]is not None :#line:466:if charEncoding[0] is not None:
+            return OO00O00O0O000OOOO #line:467:return charEncoding
+        OO00O00O0O000OOOO =lookupEncoding (O00O0O0OO0O0OO00O .transport_encoding ),"certain"#line:470:charEncoding = lookupEncoding(self.transport_encoding), "certain"
+        if OO00O00O0O000OOOO [0 ]is not None :#line:471:if charEncoding[0] is not None:
+            return OO00O00O0O000OOOO #line:472:return charEncoding
+        OO00O00O0O000OOOO =O00O0O0OO0O0OO00O .detectEncodingMeta (),"tentative"#line:475:charEncoding = self.detectEncodingMeta(), "tentative"
+        if OO00O00O0O000OOOO [0 ]is not None :#line:476:if charEncoding[0] is not None:
+            return OO00O00O0O000OOOO #line:477:return charEncoding
+        OO00O00O0O000OOOO =lookupEncoding (O00O0O0OO0O0OO00O .same_origin_parent_encoding ),"tentative"#line:480:charEncoding = lookupEncoding(self.same_origin_parent_encoding), "tentative"
+        if OO00O00O0O000OOOO [0 ]is not None and not OO00O00O0O000OOOO [0 ].name .startswith ("utf-16"):#line:481:if charEncoding[0] is not None and not charEncoding[0].name.startswith("utf-16"):
+            return OO00O00O0O000OOOO #line:482:return charEncoding
+        OO00O00O0O000OOOO =lookupEncoding (O00O0O0OO0O0OO00O .likely_encoding ),"tentative"#line:485:charEncoding = lookupEncoding(self.likely_encoding), "tentative"
+        if OO00O00O0O000OOOO [0 ]is not None :#line:486:if charEncoding[0] is not None:
+            return OO00O00O0O000OOOO #line:487:return charEncoding
+        if chardet :#line:490:if chardet:
+            try :#line:491:try:
+                from pip ._vendor .chardet .universaldetector import UniversalDetector #line:492:from pip._vendor.chardet.universaldetector import UniversalDetector
+            except ImportError :#line:493:except ImportError:
+                pass #line:494:pass
+            else :#line:495:else:
+                OO00O00OOO0O0OO0O =[]#line:496:buffers = []
+                OO000O0OO000O0000 =UniversalDetector ()#line:497:detector = UniversalDetector()
+                while not OO000O0OO000O0000 .done :#line:498:while not detector.done:
+                    O0O00OOO0O0OOOOOO =O00O0O0OO0O0OO00O .rawStream .read (O00O0O0OO0O0OO00O .numBytesChardet )#line:499:buffer = self.rawStream.read(self.numBytesChardet)
+                    assert isinstance (O0O00OOO0O0OOOOOO ,bytes )#line:500:assert isinstance(buffer, bytes)
+                    if not O0O00OOO0O0OOOOOO :#line:501:if not buffer:
+                        break #line:502:break
+                    OO00O00OOO0O0OO0O .append (O0O00OOO0O0OOOOOO )#line:503:buffers.append(buffer)
+                    OO000O0OO000O0000 .feed (O0O00OOO0O0OOOOOO )#line:504:detector.feed(buffer)
+                OO000O0OO000O0000 .close ()#line:505:detector.close()
+                OO0OOO00OOO0OOO0O =lookupEncoding (OO000O0OO000O0000 .result ['encoding'])#line:506:encoding = lookupEncoding(detector.result['encoding'])
+                O00O0O0OO0O0OO00O .rawStream .seek (0 )#line:507:self.rawStream.seek(0)
+                if OO0OOO00OOO0OOO0O is not None :#line:508:if encoding is not None:
+                    return OO0OOO00OOO0OOO0O ,"tentative"#line:509:return encoding, "tentative"
+        OO00O00O0O000OOOO =lookupEncoding (O00O0O0OO0O0OO00O .default_encoding ),"tentative"#line:512:charEncoding = lookupEncoding(self.default_encoding), "tentative"
+        if OO00O00O0O000OOOO [0 ]is not None :#line:513:if charEncoding[0] is not None:
+            return OO00O00O0O000OOOO #line:514:return charEncoding
+        return lookupEncoding ("windows-1252"),"tentative"#line:517:return lookupEncoding("windows-1252"), "tentative"
+    def changeEncoding (O0O0000000OOO0O00 ,OO000OO00OOOO0000 ):#line:519:def changeEncoding(self, newEncoding):
+        assert O0O0000000OOO0O00 .charEncoding [1 ]!="certain"#line:520:assert self.charEncoding[1] != "certain"
+        OO000OO00OOOO0000 =lookupEncoding (OO000OO00OOOO0000 )#line:521:newEncoding = lookupEncoding(newEncoding)
+        if OO000OO00OOOO0000 is None :#line:522:if newEncoding is None:
+            return #line:523:return
+        if OO000OO00OOOO0000 .name in ("utf-16be","utf-16le"):#line:524:if newEncoding.name in ("utf-16be", "utf-16le"):
+            OO000OO00OOOO0000 =lookupEncoding ("utf-8")#line:525:newEncoding = lookupEncoding("utf-8")
+            assert OO000OO00OOOO0000 is not None #line:526:assert newEncoding is not None
+        elif OO000OO00OOOO0000 ==O0O0000000OOO0O00 .charEncoding [0 ]:#line:527:elif newEncoding == self.charEncoding[0]:
+            O0O0000000OOO0O00 .charEncoding =(O0O0000000OOO0O00 .charEncoding [0 ],"certain")#line:528:self.charEncoding = (self.charEncoding[0], "certain")
+        else :#line:529:else:
+            O0O0000000OOO0O00 .rawStream .seek (0 )#line:530:self.rawStream.seek(0)
+            O0O0000000OOO0O00 .charEncoding =(OO000OO00OOOO0000 ,"certain")#line:531:self.charEncoding = (newEncoding, "certain")
+            O0O0000000OOO0O00 .reset ()#line:532:self.reset()
+            raise _ReparseException ("Encoding changed from %s to %s"%(O0O0000000OOO0O00 .charEncoding [0 ],OO000OO00OOOO0000 ))#line:533:raise _ReparseException("Encoding changed from %s to %s" % (self.charEncoding[0], newEncoding))
+    def detectBOM (OO0000000000OOOOO ):#line:535:def detectBOM(self):
+        ""#line:538:encoding otherwise return None"""
+        O0O0000OO00O0OO00 ={codecs .BOM_UTF8 :'utf-8',codecs .BOM_UTF16_LE :'utf-16le',codecs .BOM_UTF16_BE :'utf-16be',codecs .BOM_UTF32_LE :'utf-32le',codecs .BOM_UTF32_BE :'utf-32be'}#line:543:}
+        OOO0O00O00O00000O =OO0000000000OOOOO .rawStream .read (4 )#line:546:string = self.rawStream.read(4)
+        assert isinstance (OOO0O00O00O00000O ,bytes )#line:547:assert isinstance(string, bytes)
+        O0OOO00OO00OOOOO0 =O0O0000OO00O0OO00 .get (OOO0O00O00O00000O [:3 ])#line:550:encoding = bomDict.get(string[:3])         # UTF-8
+        O0O0OOOO000O0O0O0 =3 #line:551:seek = 3
+        if not O0OOO00OO00OOOOO0 :#line:552:if not encoding:
+            O0OOO00OO00OOOOO0 =O0O0000OO00O0OO00 .get (OOO0O00O00O00000O )#line:554:encoding = bomDict.get(string)         # UTF-32
+            O0O0OOOO000O0O0O0 =4 #line:555:seek = 4
+            if not O0OOO00OO00OOOOO0 :#line:556:if not encoding:
+                O0OOO00OO00OOOOO0 =O0O0000OO00O0OO00 .get (OOO0O00O00O00000O [:2 ])#line:557:encoding = bomDict.get(string[:2])  # UTF-16
+                O0O0OOOO000O0O0O0 =2 #line:558:seek = 2
+        if O0OOO00OO00OOOOO0 :#line:562:if encoding:
+            OO0000000000OOOOO .rawStream .seek (O0O0OOOO000O0O0O0 )#line:563:self.rawStream.seek(seek)
+            return lookupEncoding (O0OOO00OO00OOOOO0 )#line:564:return lookupEncoding(encoding)
+        else :#line:565:else:
+            OO0000000000OOOOO .rawStream .seek (0 )#line:566:self.rawStream.seek(0)
+            return None #line:567:return None
+    def detectEncodingMeta (OOO0O00OOOOO00000 ):#line:569:def detectEncodingMeta(self):
+        ""#line:571:"""
+        O0O00O00000000O0O =OOO0O00OOOOO00000 .rawStream .read (OOO0O00OOOOO00000 .numBytesMeta )#line:572:buffer = self.rawStream.read(self.numBytesMeta)
+        assert isinstance (O0O00O00000000O0O ,bytes )#line:573:assert isinstance(buffer, bytes)
+        OO0OOO0OOOOO00000 =EncodingParser (O0O00O00000000O0O )#line:574:parser = EncodingParser(buffer)
+        OOO0O00OOOOO00000 .rawStream .seek (0 )#line:575:self.rawStream.seek(0)
+        O000OOO0O00OOOOOO =OO0OOO0OOOOO00000 .getEncoding ()#line:576:encoding = parser.getEncoding()
+        if O000OOO0O00OOOOOO is not None and O000OOO0O00OOOOOO .name in ("utf-16be","utf-16le"):#line:578:if encoding is not None and encoding.name in ("utf-16be", "utf-16le"):
+            O000OOO0O00OOOOOO =lookupEncoding ("utf-8")#line:579:encoding = lookupEncoding("utf-8")
+        return O000OOO0O00OOOOOO #line:581:return encoding
+class EncodingBytes (bytes ):#line:584:class EncodingBytes(bytes):
+    ""#line:587:raised"""
+    def __new__ (O00O00O000OOO0O00 ,O0OO000O0OOOO0000 ):#line:588:def __new__(self, value):
+        assert isinstance (O0OO000O0OOOO0000 ,bytes )#line:589:assert isinstance(value, bytes)
+        return bytes .__new__ (O00O00O000OOO0O00 ,O0OO000O0OOOO0000 .lower ())#line:590:return bytes.__new__(self, value.lower())
+    def __init__ (OO0O0O0OOOO0O0O0O ,OO000OOOOO000OO0O ):#line:592:def __init__(self, value):
+        OO0O0O0OOOO0O0O0O ._position =-1 #line:594:self._position = -1
+    def __iter__ (O0OO000O00O0O0O0O ):#line:596:def __iter__(self):
+        return O0OO000O00O0O0O0O #line:597:return self
+    def __next__ (OOO000OO000O00OO0 ):#line:599:def __next__(self):
+        O00OO0OO0OOO00000 =OOO000OO000O00OO0 ._position =OOO000OO000O00OO0 ._position +1 #line:600:p = self._position = self._position + 1
+        if O00OO0OO0OOO00000 >=len (OOO000OO000O00OO0 ):#line:601:if p >= len(self):
+            raise StopIteration #line:602:raise StopIteration
+        elif O00OO0OO0OOO00000 <0 :#line:603:elif p < 0:
+            raise TypeError #line:604:raise TypeError
+        return OOO000OO000O00OO0 [O00OO0OO0OOO00000 :O00OO0OO0OOO00000 +1 ]#line:605:return self[p:p + 1]
+    def next (O000O0000O0OO00O0 ):#line:607:def next(self):
+        return O000O0000O0OO00O0 .__next__ ()#line:609:return self.__next__()
+    def previous (OO0OOOO00OOO0O000 ):#line:611:def previous(self):
+        OO00OO00O0O0OO000 =OO0OOOO00OOO0O000 ._position #line:612:p = self._position
+        if OO00OO00O0O0OO000 >=len (OO0OOOO00OOO0O000 ):#line:613:if p >= len(self):
+            raise StopIteration #line:614:raise StopIteration
+        elif OO00OO00O0O0OO000 <0 :#line:615:elif p < 0:
+            raise TypeError #line:616:raise TypeError
+        OO0OOOO00OOO0O000 ._position =OO00OO00O0O0OO000 =OO00OO00O0O0OO000 -1 #line:617:self._position = p = p - 1
+        return OO0OOOO00OOO0O000 [OO00OO00O0O0OO000 :OO00OO00O0O0OO000 +1 ]#line:618:return self[p:p + 1]
+    def setPosition (O00OOOOOOOO0O0000 ,O000O00O00O0O0O00 ):#line:620:def setPosition(self, position):
+        if O00OOOOOOOO0O0000 ._position >=len (O00OOOOOOOO0O0000 ):#line:621:if self._position >= len(self):
+            raise StopIteration #line:622:raise StopIteration
+        O00OOOOOOOO0O0000 ._position =O000O00O00O0O0O00 #line:623:self._position = position
+    def getPosition (OOOO0OO0O0000OO0O ):#line:625:def getPosition(self):
+        if OOOO0OO0O0000OO0O ._position >=len (OOOO0OO0O0000OO0O ):#line:626:if self._position >= len(self):
+            raise StopIteration #line:627:raise StopIteration
+        if OOOO0OO0O0000OO0O ._position >=0 :#line:628:if self._position >= 0:
+            return OOOO0OO0O0000OO0O ._position #line:629:return self._position
+        else :#line:630:else:
+            return None #line:631:return None
+    position =property (getPosition ,setPosition )#line:633:position = property(getPosition, setPosition)
+    def getCurrentByte (OOO00OOOO000OOO00 ):#line:635:def getCurrentByte(self):
+        return OOO00OOOO000OOO00 [OOO00OOOO000OOO00 .position :OOO00OOOO000OOO00 .position +1 ]#line:636:return self[self.position:self.position + 1]
+    currentByte =property (getCurrentByte )#line:638:currentByte = property(getCurrentByte)
+    def skip (OOO0O0O000OO0OOOO ,chars =spaceCharactersBytes ):#line:640:def skip(self, chars=spaceCharactersBytes):
+        ""#line:641:"""Skip past a list of characters"""
+        O0O0O0OO0OOOO0O00 =OOO0O0O000OO0OOOO .position #line:642:p = self.position               # use property for the error-checking
+        while O0O0O0OO0OOOO0O00 <len (OOO0O0O000OO0OOOO ):#line:643:while p < len(self):
+            OOOOOOOO0O00O00O0 =OOO0O0O000OO0OOOO [O0O0O0OO0OOOO0O00 :O0O0O0OO0OOOO0O00 +1 ]#line:644:c = self[p:p + 1]
+            if OOOOOOOO0O00O00O0 not in chars :#line:645:if c not in chars:
+                OOO0O0O000OO0OOOO ._position =O0O0O0OO0OOOO0O00 #line:646:self._position = p
+                return OOOOOOOO0O00O00O0 #line:647:return c
+            O0O0O0OO0OOOO0O00 +=1 #line:648:p += 1
+        OOO0O0O000OO0OOOO ._position =O0O0O0OO0OOOO0O00 #line:649:self._position = p
+        return None #line:650:return None
+    def skipUntil (O0000O00OO0O00OOO ,OOOO0O00O0O0000OO ):#line:652:def skipUntil(self, chars):
+        OOO0OOOO00O0OO0O0 =O0000O00OO0O00OOO .position #line:653:p = self.position
+        while OOO0OOOO00O0OO0O0 <len (O0000O00OO0O00OOO ):#line:654:while p < len(self):
+            O0O0O00OO00OO0O00 =O0000O00OO0O00OOO [OOO0OOOO00O0OO0O0 :OOO0OOOO00O0OO0O0 +1 ]#line:655:c = self[p:p + 1]
+            if O0O0O00OO00OO0O00 in OOOO0O00O0O0000OO :#line:656:if c in chars:
+                O0000O00OO0O00OOO ._position =OOO0OOOO00O0OO0O0 #line:657:self._position = p
+                return O0O0O00OO00OO0O00 #line:658:return c
+            OOO0OOOO00O0OO0O0 +=1 #line:659:p += 1
+        O0000O00OO0O00OOO ._position =OOO0OOOO00O0OO0O0 #line:660:self._position = p
+        return None #line:661:return None
+    def matchBytes (OOOOOO0OO0OO0OOOO ,OO00O00O0000OO0OO ):#line:663:def matchBytes(self, bytes):
+        ""#line:666:match. Otherwise return False and leave the position alone"""
+        O0OOOOOOOO00O0O0O =OOOOOO0OO0OO0OOOO .position #line:667:p = self.position
+        O00OO0OOO0O0OO00O =OOOOOO0OO0OO0OOOO [O0OOOOOOOO00O0O0O :O0OOOOOOOO00O0O0O +len (OO00O00O0000OO0OO )]#line:668:data = self[p:p + len(bytes)]
+        OOO00OO0O0O0O00OO =O00OO0OOO0O0OO00O .startswith (OO00O00O0000OO0OO )#line:669:rv = data.startswith(bytes)
+        if OOO00OO0O0O0O00OO :#line:670:if rv:
+            OOOOOO0OO0OO0OOOO .position +=len (OO00O00O0000OO0OO )#line:671:self.position += len(bytes)
+        return OOO00OO0O0O0O00OO #line:672:return rv
+    def jumpTo (O00OO00O00000O0O0 ,O0O00000O000OOO00 ):#line:674:def jumpTo(self, bytes):
+        ""#line:676:a match is found advance the position to the last byte of the match"""
+        OO0000000OO0OO000 =O00OO00O00000O0O0 [O00OO00O00000O0O0 .position :].find (O0O00000O000OOO00 )#line:677:newPosition = self[self.position:].find(bytes)
+        if OO0000000OO0OO000 >-1 :#line:678:if newPosition > -1:
+            if O00OO00O00000O0O0 ._position ==-1 :#line:680:if self._position == -1:
+                O00OO00O00000O0O0 ._position =0 #line:681:self._position = 0
+            O00OO00O00000O0O0 ._position +=(OO0000000OO0OO000 +len (O0O00000O000OOO00 )-1 )#line:682:self._position += (newPosition + len(bytes) - 1)
+            return True #line:683:return True
+        else :#line:684:else:
+            raise StopIteration #line:685:raise StopIteration
+class EncodingParser (object ):#line:688:class EncodingParser(object):
+    ""#line:689:"""Mini parser for detecting character encoding from meta elements"""
+    def __init__ (O0OO0OOO000O0O000 ,OOOO00000OO0O0OO0 ):#line:691:def __init__(self, data):
+        ""#line:692:"""string - the data to work on for encoding detection"""
+        O0OO0OOO000O0O000 .data =EncodingBytes (OOOO00000OO0O0OO0 )#line:693:self.data = EncodingBytes(data)
+        O0OO0OOO000O0O000 .encoding =None #line:694:self.encoding = None
+    def getEncoding (OOO000OO00O00O000 ):#line:696:def getEncoding(self):
+        OOOOOOOO0O00O0OOO =((b"<!--",OOO000OO00O00O000 .handleComment ),(b"<meta",OOO000OO00O00O000 .handleMeta ),(b"</",OOO000OO00O00O000 .handlePossibleEndTag ),(b"<!",OOO000OO00O00O000 .handleOther ),(b"<?",OOO000OO00O00O000 .handleOther ),(b"<",OOO000OO00O00O000 .handlePossibleStartTag ))#line:703:(b"<", self.handlePossibleStartTag))
+        for _OO0OOO000O000OO0O in OOO000OO00O00O000 .data :#line:704:for _ in self.data:
+            OOOOO00O0OOOO0O00 =True #line:705:keepParsing = True
+            for OOO00OO00O00O0O0O ,O0OOOOO0O0O00OO00 in OOOOOOOO0O00O0OOO :#line:706:for key, method in methodDispatch:
+                if OOO000OO00O00O000 .data .matchBytes (OOO00OO00O00O0O0O ):#line:707:if self.data.matchBytes(key):
+                    try :#line:708:try:
+                        OOOOO00O0OOOO0O00 =O0OOOOO0O0O00OO00 ()#line:709:keepParsing = method()
+                        break #line:710:break
+                    except StopIteration :#line:711:except StopIteration:
+                        OOOOO00O0OOOO0O00 =False #line:712:keepParsing = False
+                        break #line:713:break
+            if not OOOOO00O0OOOO0O00 :#line:714:if not keepParsing:
+                break #line:715:break
+        return OOO000OO00O00O000 .encoding #line:717:return self.encoding
+    def handleComment (OO0000O0000O00OO0 ):#line:719:def handleComment(self):
+        ""#line:720:"""Skip over comments"""
+        return OO0000O0000O00OO0 .data .jumpTo (b"-->")#line:721:return self.data.jumpTo(b"-->")
+    def handleMeta (OOO00OOOOOOO0OO00 ):#line:723:def handleMeta(self):
+        if OOO00OOOOOOO0OO00 .data .currentByte not in spaceCharactersBytes :#line:724:if self.data.currentByte not in spaceCharactersBytes:
+            return True #line:726:return True
+        O00OO0OO0OOOOOO00 =False #line:728:hasPragma = False
+        O00O00000OO0OO0OO =None #line:729:pendingEncoding = None
+        while True :#line:730:while True:
+            O0O0OO0O0OO00OOO0 =OOO00OOOOOOO0OO00 .getAttribute ()#line:732:attr = self.getAttribute()
+            if O0O0OO0O0OO00OOO0 is None :#line:733:if attr is None:
+                return True #line:734:return True
+            else :#line:735:else:
+                if O0O0OO0O0OO00OOO0 [0 ]==b"http-equiv":#line:736:if attr[0] == b"http-equiv":
+                    O00OO0OO0OOOOOO00 =O0O0OO0O0OO00OOO0 [1 ]==b"content-type"#line:737:hasPragma = attr[1] == b"content-type"
+                    if O00OO0OO0OOOOOO00 and O00O00000OO0OO0OO is not None :#line:738:if hasPragma and pendingEncoding is not None:
+                        OOO00OOOOOOO0OO00 .encoding =O00O00000OO0OO0OO #line:739:self.encoding = pendingEncoding
+                        return False #line:740:return False
+                elif O0O0OO0O0OO00OOO0 [0 ]==b"charset":#line:741:elif attr[0] == b"charset":
+                    O000O0O0O00OO00OO =O0O0OO0O0OO00OOO0 [1 ]#line:742:tentativeEncoding = attr[1]
+                    OO00OOOO0O00OO0O0 =lookupEncoding (O000O0O0O00OO00OO )#line:743:codec = lookupEncoding(tentativeEncoding)
+                    if OO00OOOO0O00OO0O0 is not None :#line:744:if codec is not None:
+                        OOO00OOOOOOO0OO00 .encoding =OO00OOOO0O00OO0O0 #line:745:self.encoding = codec
+                        return False #line:746:return False
+                elif O0O0OO0O0OO00OOO0 [0 ]==b"content":#line:747:elif attr[0] == b"content":
+                    O0000O00OOOOO0O00 =ContentAttrParser (EncodingBytes (O0O0OO0O0OO00OOO0 [1 ]))#line:748:contentParser = ContentAttrParser(EncodingBytes(attr[1]))
+                    O000O0O0O00OO00OO =O0000O00OOOOO0O00 .parse ()#line:749:tentativeEncoding = contentParser.parse()
+                    if O000O0O0O00OO00OO is not None :#line:750:if tentativeEncoding is not None:
+                        OO00OOOO0O00OO0O0 =lookupEncoding (O000O0O0O00OO00OO )#line:751:codec = lookupEncoding(tentativeEncoding)
+                        if OO00OOOO0O00OO0O0 is not None :#line:752:if codec is not None:
+                            if O00OO0OO0OOOOOO00 :#line:753:if hasPragma:
+                                OOO00OOOOOOO0OO00 .encoding =OO00OOOO0O00OO0O0 #line:754:self.encoding = codec
+                                return False #line:755:return False
+                            else :#line:756:else:
+                                O00O00000OO0OO0OO =OO00OOOO0O00OO0O0 #line:757:pendingEncoding = codec
+    def handlePossibleStartTag (O0000OOO000O0OOO0 ):#line:759:def handlePossibleStartTag(self):
+        return O0000OOO000O0OOO0 .handlePossibleTag (False )#line:760:return self.handlePossibleTag(False)
+    def handlePossibleEndTag (OOO00OO000OOO000O ):#line:762:def handlePossibleEndTag(self):
+        next (OOO00OO000OOO000O .data )#line:763:next(self.data)
+        return OOO00OO000OOO000O .handlePossibleTag (True )#line:764:return self.handlePossibleTag(True)
+    def handlePossibleTag (OO0OOOOOOO00O0O00 ,O00OO0O00000OO000 ):#line:766:def handlePossibleTag(self, endTag):
+        OOOO00OO0OO0OO00O =OO0OOOOOOO00O0O00 .data #line:767:data = self.data
+        if OOOO00OO0OO0OO00O .currentByte not in asciiLettersBytes :#line:768:if data.currentByte not in asciiLettersBytes:
+            if O00OO0O00000OO000 :#line:772:if endTag:
+                OOOO00OO0OO0OO00O .previous ()#line:773:data.previous()
+                OO0OOOOOOO00O0O00 .handleOther ()#line:774:self.handleOther()
+            return True #line:775:return True
+        OOO0000OO0000O0O0 =OOOO00OO0OO0OO00O .skipUntil (spacesAngleBrackets )#line:777:c = data.skipUntil(spacesAngleBrackets)
+        if OOO0000OO0000O0O0 ==b"<":#line:778:if c == b"<":
+            OOOO00OO0OO0OO00O .previous ()#line:781:data.previous()
+        else :#line:782:else:
+            OO00O000O00O0OO0O =OO0OOOOOOO00O0O00 .getAttribute ()#line:784:attr = self.getAttribute()
+            while OO00O000O00O0OO0O is not None :#line:785:while attr is not None:
+                OO00O000O00O0OO0O =OO0OOOOOOO00O0O00 .getAttribute ()#line:786:attr = self.getAttribute()
+        return True #line:787:return True
+    def handleOther (O0O0OO0OOOO00O000 ):#line:789:def handleOther(self):
+        return O0O0OO0OOOO00O000 .data .jumpTo (b">")#line:790:return self.data.jumpTo(b">")
+    def getAttribute (OO000O00OO0O00OOO ):#line:792:def getAttribute(self):
+        ""#line:794:if one is found, or None"""
+        OOOOO0000OO0O0O00 =OO000O00OO0O00OOO .data #line:795:data = self.data
+        OOO00OO00O0O0OO00 =OOOOO0000OO0O0O00 .skip (spaceCharactersBytes |frozenset ([b"/"]))#line:797:c = data.skip(spaceCharactersBytes | frozenset([b"/"]))
+        assert OOO00OO00O0O0OO00 is None or len (OOO00OO00O0O0OO00 )==1 #line:798:assert c is None or len(c) == 1
+        if OOO00OO00O0O0OO00 in (b">",None ):#line:800:if c in (b">", None):
+            return None #line:801:return None
+        OO000O0O0O00OOOO0 =[]#line:803:attrName = []
+        O0OO000OO000OOO0O =[]#line:804:attrValue = []
+        while True :#line:806:while True:
+            if OOO00OO00O0O0OO00 ==b"="and OO000O0O0O00OOOO0 :#line:807:if c == b"=" and attrName:
+                break #line:808:break
+            elif OOO00OO00O0O0OO00 in spaceCharactersBytes :#line:809:elif c in spaceCharactersBytes:
+                OOO00OO00O0O0OO00 =OOOOO0000OO0O0O00 .skip ()#line:811:c = data.skip()
+                break #line:812:break
+            elif OOO00OO00O0O0OO00 in (b"/",b">"):#line:813:elif c in (b"/", b">"):
+                return b"".join (OO000O0O0O00OOOO0 ),b""#line:814:return b"".join(attrName), b""
+            elif OOO00OO00O0O0OO00 in asciiUppercaseBytes :#line:815:elif c in asciiUppercaseBytes:
+                OO000O0O0O00OOOO0 .append (OOO00OO00O0O0OO00 .lower ())#line:816:attrName.append(c.lower())
+            elif OOO00OO00O0O0OO00 is None :#line:817:elif c is None:
+                return None #line:818:return None
+            else :#line:819:else:
+                OO000O0O0O00OOOO0 .append (OOO00OO00O0O0OO00 )#line:820:attrName.append(c)
+            OOO00OO00O0O0OO00 =next (OOOOO0000OO0O0O00 )#line:822:c = next(data)
+        if OOO00OO00O0O0OO00 !=b"=":#line:824:if c != b"=":
+            OOOOO0000OO0O0O00 .previous ()#line:825:data.previous()
+            return b"".join (OO000O0O0O00OOOO0 ),b""#line:826:return b"".join(attrName), b""
+        next (OOOOO0000OO0O0O00 )#line:828:next(data)
+        OOO00OO00O0O0OO00 =OOOOO0000OO0O0O00 .skip ()#line:830:c = data.skip()
+        if OOO00OO00O0O0OO00 in (b"'",b'"'):#line:832:if c in (b"'", b'"'):
+            O00OOO000O00O00OO =OOO00OO00O0O0OO00 #line:834:quoteChar = c
+            while True :#line:835:while True:
+                OOO00OO00O0O0OO00 =next (OOOOO0000OO0O0O00 )#line:837:c = next(data)
+                if OOO00OO00O0O0OO00 ==O00OOO000O00O00OO :#line:839:if c == quoteChar:
+                    next (OOOOO0000OO0O0O00 )#line:840:next(data)
+                    return b"".join (OO000O0O0O00OOOO0 ),b"".join (O0OO000OO000OOO0O )#line:841:return b"".join(attrName), b"".join(attrValue)
+                elif OOO00OO00O0O0OO00 in asciiUppercaseBytes :#line:843:elif c in asciiUppercaseBytes:
+                    O0OO000OO000OOO0O .append (OOO00OO00O0O0OO00 .lower ())#line:844:attrValue.append(c.lower())
+                else :#line:846:else:
+                    O0OO000OO000OOO0O .append (OOO00OO00O0O0OO00 )#line:847:attrValue.append(c)
+        elif OOO00OO00O0O0OO00 ==b">":#line:848:elif c == b">":
+            return b"".join (OO000O0O0O00OOOO0 ),b""#line:849:return b"".join(attrName), b""
+        elif OOO00OO00O0O0OO00 in asciiUppercaseBytes :#line:850:elif c in asciiUppercaseBytes:
+            O0OO000OO000OOO0O .append (OOO00OO00O0O0OO00 .lower ())#line:851:attrValue.append(c.lower())
+        elif OOO00OO00O0O0OO00 is None :#line:852:elif c is None:
+            return None #line:853:return None
+        else :#line:854:else:
+            O0OO000OO000OOO0O .append (OOO00OO00O0O0OO00 )#line:855:attrValue.append(c)
+        while True :#line:857:while True:
+            OOO00OO00O0O0OO00 =next (OOOOO0000OO0O0O00 )#line:858:c = next(data)
+            if OOO00OO00O0O0OO00 in spacesAngleBrackets :#line:859:if c in spacesAngleBrackets:
+                return b"".join (OO000O0O0O00OOOO0 ),b"".join (O0OO000OO000OOO0O )#line:860:return b"".join(attrName), b"".join(attrValue)
+            elif OOO00OO00O0O0OO00 in asciiUppercaseBytes :#line:861:elif c in asciiUppercaseBytes:
+                O0OO000OO000OOO0O .append (OOO00OO00O0O0OO00 .lower ())#line:862:attrValue.append(c.lower())
+            elif OOO00OO00O0O0OO00 is None :#line:863:elif c is None:
+                return None #line:864:return None
+            else :#line:865:else:
+                O0OO000OO000OOO0O .append (OOO00OO00O0O0OO00 )#line:866:attrValue.append(c)
+class ContentAttrParser (object ):#line:869:class ContentAttrParser(object):
+    def __init__ (OO00OO000O0OOOO0O ,O0000000OOO0O0OOO ):#line:870:def __init__(self, data):
+        assert isinstance (O0000000OOO0O0OOO ,bytes )#line:871:assert isinstance(data, bytes)
+        OO00OO000O0OOOO0O .data =O0000000OOO0O0OOO #line:872:self.data = data
+    def parse (OO00O0O0000OO000O ):#line:874:def parse(self):
+        try :#line:875:try:
+            OO00O0O0000OO000O .data .jumpTo (b"charset")#line:878:self.data.jumpTo(b"charset")
+            OO00O0O0000OO000O .data .position +=1 #line:879:self.data.position += 1
+            OO00O0O0000OO000O .data .skip ()#line:880:self.data.skip()
+            if not OO00O0O0000OO000O .data .currentByte ==b"=":#line:881:if not self.data.currentByte == b"=":
+                return None #line:883:return None
+            OO00O0O0000OO000O .data .position +=1 #line:884:self.data.position += 1
+            OO00O0O0000OO000O .data .skip ()#line:885:self.data.skip()
+            if OO00O0O0000OO000O .data .currentByte in (b'"',b"'"):#line:887:if self.data.currentByte in (b'"', b"'"):
+                O00O0O0OO00O0OO0O =OO00O0O0000OO000O .data .currentByte #line:888:quoteMark = self.data.currentByte
+                OO00O0O0000OO000O .data .position +=1 #line:889:self.data.position += 1
+                O0OO00OO0OOOOO00O =OO00O0O0000OO000O .data .position #line:890:oldPosition = self.data.position
+                if OO00O0O0000OO000O .data .jumpTo (O00O0O0OO00O0OO0O ):#line:891:if self.data.jumpTo(quoteMark):
+                    return OO00O0O0000OO000O .data [O0OO00OO0OOOOO00O :OO00O0O0000OO000O .data .position ]#line:892:return self.data[oldPosition:self.data.position]
+                else :#line:893:else:
+                    return None #line:894:return None
+            else :#line:895:else:
+                O0OO00OO0OOOOO00O =OO00O0O0000OO000O .data .position #line:897:oldPosition = self.data.position
+                try :#line:898:try:
+                    OO00O0O0000OO000O .data .skipUntil (spaceCharactersBytes )#line:899:self.data.skipUntil(spaceCharactersBytes)
+                    return OO00O0O0000OO000O .data [O0OO00OO0OOOOO00O :OO00O0O0000OO000O .data .position ]#line:900:return self.data[oldPosition:self.data.position]
+                except StopIteration :#line:901:except StopIteration:
+                    return OO00O0O0000OO000O .data [O0OO00OO0OOOOO00O :]#line:903:return self.data[oldPosition:]
+        except StopIteration :#line:904:except StopIteration:
+            return None #line:905:return None
+def lookupEncoding (O000O0O0O000OO000 ):#line:908:def lookupEncoding(encoding):
+    ""#line:910:string doesn't correspond to a valid encoding."""
+    if isinstance (O000O0O0O000OO000 ,binary_type ):#line:911:if isinstance(encoding, binary_type):
+        try :#line:912:try:
+            O000O0O0O000OO000 =O000O0O0O000OO000 .decode ("ascii")#line:913:encoding = encoding.decode("ascii")
+        except UnicodeDecodeError :#line:914:except UnicodeDecodeError:
+            return None #line:915:return None
+    if O000O0O0O000OO000 is not None :#line:917:if encoding is not None:
+        try :#line:918:try:
+            return webencodings .lookup (O000O0O0O000OO000 )#line:919:return webencodings.lookup(encoding)
+        except AttributeError :#line:920:except AttributeError:
+            return None #line:921:return None
+    else :#line:922:else:
+        return None #line:923:return None

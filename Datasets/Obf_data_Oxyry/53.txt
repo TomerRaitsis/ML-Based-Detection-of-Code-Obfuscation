@@ -1,0 +1,760 @@
+""#line:1:"""CSS selector parser."""
+import re #line:2:import re
+from functools import lru_cache #line:3:from functools import lru_cache
+from .import util #line:4:from . import util
+from .import css_match as cm #line:5:from . import css_match as cm
+from .import css_types as ct #line:6:from . import css_types as ct
+from .util import SelectorSyntaxError #line:7:from .util import SelectorSyntaxError
+UNICODE_REPLACEMENT_CHAR =0xFFFD #line:9:UNICODE_REPLACEMENT_CHAR = 0xFFFD
+PSEUDO_SIMPLE ={":any-link",":empty",":first-child",":first-of-type",":in-range",":out-of-range",":last-child",":last-of-type",":link",":only-child",":only-of-type",":root",':checked',':default',':disabled',':enabled',':indeterminate',':optional',':placeholder-shown',':read-only',':read-write',':required',':scope',':defined'}#line:37:}
+PSEUDO_SIMPLE_NO_MATCH ={':active',':current',':focus',':focus-visible',':focus-within',':future',':host',':hover',':local-link',':past',':paused',':playing',':target',':target-within',':user-invalid',':visited'}#line:57:}
+PSEUDO_COMPLEX ={':contains',':has',':is',':matches',':not',':where'}#line:67:}
+PSEUDO_COMPLEX_NO_MATCH ={':current',':host',':host-context'}#line:73:}
+PSEUDO_SPECIAL ={':dir',':lang',':nth-child',':nth-last-child',':nth-last-of-type',':nth-of-type'}#line:83:}
+PSEUDO_SUPPORTED =PSEUDO_SIMPLE |PSEUDO_SIMPLE_NO_MATCH |PSEUDO_COMPLEX |PSEUDO_COMPLEX_NO_MATCH |PSEUDO_SPECIAL #line:85:PSEUDO_SUPPORTED = PSEUDO_SIMPLE | PSEUDO_SIMPLE_NO_MATCH | PSEUDO_COMPLEX | PSEUDO_COMPLEX_NO_MATCH | PSEUDO_SPECIAL
+NEWLINE =r'(?:\r\n|(?!\r\n)[\n\f\r])'#line:89:NEWLINE = r'(?:\r\n|(?!\r\n)[\n\f\r])'
+WS =r'(?:[ \t]|{})'.format (NEWLINE )#line:90:WS = r'(?:[ \t]|{})'.format(NEWLINE)
+COMMENTS =r'(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)'#line:92:COMMENTS = r'(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)'
+WSC =r'(?:{ws}|{comments})'.format (ws =WS ,comments =COMMENTS )#line:94:WSC = r'(?:{ws}|{comments})'.format(ws=WS, comments=COMMENTS)
+CSS_ESCAPES =r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$))'.format (ws =WS )#line:96:CSS_ESCAPES = r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$))'.format(ws=WS)
+CSS_STRING_ESCAPES =r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$|{nl}))'.format (ws =WS ,nl =NEWLINE )#line:97:CSS_STRING_ESCAPES = r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$|{nl}))'.format(ws=WS, nl=NEWLINE)
+IDENTIFIER =r'''
+(?:(?:-?(?:[^\x00-\x2f\x30-\x40\x5B-\x5E\x60\x7B-\x9f]|{esc})+|--)
+(?:[^\x00-\x2c\x2e\x2f\x3A-\x40\x5B-\x5E\x60\x7B-\x9f]|{esc})*)
+'''.format (esc =CSS_ESCAPES )#line:102:'''.format(esc=CSS_ESCAPES)
+NTH =r'(?:[-+])?(?:[0-9]+n?|n)(?:(?<=n){ws}*(?:[-+]){ws}*(?:[0-9]+))?'.format (ws =WSC )#line:104:NTH = r'(?:[-+])?(?:[0-9]+n?|n)(?:(?<=n){ws}*(?:[-+]){ws}*(?:[0-9]+))?'.format(ws=WSC)
+VALUE =r'''
+(?:"(?:\\(?:.|{nl})|[^\\"\r\n\f]+)*?"|'(?:\\(?:.|{nl})|[^\\'\r\n\f]+)*?'|{ident}+)
+'''.format (nl =NEWLINE ,ident =IDENTIFIER )#line:108:'''.format(nl=NEWLINE, ident=IDENTIFIER)
+ATTR =r'''
+(?:{ws}*(?P<cmp>[!~^|*$]?=){ws}*(?P<value>{value})(?:{ws}+(?P<case>[is]))?)?{ws}*\]
+'''.format (ws =WSC ,value =VALUE )#line:112:'''.format(ws=WSC, value=VALUE)
+PAT_ID =r'\#{ident}'.format (ident =IDENTIFIER )#line:116:PAT_ID = r'\#{ident}'.format(ident=IDENTIFIER)
+PAT_CLASS =r'\.{ident}'.format (ident =IDENTIFIER )#line:118:PAT_CLASS = r'\.{ident}'.format(ident=IDENTIFIER)
+PAT_TAG =r'(?P<tag_ns>(?:{ident}|\*)?\|)?(?P<tag_name>{ident}|\*)'.format (ident =IDENTIFIER )#line:120:PAT_TAG = r'(?P<tag_ns>(?:{ident}|\*)?\|)?(?P<tag_name>{ident}|\*)'.format(ident=IDENTIFIER)
+PAT_ATTR =r'''
+\[{ws}*(?P<attr_ns>(?:{ident}|\*)?\|)?(?P<attr_name>{ident}){attr}
+'''.format (ws =WSC ,ident =IDENTIFIER ,attr =ATTR )#line:124:'''.format(ws=WSC, ident=IDENTIFIER, attr=ATTR)
+PAT_PSEUDO_CLASS =r'(?P<name>:{ident})(?P<open>\({ws}*)?'.format (ws =WSC ,ident =IDENTIFIER )#line:126:PAT_PSEUDO_CLASS = r'(?P<name>:{ident})(?P<open>\({ws}*)?'.format(ws=WSC, ident=IDENTIFIER)
+PAT_PSEUDO_CLASS_SPECIAL =r'(?P<name>:{ident})(?P<open>\({ws}*)'.format (ws =WSC ,ident =IDENTIFIER )#line:128:PAT_PSEUDO_CLASS_SPECIAL = r'(?P<name>:{ident})(?P<open>\({ws}*)'.format(ws=WSC, ident=IDENTIFIER)
+PAT_PSEUDO_CLASS_CUSTOM =r'(?P<name>:(?=--){ident})'.format (ident =IDENTIFIER )#line:130:PAT_PSEUDO_CLASS_CUSTOM = r'(?P<name>:(?=--){ident})'.format(ident=IDENTIFIER)
+PAT_PSEUDO_CLOSE =r'{ws}*\)'.format (ws =WSC )#line:132:PAT_PSEUDO_CLOSE = r'{ws}*\)'.format(ws=WSC)
+PAT_PSEUDO_ELEMENT =r':{}'.format (PAT_PSEUDO_CLASS )#line:134:PAT_PSEUDO_ELEMENT = r':{}'.format(PAT_PSEUDO_CLASS)
+PAT_AT_RULE =r'@P{ident}'.format (ident =IDENTIFIER )#line:136:PAT_AT_RULE = r'@P{ident}'.format(ident=IDENTIFIER)
+PAT_PSEUDO_NTH_CHILD =r'''
+(?P<pseudo_nth_child>{name}
+(?P<nth_child>{nth}|even|odd))(?:{wsc}*\)|(?P<of>{comments}*{ws}{wsc}*of{comments}*{ws}{wsc}*))
+'''.format (name =PAT_PSEUDO_CLASS_SPECIAL ,wsc =WSC ,comments =COMMENTS ,ws =WS ,nth =NTH )#line:141:'''.format(name=PAT_PSEUDO_CLASS_SPECIAL, wsc=WSC, comments=COMMENTS, ws=WS, nth=NTH)
+PAT_PSEUDO_NTH_TYPE =r'''
+(?P<pseudo_nth_type>{name}
+(?P<nth_type>{nth}|even|odd)){ws}*\)
+'''.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC ,nth =NTH )#line:146:'''.format(name=PAT_PSEUDO_CLASS_SPECIAL, ws=WSC, nth=NTH)
+PAT_PSEUDO_LANG =r'{name}(?P<values>{value}(?:{ws}*,{ws}*{value})*){ws}*\)'.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC ,value =VALUE )#line:150:)
+PAT_PSEUDO_DIR =r'{name}(?P<dir>ltr|rtl){ws}*\)'.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC )#line:152:PAT_PSEUDO_DIR = r'{name}(?P<dir>ltr|rtl){ws}*\)'.format(name=PAT_PSEUDO_CLASS_SPECIAL, ws=WSC)
+PAT_COMBINE =r'{wsc}*?(?P<relation>[,+>~]|{ws}(?![,+>~])){wsc}*'.format (ws =WS ,wsc =WSC )#line:154:PAT_COMBINE = r'{wsc}*?(?P<relation>[,+>~]|{ws}(?![,+>~])){wsc}*'.format(ws=WS, wsc=WSC)
+PAT_PSEUDO_CONTAINS =r'{name}(?P<values>{value}(?:{ws}*,{ws}*{value})*){ws}*\)'.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC ,value =VALUE )#line:158:)
+RE_CSS_ESC =re .compile (r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$))'.format (ws =WSC ),re .I )#line:162:RE_CSS_ESC = re.compile(r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$))'.format(ws=WSC), re.I)
+RE_CSS_STR_ESC =re .compile (r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$)|(\\{nl}))'.format (ws =WS ,nl =NEWLINE ),re .I )#line:165:)
+RE_NTH =re .compile (r'(?P<s1>[-+])?(?P<a>[0-9]+n?|n)(?:(?<=n){ws}*(?P<s2>[-+]){ws}*(?P<b>[0-9]+))?'.format (ws =WSC ),re .I )#line:170:)
+RE_VALUES =re .compile (r'(?:(?P<value>{value})|(?P<split>{ws}*,{ws}*))'.format (ws =WSC ,value =VALUE ),re .X )#line:172:RE_VALUES = re.compile(r'(?:(?P<value>{value})|(?P<split>{ws}*,{ws}*))'.format(ws=WSC, value=VALUE), re.X)
+RE_WS =re .compile (WS )#line:174:RE_WS = re.compile(WS)
+RE_WS_BEGIN =re .compile ('^{}*'.format (WSC ))#line:175:RE_WS_BEGIN = re.compile('^{}*'.format(WSC))
+RE_WS_END =re .compile ('{}*$'.format (WSC ))#line:176:RE_WS_END = re.compile('{}*$'.format(WSC))
+RE_CUSTOM =re .compile (r'^{}$'.format (PAT_PSEUDO_CLASS_CUSTOM ),re .X )#line:177:RE_CUSTOM = re.compile(r'^{}$'.format(PAT_PSEUDO_CLASS_CUSTOM), re.X)
+COMMA_COMBINATOR =','#line:181:COMMA_COMBINATOR = ','
+WS_COMBINATOR =" "#line:183:WS_COMBINATOR = " "
+FLG_PSEUDO =0x01 #line:186:FLG_PSEUDO = 0x01
+FLG_NOT =0x02 #line:187:FLG_NOT = 0x02
+FLG_RELATIVE =0x04 #line:188:FLG_RELATIVE = 0x04
+FLG_DEFAULT =0x08 #line:189:FLG_DEFAULT = 0x08
+FLG_HTML =0x10 #line:190:FLG_HTML = 0x10
+FLG_INDETERMINATE =0x20 #line:191:FLG_INDETERMINATE = 0x20
+FLG_OPEN =0x40 #line:192:FLG_OPEN = 0x40
+FLG_IN_RANGE =0x80 #line:193:FLG_IN_RANGE = 0x80
+FLG_OUT_OF_RANGE =0x100 #line:194:FLG_OUT_OF_RANGE = 0x100
+FLG_PLACEHOLDER_SHOWN =0x200 #line:195:FLG_PLACEHOLDER_SHOWN = 0x200
+_O0OO00OOO00000O00 =500 #line:198:_MAXCACHE = 500
+@lru_cache (maxsize =_O0OO00OOO00000O00 )#line:201:@lru_cache(maxsize=_MAXCACHE)
+def _O0O0O00OO00OOO000 (OO0000O0O00000O00 ,O0000OO0O0OO0OOO0 ,O00O0OO0O0000O0O0 ,OOOOO00O00OOOO0OO ):#line:202:def _cached_css_compile(pattern, namespaces, custom, flags):
+    ""#line:203:"""Cached CSS compile."""
+    OO0OOOOOO0OO0OO00 =process_custom (O00O0OO0O0000O0O0 )#line:205:custom_selectors = process_custom(custom)
+    return cm .SoupSieve (OO0000O0O00000O00 ,CSSParser (OO0000O0O00000O00 ,custom =OO0OOOOOO0OO0OO00 ,flags =OOOOO00O00OOOO0OO ).process_selectors (),O0000OO0O0OO0OOO0 ,O00O0OO0O0000O0O0 ,OOOOO00O00OOOO0OO )#line:212:)
+def _O000000OOO0O0O0O0 ():#line:215:def _purge_cache():
+    ""#line:216:"""Purge the cache."""
+    _O0O0O00OO00OOO000 .cache_clear ()#line:218:_cached_css_compile.cache_clear()
+def process_custom (OO0OOOO00O0O0O0O0 ):#line:221:def process_custom(custom):
+    ""#line:222:"""Process custom."""
+    OO0OO00OO00OOOOOO ={}#line:224:custom_selectors = {}
+    if OO0OOOO00O0O0O0O0 is not None :#line:225:if custom is not None:
+        for O0000O00O0OO0000O ,OOOO00O00O0000O00 in OO0OOOO00O0O0O0O0 .items ():#line:226:for key, value in custom.items():
+            OO000O000O00O00OO =util .lower (O0000O00O0OO0000O )#line:227:name = util.lower(key)
+            if RE_CUSTOM .match (OO000O000O00O00OO )is None :#line:228:if RE_CUSTOM.match(name) is None:
+                raise SelectorSyntaxError ("The name '{}' is not a valid custom pseudo-class name".format (OO000O000O00O00OO ))#line:229:raise SelectorSyntaxError("The name '{}' is not a valid custom pseudo-class name".format(name))
+            if OO000O000O00O00OO in OO0OO00OO00OOOOOO :#line:230:if name in custom_selectors:
+                raise KeyError ("The custom selector '{}' has already been registered".format (OO000O000O00O00OO ))#line:231:raise KeyError("The custom selector '{}' has already been registered".format(name))
+            OO0OO00OO00OOOOOO [css_unescape (OO000O000O00O00OO )]=OOOO00O00O0000O00 #line:232:custom_selectors[css_unescape(name)] = value
+    return OO0OO00OO00OOOOOO #line:233:return custom_selectors
+def css_unescape (O0OOO0OO0O0OOO0O0 ,string =False ):#line:236:def css_unescape(content, string=False):
+    ""#line:241:"""
+    def OOOO00O00O0O0O000 (OO000OO0OO000O000 ):#line:243:def replace(m):
+        ""#line:244:"""Replace with the appropriate substitute."""
+        if OO000OO0OO000O000 .group (1 ):#line:246:if m.group(1):
+            OO0OOOOO0000O0O0O =int (OO000OO0OO000O000 .group (1 )[1 :],16 )#line:247:codepoint = int(m.group(1)[1:], 16)
+            if OO0OOOOO0000O0O0O ==0 :#line:248:if codepoint == 0:
+                OO0OOOOO0000O0O0O =UNICODE_REPLACEMENT_CHAR #line:249:codepoint = UNICODE_REPLACEMENT_CHAR
+            OO00O0OO0OOOOOO0O =chr (OO0OOOOO0000O0O0O )#line:250:value = chr(codepoint)
+        elif OO000OO0OO000O000 .group (2 ):#line:251:elif m.group(2):
+            OO00O0OO0OOOOOO0O =OO000OO0OO000O000 .group (2 )[1 :]#line:252:value = m.group(2)[1:]
+        elif OO000OO0OO000O000 .group (3 ):#line:253:elif m.group(3):
+            OO00O0OO0OOOOOO0O ='\ufffd'#line:254:value = '\ufffd'
+        else :#line:255:else:
+            OO00O0OO0OOOOOO0O =''#line:256:value = ''
+        return OO00O0OO0OOOOOO0O #line:258:return value
+    return (RE_CSS_ESC if not string else RE_CSS_STR_ESC ).sub (OOOO00O00O0O0O000 ,O0OOO0OO0O0OOO0O0 )#line:260:return (RE_CSS_ESC if not string else RE_CSS_STR_ESC).sub(replace, content)
+def escape (O00O0O0OO000O0O00 ):#line:263:def escape(ident):
+    ""#line:264:"""Escape identifier."""
+    OOOOOO000O00OO000 =[]#line:266:string = []
+    OO000O00OO0OOOOO0 =len (O00O0O0OO000O0O00 )#line:267:length = len(ident)
+    O0OO00OO000OOO000 =OO000O00OO0OOOOO0 >0 and O00O0O0OO000O0O00 [0 ]=='-'#line:268:start_dash = length > 0 and ident[0] == '-'
+    if OO000O00OO0OOOOO0 ==1 and O0OO00OO000OOO000 :#line:269:if length == 1 and start_dash:
+        OOOOOO000O00OO000 .append ('\\{}'.format (O00O0O0OO000O0O00 ))#line:271:string.append('\\{}'.format(ident))
+    else :#line:272:else:
+        for OO00O00000O0OO0O0 ,O00OOOO000O0OOO00 in enumerate (O00O0O0OO000O0O00 ):#line:273:for index, c in enumerate(ident):
+            O00OOOOOOO0OO0OO0 =ord (O00OOOO000O0OOO00 )#line:274:codepoint = ord(c)
+            if O00OOOOOOO0OO0OO0 ==0x00 :#line:275:if codepoint == 0x00:
+                OOOOOO000O00OO000 .append ('\ufffd')#line:276:string.append('\ufffd')
+            elif (0x01 <=O00OOOOOOO0OO0OO0 <=0x1F )or O00OOOOOOO0OO0OO0 ==0x7F :#line:277:elif (0x01 <= codepoint <= 0x1F) or codepoint == 0x7F:
+                OOOOOO000O00OO000 .append ('\\{:x} '.format (O00OOOOOOO0OO0OO0 ))#line:278:string.append('\\{:x} '.format(codepoint))
+            elif (OO00O00000O0OO0O0 ==0 or (O0OO00OO000OOO000 and OO00O00000O0OO0O0 ==1 ))and (0x30 <=O00OOOOOOO0OO0OO0 <=0x39 ):#line:279:elif (index == 0 or (start_dash and index == 1)) and (0x30 <= codepoint <= 0x39):
+                OOOOOO000O00OO000 .append ('\\{:x} '.format (O00OOOOOOO0OO0OO0 ))#line:280:string.append('\\{:x} '.format(codepoint))
+            elif (O00OOOOOOO0OO0OO0 in (0x2D ,0x5F )or O00OOOOOOO0OO0OO0 >=0x80 or (0x30 <=O00OOOOOOO0OO0OO0 <=0x39 )or (0x30 <=O00OOOOOOO0OO0OO0 <=0x39 )or (0x41 <=O00OOOOOOO0OO0OO0 <=0x5A )or (0x61 <=O00OOOOOOO0OO0OO0 <=0x7A )):#line:284:):
+                OOOOOO000O00OO000 .append (O00OOOO000O0OOO00 )#line:285:string.append(c)
+            else :#line:286:else:
+                OOOOOO000O00OO000 .append ('\\{}'.format (O00OOOO000O0OOO00 ))#line:287:string.append('\\{}'.format(c))
+    return ''.join (OOOOOO000O00OO000 )#line:288:return ''.join(string)
+class SelectorPattern (object ):#line:291:class SelectorPattern(object):
+    ""#line:292:"""Selector pattern."""
+    def __init__ (O000000O000O0000O ,OOO00OO0OOO00000O ,OOO0OOO0O0000O000 ):#line:294:def __init__(self, name, pattern):
+        ""#line:295:"""Initialize."""
+        O000000O000O0000O .name =OOO00OO0OOO00000O #line:297:self.name = name
+        O000000O000O0000O .re_pattern =re .compile (OOO0OOO0O0000O000 ,re .I |re .X |re .U )#line:298:self.re_pattern = re.compile(pattern, re.I | re.X | re.U)
+    def get_name (OO0OOO000OOOO0O0O ):#line:300:def get_name(self):
+        ""#line:301:"""Get name."""
+        return OO0OOO000OOOO0O0O .name #line:303:return self.name
+    def match (O0OO0O0OO000000OO ,OO000OO0O0O0O00O0 ,OO0000O0OO0O0O0O0 ,OOO0O00O0000O0000 ):#line:305:def match(self, selector, index, flags):
+        ""#line:306:"""Match the selector."""
+        return O0OO0O0OO000000OO .re_pattern .match (OO000OO0O0O0O00O0 ,OO0000O0OO0O0O0O0 )#line:308:return self.re_pattern.match(selector, index)
+class SpecialPseudoPattern (SelectorPattern ):#line:311:class SpecialPseudoPattern(SelectorPattern):
+    ""#line:312:"""Selector pattern."""
+    def __init__ (O00O000OO00OO0O00 ,O0000O00OO00OO0O0 ):#line:314:def __init__(self, patterns):
+        ""#line:315:"""Initialize."""
+        O00O000OO00OO0O00 .patterns ={}#line:317:self.patterns = {}
+        for O0O000O00000000O0 in O0000O00OO00OO0O0 :#line:318:for p in patterns:
+            O00OOO0O0OOOO0O0O =O0O000O00000000O0 [0 ]#line:319:name = p[0]
+            OOOO0O0OOOO000OO0 =O0O000O00000000O0 [3 ](O00OOO0O0OOOO0O0O ,O0O000O00000000O0 [2 ])#line:320:pattern = p[3](name, p[2])
+            for O00OO0OO0O0OO000O in O0O000O00000000O0 [1 ]:#line:321:for pseudo in p[1]:
+                O00O000OO00OO0O00 .patterns [O00OO0OO0O0OO000O ]=OOOO0O0OOOO000OO0 #line:322:self.patterns[pseudo] = pattern
+        O00O000OO00OO0O00 .matched_name =None #line:324:self.matched_name = None
+        O00O000OO00OO0O00 .re_pseudo_name =re .compile (PAT_PSEUDO_CLASS_SPECIAL ,re .I |re .X |re .U )#line:325:self.re_pseudo_name = re.compile(PAT_PSEUDO_CLASS_SPECIAL, re.I | re.X | re.U)
+    def get_name (O0OOOO00OO00O0OO0 ):#line:327:def get_name(self):
+        ""#line:328:"""Get name."""
+        return O0OOOO00OO00O0OO0 .matched_name .get_name ()#line:330:return self.matched_name.get_name()
+    def match (OO0OO0OO0OO000OOO ,OO0OO000OOOOO0O0O ,OO0000000OO000000 ,O000OOO00OOO0O0O0 ):#line:332:def match(self, selector, index, flags):
+        ""#line:333:"""Match the selector."""
+        OOO000OO0000O0000 =None #line:335:pseudo = None
+        OOOO0OO00O000O000 =OO0OO0OO0OO000OOO .re_pseudo_name .match (OO0OO000OOOOO0O0O ,OO0000000OO000000 )#line:336:m = self.re_pseudo_name.match(selector, index)
+        if OOOO0OO00O000O000 :#line:337:if m:
+            O000O0O0O0OOOOO0O =util .lower (css_unescape (OOOO0OO00O000O000 .group ('name')))#line:338:name = util.lower(css_unescape(m.group('name')))
+            OOOO00OO00O0000OO =OO0OO0OO0OO000OOO .patterns .get (O000O0O0O0OOOOO0O )#line:339:pattern = self.patterns.get(name)
+            if OOOO00OO00O0000OO :#line:340:if pattern:
+                OOO000OO0000O0000 =OOOO00OO00O0000OO .match (OO0OO000OOOOO0O0O ,OO0000000OO000000 ,O000OOO00OOO0O0O0 )#line:341:pseudo = pattern.match(selector, index, flags)
+                if OOO000OO0000O0000 :#line:342:if pseudo:
+                    OO0OO0OO0OO000OOO .matched_name =OOOO00OO00O0000OO #line:343:self.matched_name = pattern
+        return OOO000OO0000O0000 #line:345:return pseudo
+class _OOO000OOO0O0OO000 (object ):#line:348:class _Selector(object):
+    ""#line:355:"""
+    def __init__ (O0OOO0OOOOOOO00O0 ,**OOO00OOOOOOOOO0O0 ):#line:357:def __init__(self, **kwargs):
+        ""#line:358:"""Initialize."""
+        O0OOO0OOOOOOO00O0 .tag =OOO00OOOOOOOOO0O0 .get ('tag',None )#line:360:self.tag = kwargs.get('tag', None)
+        O0OOO0OOOOOOO00O0 .ids =OOO00OOOOOOOOO0O0 .get ('ids',[])#line:361:self.ids = kwargs.get('ids', [])
+        O0OOO0OOOOOOO00O0 .classes =OOO00OOOOOOOOO0O0 .get ('classes',[])#line:362:self.classes = kwargs.get('classes', [])
+        O0OOO0OOOOOOO00O0 .attributes =OOO00OOOOOOOOO0O0 .get ('attributes',[])#line:363:self.attributes = kwargs.get('attributes', [])
+        O0OOO0OOOOOOO00O0 .nth =OOO00OOOOOOOOO0O0 .get ('nth',[])#line:364:self.nth = kwargs.get('nth', [])
+        O0OOO0OOOOOOO00O0 .selectors =OOO00OOOOOOOOO0O0 .get ('selectors',[])#line:365:self.selectors = kwargs.get('selectors', [])
+        O0OOO0OOOOOOO00O0 .relations =OOO00OOOOOOOOO0O0 .get ('relations',[])#line:366:self.relations = kwargs.get('relations', [])
+        O0OOO0OOOOOOO00O0 .rel_type =OOO00OOOOOOOOO0O0 .get ('rel_type',None )#line:367:self.rel_type = kwargs.get('rel_type', None)
+        O0OOO0OOOOOOO00O0 .contains =OOO00OOOOOOOOO0O0 .get ('contains',[])#line:368:self.contains = kwargs.get('contains', [])
+        O0OOO0OOOOOOO00O0 .lang =OOO00OOOOOOOOO0O0 .get ('lang',[])#line:369:self.lang = kwargs.get('lang', [])
+        O0OOO0OOOOOOO00O0 .flags =OOO00OOOOOOOOO0O0 .get ('flags',0 )#line:370:self.flags = kwargs.get('flags', 0)
+        O0OOO0OOOOOOO00O0 .no_match =OOO00OOOOOOOOO0O0 .get ('no_match',False )#line:371:self.no_match = kwargs.get('no_match', False)
+    def _freeze_relations (OOOO000O0O00O0000 ,OO0O00O00O0O0OO0O ):#line:373:def _freeze_relations(self, relations):
+        ""#line:374:"""Freeze relation."""
+        if OO0O00O00O0O0OO0O :#line:376:if relations:
+            OOO00OO0OOO00O00O =OO0O00O00O0O0OO0O [0 ]#line:377:sel = relations[0]
+            OOO00OO0OOO00O00O .relations .extend (OO0O00O00O0O0OO0O [1 :])#line:378:sel.relations.extend(relations[1:])
+            return ct .SelectorList ([OOO00OO0OOO00O00O .freeze ()])#line:379:return ct.SelectorList([sel.freeze()])
+        else :#line:380:else:
+            return ct .SelectorList ()#line:381:return ct.SelectorList()
+    def freeze (O000O0OO00O0O0OOO ):#line:383:def freeze(self):
+        ""#line:384:"""Freeze self."""
+        if O000O0OO00O0O0OOO .no_match :#line:386:if self.no_match:
+            return ct .SelectorNull ()#line:387:return ct.SelectorNull()
+        else :#line:388:else:
+            return ct .Selector (O000O0OO00O0O0OOO .tag ,tuple (O000O0OO00O0O0OOO .ids ),tuple (O000O0OO00O0O0OOO .classes ),tuple (O000O0OO00O0O0OOO .attributes ),tuple (O000O0OO00O0O0OOO .nth ),tuple (O000O0OO00O0O0OOO .selectors ),O000O0OO00O0O0OOO ._freeze_relations (O000O0OO00O0O0OOO .relations ),O000O0OO00O0O0OOO .rel_type ,tuple (O000O0OO00O0O0OOO .contains ),tuple (O000O0OO00O0O0OOO .lang ),O000O0OO00O0O0OOO .flags )#line:401:)
+    def __str__ (OO0O0O00O0O0OO00O ):#line:403:def __str__(self):  # pragma: no cover
+        ""#line:404:"""String representation."""
+        return ('_Selector(tag={!r}, ids={!r}, classes={!r}, attributes={!r}, nth={!r}, selectors={!r}, ' 'relations={!r}, rel_type={!r}, contains={!r}, lang={!r}, flags={!r}, no_match={!r})').format (OO0O0O00O0O0OO00O .tag ,OO0O0O00O0O0OO00O .ids ,OO0O0O00O0O0OO00O .classes ,OO0O0O00O0O0OO00O .attributes ,OO0O0O00O0O0OO00O .nth ,OO0O0O00O0O0OO00O .selectors ,OO0O0O00O0O0OO00O .relations ,OO0O0O00O0O0OO00O .rel_type ,OO0O0O00O0O0OO00O .contains ,OO0O0O00O0O0OO00O .lang ,OO0O0O00O0O0OO00O .flags ,OO0O0O00O0O0OO00O .no_match )#line:412:)
+    __repr__ =__str__ #line:414:__repr__ = __str__
+class CSSParser (object ):#line:417:class CSSParser(object):
+    ""#line:418:"""Parse CSS selectors."""
+    css_tokens =(SelectorPattern ("pseudo_close",PAT_PSEUDO_CLOSE ),SpecialPseudoPattern ((("pseudo_contains",(':contains',),PAT_PSEUDO_CONTAINS ,SelectorPattern ),("pseudo_nth_child",(':nth-child',':nth-last-child'),PAT_PSEUDO_NTH_CHILD ,SelectorPattern ),("pseudo_nth_type",(':nth-of-type',':nth-last-of-type'),PAT_PSEUDO_NTH_TYPE ,SelectorPattern ),("pseudo_lang",(':lang',),PAT_PSEUDO_LANG ,SelectorPattern ),("pseudo_dir",(':dir',),PAT_PSEUDO_DIR ,SelectorPattern ))),SelectorPattern ("pseudo_class_custom",PAT_PSEUDO_CLASS_CUSTOM ),SelectorPattern ("pseudo_class",PAT_PSEUDO_CLASS ),SelectorPattern ("pseudo_element",PAT_PSEUDO_ELEMENT ),SelectorPattern ("at_rule",PAT_AT_RULE ),SelectorPattern ("id",PAT_ID ),SelectorPattern ("class",PAT_CLASS ),SelectorPattern ("tag",PAT_TAG ),SelectorPattern ("attribute",PAT_ATTR ),SelectorPattern ("combine",PAT_COMBINE ))#line:440:)
+    def __init__ (OOOOOOOO0OOOOO00O ,OOO0O0OOO0OO0OOO0 ,custom =None ,flags =0 ):#line:442:def __init__(self, selector, custom=None, flags=0):
+        ""#line:443:"""Initialize."""
+        OOOOOOOO0OOOOO00O .pattern =OOO0O0OOO0OO0OOO0 .replace ('\x00','\ufffd')#line:445:self.pattern = selector.replace('\x00', '\ufffd')
+        OOOOOOOO0OOOOO00O .flags =flags #line:446:self.flags = flags
+        OOOOOOOO0OOOOO00O .debug =OOOOOOOO0OOOOO00O .flags &util .DEBUG #line:447:self.debug = self.flags & util.DEBUG
+        OOOOOOOO0OOOOO00O .custom ={}if custom is None else custom #line:448:self.custom = {} if custom is None else custom
+    def parse_attribute_selector (O0OO0000OO0OO00OO ,O00000O0O00O00O00 ,OO00000OO0O0O0OO0 ,OO0O0O0OO000OO0OO ):#line:450:def parse_attribute_selector(self, sel, m, has_selector):
+        ""#line:451:"""Create attribute selector from the returned regex match."""
+        OOO00OO0OO0O0OOOO =False #line:453:inverse = False
+        O0O0OO0OOO0O00OO0 =OO00000OO0O0O0OO0 .group ('cmp')#line:454:op = m.group('cmp')
+        O00O0O0OOO00000O0 =util .lower (OO00000OO0O0O0OO0 .group ('case'))if OO00000OO0O0O0OO0 .group ('case')else None #line:455:case = util.lower(m.group('case')) if m.group('case') else None
+        OO0OOOOO0000O00OO =css_unescape (OO00000OO0O0O0OO0 .group ('attr_ns')[:-1 ])if OO00000OO0O0O0OO0 .group ('attr_ns')else ''#line:456:ns = css_unescape(m.group('attr_ns')[:-1]) if m.group('attr_ns') else ''
+        O0OO000OOOO0O0OOO =css_unescape (OO00000OO0O0O0OO0 .group ('attr_name'))#line:457:attr = css_unescape(m.group('attr_name'))
+        OO00OO0O0OOOO000O =False #line:458:is_type = False
+        OOOO0O0OO00OO0OO0 =None #line:459:pattern2 = None
+        if O00O0O0OOO00000O0 :#line:461:if case:
+            O00OOOOOOO00OOO0O =re .I if O00O0O0OOO00000O0 =='i'else 0 #line:462:flags = re.I if case == 'i' else 0
+        elif util .lower (O0OO000OOOO0O0OOO )=='type':#line:463:elif util.lower(attr) == 'type':
+            O00OOOOOOO00OOO0O =re .I #line:464:flags = re.I
+            OO00OO0O0OOOO000O =True #line:465:is_type = True
+        else :#line:466:else:
+            O00OOOOOOO00OOO0O =0 #line:467:flags = 0
+        if O0O0OO0OOO0O00OO0 :#line:469:if op:
+            if OO00000OO0O0O0OO0 .group ('value').startswith (('"',"'")):#line:470:if m.group('value').startswith(('"', "'")):
+                O00OOO0O000O0000O =css_unescape (OO00000OO0O0O0OO0 .group ('value')[1 :-1 ],True )#line:471:value = css_unescape(m.group('value')[1:-1], True)
+            else :#line:472:else:
+                O00OOO0O000O0000O =css_unescape (OO00000OO0O0O0OO0 .group ('value'))#line:473:value = css_unescape(m.group('value'))
+        else :#line:474:else:
+            O00OOO0O000O0000O =None #line:475:value = None
+        if not O0O0OO0OOO0O00OO0 :#line:476:if not op:
+            OO00OO0O0OOO00000 =None #line:478:pattern = None
+        elif O0O0OO0OOO0O00OO0 .startswith ('^'):#line:479:elif op.startswith('^'):
+            OO00OO0O0OOO00000 =re .compile (r'^%s.*'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:481:pattern = re.compile(r'^%s.*' % re.escape(value), flags)
+        elif O0O0OO0OOO0O00OO0 .startswith ('$'):#line:482:elif op.startswith('$'):
+            OO00OO0O0OOO00000 =re .compile (r'.*?%s$'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:484:pattern = re.compile(r'.*?%s$' % re.escape(value), flags)
+        elif O0O0OO0OOO0O00OO0 .startswith ('*'):#line:485:elif op.startswith('*'):
+            OO00OO0O0OOO00000 =re .compile (r'.*?%s.*'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:487:pattern = re.compile(r'.*?%s.*' % re.escape(value), flags)
+        elif O0O0OO0OOO0O00OO0 .startswith ('~'):#line:488:elif op.startswith('~'):
+            O00OOO0O000O0000O =r'[^\s\S]'if not O00OOO0O000O0000O or RE_WS .search (O00OOO0O000O0000O )else re .escape (O00OOO0O000O0000O )#line:492:value = r'[^\s\S]' if not value or RE_WS.search(value) else re.escape(value)
+            OO00OO0O0OOO00000 =re .compile (r'.*?(?:(?<=^)|(?<=[ \t\r\n\f]))%s(?=(?:[ \t\r\n\f]|$)).*'%O00OOO0O000O0000O ,O00OOOOOOO00OOO0O )#line:493:pattern = re.compile(r'.*?(?:(?<=^)|(?<=[ \t\r\n\f]))%s(?=(?:[ \t\r\n\f]|$)).*' % value, flags)
+        elif O0O0OO0OOO0O00OO0 .startswith ('|'):#line:494:elif op.startswith('|'):
+            OO00OO0O0OOO00000 =re .compile (r'^%s(?:-.*)?$'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:496:pattern = re.compile(r'^%s(?:-.*)?$' % re.escape(value), flags)
+        else :#line:497:else:
+            OO00OO0O0OOO00000 =re .compile (r'^%s$'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:499:pattern = re.compile(r'^%s$' % re.escape(value), flags)
+            if O0O0OO0OOO0O00OO0 .startswith ('!'):#line:500:if op.startswith('!'):
+                OOO00OO0OO0O0OOOO =True #line:502:inverse = True
+        if OO00OO0O0OOOO000O and OO00OO0O0OOO00000 :#line:503:if is_type and pattern:
+            OOOO0O0OO00OO0OO0 =re .compile (OO00OO0O0OOO00000 .pattern )#line:504:pattern2 = re.compile(pattern.pattern)
+        OOOOOO00OOO0OOO0O =ct .SelectorAttribute (O0OO000OOOO0O0OOO ,OO0OOOOO0000O00OO ,OO00OO0O0OOO00000 ,OOOO0O0OO00OO0OO0 )#line:507:sel_attr = ct.SelectorAttribute(attr, ns, pattern, pattern2)
+        if OOO00OO0OO0O0OOOO :#line:508:if inverse:
+            O0O0OOO0000O0O0O0 =_OOO000OOO0O0OO000 ()#line:510:sub_sel = _Selector()
+            O0O0OOO0000O0O0O0 .attributes .append (OOOOOO00OOO0OOO0O )#line:511:sub_sel.attributes.append(sel_attr)
+            OO0OOOO00O0O00O0O =ct .SelectorList ([O0O0OOO0000O0O0O0 .freeze ()],True ,False )#line:512:not_list = ct.SelectorList([sub_sel.freeze()], True, False)
+            O00000O0O00O00O00 .selectors .append (OO0OOOO00O0O00O0O )#line:513:sel.selectors.append(not_list)
+        else :#line:514:else:
+            O00000O0O00O00O00 .attributes .append (OOOOOO00OOO0OOO0O )#line:515:sel.attributes.append(sel_attr)
+        OO0O0O0OO000OO0OO =True #line:517:has_selector = True
+        return OO0O0O0OO000OO0OO #line:518:return has_selector
+    def parse_tag_pattern (OO00O0OOO0OOOO00O ,O0O00OOO000O0OO00 ,O0O0O0O00OOOO0000 ,OO0OO0OOO000O0O00 ):#line:520:def parse_tag_pattern(self, sel, m, has_selector):
+        ""#line:521:"""Parse tag pattern from regex match."""
+        OO000O0O00OO000O0 =css_unescape (O0O0O0O00OOOO0000 .group ('tag_ns')[:-1 ])if O0O0O0O00OOOO0000 .group ('tag_ns')else None #line:523:prefix = css_unescape(m.group('tag_ns')[:-1]) if m.group('tag_ns') else None
+        OO0OO0O000OOOOO00 =css_unescape (O0O0O0O00OOOO0000 .group ('tag_name'))#line:524:tag = css_unescape(m.group('tag_name'))
+        O0O00OOO000O0OO00 .tag =ct .SelectorTag (OO0OO0O000OOOOO00 ,OO000O0O00OO000O0 )#line:525:sel.tag = ct.SelectorTag(tag, prefix)
+        OO0OO0OOO000O0O00 =True #line:526:has_selector = True
+        return OO0OO0OOO000O0O00 #line:527:return has_selector
+    def parse_pseudo_class_custom (OO0OOOOO0O0O0000O ,OOOOO000000O00O00 ,O00O000OOOOOOOO00 ,OOO0O0000OOOO0OO0 ):#line:529:def parse_pseudo_class_custom(self, sel, m, has_selector):
+        ""#line:535:"""
+        O0OOOO0000O0OOOO0 =util .lower (css_unescape (O00O000OOOOOOOO00 .group ('name')))#line:537:pseudo = util.lower(css_unescape(m.group('name')))
+        O00OOOOOOOO0O0OOO =OO0OOOOO0O0O0000O .custom .get (O0OOOO0000O0OOOO0 )#line:538:selector = self.custom.get(pseudo)
+        if O00OOOOOOOO0O0OOO is None :#line:539:if selector is None:
+            raise SelectorSyntaxError ("Undefined custom selector '{}' found at postion {}".format (O0OOOO0000O0OOOO0 ,O00O000OOOOOOOO00 .end (0 )),OO0OOOOO0O0O0000O .pattern ,O00O000OOOOOOOO00 .end (0 ))#line:544:)
+        if not isinstance (O00OOOOOOOO0O0OOO ,ct .SelectorList ):#line:546:if not isinstance(selector, ct.SelectorList):
+            OO0OOOOO0O0O0000O .custom [O0OOOO0000O0OOOO0 ]=None #line:547:self.custom[pseudo] = None
+            O00OOOOOOOO0O0OOO =CSSParser (O00OOOOOOOO0O0OOO ,custom =OO0OOOOO0O0O0000O .custom ,flags =OO0OOOOO0O0O0000O .flags ).process_selectors (flags =FLG_PSEUDO )#line:550:).process_selectors(flags=FLG_PSEUDO)
+            OO0OOOOO0O0O0000O .custom [O0OOOO0000O0OOOO0 ]=O00OOOOOOOO0O0OOO #line:551:self.custom[pseudo] = selector
+        OOOOO000000O00O00 .selectors .append (O00OOOOOOOO0O0OOO )#line:553:sel.selectors.append(selector)
+        OOO0O0000OOOO0OO0 =True #line:554:has_selector = True
+        return OOO0O0000OOOO0OO0 #line:555:return has_selector
+    def parse_pseudo_class (OO00O0O00OO0000OO ,OOO00OOO0OO000OOO ,O0O00OO00O0O00OO0 ,OO0O000O000OOO0OO ,OOOO0OO00O0O0O0OO ,O0O00OO00OO00O0OO ):#line:557:def parse_pseudo_class(self, sel, m, has_selector, iselector, is_html):
+        ""#line:558:"""Parse pseudo class."""
+        OO000O00O0O000OO0 =False #line:560:complex_pseudo = False
+        OOOO0O0O0OOO0O0O0 =util .lower (css_unescape (O0O00OO00O0O00OO0 .group ('name')))#line:561:pseudo = util.lower(css_unescape(m.group('name')))
+        if O0O00OO00O0O00OO0 .group ('open'):#line:562:if m.group('open'):
+            OO000O00O0O000OO0 =True #line:563:complex_pseudo = True
+        if OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_COMPLEX :#line:564:if complex_pseudo and pseudo in PSEUDO_COMPLEX:
+            OO0O000O000OOO0OO =OO00O0O00OO0000OO .parse_pseudo_open (OOO00OOO0OO000OOO ,OOOO0O0O0OOO0O0O0 ,OO0O000O000OOO0OO ,OOOO0OO00O0O0O0OO ,O0O00OO00O0O00OO0 .end (0 ))#line:565:has_selector = self.parse_pseudo_open(sel, pseudo, has_selector, iselector, m.end(0))
+        elif not OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_SIMPLE :#line:566:elif not complex_pseudo and pseudo in PSEUDO_SIMPLE:
+            if OOOO0O0O0OOO0O0O0 ==':root':#line:567:if pseudo == ':root':
+                OOO00OOO0OO000OOO .flags |=ct .SEL_ROOT #line:568:sel.flags |= ct.SEL_ROOT
+            elif OOOO0O0O0OOO0O0O0 ==':defined':#line:569:elif pseudo == ':defined':
+                OOO00OOO0OO000OOO .flags |=ct .SEL_DEFINED #line:570:sel.flags |= ct.SEL_DEFINED
+                O0O00OO00OO00O0OO =True #line:571:is_html = True
+            elif OOOO0O0O0OOO0O0O0 ==':scope':#line:572:elif pseudo == ':scope':
+                OOO00OOO0OO000OOO .flags |=ct .SEL_SCOPE #line:573:sel.flags |= ct.SEL_SCOPE
+            elif OOOO0O0O0OOO0O0O0 ==':empty':#line:574:elif pseudo == ':empty':
+                OOO00OOO0OO000OOO .flags |=ct .SEL_EMPTY #line:575:sel.flags |= ct.SEL_EMPTY
+            elif OOOO0O0O0OOO0O0O0 in (':link',':any-link'):#line:576:elif pseudo in (':link', ':any-link'):
+                OOO00OOO0OO000OOO .selectors .append (CSS_LINK )#line:577:sel.selectors.append(CSS_LINK)
+            elif OOOO0O0O0OOO0O0O0 ==':checked':#line:578:elif pseudo == ':checked':
+                OOO00OOO0OO000OOO .selectors .append (CSS_CHECKED )#line:579:sel.selectors.append(CSS_CHECKED)
+            elif OOOO0O0O0OOO0O0O0 ==':default':#line:580:elif pseudo == ':default':
+                OOO00OOO0OO000OOO .selectors .append (CSS_DEFAULT )#line:581:sel.selectors.append(CSS_DEFAULT)
+            elif OOOO0O0O0OOO0O0O0 ==':indeterminate':#line:582:elif pseudo == ':indeterminate':
+                OOO00OOO0OO000OOO .selectors .append (CSS_INDETERMINATE )#line:583:sel.selectors.append(CSS_INDETERMINATE)
+            elif OOOO0O0O0OOO0O0O0 ==":disabled":#line:584:elif pseudo == ":disabled":
+                OOO00OOO0OO000OOO .selectors .append (CSS_DISABLED )#line:585:sel.selectors.append(CSS_DISABLED)
+            elif OOOO0O0O0OOO0O0O0 ==":enabled":#line:586:elif pseudo == ":enabled":
+                OOO00OOO0OO000OOO .selectors .append (CSS_ENABLED )#line:587:sel.selectors.append(CSS_ENABLED)
+            elif OOOO0O0O0OOO0O0O0 ==":required":#line:588:elif pseudo == ":required":
+                OOO00OOO0OO000OOO .selectors .append (CSS_REQUIRED )#line:589:sel.selectors.append(CSS_REQUIRED)
+            elif OOOO0O0O0OOO0O0O0 ==":optional":#line:590:elif pseudo == ":optional":
+                OOO00OOO0OO000OOO .selectors .append (CSS_OPTIONAL )#line:591:sel.selectors.append(CSS_OPTIONAL)
+            elif OOOO0O0O0OOO0O0O0 ==":read-only":#line:592:elif pseudo == ":read-only":
+                OOO00OOO0OO000OOO .selectors .append (CSS_READ_ONLY )#line:593:sel.selectors.append(CSS_READ_ONLY)
+            elif OOOO0O0O0OOO0O0O0 ==":read-write":#line:594:elif pseudo == ":read-write":
+                OOO00OOO0OO000OOO .selectors .append (CSS_READ_WRITE )#line:595:sel.selectors.append(CSS_READ_WRITE)
+            elif OOOO0O0O0OOO0O0O0 ==":in-range":#line:596:elif pseudo == ":in-range":
+                OOO00OOO0OO000OOO .selectors .append (CSS_IN_RANGE )#line:597:sel.selectors.append(CSS_IN_RANGE)
+            elif OOOO0O0O0OOO0O0O0 ==":out-of-range":#line:598:elif pseudo == ":out-of-range":
+                OOO00OOO0OO000OOO .selectors .append (CSS_OUT_OF_RANGE )#line:599:sel.selectors.append(CSS_OUT_OF_RANGE)
+            elif OOOO0O0O0OOO0O0O0 ==":placeholder-shown":#line:600:elif pseudo == ":placeholder-shown":
+                OOO00OOO0OO000OOO .selectors .append (CSS_PLACEHOLDER_SHOWN )#line:601:sel.selectors.append(CSS_PLACEHOLDER_SHOWN)
+            elif OOOO0O0O0OOO0O0O0 ==':first-child':#line:602:elif pseudo == ':first-child':
+                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,False ,False ,ct .SelectorList ()))#line:603:sel.nth.append(ct.SelectorNth(1, False, 0, False, False, ct.SelectorList()))
+            elif OOOO0O0O0OOO0O0O0 ==':last-child':#line:604:elif pseudo == ':last-child':
+                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,False ,True ,ct .SelectorList ()))#line:605:sel.nth.append(ct.SelectorNth(1, False, 0, False, True, ct.SelectorList()))
+            elif OOOO0O0O0OOO0O0O0 ==':first-of-type':#line:606:elif pseudo == ':first-of-type':
+                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,True ,False ,ct .SelectorList ()))#line:607:sel.nth.append(ct.SelectorNth(1, False, 0, True, False, ct.SelectorList()))
+            elif OOOO0O0O0OOO0O0O0 ==':last-of-type':#line:608:elif pseudo == ':last-of-type':
+                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,True ,True ,ct .SelectorList ()))#line:609:sel.nth.append(ct.SelectorNth(1, False, 0, True, True, ct.SelectorList()))
+            elif OOOO0O0O0OOO0O0O0 ==':only-child':#line:610:elif pseudo == ':only-child':
+                OOO00OOO0OO000OOO .nth .extend ([ct .SelectorNth (1 ,False ,0 ,False ,False ,ct .SelectorList ()),ct .SelectorNth (1 ,False ,0 ,False ,True ,ct .SelectorList ())])#line:616:)
+            elif OOOO0O0O0OOO0O0O0 ==':only-of-type':#line:617:elif pseudo == ':only-of-type':
+                OOO00OOO0OO000OOO .nth .extend ([ct .SelectorNth (1 ,False ,0 ,True ,False ,ct .SelectorList ()),ct .SelectorNth (1 ,False ,0 ,True ,True ,ct .SelectorList ())])#line:623:)
+            OO0O000O000OOO0OO =True #line:624:has_selector = True
+        elif OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_COMPLEX_NO_MATCH :#line:625:elif complex_pseudo and pseudo in PSEUDO_COMPLEX_NO_MATCH:
+            OO00O0O00OO0000OO .parse_selectors (OOOO0OO00O0O0O0OO ,O0O00OO00O0O00OO0 .end (0 ),FLG_PSEUDO |FLG_OPEN )#line:626:self.parse_selectors(iselector, m.end(0), FLG_PSEUDO | FLG_OPEN)
+            OOO00OOO0OO000OOO .no_match =True #line:627:sel.no_match = True
+            OO0O000O000OOO0OO =True #line:628:has_selector = True
+        elif not OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_SIMPLE_NO_MATCH :#line:629:elif not complex_pseudo and pseudo in PSEUDO_SIMPLE_NO_MATCH:
+            OOO00OOO0OO000OOO .no_match =True #line:630:sel.no_match = True
+            OO0O000O000OOO0OO =True #line:631:has_selector = True
+        elif OOOO0O0O0OOO0O0O0 in PSEUDO_SUPPORTED :#line:632:elif pseudo in PSEUDO_SUPPORTED:
+            raise SelectorSyntaxError ("Invalid syntax for pseudo class '{}'".format (OOOO0O0O0OOO0O0O0 ),OO00O0O00OO0000OO .pattern ,O0O00OO00O0O00OO0 .start (0 ))#line:637:)
+        else :#line:638:else:
+            raise NotImplementedError ("'{}' pseudo-class is not implemented at this time".format (OOOO0O0O0OOO0O0O0 ))#line:641:)
+        return OO0O000O000OOO0OO ,O0O00OO00OO00O0OO #line:643:return has_selector, is_html
+    def parse_pseudo_nth (O00O0O00O0000O0OO ,OO00O0OOO000O0O0O ,OO00OO000O0O0OOO0 ,O0O0O00OO0OO0OOOO ,OOO00O00O00OO0000 ):#line:645:def parse_pseudo_nth(self, sel, m, has_selector, iselector):
+        ""#line:646:"""Parse `nth` pseudo."""
+        OO0O00OO0OO00OO0O =OO00OO000O0O0OOO0 .groupdict ()#line:648:mdict = m.groupdict()
+        if OO0O00OO0OO00OO0O .get ('pseudo_nth_child'):#line:649:if mdict.get('pseudo_nth_child'):
+            OO0O00OO00O0O000O ='_child'#line:650:postfix = '_child'
+        else :#line:651:else:
+            OO0O00OO00O0O000O ='_type'#line:652:postfix = '_type'
+        OO0O00OO0OO00OO0O ['name']=util .lower (css_unescape (OO0O00OO0OO00OO0O ['name']))#line:653:mdict['name'] = util.lower(css_unescape(mdict['name']))
+        O0O0000000OO0O000 =util .lower (OO0O00OO0OO00OO0O .get ('nth'+OO0O00OO00O0O000O ))#line:654:content = util.lower(mdict.get('nth' + postfix))
+        if O0O0000000OO0O000 =='even':#line:655:if content == 'even':
+            OO0OO000O0O0OOOO0 =2 #line:657:s1 = 2
+            OOO0OOOO000O0O0OO =0 #line:658:s2 = 0
+            OOO00O0O00OO0000O =True #line:659:var = True
+        elif O0O0000000OO0O000 =='odd':#line:660:elif content == 'odd':
+            OO0OO000O0O0OOOO0 =2 #line:662:s1 = 2
+            OOO0OOOO000O0O0OO =1 #line:663:s2 = 1
+            OOO00O0O00OO0000O =True #line:664:var = True
+        else :#line:665:else:
+            OOOO00OO0O0OO0OOO =RE_NTH .match (O0O0000000OO0O000 )#line:666:nth_parts = RE_NTH.match(content)
+            OO0OO000O0O0OOOO0 ='-'if OOOO00OO0O0OO0OOO .group ('s1')and OOOO00OO0O0OO0OOO .group ('s1')=='-'else ''#line:667:s1 = '-' if nth_parts.group('s1') and nth_parts.group('s1') == '-' else ''
+            OOO00000O0O0O0000 =OOOO00OO0O0OO0OOO .group ('a')#line:668:a = nth_parts.group('a')
+            OOO00O0O00OO0000O =OOO00000O0O0O0000 .endswith ('n')#line:669:var = a.endswith('n')
+            if OOO00000O0O0O0000 .startswith ('n'):#line:670:if a.startswith('n'):
+                OO0OO000O0O0OOOO0 +='1'#line:671:s1 += '1'
+            elif OOO00O0O00OO0000O :#line:672:elif var:
+                OO0OO000O0O0OOOO0 +=OOO00000O0O0O0000 [:-1 ]#line:673:s1 += a[:-1]
+            else :#line:674:else:
+                OO0OO000O0O0OOOO0 +=OOO00000O0O0O0000 #line:675:s1 += a
+            OOO0OOOO000O0O0OO ='-'if OOOO00OO0O0OO0OOO .group ('s2')and OOOO00OO0O0OO0OOO .group ('s2')=='-'else ''#line:676:s2 = '-' if nth_parts.group('s2') and nth_parts.group('s2') == '-' else ''
+            if OOOO00OO0O0OO0OOO .group ('b'):#line:677:if nth_parts.group('b'):
+                OOO0OOOO000O0O0OO +=OOOO00OO0O0OO0OOO .group ('b')#line:678:s2 += nth_parts.group('b')
+            else :#line:679:else:
+                OOO0OOOO000O0O0OO ='0'#line:680:s2 = '0'
+            OO0OO000O0O0OOOO0 =int (OO0OO000O0O0OOOO0 ,10 )#line:681:s1 = int(s1, 10)
+            OOO0OOOO000O0O0OO =int (OOO0OOOO000O0O0OO ,10 )#line:682:s2 = int(s2, 10)
+        OO00OOOOO0OOOO00O =OO0O00OO0OO00OO0O ['name']#line:684:pseudo_sel = mdict['name']
+        if OO0O00OO00O0O000O =='_child':#line:685:if postfix == '_child':
+            if OO00OO000O0O0OOO0 .group ('of'):#line:686:if m.group('of'):
+                O0OO0OO0OOOO0000O =O00O0O00O0000O0OO .parse_selectors (OOO00O00O00OO0000 ,OO00OO000O0O0OOO0 .end (0 ),FLG_PSEUDO |FLG_OPEN )#line:688:nth_sel = self.parse_selectors(iselector, m.end(0), FLG_PSEUDO | FLG_OPEN)
+            else :#line:689:else:
+                O0OO0OO0OOOO0000O =CSS_NTH_OF_S_DEFAULT #line:691:nth_sel = CSS_NTH_OF_S_DEFAULT
+            if OO00OOOOO0OOOO00O ==':nth-child':#line:692:if pseudo_sel == ':nth-child':
+                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,False ,False ,O0OO0OO0OOOO0000O ))#line:693:sel.nth.append(ct.SelectorNth(s1, var, s2, False, False, nth_sel))
+            elif OO00OOOOO0OOOO00O ==':nth-last-child':#line:694:elif pseudo_sel == ':nth-last-child':
+                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,False ,True ,O0OO0OO0OOOO0000O ))#line:695:sel.nth.append(ct.SelectorNth(s1, var, s2, False, True, nth_sel))
+        else :#line:696:else:
+            if OO00OOOOO0OOOO00O ==':nth-of-type':#line:697:if pseudo_sel == ':nth-of-type':
+                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,True ,False ,ct .SelectorList ()))#line:698:sel.nth.append(ct.SelectorNth(s1, var, s2, True, False, ct.SelectorList()))
+            elif OO00OOOOO0OOOO00O ==':nth-last-of-type':#line:699:elif pseudo_sel == ':nth-last-of-type':
+                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,True ,True ,ct .SelectorList ()))#line:700:sel.nth.append(ct.SelectorNth(s1, var, s2, True, True, ct.SelectorList()))
+        O0O0O00OO0OO0OOOO =True #line:701:has_selector = True
+        return O0O0O00OO0OO0OOOO #line:702:return has_selector
+    def parse_pseudo_open (OOO00O0OOOO0OO000 ,OOO0000O000OO0O0O ,O00O0000000000O0O ,OOOOOOO000O0O0OOO ,OOOOOO00OO00O000O ,O00OOO0OOO00OO00O ):#line:704:def parse_pseudo_open(self, sel, name, has_selector, iselector, index):
+        ""#line:705:"""Parse pseudo with opening bracket."""
+        OOO0000OO0O00O00O =FLG_PSEUDO |FLG_OPEN #line:707:flags = FLG_PSEUDO | FLG_OPEN
+        if O00O0000000000O0O ==':not':#line:708:if name == ':not':
+            OOO0000OO0O00O00O |=FLG_NOT #line:709:flags |= FLG_NOT
+        if O00O0000000000O0O ==':has':#line:710:if name == ':has':
+            OOO0000OO0O00O00O |=FLG_RELATIVE #line:711:flags |= FLG_RELATIVE
+        OOO0000O000OO0O0O .selectors .append (OOO00O0OOOO0OO000 .parse_selectors (OOOOOO00OO00O000O ,O00OOO0OOO00OO00O ,OOO0000OO0O00O00O ))#line:713:sel.selectors.append(self.parse_selectors(iselector, index, flags))
+        OOOOOOO000O0O0OOO =True #line:714:has_selector = True
+        return OOOOOOO000O0O0OOO #line:715:return has_selector
+    def parse_has_combinator (O00O0OOOO0OO0OOO0 ,OO0OOO0O0O00OO0OO ,O0O0O0O0O00O00000 ,O0O00OO000000OO00 ,O0O0O00O000O000O0 ,OO00O000OO00OO00O ,OO0OO0OO000O000O0 ):#line:717:def parse_has_combinator(self, sel, m, has_selector, selectors, rel_type, index):
+        ""#line:718:"""Parse combinator tokens."""
+        O00O0O0OOOOOO00OO =O0O0O0O0O00O00000 .group ('relation').strip ()#line:720:combinator = m.group('relation').strip()
+        if not O00O0O0OOOOOO00OO :#line:721:if not combinator:
+            O00O0O0OOOOOO00OO =WS_COMBINATOR #line:722:combinator = WS_COMBINATOR
+        if O00O0O0OOOOOO00OO ==COMMA_COMBINATOR :#line:723:if combinator == COMMA_COMBINATOR:
+            if not O0O00OO000000OO00 :#line:724:if not has_selector:
+                raise SelectorSyntaxError ("The combinator '{}' at postion {}, must have a selector before it".format (O00O0O0OOOOOO00OO ,OO0OO0OO000O000O0 ),O00O0OOOO0OO0OOO0 .pattern ,OO0OO0OO000O000O0 )#line:731:)
+            OO0OOO0O0O00OO0OO .rel_type =OO00O000OO00OO00O #line:732:sel.rel_type = rel_type
+            O0O0O00O000O000O0 [-1 ].relations .append (OO0OOO0O0O00OO0OO )#line:733:selectors[-1].relations.append(sel)
+            OO00O000OO00OO00O =":"+WS_COMBINATOR #line:734:rel_type = ":" + WS_COMBINATOR
+            O0O0O00O000O000O0 .append (_OOO000OOO0O0OO000 ())#line:735:selectors.append(_Selector())
+        else :#line:736:else:
+            if O0O00OO000000OO00 :#line:737:if has_selector:
+                OO0OOO0O0O00OO0OO .rel_type =OO00O000OO00OO00O #line:739:sel.rel_type = rel_type
+                O0O0O00O000O000O0 [-1 ].relations .append (OO0OOO0O0O00OO0OO )#line:740:selectors[-1].relations.append(sel)
+            elif OO00O000OO00OO00O [1 :]!=WS_COMBINATOR :#line:741:elif rel_type[1:] != WS_COMBINATOR:
+                raise SelectorSyntaxError ('The multiple combinators at position {}'.format (OO0OO0OO000O000O0 ),O00O0OOOO0OO0OOO0 .pattern ,OO0OO0OO000O000O0 )#line:751:)
+            OO00O000OO00OO00O =':'+O00O0O0OOOOOO00OO #line:753:rel_type = ':' + combinator
+        OO0OOO0O0O00OO0OO =_OOO000OOO0O0OO000 ()#line:754:sel = _Selector()
+        O0O00OO000000OO00 =False #line:756:has_selector = False
+        return O0O00OO000000OO00 ,OO0OOO0O0O00OO0OO ,OO00O000OO00OO00O #line:757:return has_selector, sel, rel_type
+    def parse_combinator (O0OO0000O000OOO0O ,OOO00OO000OO0OOO0 ,OO0O0O0O00OOOO00O ,OO00O00OO0O0O0OO0 ,O00O00OO0O00OOO00 ,OO0OOOOO0O000OOO0 ,OOOOOO0O0OOO0OOO0 ,OO0O00O0OO000O000 ):#line:759:def parse_combinator(self, sel, m, has_selector, selectors, relations, is_pseudo, index):
+        ""#line:760:"""Parse combinator tokens."""
+        O00O00OO0O00O0O0O =OO0O0O0O00OOOO00O .group ('relation').strip ()#line:762:combinator = m.group('relation').strip()
+        if not O00O00OO0O00O0O0O :#line:763:if not combinator:
+            O00O00OO0O00O0O0O =WS_COMBINATOR #line:764:combinator = WS_COMBINATOR
+        if not OO00O00OO0O0O0OO0 :#line:765:if not has_selector:
+            raise SelectorSyntaxError ("The combinator '{}' at postion {}, must have a selector before it".format (O00O00OO0O00O0O0O ,OO0O00O0OO000O000 ),O0OO0000O000OOO0O .pattern ,OO0O00O0OO000O000 )#line:770:)
+        if O00O00OO0O00O0O0O ==COMMA_COMBINATOR :#line:772:if combinator == COMMA_COMBINATOR:
+            if not OOO00OO000OO0OOO0 .tag and not OOOOOO0O0OOO0OOO0 :#line:773:if not sel.tag and not is_pseudo:
+                OOO00OO000OO0OOO0 .tag =ct .SelectorTag ('*',None )#line:775:sel.tag = ct.SelectorTag('*', None)
+            OOO00OO000OO0OOO0 .relations .extend (OO0OOOOO0O000OOO0 )#line:776:sel.relations.extend(relations)
+            O00O00OO0O00OOO00 .append (OOO00OO000OO0OOO0 )#line:777:selectors.append(sel)
+            del OO0OOOOO0O000OOO0 [:]#line:778:del relations[:]
+        else :#line:779:else:
+            OOO00OO000OO0OOO0 .relations .extend (OO0OOOOO0O000OOO0 )#line:780:sel.relations.extend(relations)
+            OOO00OO000OO0OOO0 .rel_type =O00O00OO0O00O0O0O #line:781:sel.rel_type = combinator
+            del OO0OOOOO0O000OOO0 [:]#line:782:del relations[:]
+            OO0OOOOO0O000OOO0 .append (OOO00OO000OO0OOO0 )#line:783:relations.append(sel)
+        OOO00OO000OO0OOO0 =_OOO000OOO0O0OO000 ()#line:784:sel = _Selector()
+        OO00O00OO0O0O0OO0 =False #line:786:has_selector = False
+        return OO00O00OO0O0O0OO0 ,OOO00OO000OO0OOO0 #line:787:return has_selector, sel
+    def parse_class_id (OOO00000OOOOO0O0O ,O00OOO0O0OO0OOOOO ,O0O0000O000OOO00O ,OO00OO0OOO00O0000 ):#line:789:def parse_class_id(self, sel, m, has_selector):
+        ""#line:790:"""Parse HTML classes and ids."""
+        OO0OOOO0O0O0O0O00 =O0O0000O000OOO00O .group (0 )#line:792:selector = m.group(0)
+        if OO0OOOO0O0O0O0O00 .startswith ('.'):#line:793:if selector.startswith('.'):
+            O00OOO0O0OO0OOOOO .classes .append (css_unescape (OO0OOOO0O0O0O0O00 [1 :]))#line:794:sel.classes.append(css_unescape(selector[1:]))
+        else :#line:795:else:
+            O00OOO0O0OO0OOOOO .ids .append (css_unescape (OO0OOOO0O0O0O0O00 [1 :]))#line:796:sel.ids.append(css_unescape(selector[1:]))
+        OO00OO0OOO00O0000 =True #line:797:has_selector = True
+        return OO00OO0OOO00O0000 #line:798:return has_selector
+    def parse_pseudo_contains (OOO00O0OO00OOOOO0 ,O000OO0OOOOO0OO0O ,O000O000OOO00OOOO ,O0OO00OOOOO00O0O0 ):#line:800:def parse_pseudo_contains(self, sel, m, has_selector):
+        ""#line:801:"""Parse contains."""
+        O00000OO00O0O0OOO =O000O000OOO00OOOO .group ('values')#line:803:values = m.group('values')
+        OOOO00O000OOOOOO0 =[]#line:804:patterns = []
+        for O000OOO000O000000 in RE_VALUES .finditer (O00000OO00O0O0OOO ):#line:805:for token in RE_VALUES.finditer(values):
+            if O000OOO000O000000 .group ('split'):#line:806:if token.group('split'):
+                continue #line:807:continue
+            OO0OOOOOOOOOOOO00 =O000OOO000O000000 .group ('value')#line:808:value = token.group('value')
+            if OO0OOOOOOOOOOOO00 .startswith (("'",'"')):#line:809:if value.startswith(("'", '"')):
+                OO0OOOOOOOOOOOO00 =css_unescape (OO0OOOOOOOOOOOO00 [1 :-1 ],True )#line:810:value = css_unescape(value[1:-1], True)
+            else :#line:811:else:
+                OO0OOOOOOOOOOOO00 =css_unescape (OO0OOOOOOOOOOOO00 )#line:812:value = css_unescape(value)
+            OOOO00O000OOOOOO0 .append (OO0OOOOOOOOOOOO00 )#line:813:patterns.append(value)
+        O000OO0OOOOO0OO0O .contains .append (ct .SelectorContains (tuple (OOOO00O000OOOOOO0 )))#line:814:sel.contains.append(ct.SelectorContains(tuple(patterns)))
+        O0OO00OOOOO00O0O0 =True #line:815:has_selector = True
+        return O0OO00OOOOO00O0O0 #line:816:return has_selector
+    def parse_pseudo_lang (O00000OOO0000O000 ,O000OO0O00O0OOO0O ,O00OO0O00OO0OOOOO ,OO0OO0OO00OO000O0 ):#line:818:def parse_pseudo_lang(self, sel, m, has_selector):
+        ""#line:819:"""Parse pseudo language."""
+        OOOOO0OOOOO0O0OO0 =O00OO0O00OO0OOOOO .group ('values')#line:821:values = m.group('values')
+        O000O0O0O0OO000O0 =[]#line:822:patterns = []
+        for OOOOO0O00O0OO0OO0 in RE_VALUES .finditer (OOOOO0OOOOO0O0OO0 ):#line:823:for token in RE_VALUES.finditer(values):
+            if OOOOO0O00O0OO0OO0 .group ('split'):#line:824:if token.group('split'):
+                continue #line:825:continue
+            OO00OOO00OO000000 =OOOOO0O00O0OO0OO0 .group ('value')#line:826:value = token.group('value')
+            if OO00OOO00OO000000 .startswith (('"',"'")):#line:827:if value.startswith(('"', "'")):
+                OO00OOO00OO000000 =css_unescape (OO00OOO00OO000000 [1 :-1 ],True )#line:828:value = css_unescape(value[1:-1], True)
+            else :#line:829:else:
+                OO00OOO00OO000000 =css_unescape (OO00OOO00OO000000 )#line:830:value = css_unescape(value)
+            O000O0O0O0OO000O0 .append (OO00OOO00OO000000 )#line:832:patterns.append(value)
+        O000OO0O00O0OOO0O .lang .append (ct .SelectorLang (O000O0O0O0OO000O0 ))#line:834:sel.lang.append(ct.SelectorLang(patterns))
+        OO0OO0OO00OO000O0 =True #line:835:has_selector = True
+        return OO0OO0OO00OO000O0 #line:837:return has_selector
+    def parse_pseudo_dir (OO0O0OOO0OOOOO0OO ,OO0OOOOOOO000O00O ,OO0OO0O0O000OOOOO ,OOO0OO00O0000OO00 ):#line:839:def parse_pseudo_dir(self, sel, m, has_selector):
+        ""#line:840:"""Parse pseudo direction."""
+        OO0O0O0OO000O0OO0 =ct .SEL_DIR_LTR if util .lower (OO0OO0O0O000OOOOO .group ('dir'))=='ltr'else ct .SEL_DIR_RTL #line:842:value = ct.SEL_DIR_LTR if util.lower(m.group('dir')) == 'ltr' else ct.SEL_DIR_RTL
+        OO0OOOOOOO000O00O .flags |=OO0O0O0OO000O0OO0 #line:843:sel.flags |= value
+        OOO0OO00O0000OO00 =True #line:844:has_selector = True
+        return OOO0OO00O0000OO00 #line:845:return has_selector
+    def parse_selectors (OO000OOO00000O0O0 ,OOO0000OO0O000O0O ,index =0 ,flags =0 ):#line:847:def parse_selectors(self, iselector, index=0, flags=0):
+        ""#line:848:"""Parse selectors."""
+        O000O0000OO0OO000 =_OOO000OOO0O0OO000 ()#line:850:sel = _Selector()
+        OOOOO0OO000O0OOOO =[]#line:851:selectors = []
+        O000OOOO000000O0O =False #line:852:has_selector = False
+        O0OOOOO0OOO0OO0OO =False #line:853:closed = False
+        O0OOO000O00O00O00 =[]#line:854:relations = []
+        O0O00OOOO00O0O0O0 =":"+WS_COMBINATOR #line:855:rel_type = ":" + WS_COMBINATOR
+        OOOOOO000OO00OOO0 =bool (flags &FLG_OPEN )#line:856:is_open = bool(flags & FLG_OPEN)
+        OO00O00OOOOOOO000 =bool (flags &FLG_PSEUDO )#line:857:is_pseudo = bool(flags & FLG_PSEUDO)
+        O000OOOO0O0OO0OO0 =bool (flags &FLG_RELATIVE )#line:858:is_relative = bool(flags & FLG_RELATIVE)
+        OOOOO0O00O00O00O0 =bool (flags &FLG_NOT )#line:859:is_not = bool(flags & FLG_NOT)
+        O0O000O0O00O0OOOO =bool (flags &FLG_HTML )#line:860:is_html = bool(flags & FLG_HTML)
+        O0O0000O0O0O0OOO0 =bool (flags &FLG_DEFAULT )#line:861:is_default = bool(flags & FLG_DEFAULT)
+        OO0O000O00O000O00 =bool (flags &FLG_INDETERMINATE )#line:862:is_indeterminate = bool(flags & FLG_INDETERMINATE)
+        O0OOO00O0000OOO00 =bool (flags &FLG_IN_RANGE )#line:863:is_in_range = bool(flags & FLG_IN_RANGE)
+        OOO0O00O0OOOOO0OO =bool (flags &FLG_OUT_OF_RANGE )#line:864:is_out_of_range = bool(flags & FLG_OUT_OF_RANGE)
+        O0OOO00O00000O0OO =bool (flags &FLG_PLACEHOLDER_SHOWN )#line:865:is_placeholder_shown = bool(flags & FLG_PLACEHOLDER_SHOWN)
+        if OO000OOO00000O0O0 .debug :#line:867:if self.debug:  # pragma: no cover
+            if OO00O00OOOOOOO000 :#line:868:if is_pseudo:
+                print ('    is_pseudo: True')#line:869:print('    is_pseudo: True')
+            if OOOOOO000OO00OOO0 :#line:870:if is_open:
+                print ('    is_open: True')#line:871:print('    is_open: True')
+            if O000OOOO0O0OO0OO0 :#line:872:if is_relative:
+                print ('    is_relative: True')#line:873:print('    is_relative: True')
+            if OOOOO0O00O00O00O0 :#line:874:if is_not:
+                print ('    is_not: True')#line:875:print('    is_not: True')
+            if O0O000O0O00O0OOOO :#line:876:if is_html:
+                print ('    is_html: True')#line:877:print('    is_html: True')
+            if O0O0000O0O0O0OOO0 :#line:878:if is_default:
+                print ('    is_default: True')#line:879:print('    is_default: True')
+            if OO0O000O00O000O00 :#line:880:if is_indeterminate:
+                print ('    is_indeterminate: True')#line:881:print('    is_indeterminate: True')
+            if O0OOO00O0000OOO00 :#line:882:if is_in_range:
+                print ('    is_in_range: True')#line:883:print('    is_in_range: True')
+            if OOO0O00O0OOOOO0OO :#line:884:if is_out_of_range:
+                print ('    is_out_of_range: True')#line:885:print('    is_out_of_range: True')
+            if O0OOO00O00000O0OO :#line:886:if is_placeholder_shown:
+                print ('    is_placeholder_shown: True')#line:887:print('    is_placeholder_shown: True')
+        if O000OOOO0O0OO0OO0 :#line:889:if is_relative:
+            OOOOO0OO000O0OOOO .append (_OOO000OOO0O0OO000 ())#line:890:selectors.append(_Selector())
+        try :#line:892:try:
+            while True :#line:893:while True:
+                O0O000O0O00OOOO00 ,O00OOO00O0O000O0O =next (OOO0000OO0O000O0O )#line:894:key, m = next(iselector)
+                if O0O000O0O00OOOO00 =="at_rule":#line:897:if key == "at_rule":
+                    raise NotImplementedError ("At-rules found at position {}".format (O00OOO00O0O000O0O .start (0 )))#line:898:raise NotImplementedError("At-rules found at position {}".format(m.start(0)))
+                elif O0O000O0O00OOOO00 =='pseudo_class_custom':#line:899:elif key == 'pseudo_class_custom':
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_class_custom (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:900:has_selector = self.parse_pseudo_class_custom(sel, m, has_selector)
+                elif O0O000O0O00OOOO00 =='pseudo_class':#line:901:elif key == 'pseudo_class':
+                    O000OOOO000000O0O ,O0O000O0O00O0OOOO =OO000OOO00000O0O0 .parse_pseudo_class (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOO0000OO0O000O0O ,O0O000O0O00O0OOOO )#line:902:has_selector, is_html = self.parse_pseudo_class(sel, m, has_selector, iselector, is_html)
+                elif O0O000O0O00OOOO00 =='pseudo_element':#line:903:elif key == 'pseudo_element':
+                    raise NotImplementedError ("Psuedo-element found at position {}".format (O00OOO00O0O000O0O .start (0 )))#line:904:raise NotImplementedError("Psuedo-element found at position {}".format(m.start(0)))
+                elif O0O000O0O00OOOO00 =='pseudo_contains':#line:905:elif key == 'pseudo_contains':
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_contains (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:906:has_selector = self.parse_pseudo_contains(sel, m, has_selector)
+                elif O0O000O0O00OOOO00 in ('pseudo_nth_type','pseudo_nth_child'):#line:907:elif key in ('pseudo_nth_type', 'pseudo_nth_child'):
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_nth (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOO0000OO0O000O0O )#line:908:has_selector = self.parse_pseudo_nth(sel, m, has_selector, iselector)
+                elif O0O000O0O00OOOO00 =='pseudo_lang':#line:909:elif key == 'pseudo_lang':
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_lang (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:910:has_selector = self.parse_pseudo_lang(sel, m, has_selector)
+                elif O0O000O0O00OOOO00 =='pseudo_dir':#line:911:elif key == 'pseudo_dir':
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_dir (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:912:has_selector = self.parse_pseudo_dir(sel, m, has_selector)
+                    O0O000O0O00O0OOOO =True #line:914:is_html = True
+                elif O0O000O0O00OOOO00 =='pseudo_close':#line:915:elif key == 'pseudo_close':
+                    if not O000OOOO000000O0O :#line:916:if not has_selector:
+                        raise SelectorSyntaxError ("Expected a selector at postion {}".format (O00OOO00O0O000O0O .start (0 )),OO000OOO00000O0O0 .pattern ,O00OOO00O0O000O0O .start (0 ))#line:921:)
+                    if OOOOOO000OO00OOO0 :#line:922:if is_open:
+                        O0OOOOO0OOO0OO0OO =True #line:923:closed = True
+                        break #line:924:break
+                    else :#line:925:else:
+                        raise SelectorSyntaxError ("Unmatched pseudo-class close at postion {}".format (O00OOO00O0O000O0O .start (0 )),OO000OOO00000O0O0 .pattern ,O00OOO00O0O000O0O .start (0 ))#line:930:)
+                elif O0O000O0O00OOOO00 =='combine':#line:931:elif key == 'combine':
+                    if O000OOOO0O0OO0OO0 :#line:932:if is_relative:
+                        O000OOOO000000O0O ,O000O0000OO0OO000 ,O0O00OOOO00O0O0O0 =OO000OOO00000O0O0 .parse_has_combinator (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOOOO0OO000O0OOOO ,O0O00OOOO00O0O0O0 ,index )#line:935:)
+                    else :#line:936:else:
+                        O000OOOO000000O0O ,O000O0000OO0OO000 =OO000OOO00000O0O0 .parse_combinator (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOOOO0OO000O0OOOO ,O0OOO000O00O00O00 ,OO00O00OOOOOOO000 ,index )#line:939:)
+                elif O0O000O0O00OOOO00 =='attribute':#line:940:elif key == 'attribute':
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_attribute_selector (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:941:has_selector = self.parse_attribute_selector(sel, m, has_selector)
+                elif O0O000O0O00OOOO00 =='tag':#line:942:elif key == 'tag':
+                    if O000OOOO000000O0O :#line:943:if has_selector:
+                        raise SelectorSyntaxError ("Tag name found at position {} instead of at the start".format (O00OOO00O0O000O0O .start (0 )),OO000OOO00000O0O0 .pattern ,O00OOO00O0O000O0O .start (0 ))#line:948:)
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_tag_pattern (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:949:has_selector = self.parse_tag_pattern(sel, m, has_selector)
+                elif O0O000O0O00OOOO00 in ('class','id'):#line:950:elif key in ('class', 'id'):
+                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_class_id (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:951:has_selector = self.parse_class_id(sel, m, has_selector)
+                index =O00OOO00O0O000O0O .end (0 )#line:953:index = m.end(0)
+        except StopIteration :#line:954:except StopIteration:
+            pass #line:955:pass
+        if OOOOOO000OO00OOO0 and not O0OOOOO0OOO0OO0OO :#line:957:if is_open and not closed:
+            raise SelectorSyntaxError ("Unclosed pseudo-class at position {}".format (index ),OO000OOO00000O0O0 .pattern ,index )#line:962:)
+        if O000OOOO000000O0O :#line:964:if has_selector:
+            if not O000O0000OO0OO000 .tag and not OO00O00OOOOOOO000 :#line:965:if not sel.tag and not is_pseudo:
+                O000O0000OO0OO000 .tag =ct .SelectorTag ('*',None )#line:967:sel.tag = ct.SelectorTag('*', None)
+            if O000OOOO0O0OO0OO0 :#line:968:if is_relative:
+                O000O0000OO0OO000 .rel_type =O0O00OOOO00O0O0O0 #line:969:sel.rel_type = rel_type
+                OOOOO0OO000O0OOOO [-1 ].relations .append (O000O0000OO0OO000 )#line:970:selectors[-1].relations.append(sel)
+            else :#line:971:else:
+                O000O0000OO0OO000 .relations .extend (O0OOO000O00O00O00 )#line:972:sel.relations.extend(relations)
+                del O0OOO000O00O00O00 [:]#line:973:del relations[:]
+                OOOOO0OO000O0OOOO .append (O000O0000OO0OO000 )#line:974:selectors.append(sel)
+        else :#line:975:else:
+            raise SelectorSyntaxError ('Expected a selector at position {}'.format (index ),OO000OOO00000O0O0 .pattern ,index )#line:981:)
+        if O0O0000O0O0O0OOO0 :#line:986:if is_default:
+            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_DEFAULT #line:987:selectors[-1].flags = ct.SEL_DEFAULT
+        if OO0O000O00O000O00 :#line:988:if is_indeterminate:
+            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_INDETERMINATE #line:989:selectors[-1].flags = ct.SEL_INDETERMINATE
+        if O0OOO00O0000OOO00 :#line:990:if is_in_range:
+            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_IN_RANGE #line:991:selectors[-1].flags = ct.SEL_IN_RANGE
+        if OOO0O00O0OOOOO0OO :#line:992:if is_out_of_range:
+            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_OUT_OF_RANGE #line:993:selectors[-1].flags = ct.SEL_OUT_OF_RANGE
+        if O0OOO00O00000O0OO :#line:994:if is_placeholder_shown:
+            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_PLACEHOLDER_SHOWN #line:995:selectors[-1].flags = ct.SEL_PLACEHOLDER_SHOWN
+        return ct .SelectorList ([OOO000O0O0OOOOOOO .freeze ()for OOO000O0O0OOOOOOO in OOOOO0OO000O0OOOO ],OOOOO0O00O00O00O0 ,O0O000O0O00O0OOOO )#line:997:return ct.SelectorList([s.freeze() for s in selectors], is_not, is_html)
+    def selector_iter (O0OO00000OO0O0O0O ,OO00O0O00OO000O0O ):#line:999:def selector_iter(self, pattern):
+        ""#line:1000:"""Iterate selector tokens."""
+        O0O00000O00OOOO00 =RE_WS_BEGIN .search (OO00O0O00OO000O0O )#line:1003:m = RE_WS_BEGIN.search(pattern)
+        O00OOOO0OO0O0O0O0 =O0O00000O00OOOO00 .end (0 )if O0O00000O00OOOO00 else 0 #line:1004:index = m.end(0) if m else 0
+        O0O00000O00OOOO00 =RE_WS_END .search (OO00O0O00OO000O0O )#line:1005:m = RE_WS_END.search(pattern)
+        OO0O00000O0O0O0OO =(O0O00000O00OOOO00 .start (0 )-1 )if O0O00000O00OOOO00 else (len (OO00O0O00OO000O0O )-1 )#line:1006:end = (m.start(0) - 1) if m else (len(pattern) - 1)
+        if O0OO00000OO0O0O0O .debug :#line:1008:if self.debug:  # pragma: no cover
+            print ('## PARSING: {!r}'.format (OO00O0O00OO000O0O ))#line:1009:print('## PARSING: {!r}'.format(pattern))
+        while O00OOOO0OO0O0O0O0 <=OO0O00000O0O0O0OO :#line:1010:while index <= end:
+            O0O00000O00OOOO00 =None #line:1011:m = None
+            for OOO0O000OO0O00000 in O0OO00000OO0O0O0O .css_tokens :#line:1012:for v in self.css_tokens:
+                O0O00000O00OOOO00 =OOO0O000OO0O00000 .match (OO00O0O00OO000O0O ,O00OOOO0OO0O0O0O0 ,O0OO00000OO0O0O0O .flags )#line:1013:m = v.match(pattern, index, self.flags)
+                if O0O00000O00OOOO00 :#line:1014:if m:
+                    O0OOOOO000O0OO000 =OOO0O000OO0O00000 .get_name ()#line:1015:name = v.get_name()
+                    if O0OO00000OO0O0O0O .debug :#line:1016:if self.debug:  # pragma: no cover
+                        print ("TOKEN: '{}' --> {!r} at position {}".format (O0OOOOO000O0OO000 ,O0O00000O00OOOO00 .group (0 ),O0O00000O00OOOO00 .start (0 )))#line:1017:print("TOKEN: '{}' --> {!r} at position {}".format(name, m.group(0), m.start(0)))
+                    O00OOOO0OO0O0O0O0 =O0O00000O00OOOO00 .end (0 )#line:1018:index = m.end(0)
+                    yield O0OOOOO000O0OO000 ,O0O00000O00OOOO00 #line:1019:yield name, m
+                    break #line:1020:break
+            if O0O00000O00OOOO00 is None :#line:1021:if m is None:
+                O00O0000OOO00OOOO =OO00O0O00OO000O0O [O00OOOO0OO0O0O0O0 ]#line:1022:c = pattern[index]
+                if O00O0000OOO00OOOO =='[':#line:1026:if c == '[':
+                    OO0OO00OOOOO0OOO0 ="Malformed attribute selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1027:msg = "Malformed attribute selector at position {}".format(index)
+                elif O00O0000OOO00OOOO =='.':#line:1028:elif c == '.':
+                    OO0OO00OOOOO0OOO0 ="Malformed class selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1029:msg = "Malformed class selector at position {}".format(index)
+                elif O00O0000OOO00OOOO =='#':#line:1030:elif c == '#':
+                    OO0OO00OOOOO0OOO0 ="Malformed id selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1031:msg = "Malformed id selector at position {}".format(index)
+                elif O00O0000OOO00OOOO ==':':#line:1032:elif c == ':':
+                    OO0OO00OOOOO0OOO0 ="Malformed pseudo-class selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1033:msg = "Malformed pseudo-class selector at position {}".format(index)
+                else :#line:1034:else:
+                    OO0OO00OOOOO0OOO0 ="Invalid character {!r} position {}".format (O00O0000OOO00OOOO ,O00OOOO0OO0O0O0O0 )#line:1035:msg = "Invalid character {!r} position {}".format(c, index)
+                raise SelectorSyntaxError (OO0OO00OOOOO0OOO0 ,O0OO00000OO0O0O0O .pattern ,O00OOOO0OO0O0O0O0 )#line:1036:raise SelectorSyntaxError(msg, self.pattern, index)
+        if O0OO00000OO0O0O0O .debug :#line:1037:if self.debug:  # pragma: no cover
+            print ('## END PARSING')#line:1038:print('## END PARSING')
+    def process_selectors (O000OOOO00OO0OOO0 ,index =0 ,flags =0 ):#line:1040:def process_selectors(self, index=0, flags=0):
+        ""#line:1041:"""Process selectors."""
+        return O000OOOO00OO0OOO0 .parse_selectors (O000OOOO00OO0OOO0 .selector_iter (O000OOOO00OO0OOO0 .pattern ),index ,flags )#line:1043:return self.parse_selectors(self.selector_iter(self.pattern), index, flags)
+CSS_LINK =CSSParser ('html|*:is(a, area, link)[href]').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1052:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_CHECKED =CSSParser ('''
+    html|*:is(input[type=checkbox], input[type=radio])[checked], html|option[selected]
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1058:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_DEFAULT =CSSParser ('''
+    :checked,
+
+    /*
+    This pattern must be at the end.
+    Special logic is applied to the last selector.
+    */
+    html|form html|*:is(button, input)[type="submit"]
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML |FLG_DEFAULT )#line:1070:).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_DEFAULT)
+CSS_INDETERMINATE =CSSParser ('''
+    html|input[type="checkbox"][indeterminate],
+    html|input[type="radio"]:is(:not([name]), [name=""]):not([checked]),
+    html|progress:not([value]),
+
+    /*
+    This pattern must be at the end.
+    Special logic is applied to the last selector.
+    */
+    html|input[type="radio"][name][name!='']:not([checked])
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML |FLG_INDETERMINATE )#line:1084:).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_INDETERMINATE)
+CSS_DISABLED =CSSParser ('''
+    html|*:is(input[type!=hidden], button, select, textarea, fieldset, optgroup, option, fieldset)[disabled],
+    html|optgroup[disabled] > html|option,
+    html|fieldset[disabled] > html|*:is(input[type!=hidden], button, select, textarea, fieldset),
+    html|fieldset[disabled] >
+        html|*:not(legend:nth-of-type(1)) html|*:is(input[type!=hidden], button, select, textarea, fieldset)
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1094:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_ENABLED =CSSParser ('''
+    html|*:is(input[type!=hidden], button, select, textarea, fieldset, optgroup, option, fieldset):not(:disabled)
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1100:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_REQUIRED =CSSParser ('html|*:is(input, textarea, select)[required]').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1104:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_OPTIONAL =CSSParser ('html|*:is(input, textarea, select):not([required])').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1108:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_PLACEHOLDER_SHOWN =CSSParser ('''
+    html|input:is(
+        :not([type]),
+        [type=""],
+        [type=text],
+        [type=search],
+        [type=url],
+        [type=tel],
+        [type=email],
+        [type=password],
+        [type=number]
+    )[placeholder][placeholder!='']:is(:not([value]), [value=""]),
+    html|textarea[placeholder][placeholder!='']
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML |FLG_PLACEHOLDER_SHOWN )#line:1125:).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_PLACEHOLDER_SHOWN)
+CSS_NTH_OF_S_DEFAULT =CSSParser ('*|*').process_selectors (flags =FLG_PSEUDO )#line:1129:).process_selectors(flags=FLG_PSEUDO)
+CSS_READ_WRITE =CSSParser ('''
+    html|*:is(
+        textarea,
+        input:is(
+            :not([type]),
+            [type=""],
+            [type=text],
+            [type=search],
+            [type=url],
+            [type=tel],
+            [type=email],
+            [type=number],
+            [type=password],
+            [type=date],
+            [type=datetime-local],
+            [type=month],
+            [type=time],
+            [type=week]
+        )
+    ):not([readonly], :disabled),
+    html|*:is([contenteditable=""], [contenteditable="true" i])
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1154:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_READ_ONLY =CSSParser ('''
+    html|*:not(:read-write)
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1160:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
+CSS_IN_RANGE =CSSParser ('''
+    html|input:is(
+        [type="date"],
+        [type="month"],
+        [type="week"],
+        [type="time"],
+        [type="datetime-local"],
+        [type="number"],
+        [type="range"]
+    ):is(
+        [min],
+        [max]
+    )
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_IN_RANGE |FLG_HTML )#line:1177:).process_selectors(flags=FLG_PSEUDO | FLG_IN_RANGE | FLG_HTML)
+CSS_OUT_OF_RANGE =CSSParser ('''
+    html|input:is(
+        [type="date"],
+        [type="month"],
+        [type="week"],
+        [type="time"],
+        [type="datetime-local"],
+        [type="number"],
+        [type="range"]
+    ):is(
+        [min],
+        [max]
+    )
+    ''').process_selectors (flags =FLG_PSEUDO |FLG_OUT_OF_RANGE |FLG_HTML )#line:1194:).process_selectors(flags=FLG_PSEUDO | FLG_OUT_OF_RANGE | FLG_HTML)

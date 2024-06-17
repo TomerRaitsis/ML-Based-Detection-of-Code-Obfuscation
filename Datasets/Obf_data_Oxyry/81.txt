@@ -1,0 +1,123 @@
+from .import win32 #line:2
+class WinColor (object ):#line:6
+    BLACK =0 #line:7
+    BLUE =1 #line:8
+    GREEN =2 #line:9
+    CYAN =3 #line:10
+    RED =4 #line:11
+    MAGENTA =5 #line:12
+    YELLOW =6 #line:13
+    GREY =7 #line:14
+class WinStyle (object ):#line:17
+    NORMAL =0x00 #line:18
+    BRIGHT =0x08 #line:19
+    BRIGHT_BACKGROUND =0x80 #line:20
+class WinTerm (object ):#line:22
+    def __init__ (OO0O0OO000OO0OO0O ):#line:24
+        OO0O0OO000OO0OO0O ._default =win32 .GetConsoleScreenBufferInfo (win32 .STDOUT ).wAttributes #line:25
+        OO0O0OO000OO0OO0O .set_attrs (OO0O0OO000OO0OO0O ._default )#line:26
+        OO0O0OO000OO0OO0O ._default_fore =OO0O0OO000OO0OO0O ._fore #line:27
+        OO0O0OO000OO0OO0O ._default_back =OO0O0OO000OO0OO0O ._back #line:28
+        OO0O0OO000OO0OO0O ._default_style =OO0O0OO000OO0OO0O ._style #line:29
+        OO0O0OO000OO0OO0O ._light =0 #line:34
+    def get_attrs (O0O00OO000O0OO0O0 ):#line:36
+        return O0O00OO000O0OO0O0 ._fore +O0O00OO000O0OO0O0 ._back *16 +(O0O00OO000O0OO0O0 ._style |O0O00OO000O0OO0O0 ._light )#line:37
+    def set_attrs (O0000O0OOOOOOO000 ,OOO000O0OOOOOOOOO ):#line:39
+        O0000O0OOOOOOO000 ._fore =OOO000O0OOOOOOOOO &7 #line:40
+        O0000O0OOOOOOO000 ._back =(OOO000O0OOOOOOOOO >>4 )&7 #line:41
+        O0000O0OOOOOOO000 ._style =OOO000O0OOOOOOOOO &(WinStyle .BRIGHT |WinStyle .BRIGHT_BACKGROUND )#line:42
+    def reset_all (OO00O0O0O00O0OO00 ,on_stderr =None ):#line:44
+        OO00O0O0O00O0OO00 .set_attrs (OO00O0O0O00O0OO00 ._default )#line:45
+        OO00O0O0O00O0OO00 .set_console (attrs =OO00O0O0O00O0OO00 ._default )#line:46
+        OO00O0O0O00O0OO00 ._light =0 #line:47
+    def fore (O0OO0OOO0OO00O0O0 ,fore =None ,light =False ,on_stderr =False ):#line:49
+        if fore is None :#line:50
+            fore =O0OO0OOO0OO00O0O0 ._default_fore #line:51
+        O0OO0OOO0OO00O0O0 ._fore =fore #line:52
+        if light :#line:54
+            O0OO0OOO0OO00O0O0 ._light |=WinStyle .BRIGHT #line:55
+        else :#line:56
+            O0OO0OOO0OO00O0O0 ._light &=~WinStyle .BRIGHT #line:57
+        O0OO0OOO0OO00O0O0 .set_console (on_stderr =on_stderr )#line:58
+    def back (OO0000OOO00OOOO00 ,back =None ,light =False ,on_stderr =False ):#line:60
+        if back is None :#line:61
+            back =OO0000OOO00OOOO00 ._default_back #line:62
+        OO0000OOO00OOOO00 ._back =back #line:63
+        if light :#line:65
+            OO0000OOO00OOOO00 ._light |=WinStyle .BRIGHT_BACKGROUND #line:66
+        else :#line:67
+            OO0000OOO00OOOO00 ._light &=~WinStyle .BRIGHT_BACKGROUND #line:68
+        OO0000OOO00OOOO00 .set_console (on_stderr =on_stderr )#line:69
+    def style (OO000O0O0OO000O0O ,style =None ,on_stderr =False ):#line:71
+        if style is None :#line:72
+            style =OO000O0O0OO000O0O ._default_style #line:73
+        OO000O0O0OO000O0O ._style =style #line:74
+        OO000O0O0OO000O0O .set_console (on_stderr =on_stderr )#line:75
+    def set_console (O00OOO0OOOO0O0000 ,attrs =None ,on_stderr =False ):#line:77
+        if attrs is None :#line:78
+            attrs =O00OOO0OOOO0O0000 .get_attrs ()#line:79
+        OOO0O0OO00O0O0O0O =win32 .STDOUT #line:80
+        if on_stderr :#line:81
+            OOO0O0OO00O0O0O0O =win32 .STDERR #line:82
+        win32 .SetConsoleTextAttribute (OOO0O0OO00O0O0O0O ,attrs )#line:83
+    def get_position (O00000OO0O0O0OOOO ,O0O0OOO00O00O0000 ):#line:85
+        OOOOO00O0OO00O0O0 =win32 .GetConsoleScreenBufferInfo (O0O0OOO00O00O0000 ).dwCursorPosition #line:86
+        OOOOO00O0OO00O0O0 .X +=1 #line:89
+        OOOOO00O0OO00O0O0 .Y +=1 #line:90
+        return OOOOO00O0OO00O0O0 #line:91
+    def set_cursor_position (OOO00O000000O0O00 ,position =None ,on_stderr =False ):#line:93
+        if position is None :#line:94
+            return #line:97
+        O000000000OOOOO00 =win32 .STDOUT #line:98
+        if on_stderr :#line:99
+            O000000000OOOOO00 =win32 .STDERR #line:100
+        win32 .SetConsoleCursorPosition (O000000000OOOOO00 ,position )#line:101
+    def cursor_adjust (OO0O00000OOO000OO ,O0O0O0O000OO0OO00 ,OO0OOOO000O00O0O0 ,on_stderr =False ):#line:103
+        O0O00O0O0O00OOOO0 =win32 .STDOUT #line:104
+        if on_stderr :#line:105
+            O0O00O0O0O00OOOO0 =win32 .STDERR #line:106
+        O0000OOOO00OOO0OO =OO0O00000OOO000OO .get_position (O0O00O0O0O00OOOO0 )#line:107
+        OO0OOO000O00OO0OO =(O0000OOOO00OOO0OO .Y +OO0OOOO000O00O0O0 ,O0000OOOO00OOO0OO .X +O0O0O0O000OO0OO00 )#line:108
+        win32 .SetConsoleCursorPosition (O0O00O0O0O00OOOO0 ,OO0OOO000O00OO0OO ,adjust =False )#line:109
+    def erase_screen (OO00OO00O00OOO0OO ,mode =0 ,on_stderr =False ):#line:111
+        O0000O0000OO0O00O =win32 .STDOUT #line:115
+        if on_stderr :#line:116
+            O0000O0000OO0O00O =win32 .STDERR #line:117
+        OO00OO00O0OOOOO0O =win32 .GetConsoleScreenBufferInfo (O0000O0000OO0O00O )#line:118
+        OOOOOO00O00O00OO0 =OO00OO00O0OOOOO0O .dwSize .X *OO00OO00O0OOOOO0O .dwSize .Y #line:120
+        OO00OOO000O000O00 =OO00OO00O0OOOOO0O .dwSize .X *OO00OO00O0OOOOO0O .dwCursorPosition .Y +OO00OO00O0OOOOO0O .dwCursorPosition .X #line:122
+        if mode ==0 :#line:123
+            OOOO00OO0OO0OOO0O =OO00OO00O0OOOOO0O .dwCursorPosition #line:124
+            O0000OO0O0O000OOO =OOOOOO00O00O00OO0 -OO00OOO000O000O00 #line:125
+        elif mode ==1 :#line:126
+            OOOO00OO0OO0OOO0O =win32 .COORD (0 ,0 )#line:127
+            O0000OO0O0O000OOO =OO00OOO000O000O00 #line:128
+        elif mode ==2 :#line:129
+            OOOO00OO0OO0OOO0O =win32 .COORD (0 ,0 )#line:130
+            O0000OO0O0O000OOO =OOOOOO00O00O00OO0 #line:131
+        else :#line:132
+            return #line:134
+        win32 .FillConsoleOutputCharacter (O0000O0000OO0O00O ,' ',O0000OO0O0O000OOO ,OOOO00OO0OO0OOO0O )#line:136
+        win32 .FillConsoleOutputAttribute (O0000O0000OO0O00O ,OO00OO00O00OOO0OO .get_attrs (),O0000OO0O0O000OOO ,OOOO00OO0OO0OOO0O )#line:138
+        if mode ==2 :#line:139
+            win32 .SetConsoleCursorPosition (O0000O0000OO0O00O ,(1 ,1 ))#line:141
+    def erase_line (O00OO0OO0OO00O00O ,mode =0 ,on_stderr =False ):#line:143
+        OO0O0O0OOOOOO0000 =win32 .STDOUT #line:147
+        if on_stderr :#line:148
+            OO0O0O0OOOOOO0000 =win32 .STDERR #line:149
+        O0OO0OO0O0O0O0OO0 =win32 .GetConsoleScreenBufferInfo (OO0O0O0OOOOOO0000 )#line:150
+        if mode ==0 :#line:151
+            OOOOOO0O0OOOOO0O0 =O0OO0OO0O0O0O0OO0 .dwCursorPosition #line:152
+            OO00000000OO0O000 =O0OO0OO0O0O0O0OO0 .dwSize .X -O0OO0OO0O0O0O0OO0 .dwCursorPosition .X #line:153
+        elif mode ==1 :#line:154
+            OOOOOO0O0OOOOO0O0 =win32 .COORD (0 ,O0OO0OO0O0O0O0OO0 .dwCursorPosition .Y )#line:155
+            OO00000000OO0O000 =O0OO0OO0O0O0O0OO0 .dwCursorPosition .X #line:156
+        elif mode ==2 :#line:157
+            OOOOOO0O0OOOOO0O0 =win32 .COORD (0 ,O0OO0OO0O0O0O0OO0 .dwCursorPosition .Y )#line:158
+            OO00000000OO0O000 =O0OO0OO0O0O0O0OO0 .dwSize .X #line:159
+        else :#line:160
+            return #line:162
+        win32 .FillConsoleOutputCharacter (OO0O0O0OOOOOO0000 ,' ',OO00000000OO0O000 ,OOOOOO0O0OOOOO0O0 )#line:164
+        win32 .FillConsoleOutputAttribute (OO0O0O0OOOOOO0000 ,O00OO0OO0OO00O00O .get_attrs (),OO00000000OO0O000 ,OOOOOO0O0OOOOO0O0 )#line:166
+    def set_title (O0OOOO0O0O00O0OO0 ,O000O0O00O00OOOO0 ):#line:168
+        win32 .SetConsoleTitle (O000O0O00O00OOOO0 )#line:169

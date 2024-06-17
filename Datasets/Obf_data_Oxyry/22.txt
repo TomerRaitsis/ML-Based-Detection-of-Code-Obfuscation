@@ -1,0 +1,309 @@
+""#line:8:"""
+__license__ ="MIT"#line:10:__license__ = "MIT"
+import codecs #line:12:import codecs
+from html .entities import codepoint2name #line:13:from html.entities import codepoint2name
+import re #line:14:import re
+import logging #line:15:import logging
+import string #line:16:import string
+chardet_type =None #line:19:chardet_type = None
+try :#line:20:try:
+    import cchardet #line:23:import cchardet
+    def chardet_dammit (O0OO00OO0O00OO00O ):#line:24:def chardet_dammit(s):
+        if isinstance (O0OO00OO0O00OO00O ,str ):#line:25:if isinstance(s, str):
+            return None #line:26:return None
+        return cchardet .detect (O0OO00OO0O00OO00O )['encoding']#line:27:return cchardet.detect(s)['encoding']
+except ImportError :#line:28:except ImportError:
+    try :#line:29:try:
+        import chardet #line:33:import chardet
+        def chardet_dammit (OOO0O00OO0OOOOO00 ):#line:34:def chardet_dammit(s):
+            if isinstance (OOO0O00OO0OOOOO00 ,str ):#line:35:if isinstance(s, str):
+                return None #line:36:return None
+            return chardet .detect (OOO0O00OO0OOOOO00 )['encoding']#line:37:return chardet.detect(s)['encoding']
+    except ImportError :#line:40:except ImportError:
+        def chardet_dammit (O0O0O00O00OO0O000 ):#line:42:def chardet_dammit(s):
+            return None #line:43:return None
+try :#line:49:try:
+    import iconv_codec #line:50:import iconv_codec
+except ImportError :#line:51:except ImportError:
+    pass #line:52:pass
+xml_encoding ='^\\s*<\\?.*encoding=[\'"](.*?)[\'"].*\\?>'#line:56:xml_encoding = '^\\s*<\\?.*encoding=[\'"](.*?)[\'"].*\\?>'
+html_meta ='<\\s*meta[^>]+charset\\s*=\\s*["\']?([^>]*?)[ /;\'">]'#line:57:html_meta = '<\\s*meta[^>]+charset\\s*=\\s*["\']?([^>]*?)[ /;\'">]'
+encoding_res =dict ()#line:58:encoding_res = dict()
+encoding_res [bytes ]={'html':re .compile (html_meta .encode ("ascii"),re .I ),'xml':re .compile (xml_encoding .encode ("ascii"),re .I ),}#line:62:}
+encoding_res [str ]={'html':re .compile (html_meta ,re .I ),'xml':re .compile (xml_encoding ,re .I )}#line:66:}
+class EntitySubstitution (object ):#line:68:class EntitySubstitution(object):
+    ""#line:69:"""The ability to substitute XML or HTML entities for certain characters."""
+    def _populate_class_variables ():#line:71:def _populate_class_variables():
+        OOOO000O00OO000O0 ={}#line:72:lookup = {}
+        O0OO000OO000OOOOO ={}#line:73:reverse_lookup = {}
+        OO00OOO0O0O0O000O =[]#line:74:characters_for_re = []
+        OOOO000OO0000OO0O =[(39 ,'apos')]#line:81:extra = [(39, 'apos')]
+        for OO0OOO0OO0O000O00 ,OOOO00OOOOO0OO000 in list (codepoint2name .items ())+OOOO000OO0000OO0O :#line:82:for codepoint, name in list(codepoint2name.items()) + extra:
+            OOOO00OO0OOOO0O00 =chr (OO0OOO0OO0O000O00 )#line:83:character = chr(codepoint)
+            if OO0OOO0OO0O000O00 not in (34 ,39 ):#line:84:if codepoint not in (34, 39):
+                OO00OOO0O0O0O000O .append (OOOO00OO0OOOO0O00 )#line:89:characters_for_re.append(character)
+                OOOO000O00OO000O0 [OOOO00OO0OOOO0O00 ]=OOOO00OOOOO0OO000 #line:90:lookup[character] = name
+            O0OO000OO000OOOOO [OOOO00OOOOO0OO000 ]=OOOO00OO0OOOO0O00 #line:93:reverse_lookup[name] = character
+        O00OOO0000O0OO000 ="[%s]"%"".join (OO00OOO0O0O0O000O )#line:94:re_definition = "[%s]" % "".join(characters_for_re)
+        return OOOO000O00OO000O0 ,O0OO000OO000OOOOO ,re .compile (O00OOO0000O0OO000 )#line:95:return lookup, reverse_lookup, re.compile(re_definition)
+    (CHARACTER_TO_HTML_ENTITY ,HTML_ENTITY_TO_CHARACTER ,CHARACTER_TO_HTML_ENTITY_RE )=_populate_class_variables ()#line:97:CHARACTER_TO_HTML_ENTITY_RE) = _populate_class_variables()
+    CHARACTER_TO_XML_ENTITY ={"'":"apos",'"':"quot","&":"amp","<":"lt",">":"gt",}#line:105:}
+    BARE_AMPERSAND_OR_BRACKET =re .compile ("([<>]|" "&(?!#\\d+;|#x[0-9a-fA-F]+;|\\w+;)" ")")#line:109:")")
+    AMPERSAND_OR_BRACKET =re .compile ("([<>&])")#line:111:AMPERSAND_OR_BRACKET = re.compile("([<>&])")
+    @classmethod #line:113:@classmethod
+    def _substitute_html_entity (O0OOOO0O00O0OO0O0 ,O0000O0OOO00O0OO0 ):#line:114:def _substitute_html_entity(cls, matchobj):
+        ""#line:116:appropriate HTML entity for a special character."""
+        O0OO0O0OOOO00O00O =O0OOOO0O00O0OO0O0 .CHARACTER_TO_HTML_ENTITY .get (O0000O0OOO00O0OO0 .group (0 ))#line:117:entity = cls.CHARACTER_TO_HTML_ENTITY.get(matchobj.group(0))
+        return "&%s;"%O0OO0O0OOOO00O00O #line:118:return "&%s;" % entity
+    @classmethod #line:120:@classmethod
+    def _substitute_xml_entity (OO0O0OO0OO0OO0OOO ,O00OOOOO0OOOO00OO ):#line:121:def _substitute_xml_entity(cls, matchobj):
+        ""#line:123:appropriate XML entity for a special character."""
+        O000OO00000OOO0O0 =OO0O0OO0OO0OO0OOO .CHARACTER_TO_XML_ENTITY [O00OOOOO0OOOO00OO .group (0 )]#line:124:entity = cls.CHARACTER_TO_XML_ENTITY[matchobj.group(0)]
+        return "&%s;"%O000OO00000OOO0O0 #line:125:return "&%s;" % entity
+    @classmethod #line:127:@classmethod
+    def quoted_attribute_value (OO0O0OO0O000O0000 ,OO00000OO0OO000O0 ):#line:128:def quoted_attribute_value(self, value):
+        ""#line:145:"""
+        O0O0OOOO00OO00O00 ='"'#line:146:quote_with = '"'
+        if '"'in OO00000OO0OO000O0 :#line:147:if '"' in value:
+            if "'"in OO00000OO0OO000O0 :#line:148:if "'" in value:
+                OOOOO00O0OO000OO0 ="&quot;"#line:156:replace_with = "&quot;"
+                OO00000OO0OO000O0 =OO00000OO0OO000O0 .replace ('"',OOOOO00O0OO000OO0 )#line:157:value = value.replace('"', replace_with)
+            else :#line:158:else:
+                O0O0OOOO00OO00O00 ="'"#line:161:quote_with = "'"
+        return O0O0OOOO00OO00O00 +OO00000OO0OO000O0 +O0O0OOOO00OO00O00 #line:162:return quote_with + value + quote_with
+    @classmethod #line:164:@classmethod
+    def substitute_xml (OO00O000O0O0OO000 ,OOOO0OOOOOO00OO00 ,make_quoted_attribute =False ):#line:165:def substitute_xml(cls, value, make_quoted_attribute=False):
+        ""#line:176:"""
+        OOOO0OOOOOO00OO00 =OO00O000O0O0OO000 .AMPERSAND_OR_BRACKET .sub (OO00O000O0O0OO000 ._substitute_xml_entity ,OOOO0OOOOOO00OO00 )#line:179:cls._substitute_xml_entity, value)
+        if make_quoted_attribute :#line:181:if make_quoted_attribute:
+            OOOO0OOOOOO00OO00 =OO00O000O0O0OO000 .quoted_attribute_value (OOOO0OOOOOO00OO00 )#line:182:value = cls.quoted_attribute_value(value)
+        return OOOO0OOOOOO00OO00 #line:183:return value
+    @classmethod #line:185:@classmethod
+    def substitute_xml_containing_entities (OOO00OO0O00OO0O0O ,O00O0OOOO0OO00OOO ,make_quoted_attribute =False ):#line:187:cls, value, make_quoted_attribute=False):
+        ""#line:197:"""
+        O00O0OOOO0OO00OOO =OOO00OO0O00OO0O0O .BARE_AMPERSAND_OR_BRACKET .sub (OOO00OO0O00OO0O0O ._substitute_xml_entity ,O00O0OOOO0OO00OOO )#line:201:cls._substitute_xml_entity, value)
+        if make_quoted_attribute :#line:203:if make_quoted_attribute:
+            O00O0OOOO0OO00OOO =OOO00OO0O00OO0O0O .quoted_attribute_value (O00O0OOOO0OO00OOO )#line:204:value = cls.quoted_attribute_value(value)
+        return O00O0OOOO0OO00OOO #line:205:return value
+    @classmethod #line:207:@classmethod
+    def substitute_html (OO0OOO0O0OO00O0O0 ,O0O00OOO00O00O0O0 ):#line:208:def substitute_html(cls, s):
+        ""#line:220:"""
+        return OO0OOO0O0OO00O0O0 .CHARACTER_TO_HTML_ENTITY_RE .sub (OO0OOO0O0OO00O0O0 ._substitute_html_entity ,O0O00OOO00O00O0O0 )#line:222:cls._substitute_html_entity, s)
+class EncodingDetector :#line:225:class EncodingDetector:
+    ""#line:244:"""
+    def __init__ (O00O0OO00OO00OO0O ,OO0O0OOO0O0O0O0O0 ,override_encodings =None ,is_html =False ,exclude_encodings =None ):#line:246:exclude_encodings=None):
+        ""#line:255:"""
+        O00O0OO00OO00OO0O .override_encodings =override_encodings or []#line:256:self.override_encodings = override_encodings or []
+        exclude_encodings =exclude_encodings or []#line:257:exclude_encodings = exclude_encodings or []
+        O00O0OO00OO00OO0O .exclude_encodings =set ([OO00OO00O000O0O00 .lower ()for OO00OO00O000O0O00 in exclude_encodings ])#line:258:self.exclude_encodings = set([x.lower() for x in exclude_encodings])
+        O00O0OO00OO00OO0O .chardet_encoding =None #line:259:self.chardet_encoding = None
+        O00O0OO00OO00OO0O .is_html =is_html #line:260:self.is_html = is_html
+        O00O0OO00OO00OO0O .declared_encoding =None #line:261:self.declared_encoding = None
+        O00O0OO00OO00OO0O .markup ,O00O0OO00OO00OO0O .sniffed_encoding =O00O0OO00OO00OO0O .strip_byte_order_mark (OO0O0OOO0O0O0O0O0 )#line:264:self.markup, self.sniffed_encoding = self.strip_byte_order_mark(markup)
+    def _usable (O00OOO0000000OOOO ,O000OOOO000OO000O ,OOO0O000OOOOO0OOO ):#line:266:def _usable(self, encoding, tried):
+        ""#line:272:"""
+        if O000OOOO000OO000O is not None :#line:273:if encoding is not None:
+            O000OOOO000OO000O =O000OOOO000OO000O .lower ()#line:274:encoding = encoding.lower()
+            if O000OOOO000OO000O in O00OOO0000000OOOO .exclude_encodings :#line:275:if encoding in self.exclude_encodings:
+                return False #line:276:return False
+            if O000OOOO000OO000O not in OOO0O000OOOOO0OOO :#line:277:if encoding not in tried:
+                OOO0O000OOOOO0OOO .add (O000OOOO000OO000O )#line:278:tried.add(encoding)
+                return True #line:279:return True
+        return False #line:280:return False
+    @property #line:282:@property
+    def encodings (OO000O0OO0O00OO00 ):#line:283:def encodings(self):
+        ""#line:287:"""
+        OOOO0O00OO0O000OO =set ()#line:288:tried = set()
+        for OO0O0OOOO0OO00O00 in OO000O0OO0O00OO00 .override_encodings :#line:289:for e in self.override_encodings:
+            if OO000O0OO0O00OO00 ._usable (OO0O0OOOO0OO00O00 ,OOOO0O00OO0O000OO ):#line:290:if self._usable(e, tried):
+                yield OO0O0OOOO0OO00O00 #line:291:yield e
+        if OO000O0OO0O00OO00 ._usable (OO000O0OO0O00OO00 .sniffed_encoding ,OOOO0O00OO0O000OO ):#line:295:if self._usable(self.sniffed_encoding, tried):
+            yield OO000O0OO0O00OO00 .sniffed_encoding #line:296:yield self.sniffed_encoding
+        if OO000O0OO0O00OO00 .declared_encoding is None :#line:300:if self.declared_encoding is None:
+            OO000O0OO0O00OO00 .declared_encoding =OO000O0OO0O00OO00 .find_declared_encoding (OO000O0OO0O00OO00 .markup ,OO000O0OO0O00OO00 .is_html )#line:302:self.markup, self.is_html)
+        if OO000O0OO0O00OO00 ._usable (OO000O0OO0O00OO00 .declared_encoding ,OOOO0O00OO0O000OO ):#line:303:if self._usable(self.declared_encoding, tried):
+            yield OO000O0OO0O00OO00 .declared_encoding #line:304:yield self.declared_encoding
+        if OO000O0OO0O00OO00 .chardet_encoding is None :#line:308:if self.chardet_encoding is None:
+            OO000O0OO0O00OO00 .chardet_encoding =chardet_dammit (OO000O0OO0O00OO00 .markup )#line:309:self.chardet_encoding = chardet_dammit(self.markup)
+        if OO000O0OO0O00OO00 ._usable (OO000O0OO0O00OO00 .chardet_encoding ,OOOO0O00OO0O000OO ):#line:310:if self._usable(self.chardet_encoding, tried):
+            yield OO000O0OO0O00OO00 .chardet_encoding #line:311:yield self.chardet_encoding
+        for OO0O0OOOO0OO00O00 in ('utf-8','windows-1252'):#line:314:for e in ('utf-8', 'windows-1252'):
+            if OO000O0OO0O00OO00 ._usable (OO0O0OOOO0OO00O00 ,OOOO0O00OO0O000OO ):#line:315:if self._usable(e, tried):
+                yield OO0O0OOOO0OO00O00 #line:316:yield e
+    @classmethod #line:318:@classmethod
+    def strip_byte_order_mark (O0OOOOOO0OOOO000O ,O0OOOOO0OOO00O000 ):#line:319:def strip_byte_order_mark(cls, data):
+        ""#line:324:"""
+        OO0000O00OOOOO0OO =None #line:325:encoding = None
+        if isinstance (O0OOOOO0OOO00O000 ,str ):#line:326:if isinstance(data, str):
+            return O0OOOOO0OOO00O000 ,OO0000O00OOOOO0OO #line:328:return data, encoding
+        if (len (O0OOOOO0OOO00O000 )>=4 )and (O0OOOOO0OOO00O000 [:2 ]==b'\xfe\xff')and (O0OOOOO0OOO00O000 [2 :4 ]!='\x00\x00'):#line:330:and (data[2:4] != '\x00\x00'):
+            OO0000O00OOOOO0OO ='utf-16be'#line:331:encoding = 'utf-16be'
+            O0OOOOO0OOO00O000 =O0OOOOO0OOO00O000 [2 :]#line:332:data = data[2:]
+        elif (len (O0OOOOO0OOO00O000 )>=4 )and (O0OOOOO0OOO00O000 [:2 ]==b'\xff\xfe')and (O0OOOOO0OOO00O000 [2 :4 ]!='\x00\x00'):#line:334:and (data[2:4] != '\x00\x00'):
+            OO0000O00OOOOO0OO ='utf-16le'#line:335:encoding = 'utf-16le'
+            O0OOOOO0OOO00O000 =O0OOOOO0OOO00O000 [2 :]#line:336:data = data[2:]
+        elif O0OOOOO0OOO00O000 [:3 ]==b'\xef\xbb\xbf':#line:337:elif data[:3] == b'\xef\xbb\xbf':
+            OO0000O00OOOOO0OO ='utf-8'#line:338:encoding = 'utf-8'
+            O0OOOOO0OOO00O000 =O0OOOOO0OOO00O000 [3 :]#line:339:data = data[3:]
+        elif O0OOOOO0OOO00O000 [:4 ]==b'\x00\x00\xfe\xff':#line:340:elif data[:4] == b'\x00\x00\xfe\xff':
+            OO0000O00OOOOO0OO ='utf-32be'#line:341:encoding = 'utf-32be'
+            O0OOOOO0OOO00O000 =O0OOOOO0OOO00O000 [4 :]#line:342:data = data[4:]
+        elif O0OOOOO0OOO00O000 [:4 ]==b'\xff\xfe\x00\x00':#line:343:elif data[:4] == b'\xff\xfe\x00\x00':
+            OO0000O00OOOOO0OO ='utf-32le'#line:344:encoding = 'utf-32le'
+            O0OOOOO0OOO00O000 =O0OOOOO0OOO00O000 [4 :]#line:345:data = data[4:]
+        return O0OOOOO0OOO00O000 ,OO0000O00OOOOO0OO #line:346:return data, encoding
+    @classmethod #line:348:@classmethod
+    def find_declared_encoding (OOOOO0OO0OO0000O0 ,O00000OO0O0000000 ,is_html =False ,search_entire_document =False ):#line:349:def find_declared_encoding(cls, markup, is_html=False, search_entire_document=False):
+        ""#line:363:"""
+        if search_entire_document :#line:364:if search_entire_document:
+            OOOO00O000OOO0000 =OOO0OO00OO00O000O =len (O00000OO0O0000000 )#line:365:xml_endpos = html_endpos = len(markup)
+        else :#line:366:else:
+            OOOO00O000OOO0000 =1024 #line:367:xml_endpos = 1024
+            OOO0OO00OO00O000O =max (2048 ,int (len (O00000OO0O0000000 )*0.05 ))#line:368:html_endpos = max(2048, int(len(markup) * 0.05))
+        if isinstance (O00000OO0O0000000 ,bytes ):#line:370:if isinstance(markup, bytes):
+            OOO00OO0OO00000OO =encoding_res [bytes ]#line:371:res = encoding_res[bytes]
+        else :#line:372:else:
+            OOO00OO0OO00000OO =encoding_res [str ]#line:373:res = encoding_res[str]
+        O0OO0OO000OO00O0O =OOO00OO0OO00000OO ['xml']#line:375:xml_re = res['xml']
+        OO000OOOOOOOO0OOO =OOO00OO0OO00000OO ['html']#line:376:html_re = res['html']
+        OOO0O0000OOOOOOOO =None #line:377:declared_encoding = None
+        OO00OOOOO00O0O0OO =O0OO0OO000OO00O0O .search (O00000OO0O0000000 ,endpos =OOOO00O000OOO0000 )#line:378:declared_encoding_match = xml_re.search(markup, endpos=xml_endpos)
+        if not OO00OOOOO00O0O0OO and is_html :#line:379:if not declared_encoding_match and is_html:
+            OO00OOOOO00O0O0OO =OO000OOOOOOOO0OOO .search (O00000OO0O0000000 ,endpos =OOO0OO00OO00O000O )#line:380:declared_encoding_match = html_re.search(markup, endpos=html_endpos)
+        if OO00OOOOO00O0O0OO is not None :#line:381:if declared_encoding_match is not None:
+            OOO0O0000OOOOOOOO =OO00OOOOO00O0O0OO .groups ()[0 ]#line:382:declared_encoding = declared_encoding_match.groups()[0]
+        if OOO0O0000OOOOOOOO :#line:383:if declared_encoding:
+            if isinstance (OOO0O0000OOOOOOOO ,bytes ):#line:384:if isinstance(declared_encoding, bytes):
+                OOO0O0000OOOOOOOO =OOO0O0000OOOOOOOO .decode ('ascii','replace')#line:385:declared_encoding = declared_encoding.decode('ascii', 'replace')
+            return OOO0O0000OOOOOOOO .lower ()#line:386:return declared_encoding.lower()
+        return None #line:387:return None
+class UnicodeDammit :#line:389:class UnicodeDammit:
+    ""#line:393:equivalents."""
+    CHARSET_ALIASES ={"macintosh":"mac-roman","x-sjis":"shift-jis"}#line:400:"x-sjis": "shift-jis"}
+    ENCODINGS_WITH_SMART_QUOTES =["windows-1252","iso-8859-1","iso-8859-2",]#line:406:]
+    def __init__ (O0OOOO0O0O0OO0000 ,O0O0OOO000OO0O000 ,override_encodings =[],smart_quotes_to =None ,is_html =False ,exclude_encodings =[]):#line:409:smart_quotes_to=None, is_html=False, exclude_encodings=[]):
+        ""#line:424:"""
+        O0OOOO0O0O0OO0000 .smart_quotes_to =smart_quotes_to #line:425:self.smart_quotes_to = smart_quotes_to
+        O0OOOO0O0O0OO0000 .tried_encodings =[]#line:426:self.tried_encodings = []
+        O0OOOO0O0O0OO0000 .contains_replacement_characters =False #line:427:self.contains_replacement_characters = False
+        O0OOOO0O0O0OO0000 .is_html =is_html #line:428:self.is_html = is_html
+        O0OOOO0O0O0OO0000 .log =logging .getLogger (__name__ )#line:429:self.log = logging.getLogger(__name__)
+        O0OOOO0O0O0OO0000 .detector =EncodingDetector (O0O0OOO000OO0O000 ,override_encodings ,is_html ,exclude_encodings )#line:431:markup, override_encodings, is_html, exclude_encodings)
+        if isinstance (O0O0OOO000OO0O000 ,str )or O0O0OOO000OO0O000 =='':#line:434:if isinstance(markup, str) or markup == '':
+            O0OOOO0O0O0OO0000 .markup =O0O0OOO000OO0O000 #line:435:self.markup = markup
+            O0OOOO0O0O0OO0000 .unicode_markup =str (O0O0OOO000OO0O000 )#line:436:self.unicode_markup = str(markup)
+            O0OOOO0O0O0OO0000 .original_encoding =None #line:437:self.original_encoding = None
+            return #line:438:return
+        O0OOOO0O0O0OO0000 .markup =O0OOOO0O0O0OO0000 .detector .markup #line:442:self.markup = self.detector.markup
+        O000O0O0OOOO00O00 =None #line:444:u = None
+        for O00OOOO000OO0OOOO in O0OOOO0O0O0OO0000 .detector .encodings :#line:445:for encoding in self.detector.encodings:
+            O0O0OOO000OO0O000 =O0OOOO0O0O0OO0000 .detector .markup #line:446:markup = self.detector.markup
+            O000O0O0OOOO00O00 =O0OOOO0O0O0OO0000 ._convert_from (O00OOOO000OO0OOOO )#line:447:u = self._convert_from(encoding)
+            if O000O0O0OOOO00O00 is not None :#line:448:if u is not None:
+                break #line:449:break
+        if not O000O0O0OOOO00O00 :#line:451:if not u:
+            for O00OOOO000OO0OOOO in O0OOOO0O0O0OO0000 .detector .encodings :#line:455:for encoding in self.detector.encodings:
+                if O00OOOO000OO0OOOO !="ascii":#line:456:if encoding != "ascii":
+                    O000O0O0OOOO00O00 =O0OOOO0O0O0OO0000 ._convert_from (O00OOOO000OO0OOOO ,"replace")#line:457:u = self._convert_from(encoding, "replace")
+                if O000O0O0OOOO00O00 is not None :#line:458:if u is not None:
+                    O0OOOO0O0O0OO0000 .log .warning ("Some characters could not be decoded, and were " "replaced with REPLACEMENT CHARACTER.")#line:462:)
+                    O0OOOO0O0O0OO0000 .contains_replacement_characters =True #line:463:self.contains_replacement_characters = True
+                    break #line:464:break
+        O0OOOO0O0O0OO0000 .unicode_markup =O000O0O0OOOO00O00 #line:469:self.unicode_markup = u
+        if not O000O0O0OOOO00O00 :#line:470:if not u:
+            O0OOOO0O0O0OO0000 .original_encoding =None #line:471:self.original_encoding = None
+    def _sub_ms_char (OOO00OOOOOO0000O0 ,OOO00OOO0O00OO000 ):#line:473:def _sub_ms_char(self, match):
+        ""#line:475:entity, or an ASCII character."""
+        OOOO000O0OO0OOO00 =OOO00OOO0O00OO000 .group (1 )#line:476:orig = match.group(1)
+        if OOO00OOOOOO0000O0 .smart_quotes_to =='ascii':#line:477:if self.smart_quotes_to == 'ascii':
+            OOOO00OO000O0O00O =OOO00OOOOOO0000O0 .MS_CHARS_TO_ASCII .get (OOOO000O0OO0OOO00 ).encode ()#line:478:sub = self.MS_CHARS_TO_ASCII.get(orig).encode()
+        else :#line:479:else:
+            OOOO00OO000O0O00O =OOO00OOOOOO0000O0 .MS_CHARS .get (OOOO000O0OO0OOO00 )#line:480:sub = self.MS_CHARS.get(orig)
+            if type (OOOO00OO000O0O00O )==tuple :#line:481:if type(sub) == tuple:
+                if OOO00OOOOOO0000O0 .smart_quotes_to =='xml':#line:482:if self.smart_quotes_to == 'xml':
+                    OOOO00OO000O0O00O ='&#x'.encode ()+OOOO00OO000O0O00O [1 ].encode ()+';'.encode ()#line:483:sub = '&#x'.encode() + sub[1].encode() + ';'.encode()
+                else :#line:484:else:
+                    OOOO00OO000O0O00O ='&'.encode ()+OOOO00OO000O0O00O [0 ].encode ()+';'.encode ()#line:485:sub = '&'.encode() + sub[0].encode() + ';'.encode()
+            else :#line:486:else:
+                OOOO00OO000O0O00O =OOOO00OO000O0O00O .encode ()#line:487:sub = sub.encode()
+        return OOOO00OO000O0O00O #line:488:return sub
+    def _convert_from (O0O0O00O000000O0O ,O0O000000000OOO00 ,errors ="strict"):#line:490:def _convert_from(self, proposed, errors="strict"):
+        ""#line:494:"""
+        O0O000000000OOO00 =O0O0O00O000000O0O .find_codec (O0O000000000OOO00 )#line:495:proposed = self.find_codec(proposed)
+        if not O0O000000000OOO00 or (O0O000000000OOO00 ,errors )in O0O0O00O000000O0O .tried_encodings :#line:496:if not proposed or (proposed, errors) in self.tried_encodings:
+            return None #line:497:return None
+        O0O0O00O000000O0O .tried_encodings .append ((O0O000000000OOO00 ,errors ))#line:498:self.tried_encodings.append((proposed, errors))
+        OOOO0OO0O0O0O0000 =O0O0O00O000000O0O .markup #line:499:markup = self.markup
+        if (O0O0O00O000000O0O .smart_quotes_to is not None and O0O000000000OOO00 in O0O0O00O000000O0O .ENCODINGS_WITH_SMART_QUOTES ):#line:503:and proposed in self.ENCODINGS_WITH_SMART_QUOTES):
+            OO0OOOOOOOOO0O00O =b"([\x80-\x9f])"#line:504:smart_quotes_re = b"([\x80-\x9f])"
+            O00O0O0OOOOO0O0O0 =re .compile (OO0OOOOOOOOO0O00O )#line:505:smart_quotes_compiled = re.compile(smart_quotes_re)
+            OOOO0OO0O0O0O0000 =O00O0O0OOOOO0O0O0 .sub (O0O0O00O000000O0O ._sub_ms_char ,OOOO0OO0O0O0O0000 )#line:506:markup = smart_quotes_compiled.sub(self._sub_ms_char, markup)
+        try :#line:508:try:
+            O00OOO00O0O0OO00O =O0O0O00O000000O0O ._to_unicode (OOOO0OO0O0O0O0000 ,O0O000000000OOO00 ,errors )#line:511:u = self._to_unicode(markup, proposed, errors)
+            O0O0O00O000000O0O .markup =O00OOO00O0O0OO00O #line:512:self.markup = u
+            O0O0O00O000000O0O .original_encoding =O0O000000000OOO00 #line:513:self.original_encoding = proposed
+        except Exception as OOOOO00O000O0OOO0 :#line:514:except Exception as e:
+            return None #line:517:return None
+        return O0O0O00O000000O0O .markup #line:519:return self.markup
+    def _to_unicode (O00O00O00OO0000O0 ,O000O0OO00O0O00O0 ,O0O0O0OO0OOO000OO ,errors ="strict"):#line:521:def _to_unicode(self, data, encoding, errors="strict"):
+        ""#line:525:"""
+        return str (O000O0OO00O0O00O0 ,O0O0O0OO0OOO000OO ,errors )#line:526:return str(data, encoding, errors)
+    @property #line:528:@property
+    def declared_html_encoding (O00OOOO0OO0O0O000 ):#line:529:def declared_html_encoding(self):
+        ""#line:532:"""
+        if not O00OOOO0OO0O0O000 .is_html :#line:533:if not self.is_html:
+            return None #line:534:return None
+        return O00OOOO0OO0O0O000 .detector .declared_encoding #line:535:return self.detector.declared_encoding
+    def find_codec (O0000OOO0000O0OOO ,OO0OOOOOOOO0OOOO0 ):#line:537:def find_codec(self, charset):
+        ""#line:542:"""
+        O000O0O000OO0OOOO =(O0000OOO0000O0OOO ._codec (O0000OOO0000O0OOO .CHARSET_ALIASES .get (OO0OOOOOOOO0OOOO0 ,OO0OOOOOOOO0OOOO0 ))or (OO0OOOOOOOO0OOOO0 and O0000OOO0000O0OOO ._codec (OO0OOOOOOOO0OOOO0 .replace ("-","")))or (OO0OOOOOOOO0OOOO0 and O0000OOO0000O0OOO ._codec (OO0OOOOOOOO0OOOO0 .replace ("-","_")))or (OO0OOOOOOOO0OOOO0 and OO0OOOOOOOO0OOOO0 .lower ())or OO0OOOOOOOO0OOOO0 )#line:548:)
+        if O000O0O000OO0OOOO :#line:549:if value:
+            return O000O0O000OO0OOOO .lower ()#line:550:return value.lower()
+        return None #line:551:return None
+    def _codec (O00O000O0O000000O ,OOOOO00O00O0O0O00 ):#line:553:def _codec(self, charset):
+        if not OOOOO00O00O0O0O00 :#line:554:if not charset:
+            return OOOOO00O00O0O0O00 #line:555:return charset
+        O0000O0O0O00OO00O =None #line:556:codec = None
+        try :#line:557:try:
+            codecs .lookup (OOOOO00O00O0O0O00 )#line:558:codecs.lookup(charset)
+            O0000O0O0O00OO00O =OOOOO00O00O0O0O00 #line:559:codec = charset
+        except (LookupError ,ValueError ):#line:560:except (LookupError, ValueError):
+            pass #line:561:pass
+        return O0000O0O0O00OO00O #line:562:return codec
+    MS_CHARS ={b'\x80':('euro','20AC'),b'\x81':' ',b'\x82':('sbquo','201A'),b'\x83':('fnof','192'),b'\x84':('bdquo','201E'),b'\x85':('hellip','2026'),b'\x86':('dagger','2020'),b'\x87':('Dagger','2021'),b'\x88':('circ','2C6'),b'\x89':('permil','2030'),b'\x8A':('Scaron','160'),b'\x8B':('lsaquo','2039'),b'\x8C':('OElig','152'),b'\x8D':'?',b'\x8E':('#x17D','17D'),b'\x8F':'?',b'\x90':'?',b'\x91':('lsquo','2018'),b'\x92':('rsquo','2019'),b'\x93':('ldquo','201C'),b'\x94':('rdquo','201D'),b'\x95':('bull','2022'),b'\x96':('ndash','2013'),b'\x97':('mdash','2014'),b'\x98':('tilde','2DC'),b'\x99':('trade','2122'),b'\x9a':('scaron','161'),b'\x9b':('rsaquo','203A'),b'\x9c':('oelig','153'),b'\x9d':'?',b'\x9e':('#x17E','17E'),b'\x9f':('Yuml',''),}#line:597:b'\x9f': ('Yuml', ''),}
+    MS_CHARS_TO_ASCII ={b'\x80':'EUR',b'\x81':' ',b'\x82':',',b'\x83':'f',b'\x84':',,',b'\x85':'...',b'\x86':'+',b'\x87':'++',b'\x88':'^',b'\x89':'%',b'\x8a':'S',b'\x8b':'<',b'\x8c':'OE',b'\x8d':'?',b'\x8e':'Z',b'\x8f':'?',b'\x90':'?',b'\x91':"'",b'\x92':"'",b'\x93':'"',b'\x94':'"',b'\x95':'*',b'\x96':'-',b'\x97':'--',b'\x98':'~',b'\x99':'(TM)',b'\x9a':'s',b'\x9b':'>',b'\x9c':'oe',b'\x9d':'?',b'\x9e':'z',b'\x9f':'Y',b'\xa0':' ',b'\xa1':'!',b'\xa2':'c',b'\xa3':'GBP',b'\xa4':'$',b'\xa5':'YEN',b'\xa6':'|',b'\xa7':'S',b'\xa8':'..',b'\xa9':'',b'\xaa':'(th)',b'\xab':'<<',b'\xac':'!',b'\xad':' ',b'\xae':'(R)',b'\xaf':'-',b'\xb0':'o',b'\xb1':'+-',b'\xb2':'2',b'\xb3':'3',b'\xb4':("'",'acute'),b'\xb5':'u',b'\xb6':'P',b'\xb7':'*',b'\xb8':',',b'\xb9':'1',b'\xba':'(th)',b'\xbb':'>>',b'\xbc':'1/4',b'\xbd':'1/2',b'\xbe':'3/4',b'\xbf':'?',b'\xc0':'A',b'\xc1':'A',b'\xc2':'A',b'\xc3':'A',b'\xc4':'A',b'\xc5':'A',b'\xc6':'AE',b'\xc7':'C',b'\xc8':'E',b'\xc9':'E',b'\xca':'E',b'\xcb':'E',b'\xcc':'I',b'\xcd':'I',b'\xce':'I',b'\xcf':'I',b'\xd0':'D',b'\xd1':'N',b'\xd2':'O',b'\xd3':'O',b'\xd4':'O',b'\xd5':'O',b'\xd6':'O',b'\xd7':'*',b'\xd8':'O',b'\xd9':'U',b'\xda':'U',b'\xdb':'U',b'\xdc':'U',b'\xdd':'Y',b'\xde':'b',b'\xdf':'B',b'\xe0':'a',b'\xe1':'a',b'\xe2':'a',b'\xe3':'a',b'\xe4':'a',b'\xe5':'a',b'\xe6':'ae',b'\xe7':'c',b'\xe8':'e',b'\xe9':'e',b'\xea':'e',b'\xeb':'e',b'\xec':'i',b'\xed':'i',b'\xee':'i',b'\xef':'i',b'\xf0':'o',b'\xf1':'n',b'\xf2':'o',b'\xf3':'o',b'\xf4':'o',b'\xf5':'o',b'\xf6':'o',b'\xf7':'/',b'\xf8':'o',b'\xf9':'u',b'\xfa':'u',b'\xfb':'u',b'\xfc':'u',b'\xfd':'y',b'\xfe':'b',b'\xff':'y',}#line:732:}
+    WINDOWS_1252_TO_UTF8 ={0x80 :b'\xe2\x82\xac',0x82 :b'\xe2\x80\x9a',0x83 :b'\xc6\x92',0x84 :b'\xe2\x80\x9e',0x85 :b'\xe2\x80\xa6',0x86 :b'\xe2\x80\xa0',0x87 :b'\xe2\x80\xa1',0x88 :b'\xcb\x86',0x89 :b'\xe2\x80\xb0',0x8a :b'\xc5\xa0',0x8b :b'\xe2\x80\xb9',0x8c :b'\xc5\x92',0x8e :b'\xc5\xbd',0x91 :b'\xe2\x80\x98',0x92 :b'\xe2\x80\x99',0x93 :b'\xe2\x80\x9c',0x94 :b'\xe2\x80\x9d',0x95 :b'\xe2\x80\xa2',0x96 :b'\xe2\x80\x93',0x97 :b'\xe2\x80\x94',0x98 :b'\xcb\x9c',0x99 :b'\xe2\x84\xa2',0x9a :b'\xc5\xa1',0x9b :b'\xe2\x80\xba',0x9c :b'\xc5\x93',0x9e :b'\xc5\xbe',0x9f :b'\xc5\xb8',0xa0 :b'\xc2\xa0',0xa1 :b'\xc2\xa1',0xa2 :b'\xc2\xa2',0xa3 :b'\xc2\xa3',0xa4 :b'\xc2\xa4',0xa5 :b'\xc2\xa5',0xa6 :b'\xc2\xa6',0xa7 :b'\xc2\xa7',0xa8 :b'\xc2\xa8',0xa9 :b'\xc2\xa9',0xaa :b'\xc2\xaa',0xab :b'\xc2\xab',0xac :b'\xc2\xac',0xad :b'\xc2\xad',0xae :b'\xc2\xae',0xaf :b'\xc2\xaf',0xb0 :b'\xc2\xb0',0xb1 :b'\xc2\xb1',0xb2 :b'\xc2\xb2',0xb3 :b'\xc2\xb3',0xb4 :b'\xc2\xb4',0xb5 :b'\xc2\xb5',0xb6 :b'\xc2\xb6',0xb7 :b'\xc2\xb7',0xb8 :b'\xc2\xb8',0xb9 :b'\xc2\xb9',0xba :b'\xc2\xba',0xbb :b'\xc2\xbb',0xbc :b'\xc2\xbc',0xbd :b'\xc2\xbd',0xbe :b'\xc2\xbe',0xbf :b'\xc2\xbf',0xc0 :b'\xc3\x80',0xc1 :b'\xc3\x81',0xc2 :b'\xc3\x82',0xc3 :b'\xc3\x83',0xc4 :b'\xc3\x84',0xc5 :b'\xc3\x85',0xc6 :b'\xc3\x86',0xc7 :b'\xc3\x87',0xc8 :b'\xc3\x88',0xc9 :b'\xc3\x89',0xca :b'\xc3\x8a',0xcb :b'\xc3\x8b',0xcc :b'\xc3\x8c',0xcd :b'\xc3\x8d',0xce :b'\xc3\x8e',0xcf :b'\xc3\x8f',0xd0 :b'\xc3\x90',0xd1 :b'\xc3\x91',0xd2 :b'\xc3\x92',0xd3 :b'\xc3\x93',0xd4 :b'\xc3\x94',0xd5 :b'\xc3\x95',0xd6 :b'\xc3\x96',0xd7 :b'\xc3\x97',0xd8 :b'\xc3\x98',0xd9 :b'\xc3\x99',0xda :b'\xc3\x9a',0xdb :b'\xc3\x9b',0xdc :b'\xc3\x9c',0xdd :b'\xc3\x9d',0xde :b'\xc3\x9e',0xdf :b'\xc3\x9f',0xe0 :b'\xc3\xa0',0xe1 :b'\xa1',0xe2 :b'\xc3\xa2',0xe3 :b'\xc3\xa3',0xe4 :b'\xc3\xa4',0xe5 :b'\xc3\xa5',0xe6 :b'\xc3\xa6',0xe7 :b'\xc3\xa7',0xe8 :b'\xc3\xa8',0xe9 :b'\xc3\xa9',0xea :b'\xc3\xaa',0xeb :b'\xc3\xab',0xec :b'\xc3\xac',0xed :b'\xc3\xad',0xee :b'\xc3\xae',0xef :b'\xc3\xaf',0xf0 :b'\xc3\xb0',0xf1 :b'\xc3\xb1',0xf2 :b'\xc3\xb2',0xf3 :b'\xc3\xb3',0xf4 :b'\xc3\xb4',0xf5 :b'\xc3\xb5',0xf6 :b'\xc3\xb6',0xf7 :b'\xc3\xb7',0xf8 :b'\xc3\xb8',0xf9 :b'\xc3\xb9',0xfa :b'\xc3\xba',0xfb :b'\xc3\xbb',0xfc :b'\xc3\xbc',0xfd :b'\xc3\xbd',0xfe :b'\xc3\xbe',}#line:862:}
+    MULTIBYTE_MARKERS_AND_SIZES =[(0xc2 ,0xdf ,2 ),(0xe0 ,0xef ,3 ),(0xf0 ,0xf4 ,4 ),]#line:868:]
+    FIRST_MULTIBYTE_MARKER =MULTIBYTE_MARKERS_AND_SIZES [0 ][0 ]#line:870:FIRST_MULTIBYTE_MARKER = MULTIBYTE_MARKERS_AND_SIZES[0][0]
+    LAST_MULTIBYTE_MARKER =MULTIBYTE_MARKERS_AND_SIZES [-1 ][1 ]#line:871:LAST_MULTIBYTE_MARKER = MULTIBYTE_MARKERS_AND_SIZES[-1][1]
+    @classmethod #line:873:@classmethod
+    def detwingle (O0OOO0OO0OOOOO000 ,O0O0OO0OOOO0O0O00 ,main_encoding ="utf8",embedded_encoding ="windows-1252"):#line:875:embedded_encoding="windows-1252"):
+        ""#line:891:"""
+        if embedded_encoding .replace ('_','-').lower ()not in ('windows-1252','windows_1252'):#line:893:'windows-1252', 'windows_1252'):
+            raise NotImplementedError ("Windows-1252 and ISO-8859-1 are the only currently supported " "embedded encodings.")#line:896:"embedded encodings.")
+        if main_encoding .lower ()not in ('utf8','utf-8'):#line:898:if main_encoding.lower() not in ('utf8', 'utf-8'):
+            raise NotImplementedError ("UTF-8 is the only currently supported main encoding.")#line:900:"UTF-8 is the only currently supported main encoding.")
+        OO0O0OO0OOOO00O00 =[]#line:902:byte_chunks = []
+        OO000OO0O0OO00O0O =0 #line:904:chunk_start = 0
+        OO0O0O0OO0O00OOOO =0 #line:905:pos = 0
+        while OO0O0O0OO0O00OOOO <len (O0O0OO0OOOO0O0O00 ):#line:906:while pos < len(in_bytes):
+            O0O0O0O0O00O00O00 =O0O0OO0OOOO0O0O00 [OO0O0O0OO0O00OOOO ]#line:907:byte = in_bytes[pos]
+            if not isinstance (O0O0O0O0O00O00O00 ,int ):#line:908:if not isinstance(byte, int):
+                O0O0O0O0O00O00O00 =ord (O0O0O0O0O00O00O00 )#line:910:byte = ord(byte)
+            if (O0O0O0O0O00O00O00 >=O0OOO0OO0OOOOO000 .FIRST_MULTIBYTE_MARKER and O0O0O0O0O00O00O00 <=O0OOO0OO0OOOOO000 .LAST_MULTIBYTE_MARKER ):#line:912:and byte <= cls.LAST_MULTIBYTE_MARKER):
+                for O0O0O0OOOO0OO00O0 ,OO0O00O0OOO00OOO0 ,OO0OO0O000O0000O0 in O0OOO0OO0OOOOO000 .MULTIBYTE_MARKERS_AND_SIZES :#line:915:for start, end, size in cls.MULTIBYTE_MARKERS_AND_SIZES:
+                    if O0O0O0O0O00O00O00 >=O0O0O0OOOO0OO00O0 and O0O0O0O0O00O00O00 <=OO0O00O0OOO00OOO0 :#line:916:if byte >= start and byte <= end:
+                        OO0O0O0OO0O00OOOO +=OO0OO0O000O0000O0 #line:917:pos += size
+                        break #line:918:break
+            elif O0O0O0O0O00O00O00 >=0x80 and O0O0O0O0O00O00O00 in O0OOO0OO0OOOOO000 .WINDOWS_1252_TO_UTF8 :#line:919:elif byte >= 0x80 and byte in cls.WINDOWS_1252_TO_UTF8:
+                OO0O0OO0OOOO00O00 .append (O0O0OO0OOOO0O0O00 [OO000OO0O0OO00O0O :OO0O0O0OO0O00OOOO ])#line:922:byte_chunks.append(in_bytes[chunk_start:pos])
+                OO0O0OO0OOOO00O00 .append (O0OOO0OO0OOOOO000 .WINDOWS_1252_TO_UTF8 [O0O0O0O0O00O00O00 ])#line:926:byte_chunks.append(cls.WINDOWS_1252_TO_UTF8[byte])
+                OO0O0O0OO0O00OOOO +=1 #line:927:pos += 1
+                OO000OO0O0OO00O0O =OO0O0O0OO0O00OOOO #line:928:chunk_start = pos
+            else :#line:929:else:
+                OO0O0O0OO0O00OOOO +=1 #line:931:pos += 1
+        if OO000OO0O0OO00O0O ==0 :#line:932:if chunk_start == 0:
+            return O0O0OO0OOOO0O0O00 #line:934:return in_bytes
+        else :#line:935:else:
+            OO0O0OO0OOOO00O00 .append (O0O0OO0OOOO0O0O00 [OO000OO0O0OO00O0O :])#line:937:byte_chunks.append(in_bytes[chunk_start:])
+        return b''.join (OO0O0OO0OOOO00O00 )#line:938:return b''.join(byte_chunks)

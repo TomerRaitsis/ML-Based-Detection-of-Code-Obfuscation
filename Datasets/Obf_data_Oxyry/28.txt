@@ -1,0 +1,248 @@
+from __future__ import absolute_import #line:1:from __future__ import absolute_import
+import errno #line:3:import errno
+import logging #line:4:import logging
+import operator #line:5:import operator
+import os #line:6:import os
+import shutil #line:7:import shutil
+from optparse import SUPPRESS_HELP #line:8:from optparse import SUPPRESS_HELP
+from pip ._vendor import pkg_resources #line:10:from pip._vendor import pkg_resources
+from pip ._internal .cache import WheelCache #line:12:from pip._internal.cache import WheelCache
+from pip ._internal .cli import cmdoptions #line:13:from pip._internal.cli import cmdoptions
+from pip ._internal .cli .base_command import RequirementCommand #line:14:from pip._internal.cli.base_command import RequirementCommand
+from pip ._internal .cli .status_codes import ERROR #line:15:from pip._internal.cli.status_codes import ERROR
+from pip ._internal .exceptions import (CommandError ,InstallationError ,PreviousBuildDirError ,)#line:18:)
+from pip ._internal .locations import distutils_scheme ,virtualenv_no_global #line:19:from pip._internal.locations import distutils_scheme, virtualenv_no_global
+from pip ._internal .operations .check import check_install_conflicts #line:20:from pip._internal.operations.check import check_install_conflicts
+from pip ._internal .operations .prepare import RequirementPreparer #line:21:from pip._internal.operations.prepare import RequirementPreparer
+from pip ._internal .req import RequirementSet ,install_given_reqs #line:22:from pip._internal.req import RequirementSet, install_given_reqs
+from pip ._internal .req .req_tracker import RequirementTracker #line:23:from pip._internal.req.req_tracker import RequirementTracker
+from pip ._internal .resolve import Resolver #line:24:from pip._internal.resolve import Resolver
+from pip ._internal .utils .filesystem import check_path_owner #line:25:from pip._internal.utils.filesystem import check_path_owner
+from pip ._internal .utils .misc import (ensure_dir ,get_installed_version ,protect_pip_from_modification_on_windows ,)#line:29:)
+from pip ._internal .utils .temp_dir import TempDirectory #line:30:from pip._internal.utils.temp_dir import TempDirectory
+from pip ._internal .wheel import WheelBuilder #line:31:from pip._internal.wheel import WheelBuilder
+logger =logging .getLogger (__name__ )#line:33:logger = logging.getLogger(__name__)
+class InstallCommand (RequirementCommand ):#line:36:class InstallCommand(RequirementCommand):
+    ""#line:47:"""
+    name ='install'#line:48:name = 'install'
+    usage ="""
+      %prog [options] <requirement specifier> [package-index-options] ...
+      %prog [options] -r <requirements file> [package-index-options] ...
+      %prog [options] [-e] <vcs project url> ...
+      %prog [options] [-e] <local project path> ...
+      %prog [options] <archive url/path> ..."""#line:55:%prog [options] <archive url/path> ..."""
+    summary ='Install packages.'#line:57:summary = 'Install packages.'
+    def __init__ (O0OO0O0O00O0OOO00 ,*OOOOOOOOO000OOO00 ,**O00O0OOO0O0OOO0OO ):#line:59:def __init__(self, *args, **kw):
+        super (InstallCommand ,O0OO0O0O00O0OOO00 ).__init__ (*OOOOOOOOO000OOO00 ,**O00O0OOO0O0OOO0OO )#line:60:super(InstallCommand, self).__init__(*args, **kw)
+        OOO0OO000OOO0O0OO =O0OO0O0O00O0OOO00 .cmd_opts #line:62:cmd_opts = self.cmd_opts
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .requirements ())#line:64:cmd_opts.add_option(cmdoptions.requirements())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .constraints ())#line:65:cmd_opts.add_option(cmdoptions.constraints())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .no_deps ())#line:66:cmd_opts.add_option(cmdoptions.no_deps())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .pre ())#line:67:cmd_opts.add_option(cmdoptions.pre())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .editable ())#line:69:cmd_opts.add_option(cmdoptions.editable())
+        OOO0OO000OOO0O0OO .add_option ('-t','--target',dest ='target_dir',metavar ='dir',default =None ,help ='Install packages into <dir>. ' 'By default this will not replace existing files/folders in ' '<dir>. Use --upgrade to replace existing packages in <dir> ' 'with new versions.')#line:79:)
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .platform ())#line:80:cmd_opts.add_option(cmdoptions.platform())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .python_version ())#line:81:cmd_opts.add_option(cmdoptions.python_version())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .implementation ())#line:82:cmd_opts.add_option(cmdoptions.implementation())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .abi ())#line:83:cmd_opts.add_option(cmdoptions.abi())
+        OOO0OO000OOO0O0OO .add_option ('--user',dest ='use_user_site',action ='store_true',help ="Install to the Python user install directory for your " "platform. Typically ~/.local/, or %APPDATA%\\Python on " "Windows. (See the Python documentation for site.USER_BASE " "for full details.)")#line:92:"for full details.)")
+        OOO0OO000OOO0O0OO .add_option ('--no-user',dest ='use_user_site',action ='store_false',help =SUPPRESS_HELP )#line:97:help=SUPPRESS_HELP)
+        OOO0OO000OOO0O0OO .add_option ('--root',dest ='root_path',metavar ='dir',default =None ,help ="Install everything relative to this alternate root " "directory.")#line:104:"directory.")
+        OOO0OO000OOO0O0OO .add_option ('--prefix',dest ='prefix_path',metavar ='dir',default =None ,help ="Installation prefix where lib, bin and other top-level " "folders are placed")#line:111:"folders are placed")
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .build_dir ())#line:113:cmd_opts.add_option(cmdoptions.build_dir())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .src ())#line:115:cmd_opts.add_option(cmdoptions.src())
+        OOO0OO000OOO0O0OO .add_option ('-U','--upgrade',dest ='upgrade',action ='store_true',help ='Upgrade all specified packages to the newest available ' 'version. The handling of dependencies depends on the ' 'upgrade-strategy used.')#line:124:)
+        OOO0OO000OOO0O0OO .add_option ('--upgrade-strategy',dest ='upgrade_strategy',default ='only-if-needed',choices =['only-if-needed','eager'],help ='Determines how dependency upgrading should be handled ' '[default: %default]. ' '"eager" - dependencies are upgraded regardless of ' 'whether the currently installed version satisfies the ' 'requirements of the upgraded package(s). ' '"only-if-needed" -  are upgraded only when they do not ' 'satisfy the requirements of the upgraded package(s).')#line:138:)
+        OOO0OO000OOO0O0OO .add_option ('--force-reinstall',dest ='force_reinstall',action ='store_true',help ='Reinstall all packages even if they are already ' 'up-to-date.')#line:145:'up-to-date.')
+        OOO0OO000OOO0O0OO .add_option ('-I','--ignore-installed',dest ='ignore_installed',action ='store_true',help ='Ignore the installed packages (reinstalling instead).')#line:151:help='Ignore the installed packages (reinstalling instead).')
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .ignore_requires_python ())#line:153:cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .no_build_isolation ())#line:154:cmd_opts.add_option(cmdoptions.no_build_isolation())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .use_pep517 ())#line:155:cmd_opts.add_option(cmdoptions.use_pep517())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .no_use_pep517 ())#line:156:cmd_opts.add_option(cmdoptions.no_use_pep517())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .install_options ())#line:158:cmd_opts.add_option(cmdoptions.install_options())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .global_options ())#line:159:cmd_opts.add_option(cmdoptions.global_options())
+        OOO0OO000OOO0O0OO .add_option ("--compile",action ="store_true",dest ="compile",default =True ,help ="Compile Python source files to bytecode",)#line:167:)
+        OOO0OO000OOO0O0OO .add_option ("--no-compile",action ="store_false",dest ="compile",help ="Do not compile Python source files to bytecode",)#line:174:)
+        OOO0OO000OOO0O0OO .add_option ("--no-warn-script-location",action ="store_false",dest ="warn_script_location",default =True ,help ="Do not warn when installing scripts outside PATH",)#line:182:)
+        OOO0OO000OOO0O0OO .add_option ("--no-warn-conflicts",action ="store_false",dest ="warn_about_conflicts",default =True ,help ="Do not warn about broken dependencies",)#line:189:)
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .no_binary ())#line:191:cmd_opts.add_option(cmdoptions.no_binary())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .only_binary ())#line:192:cmd_opts.add_option(cmdoptions.only_binary())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .prefer_binary ())#line:193:cmd_opts.add_option(cmdoptions.prefer_binary())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .no_clean ())#line:194:cmd_opts.add_option(cmdoptions.no_clean())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .require_hashes ())#line:195:cmd_opts.add_option(cmdoptions.require_hashes())
+        OOO0OO000OOO0O0OO .add_option (cmdoptions .progress_bar ())#line:196:cmd_opts.add_option(cmdoptions.progress_bar())
+        O0OOOOOOOOOOO0O0O =cmdoptions .make_option_group (cmdoptions .index_group ,O0OO0O0O00O0OOO00 .parser ,)#line:201:)
+        O0OO0O0O00O0OOO00 .parser .insert_option_group (0 ,O0OOOOOOOOOOO0O0O )#line:203:self.parser.insert_option_group(0, index_opts)
+        O0OO0O0O00O0OOO00 .parser .insert_option_group (0 ,OOO0OO000OOO0O0OO )#line:204:self.parser.insert_option_group(0, cmd_opts)
+    def run (O0O0O0O0OO0OO0000 ,OOOOOOO00O0OOO00O ,O000000O0OOOOOO00 ):#line:206:def run(self, options, args):
+        cmdoptions .check_install_build_global (OOOOOOO00O0OOO00O )#line:207:cmdoptions.check_install_build_global(options)
+        OO0000OO0O000OOOO ="to-satisfy-only"#line:208:upgrade_strategy = "to-satisfy-only"
+        if OOOOOOO00O0OOO00O .upgrade :#line:209:if options.upgrade:
+            OO0000OO0O000OOOO =OOOOOOO00O0OOO00O .upgrade_strategy #line:210:upgrade_strategy = options.upgrade_strategy
+        if OOOOOOO00O0OOO00O .build_dir :#line:212:if options.build_dir:
+            OOOOOOO00O0OOO00O .build_dir =os .path .abspath (OOOOOOO00O0OOO00O .build_dir )#line:213:options.build_dir = os.path.abspath(options.build_dir)
+        cmdoptions .check_dist_restriction (OOOOOOO00O0OOO00O ,check_target =True )#line:215:cmdoptions.check_dist_restriction(options, check_target=True)
+        if OOOOOOO00O0OOO00O .python_version :#line:217:if options.python_version:
+            O0OOO000000OOOOO0 =[OOOOOOO00O0OOO00O .python_version ]#line:218:python_versions = [options.python_version]
+        else :#line:219:else:
+            O0OOO000000OOOOO0 =None #line:220:python_versions = None
+        OOOOOOO00O0OOO00O .src_dir =os .path .abspath (OOOOOOO00O0OOO00O .src_dir )#line:222:options.src_dir = os.path.abspath(options.src_dir)
+        OO0O00OO000O0OO00 =OOOOOOO00O0OOO00O .install_options or []#line:223:install_options = options.install_options or []
+        if OOOOOOO00O0OOO00O .use_user_site :#line:224:if options.use_user_site:
+            if OOOOOOO00O0OOO00O .prefix_path :#line:225:if options.prefix_path:
+                raise CommandError ("Can not combine '--user' and '--prefix' as they imply " "different installation locations")#line:229:)
+            if virtualenv_no_global ():#line:230:if virtualenv_no_global():
+                raise InstallationError ("Can not perform a '--user' install. User site-packages " "are not visible in this virtualenv.")#line:234:)
+            OO0O00OO000O0OO00 .append ('--user')#line:235:install_options.append('--user')
+            OO0O00OO000O0OO00 .append ('--prefix=')#line:236:install_options.append('--prefix=')
+        OO00000O0O00O00O0 =TempDirectory (kind ="target")#line:238:target_temp_dir = TempDirectory(kind="target")
+        if OOOOOOO00O0OOO00O .target_dir :#line:239:if options.target_dir:
+            OOOOOOO00O0OOO00O .ignore_installed =True #line:240:options.ignore_installed = True
+            OOOOOOO00O0OOO00O .target_dir =os .path .abspath (OOOOOOO00O0OOO00O .target_dir )#line:241:options.target_dir = os.path.abspath(options.target_dir)
+            if (os .path .exists (OOOOOOO00O0OOO00O .target_dir )and not os .path .isdir (OOOOOOO00O0OOO00O .target_dir )):#line:243:os.path.isdir(options.target_dir)):
+                raise CommandError ("Target path exists but is not a directory, will not " "continue.")#line:247:)
+            OO00000O0O00O00O0 .create ()#line:250:target_temp_dir.create()
+            OO0O00OO000O0OO00 .append ('--home='+OO00000O0O00O00O0 .path )#line:251:install_options.append('--home=' + target_temp_dir.path)
+        OOO0OO0OOOOOO00O0 =OOOOOOO00O0OOO00O .global_options or []#line:253:global_options = options.global_options or []
+        with O0O0O0O0OO0OO0000 ._build_session (OOOOOOO00O0OOO00O )as OOO000OO0000OOO0O :#line:255:with self._build_session(options) as session:
+            O000OO0O000O0O00O =O0O0O0O0OO0OO0000 ._build_package_finder (options =OOOOOOO00O0OOO00O ,session =OOO000OO0000OOO0O ,platform =OOOOOOO00O0OOO00O .platform ,python_versions =O0OOO000000OOOOO0 ,abi =OOOOOOO00O0OOO00O .abi ,implementation =OOOOOOO00O0OOO00O .implementation ,)#line:263:)
+            O00O0O0000OO00O00 =(not (OOOOOOO00O0OOO00O .no_clean or OOOOOOO00O0OOO00O .build_dir ))#line:264:build_delete = (not (options.no_clean or options.build_dir))
+            OOOOO0O000OO0O00O =WheelCache (OOOOOOO00O0OOO00O .cache_dir ,OOOOOOO00O0OOO00O .format_control )#line:265:wheel_cache = WheelCache(options.cache_dir, options.format_control)
+            if OOOOOOO00O0OOO00O .cache_dir and not check_path_owner (OOOOOOO00O0OOO00O .cache_dir ):#line:267:if options.cache_dir and not check_path_owner(options.cache_dir):
+                logger .warning ("The directory '%s' or its parent directory is not owned " "by the current user and caching wheels has been " "disabled. check the permissions and owner of that " "directory. If executing pip with sudo, you may want " "sudo's -H flag.",OOOOOOO00O0OOO00O .cache_dir ,)#line:275:)
+                OOOOOOO00O0OOO00O .cache_dir =None #line:276:options.cache_dir = None
+            with RequirementTracker ()as OOOOOO0OOO0OOOO0O ,TempDirectory (OOOOOOO00O0OOO00O .build_dir ,delete =O00O0O0000OO00O00 ,kind ="install")as O00000000OOOOOOO0 :#line:280:) as directory:
+                O0OOO00OOOOO0O000 =RequirementSet (require_hashes =OOOOOOO00O0OOO00O .require_hashes ,check_supported_wheels =not OOOOOOO00O0OOO00O .target_dir ,)#line:284:)
+                try :#line:286:try:
+                    O0O0O0O0OO0OO0000 .populate_requirement_set (O0OOO00OOOOO0O000 ,O000000O0OOOOOO00 ,OOOOOOO00O0OOO00O ,O000OO0O000O0O00O ,OOO000OO0000OOO0O ,O0O0O0O0OO0OO0000 .name ,OOOOO0O000OO0O00O )#line:290:)
+                    O0O0OO000O0000OOO =RequirementPreparer (build_dir =O00000000OOOOOOO0 .path ,src_dir =OOOOOOO00O0OOO00O .src_dir ,download_dir =None ,wheel_download_dir =None ,progress_bar =OOOOOOO00O0OOO00O .progress_bar ,build_isolation =OOOOOOO00O0OOO00O .build_isolation ,req_tracker =OOOOOO0OOO0OOOO0O ,)#line:299:)
+                    O0O000000O0OO00O0 =Resolver (preparer =O0O0OO000O0000OOO ,finder =O000OO0O000O0O00O ,session =OOO000OO0000OOO0O ,wheel_cache =OOOOO0O000OO0O00O ,use_user_site =OOOOOOO00O0OOO00O .use_user_site ,upgrade_strategy =OO0000OO0O000OOOO ,force_reinstall =OOOOOOO00O0OOO00O .force_reinstall ,ignore_dependencies =OOOOOOO00O0OOO00O .ignore_dependencies ,ignore_requires_python =OOOOOOO00O0OOO00O .ignore_requires_python ,ignore_installed =OOOOOOO00O0OOO00O .ignore_installed ,isolated =OOOOOOO00O0OOO00O .isolated_mode ,use_pep517 =OOOOOOO00O0OOO00O .use_pep517 )#line:314:)
+                    O0O000000O0OO00O0 .resolve (O0OOO00OOOOO0O000 )#line:315:resolver.resolve(requirement_set)
+                    protect_pip_from_modification_on_windows (modifying_pip =O0OOO00OOOOO0O000 .has_requirement ("pip"))#line:319:)
+                    O0OO00O0000OOOOO0 =[]#line:322:legacy_requirements = []
+                    O00OOOOOOO0O0O000 =[]#line:323:pep517_requirements = []
+                    for O00OO0O0O000000O0 in O0OOO00OOOOO0O000 .requirements .values ():#line:324:for req in requirement_set.requirements.values():
+                        if O00OO0O0O000000O0 .use_pep517 :#line:325:if req.use_pep517:
+                            O00OOOOOOO0O0O000 .append (O00OO0O0O000000O0 )#line:326:pep517_requirements.append(req)
+                        else :#line:327:else:
+                            O0OO00O0000OOOOO0 .append (O00OO0O0O000000O0 )#line:328:legacy_requirements.append(req)
+                    try :#line:332:try:
+                        import wheel #line:333:import wheel  # noqa: F401
+                        O0OO0OOO0OOOO0O00 =bool (OOOOOOO00O0OOO00O .cache_dir )#line:334:build_legacy = bool(options.cache_dir)
+                    except ImportError :#line:335:except ImportError:
+                        O0OO0OOO0OOOO0O00 =False #line:336:build_legacy = False
+                    O0OO0O0OOO0O0O00O =WheelBuilder (O000OO0O000O0O00O ,O0O0OO000O0000OOO ,OOOOO0O000OO0O00O ,build_options =[],global_options =[],)#line:341:)
+                    OOO0O00OO0OO0OO00 =O0OO0O0OOO0O0O00O .build (O00OOOOOOO0O0O000 ,session =OOO000OO0000OOO0O ,autobuilding =True )#line:347:)
+                    if O0OO0OOO0OOOO0O00 :#line:349:if build_legacy:
+                        O0OO0O0OOO0O0O00O .build (O0OO00O0000OOOOO0 ,session =OOO000OO0000OOO0O ,autobuilding =True )#line:356:)
+                    if OOO0O00OO0OO0OO00 :#line:360:if build_failures:
+                        raise InstallationError ("Could not build wheels for {} which use" " PEP 517 and cannot be installed directly".format (", ".join (OOO00OOO0O00O00OO .name for OOO00OOO0O00O00OO in OOO0O00OO0OO0OO00 )))#line:364:", ".join(r.name for r in build_failures)))
+                    O000OOO0OO00OO0OO =O0O000000O0OO00O0 .get_installation_order (O0OOO00OOOOO0O000 )#line:368:)
+                    O0O0OO0O00O00O0O0 =(not OOOOOOO00O0OOO00O .ignore_dependencies and OOOOOOO00O0OOO00O .warn_about_conflicts )#line:374:)
+                    if O0O0OO0O00O00O0O0 :#line:375:if should_warn_about_conflicts:
+                        O0O0O0O0OO0OO0000 ._warn_about_conflicts (O000OOO0OO00OO0OO )#line:376:self._warn_about_conflicts(to_install)
+                    O00O0OOO0O00000OO =OOOOOOO00O0OOO00O .warn_script_location #line:380:warn_script_location = options.warn_script_location
+                    if OOOOOOO00O0OOO00O .target_dir :#line:381:if options.target_dir:
+                        O00O0OOO0O00000OO =False #line:382:warn_script_location = False
+                    O0O00O00O00000OO0 =install_given_reqs (O000OOO0OO00OO0OO ,OO0O00OO000O0OO00 ,OOO0OO0OOOOOO00O0 ,root =OOOOOOO00O0OOO00O .root_path ,home =OO00000O0O00O00O0 .path ,prefix =OOOOOOO00O0OOO00O .prefix_path ,pycompile =OOOOOOO00O0OOO00O .compile ,warn_script_location =O00O0OOO0O00000OO ,use_user_site =OOOOOOO00O0OOO00O .use_user_site ,)#line:394:)
+                    O000OO000OOOO00OO =get_lib_location_guesses (user =OOOOOOO00O0OOO00O .use_user_site ,home =OO00000O0O00O00O0 .path ,root =OOOOOOO00O0OOO00O .root_path ,prefix =OOOOOOO00O0OOO00O .prefix_path ,isolated =OOOOOOO00O0OOO00O .isolated_mode ,)#line:402:)
+                    O000OO0O000O0000O =pkg_resources .WorkingSet (O000OO000OOOO00OO )#line:403:working_set = pkg_resources.WorkingSet(lib_locations)
+                    OO000O0OO00O00000 =sorted (O0O00O00O00000OO0 ,key =operator .attrgetter ('name'))#line:405:reqs = sorted(installed, key=operator.attrgetter('name'))
+                    OOO0O00O0OOOOO0O0 =[]#line:406:items = []
+                    for O00OO0O0O000000O0 in OO000O0OO00O00000 :#line:407:for req in reqs:
+                        OO0000OO0O000O0OO =O00OO0O0O000000O0 .name #line:408:item = req.name
+                        try :#line:409:try:
+                            O0O00O00O0OO00OO0 =get_installed_version (O00OO0O0O000000O0 .name ,working_set =O000OO0O000O0000O )#line:412:)
+                            if O0O00O00O0OO00OO0 :#line:413:if installed_version:
+                                OO0000OO0O000O0OO +='-'+O0O00O00O0OO00OO0 #line:414:item += '-' + installed_version
+                        except Exception :#line:415:except Exception:
+                            pass #line:416:pass
+                        OOO0O00O0OOOOO0O0 .append (OO0000OO0O000O0OO )#line:417:items.append(item)
+                    O0O00O00O00000OO0 =' '.join (OOO0O00O0OOOOO0O0 )#line:418:installed = ' '.join(items)
+                    if O0O00O00O00000OO0 :#line:419:if installed:
+                        logger .info ('Successfully installed %s',O0O00O00O00000OO0 )#line:420:logger.info('Successfully installed %s', installed)
+                except EnvironmentError as O0O000OO0OOOO0O0O :#line:421:except EnvironmentError as error:
+                    OOO0O0O0O00O0000O =(O0O0O0O0OO0OO0000 .verbosity >=1 )#line:422:show_traceback = (self.verbosity >= 1)
+                    O0O000OOO0OOOOOO0 =create_env_error_message (O0O000OO0OOOO0O0O ,OOO0O0O0O00O0000O ,OOOOOOO00O0OOO00O .use_user_site ,)#line:426:)
+                    logger .error (O0O000OOO0OOOOOO0 ,exc_info =OOO0O0O0O00O0000O )#line:427:logger.error(message, exc_info=show_traceback)
+                    return ERROR #line:429:return ERROR
+                except PreviousBuildDirError :#line:430:except PreviousBuildDirError:
+                    OOOOOOO00O0OOO00O .no_clean =True #line:431:options.no_clean = True
+                    raise #line:432:raise
+                finally :#line:433:finally:
+                    if not OOOOOOO00O0OOO00O .no_clean :#line:435:if not options.no_clean:
+                        O0OOO00OOOOO0O000 .cleanup_files ()#line:436:requirement_set.cleanup_files()
+                        OOOOO0O000OO0O00O .cleanup ()#line:437:wheel_cache.cleanup()
+        if OOOOOOO00O0OOO00O .target_dir :#line:439:if options.target_dir:
+            O0O0O0O0OO0OO0000 ._handle_target_dir (OOOOOOO00O0OOO00O .target_dir ,OO00000O0O00O00O0 ,OOOOOOO00O0OOO00O .upgrade )#line:442:)
+        return O0OOO00OOOOO0O000 #line:443:return requirement_set
+    def _handle_target_dir (O000OO0OOO0O000OO ,OO0OO000O0000OOO0 ,O00OO00OO0O000O00 ,O0OOOOO0O0OOO0O0O ):#line:445:def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
+        ensure_dir (OO0OO000O0000OOO0 )#line:446:ensure_dir(target_dir)
+        OO000OOO0OO0O0OOO =[]#line:450:lib_dir_list = []
+        with O00OO00OO0O000O00 :#line:452:with target_temp_dir:
+            O000O0O0OO0O0OOOO =distutils_scheme ('',home =O00OO00OO0O000O00 .path )#line:455:scheme = distutils_scheme('', home=target_temp_dir.path)
+            OOO00000O00O00OOO =O000O0O0OO0O0OOOO ['purelib']#line:456:purelib_dir = scheme['purelib']
+            OO00OOOOOO0000000 =O000O0O0OO0O0OOOO ['platlib']#line:457:platlib_dir = scheme['platlib']
+            O00O00OO0O000O000 =O000O0O0OO0O0OOOO ['data']#line:458:data_dir = scheme['data']
+            if os .path .exists (OOO00000O00O00OOO ):#line:460:if os.path.exists(purelib_dir):
+                OO000OOO0OO0O0OOO .append (OOO00000O00O00OOO )#line:461:lib_dir_list.append(purelib_dir)
+            if os .path .exists (OO00OOOOOO0000000 )and OO00OOOOOO0000000 !=OOO00000O00O00OOO :#line:462:if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
+                OO000OOO0OO0O0OOO .append (OO00OOOOOO0000000 )#line:463:lib_dir_list.append(platlib_dir)
+            if os .path .exists (O00O00OO0O000O000 ):#line:464:if os.path.exists(data_dir):
+                OO000OOO0OO0O0OOO .append (O00O00OO0O000O000 )#line:465:lib_dir_list.append(data_dir)
+            for O00O00O000000O0O0 in OO000OOO0OO0O0OOO :#line:467:for lib_dir in lib_dir_list:
+                for O00OO0OOO00O00O00 in os .listdir (O00O00O000000O0O0 ):#line:468:for item in os.listdir(lib_dir):
+                    if O00O00O000000O0O0 ==O00O00OO0O000O000 :#line:469:if lib_dir == data_dir:
+                        O0OO0O00O0OO0OOOO =os .path .join (O00O00OO0O000O000 ,O00OO0OOO00O00O00 )#line:470:ddir = os.path.join(data_dir, item)
+                        if any (O0OOO00OO0OOOOO00 .startswith (O0OO0O00O0OO0OOOO )for O0OOO00OO0OOOOO00 in OO000OOO0OO0O0OOO [:-1 ]):#line:471:if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
+                            continue #line:472:continue
+                    OOO00O0OOOO0OOOOO =os .path .join (OO0OO000O0000OOO0 ,O00OO0OOO00O00O00 )#line:473:target_item_dir = os.path.join(target_dir, item)
+                    if os .path .exists (OOO00O0OOOO0OOOOO ):#line:474:if os.path.exists(target_item_dir):
+                        if not O0OOOOO0O0OOO0O0O :#line:475:if not upgrade:
+                            logger .warning ('Target directory %s already exists. Specify ' '--upgrade to force replacement.',OOO00O0OOOO0OOOOO )#line:480:)
+                            continue #line:481:continue
+                        if os .path .islink (OOO00O0OOOO0OOOOO ):#line:482:if os.path.islink(target_item_dir):
+                            logger .warning ('Target directory %s already exists and is ' 'a link. Pip will not automatically replace ' 'links, please remove if replacement is ' 'desired.',OOO00O0OOOO0OOOOO )#line:489:)
+                            continue #line:490:continue
+                        if os .path .isdir (OOO00O0OOOO0OOOOO ):#line:491:if os.path.isdir(target_item_dir):
+                            shutil .rmtree (OOO00O0OOOO0OOOOO )#line:492:shutil.rmtree(target_item_dir)
+                        else :#line:493:else:
+                            os .remove (OOO00O0OOOO0OOOOO )#line:494:os.remove(target_item_dir)
+                    shutil .move (os .path .join (O00O00O000000O0O0 ,O00OO0OOO00O00O00 ),OOO00O0OOOO0OOOOO )#line:499:)
+    def _warn_about_conflicts (OOOOO0000O0OO000O ,OOO00000OOO00OO00 ):#line:501:def _warn_about_conflicts(self, to_install):
+        try :#line:502:try:
+            O00OO000OO0O00O00 ,_OOOOO0OOOOO0O00OO =check_install_conflicts (OOO00000OOO00OO00 )#line:503:package_set, _dep_info = check_install_conflicts(to_install)
+        except Exception :#line:504:except Exception:
+            logger .error ("Error checking for conflicts.",exc_info =True )#line:505:logger.error("Error checking for conflicts.", exc_info=True)
+            return #line:506:return
+        OO0O0O0OOOOOOO000 ,OOOO00O00OO0O0O00 =_OOOOO0OOOOO0O00OO #line:507:missing, conflicting = _dep_info
+        for OO000O0O00OOO0000 in OO0O0O0OOOOOOO000 :#line:510:for project_name in missing:
+            O000O0O0O000O00O0 =O00OO000OO0O00O00 [OO000O0O00OOO0000 ][0 ]#line:511:version = package_set[project_name][0]
+            for O0O000O00O0000O00 in OO0O0O0OOOOOOO000 [OO000O0O00OOO0000 ]:#line:512:for dependency in missing[project_name]:
+                logger .critical ("%s %s requires %s, which is not installed.",OO000O0O00OOO0000 ,O000O0O0O000O00O0 ,O0O000O00O0000O00 [1 ],)#line:516:)
+        for OO000O0O00OOO0000 in OOOO00O00OO0O0O00 :#line:518:for project_name in conflicting:
+            O000O0O0O000O00O0 =O00OO000OO0O00O00 [OO000O0O00OOO0000 ][0 ]#line:519:version = package_set[project_name][0]
+            for OO0OO0OO00O0O00O0 ,OO00OO00000OOOOOO ,O000OOOOOO00O00O0 in OOOO00O00OO0O0O00 [OO000O0O00OOO0000 ]:#line:520:for dep_name, dep_version, req in conflicting[project_name]:
+                logger .critical ("%s %s has requirement %s, but you'll have %s %s which is " "incompatible.",OO000O0O00OOO0000 ,O000O0O0O000O00O0 ,O000OOOOOO00O00O0 ,OO0OO0OO00O0O00O0 ,OO00OO00000OOOOOO ,)#line:525:)
+def get_lib_location_guesses (*O00OO00OOO0OOO0OO ,**O0O00000O0O0O0000 ):#line:528:def get_lib_location_guesses(*args, **kwargs):
+    O0O00O0OO000O000O =distutils_scheme ('',*O00OO00OOO0OOO0OO ,**O0O00000O0O0O0000 )#line:529:scheme = distutils_scheme('', *args, **kwargs)
+    return [O0O00O0OO000O000O ['purelib'],O0O00O0OO000O000O ['platlib']]#line:530:return [scheme['purelib'], scheme['platlib']]
+def create_env_error_message (O0OO00000OO000O0O ,OO0OOOO0000O0O0OO ,O00O0OOOO00O0O0O0 ):#line:533:def create_env_error_message(error, show_traceback, using_user_site):
+    ""#line:537:"""
+    OO000O0O0OO00OO0O =[]#line:538:parts = []
+    OO000O0O0OO00OO0O .append ("Could not install packages due to an EnvironmentError")#line:541:parts.append("Could not install packages due to an EnvironmentError")
+    if not OO0OOOO0000O0O0OO :#line:542:if not show_traceback:
+        OO000O0O0OO00OO0O .append (": ")#line:543:parts.append(": ")
+        OO000O0O0OO00OO0O .append (str (O0OO00000OO000O0O ))#line:544:parts.append(str(error))
+    else :#line:545:else:
+        OO000O0O0OO00OO0O .append (".")#line:546:parts.append(".")
+    OO000O0O0OO00OO0O [-1 ]+="\n"#line:549:parts[-1] += "\n"
+    if O0OO00000OO000O0O .errno ==errno .EACCES :#line:553:if error.errno == errno.EACCES:
+        OOO000O0O00O0O0OO ="Consider using the `--user` option"#line:554:user_option_part = "Consider using the `--user` option"
+        OO0OO000OOO0O0O00 ="Check the permissions"#line:555:permissions_part = "Check the permissions"
+        if not O00O0OOOO00O0O0O0 :#line:557:if not using_user_site:
+            OO000O0O0OO00OO0O .extend ([OOO000O0O00O0O0OO ," or ",OO0OO000OOO0O0O00 .lower (),])#line:561:])
+        else :#line:562:else:
+            OO000O0O0OO00OO0O .append (OO0OO000OOO0O0O00 )#line:563:parts.append(permissions_part)
+        OO000O0O0OO00OO0O .append (".\n")#line:564:parts.append(".\n")
+    return "".join (OO000O0O0OO00OO0O ).strip ()+"\n"#line:566:return "".join(parts).strip() + "\n"

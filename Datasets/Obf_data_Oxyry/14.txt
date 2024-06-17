@@ -1,9 +1,0 @@
-def factorial (OO0O0000000O0O0OO ):#line:1
-    if OO0O0000000O0O0OO ==0 :#line:2
-        return 1 #line:3
-    else :#line:4
-        return OO0O0000000O0O0OO *factorial (OO0O0000000O0O0OO -1 )#line:5
-if __name__ =="__main__":#line:7
-    num =int (input ("Enter a number to find its factorial: "))#line:8
-    print (f"The factorial of {num} is {factorial(num)}")#line:9
-

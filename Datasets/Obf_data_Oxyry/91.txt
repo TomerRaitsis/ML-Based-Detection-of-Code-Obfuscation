@@ -1,0 +1,52 @@
+""#line:10:"""
+def test_for_statement ():#line:14:def test_for_statement():
+    ""#line:15:"""FOR statement"""
+    OOO0O0OO0O0O00O00 =['cat','window','defenestrate']#line:18:words = ['cat', 'window', 'defenestrate']
+    O0O0OOO0O0000OOOO =0 #line:19:words_length = 0
+    for OOO000O0OOOOO00OO in OOO0O0OO0O0O00O00 :#line:21:for word in words:
+        O0O0OOO0O0000OOOO +=len (OOO000O0OOOOO00OO )#line:22:words_length += len(word)
+    assert O0O0OOO0O0000OOOO ==(3 +6 +12 )#line:27:assert words_length == (3 + 6 + 12)
+    for OOO000O0OOOOO00OO in OOO0O0OO0O0O00O00 [:]:#line:33:for word in words[:]:  # Loop over a slice copy of the entire list.
+        if len (OOO000O0OOOOO00OO )>6 :#line:34:if len(word) > 6:
+            OOO0O0OO0O0O00O00 .insert (0 ,OOO000O0OOOOO00OO )#line:35:words.insert(0, word)
+    assert OOO0O0OO0O0O00O00 ==['defenestrate','cat','window','defenestrate']#line:40:assert words == ['defenestrate', 'cat', 'window', 'defenestrate']
+    OO00O0OOOO000O000 =[]#line:44:iterated_numbers = []
+    for OOO0OOO0OO0OO00OO in range (5 ):#line:46:for number in range(5):
+        OO00O0OOOO000O000 .append (OOO0OOO0OO0OO00OO )#line:47:iterated_numbers.append(number)
+    assert OO00O0OOOO000O000 ==[0 ,1 ,2 ,3 ,4 ]#line:49:assert iterated_numbers == [0, 1, 2, 3, 4]
+    OOO0O0OO0O0O00O00 =['Mary','had','a','little','lamb']#line:52:words = ['Mary', 'had', 'a', 'little', 'lamb']
+    OO0O0O000O0O00000 =''#line:53:concatenated_string = ''
+    for OO0OOOO0OO0O00000 in range (len (OOO0O0OO0O0O00O00 )):#line:56:for word_index in range(len(words)):
+        OO0O0O000O0O00000 +=OOO0O0OO0O0O00O00 [OO0OOOO0OO0O00000 ]+' '#line:57:concatenated_string += words[word_index] + ' '
+    assert OO0O0O000O0O00000 =='Mary had a little lamb '#line:59:assert concatenated_string == 'Mary had a little lamb '
+    OO0O0O000O0O00000 =''#line:62:concatenated_string = ''
+    for OO0OOOO0OO0O00000 ,OOO000O0OOOOO00OO in enumerate (OOO0O0OO0O0O00O00 ):#line:64:for word_index, word in enumerate(words):
+        OO0O0O000O0O00000 +=OOO000O0OOOOO00OO +' '#line:65:concatenated_string += word + ' '
+    assert OO0O0O000O0O00000 =='Mary had a little lamb '#line:67:assert concatenated_string == 'Mary had a little lamb '
+    O00O000O000OOO0OO =[]#line:71:knights_names = []
+    OO0O0OOO00000O000 =[]#line:72:knights_properties = []
+    O0O00OO0O0O00OOOO ={'gallahad':'the pure','robin':'the brave'}#line:74:knights = {'gallahad': 'the pure', 'robin': 'the brave'}
+    for OO0O0OOOOO00000OO ,OO0O00O0OOO0OO0O0 in O0O00OO0O0O00OOOO .items ():#line:75:for key, value in knights.items():
+        O00O000O000OOO0OO .append (OO0O0OOOOO00000OO )#line:76:knights_names.append(key)
+        OO0O0OOO00000O000 .append (OO0O00O0OOO0OO0O0 )#line:77:knights_properties.append(value)
+    assert O00O000O000OOO0OO ==['gallahad','robin']#line:79:assert knights_names == ['gallahad', 'robin']
+    assert OO0O0OOO00000O000 ==['the pure','the brave']#line:80:assert knights_properties == ['the pure', 'the brave']
+    OO0O0000O00OO00O0 =[]#line:84:indices = []
+    O00O0O0OO0O000OOO =[]#line:85:values = []
+    for O00OOOOOO0OOOOO0O ,OO0O00O0OOO0OO0O0 in enumerate (['tic','tac','toe']):#line:86:for index, value in enumerate(['tic', 'tac', 'toe']):
+        OO0O0000O00OO00O0 .append (O00OOOOOO0OOOOO0O )#line:87:indices.append(index)
+        O00O0O0OO0O000OOO .append (OO0O00O0OOO0OO0O0 )#line:88:values.append(value)
+    assert OO0O0000O00OO00O0 ==[0 ,1 ,2 ]#line:90:assert indices == [0, 1, 2]
+    assert O00O0O0OO0O000OOO ==['tic','tac','toe']#line:91:assert values == ['tic', 'tac', 'toe']
+    OO0000OOO0OO0OO0O =['name','quest','favorite color']#line:95:questions = ['name', 'quest', 'favorite color']
+    OOOO0O00O000OO000 =['lancelot','the holy grail','blue']#line:96:answers = ['lancelot', 'the holy grail', 'blue']
+    O000OO0OO0OO000O0 =[]#line:97:combinations = []
+    for O0OO0OOOOO00O0OOO ,O00O0OO000OOOOOOO in zip (OO0000OOO0OO0OO0O ,OOOO0O00O000OO000 ):#line:99:for question, answer in zip(questions, answers):
+        O000OO0OO0OO000O0 .append ('What is your {0}?  It is {1}.'.format (O0OO0OOOOO00O0OOO ,O00O0OO000OOOOOOO ))#line:100:combinations.append('What is your {0}?  It is {1}.'.format(question, answer))
+    assert O000OO0OO0OO000O0 ==['What is your name?  It is lancelot.','What is your quest?  It is the holy grail.','What is your favorite color?  It is blue.',]#line:106:]
+def test_range_function ():#line:109:def test_range_function():
+    ""#line:123:"""
+    assert list (range (5 ))==[0 ,1 ,2 ,3 ,4 ]#line:125:assert list(range(5)) == [0, 1, 2, 3, 4]
+    assert list (range (5 ,10 ))==[5 ,6 ,7 ,8 ,9 ]#line:132:assert list(range(5, 10)) == [5, 6, 7, 8, 9]
+    assert list (range (0 ,10 ,3 ))==[0 ,3 ,6 ,9 ]#line:133:assert list(range(0, 10, 3)) == [0, 3, 6, 9]
+    assert list (range (-10 ,-100 ,-30 ))==[-10 ,-40 ,-70 ]#line:134:assert list(range(-10, -100, -30)) == [-10, -40, -70]

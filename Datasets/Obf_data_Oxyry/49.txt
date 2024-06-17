@@ -1,0 +1,1285 @@
+import codecs #line:5:import codecs
+from collections import deque #line:6:from collections import deque
+import contextlib #line:7:import contextlib
+import csv #line:8:import csv
+from glob import iglob as std_iglob #line:9:from glob import iglob as std_iglob
+import io #line:10:import io
+import json #line:11:import json
+import logging #line:12:import logging
+import os #line:13:import os
+import py_compile #line:14:import py_compile
+import re #line:15:import re
+import socket #line:16:import socket
+try :#line:17:try:
+    import ssl #line:18:import ssl
+except ImportError :#line:19:except ImportError:  # pragma: no cover
+    ssl =None #line:20:ssl = None
+import subprocess #line:21:import subprocess
+import sys #line:22:import sys
+import tarfile #line:23:import tarfile
+import tempfile #line:24:import tempfile
+import textwrap #line:25:import textwrap
+try :#line:27:try:
+    import threading #line:28:import threading
+except ImportError :#line:29:except ImportError:  # pragma: no cover
+    import dummy_threading as threading #line:30:import dummy_threading as threading
+import time #line:31:import time
+from .import DistlibException #line:33:from . import DistlibException
+from .compat import (string_types ,text_type ,shutil ,raw_input ,StringIO ,cache_from_source ,urlopen ,urljoin ,httplib ,xmlrpclib ,splittype ,HTTPHandler ,BaseConfigurator ,valid_ident ,Container ,configparser ,URLError ,ZipFile ,fsdecode ,unquote ,urlparse )#line:38:unquote, urlparse)
+logger =logging .getLogger (__name__ )#line:40:logger = logging.getLogger(__name__)
+IDENTIFIER =re .compile (r'^([\w\.-]+)\s*')#line:46:IDENTIFIER = re.compile(r'^([\w\.-]+)\s*')
+VERSION_IDENTIFIER =re .compile (r'^([\w\.*+-]+)\s*')#line:47:VERSION_IDENTIFIER = re.compile(r'^([\w\.*+-]+)\s*')
+COMPARE_OP =re .compile (r'^(<=?|>=?|={2,3}|[~!]=)\s*')#line:48:COMPARE_OP = re.compile(r'^(<=?|>=?|={2,3}|[~!]=)\s*')
+MARKER_OP =re .compile (r'^((<=?)|(>=?)|={2,3}|[~!]=|in|not\s+in)\s*')#line:49:MARKER_OP = re.compile(r'^((<=?)|(>=?)|={2,3}|[~!]=|in|not\s+in)\s*')
+OR =re .compile (r'^or\b\s*')#line:50:OR = re.compile(r'^or\b\s*')
+AND =re .compile (r'^and\b\s*')#line:51:AND = re.compile(r'^and\b\s*')
+NON_SPACE =re .compile (r'(\S+)\s*')#line:52:NON_SPACE = re.compile(r'(\S+)\s*')
+STRING_CHUNK =re .compile (r'([\s\w\.{}()*+#:;,/?!~`@$%^&=|<>\[\]-]+)')#line:53:STRING_CHUNK = re.compile(r'([\s\w\.{}()*+#:;,/?!~`@$%^&=|<>\[\]-]+)')
+def parse_marker (O0O0OO00O0O0O000O ):#line:56:def parse_marker(marker_string):
+    ""#line:64:"""
+    def OO000O0O0O00O000O (OO00OOO0OO0OO00OO ):#line:65:def marker_var(remaining):
+        O0OOOOOO00O0O0000 =IDENTIFIER .match (OO00OOO0OO0OO00OO )#line:67:m = IDENTIFIER.match(remaining)
+        if O0OOOOOO00O0O0000 :#line:68:if m:
+            OOOOO00O00OOOOO0O =O0OOOOOO00O0O0000 .groups ()[0 ]#line:69:result = m.groups()[0]
+            OO00OOO0OO0OO00OO =OO00OOO0OO0OO00OO [O0OOOOOO00O0O0000 .end ():]#line:70:remaining = remaining[m.end():]
+        elif not OO00OOO0OO0OO00OO :#line:71:elif not remaining:
+            raise SyntaxError ('unexpected end of input')#line:72:raise SyntaxError('unexpected end of input')
+        else :#line:73:else:
+            OO0OOOO0O0OO0OO0O =OO00OOO0OO0OO00OO [0 ]#line:74:q = remaining[0]
+            if OO0OOOO0O0OO0OO0O not in '\'"':#line:75:if q not in '\'"':
+                raise SyntaxError ('invalid expression: %s'%OO00OOO0OO0OO00OO )#line:76:raise SyntaxError('invalid expression: %s' % remaining)
+            O00000000O000OOO0 ='\'"'.replace (OO0OOOO0O0OO0OO0O ,'')#line:77:oq = '\'"'.replace(q, '')
+            OO00OOO0OO0OO00OO =OO00OOO0OO0OO00OO [1 :]#line:78:remaining = remaining[1:]
+            O00O0O0000OOOOO00 =[OO0OOOO0O0OO0OO0O ]#line:79:parts = [q]
+            while OO00OOO0OO0OO00OO :#line:80:while remaining:
+                if OO00OOO0OO0OO00OO [0 ]==OO0OOOO0O0OO0OO0O :#line:82:if remaining[0] == q:
+                    break #line:83:break
+                elif OO00OOO0OO0OO00OO [0 ]==O00000000O000OOO0 :#line:84:elif remaining[0] == oq:
+                    O00O0O0000OOOOO00 .append (O00000000O000OOO0 )#line:85:parts.append(oq)
+                    OO00OOO0OO0OO00OO =OO00OOO0OO0OO00OO [1 :]#line:86:remaining = remaining[1:]
+                else :#line:87:else:
+                    O0OOOOOO00O0O0000 =STRING_CHUNK .match (OO00OOO0OO0OO00OO )#line:88:m = STRING_CHUNK.match(remaining)
+                    if not O0OOOOOO00O0O0000 :#line:89:if not m:
+                        raise SyntaxError ('error in string literal: %s'%OO00OOO0OO0OO00OO )#line:90:raise SyntaxError('error in string literal: %s' % remaining)
+                    O00O0O0000OOOOO00 .append (O0OOOOOO00O0O0000 .groups ()[0 ])#line:91:parts.append(m.groups()[0])
+                    OO00OOO0OO0OO00OO =OO00OOO0OO0OO00OO [O0OOOOOO00O0O0000 .end ():]#line:92:remaining = remaining[m.end():]
+            else :#line:93:else:
+                O0O00000OO0O0OO0O =''.join (O00O0O0000OOOOO00 )#line:94:s = ''.join(parts)
+                raise SyntaxError ('unterminated string: %s'%O0O00000OO0O0OO0O )#line:95:raise SyntaxError('unterminated string: %s' % s)
+            O00O0O0000OOOOO00 .append (OO0OOOO0O0OO0OO0O )#line:96:parts.append(q)
+            OOOOO00O00OOOOO0O =''.join (O00O0O0000OOOOO00 )#line:97:result = ''.join(parts)
+            OO00OOO0OO0OO00OO =OO00OOO0OO0OO00OO [1 :].lstrip ()#line:98:remaining = remaining[1:].lstrip() # skip past closing quote
+        return OOOOO00O00OOOOO0O ,OO00OOO0OO0OO00OO #line:99:return result, remaining
+    def OOOOOOOO00OO00000 (O0OOOOO0OO0O0O00O ):#line:101:def marker_expr(remaining):
+        if O0OOOOO0OO0O0O00O and O0OOOOO0OO0O0O00O [0 ]=='(':#line:102:if remaining and remaining[0] == '(':
+            OO0OO00OO00000OO0 ,O0OOOOO0OO0O0O00O =O000000OO0O0OOOO0 (O0OOOOO0OO0O0O00O [1 :].lstrip ())#line:103:result, remaining = marker(remaining[1:].lstrip())
+            if O0OOOOO0OO0O0O00O [0 ]!=')':#line:104:if remaining[0] != ')':
+                raise SyntaxError ('unterminated parenthesis: %s'%O0OOOOO0OO0O0O00O )#line:105:raise SyntaxError('unterminated parenthesis: %s' % remaining)
+            O0OOOOO0OO0O0O00O =O0OOOOO0OO0O0O00O [1 :].lstrip ()#line:106:remaining = remaining[1:].lstrip()
+        else :#line:107:else:
+            OO00OOO0OOOOOOO0O ,O0OOOOO0OO0O0O00O =OO000O0O0O00O000O (O0OOOOO0OO0O0O00O )#line:108:lhs, remaining = marker_var(remaining)
+            while O0OOOOO0OO0O0O00O :#line:109:while remaining:
+                OOO0O0O0OO00O000O =MARKER_OP .match (O0OOOOO0OO0O0O00O )#line:110:m = MARKER_OP.match(remaining)
+                if not OOO0O0O0OO00O000O :#line:111:if not m:
+                    break #line:112:break
+                OOO00O00000OO0OO0 =OOO0O0O0OO00O000O .groups ()[0 ]#line:113:op = m.groups()[0]
+                O0OOOOO0OO0O0O00O =O0OOOOO0OO0O0O00O [OOO0O0O0OO00O000O .end ():]#line:114:remaining = remaining[m.end():]
+                OO000O0OO0O0O000O ,O0OOOOO0OO0O0O00O =OO000O0O0O00O000O (O0OOOOO0OO0O0O00O )#line:115:rhs, remaining = marker_var(remaining)
+                OO00OOO0OOOOOOO0O ={'op':OOO00O00000OO0OO0 ,'lhs':OO00OOO0OOOOOOO0O ,'rhs':OO000O0OO0O0O000O }#line:116:lhs = {'op': op, 'lhs': lhs, 'rhs': rhs}
+            OO0OO00OO00000OO0 =OO00OOO0OOOOOOO0O #line:117:result = lhs
+        return OO0OO00OO00000OO0 ,O0OOOOO0OO0O0O00O #line:118:return result, remaining
+    def OO00OOOO0O0O00000 (O0O0OOOOOOO0O0O0O ):#line:120:def marker_and(remaining):
+        OOO0OOO000O00OOOO ,O0O0OOOOOOO0O0O0O =OOOOOOOO00OO00000 (O0O0OOOOOOO0O0O0O )#line:121:lhs, remaining = marker_expr(remaining)
+        while O0O0OOOOOOO0O0O0O :#line:122:while remaining:
+            O0O0OOOOOO000000O =AND .match (O0O0OOOOOOO0O0O0O )#line:123:m = AND.match(remaining)
+            if not O0O0OOOOOO000000O :#line:124:if not m:
+                break #line:125:break
+            O0O0OOOOOOO0O0O0O =O0O0OOOOOOO0O0O0O [O0O0OOOOOO000000O .end ():]#line:126:remaining = remaining[m.end():]
+            OOO00OO0000OOO0OO ,O0O0OOOOOOO0O0O0O =OOOOOOOO00OO00000 (O0O0OOOOOOO0O0O0O )#line:127:rhs, remaining = marker_expr(remaining)
+            OOO0OOO000O00OOOO ={'op':'and','lhs':OOO0OOO000O00OOOO ,'rhs':OOO00OO0000OOO0OO }#line:128:lhs = {'op': 'and', 'lhs': lhs, 'rhs': rhs}
+        return OOO0OOO000O00OOOO ,O0O0OOOOOOO0O0O0O #line:129:return lhs, remaining
+    def O000000OO0O0OOOO0 (O00OOOOO00O000O0O ):#line:131:def marker(remaining):
+        OO00OO0O0O0OOO00O ,O00OOOOO00O000O0O =OO00OOOO0O0O00000 (O00OOOOO00O000O0O )#line:132:lhs, remaining = marker_and(remaining)
+        while O00OOOOO00O000O0O :#line:133:while remaining:
+            O0O00OOOO00O00O0O =OR .match (O00OOOOO00O000O0O )#line:134:m = OR.match(remaining)
+            if not O0O00OOOO00O00O0O :#line:135:if not m:
+                break #line:136:break
+            O00OOOOO00O000O0O =O00OOOOO00O000O0O [O0O00OOOO00O00O0O .end ():]#line:137:remaining = remaining[m.end():]
+            O0OO00OOOOOOO0OOO ,O00OOOOO00O000O0O =OO00OOOO0O0O00000 (O00OOOOO00O000O0O )#line:138:rhs, remaining = marker_and(remaining)
+            OO00OO0O0O0OOO00O ={'op':'or','lhs':OO00OO0O0O0OOO00O ,'rhs':O0OO00OOOOOOO0OOO }#line:139:lhs = {'op': 'or', 'lhs': lhs, 'rhs': rhs}
+        return OO00OO0O0O0OOO00O ,O00OOOOO00O000O0O #line:140:return lhs, remaining
+    return O000000OO0O0OOOO0 (O0O0OO00O0O0O000O )#line:142:return marker(marker_string)
+def parse_requirement (OOO0OOO00OO00OOOO ):#line:145:def parse_requirement(req):
+    ""#line:149:"""
+    O0O0OOO0O00OO000O =OOO0OOO00OO00OOOO .strip ()#line:150:remaining = req.strip()
+    if not O0O0OOO0O00OO000O or O0O0OOO0O00OO000O .startswith ('#'):#line:151:if not remaining or remaining.startswith('#'):
+        return None #line:152:return None
+    OO000O0O0000O0O0O =IDENTIFIER .match (O0O0OOO0O00OO000O )#line:153:m = IDENTIFIER.match(remaining)
+    if not OO000O0O0000O0O0O :#line:154:if not m:
+        raise SyntaxError ('name expected: %s'%O0O0OOO0O00OO000O )#line:155:raise SyntaxError('name expected: %s' % remaining)
+    OO0OOO00OO000O000 =OO000O0O0000O0O0O .groups ()[0 ]#line:156:distname = m.groups()[0]
+    O0O0OOO0O00OO000O =O0O0OOO0O00OO000O [OO000O0O0000O0O0O .end ():]#line:157:remaining = remaining[m.end():]
+    OOO0OOO0O0O000O0O =O000O00O00O00OO0O =OO0O0OOO0O00OOO0O =OOOO0OO0O00OOOOO0 =None #line:158:extras = mark_expr = versions = uri = None
+    if O0O0OOO0O00OO000O and O0O0OOO0O00OO000O [0 ]=='[':#line:159:if remaining and remaining[0] == '[':
+        O0O0000OOO0O0O0OO =O0O0OOO0O00OO000O .find (']',1 )#line:160:i = remaining.find(']', 1)
+        if O0O0000OOO0O0O0OO <0 :#line:161:if i < 0:
+            raise SyntaxError ('unterminated extra: %s'%O0O0OOO0O00OO000O )#line:162:raise SyntaxError('unterminated extra: %s' % remaining)
+        O00OO0OO0O0OO00OO =O0O0OOO0O00OO000O [1 :O0O0000OOO0O0O0OO ]#line:163:s = remaining[1:i]
+        O0O0OOO0O00OO000O =O0O0OOO0O00OO000O [O0O0000OOO0O0O0OO +1 :].lstrip ()#line:164:remaining = remaining[i + 1:].lstrip()
+        OOO0OOO0O0O000O0O =[]#line:165:extras = []
+        while O00OO0OO0O0OO00OO :#line:166:while s:
+            OO000O0O0000O0O0O =IDENTIFIER .match (O00OO0OO0O0OO00OO )#line:167:m = IDENTIFIER.match(s)
+            if not OO000O0O0000O0O0O :#line:168:if not m:
+                raise SyntaxError ('malformed extra: %s'%O00OO0OO0O0OO00OO )#line:169:raise SyntaxError('malformed extra: %s' % s)
+            OOO0OOO0O0O000O0O .append (OO000O0O0000O0O0O .groups ()[0 ])#line:170:extras.append(m.groups()[0])
+            O00OO0OO0O0OO00OO =O00OO0OO0O0OO00OO [OO000O0O0000O0O0O .end ():]#line:171:s = s[m.end():]
+            if not O00OO0OO0O0OO00OO :#line:172:if not s:
+                break #line:173:break
+            if O00OO0OO0O0OO00OO [0 ]!=',':#line:174:if s[0] != ',':
+                raise SyntaxError ('comma expected in extras: %s'%O00OO0OO0O0OO00OO )#line:175:raise SyntaxError('comma expected in extras: %s' % s)
+            O00OO0OO0O0OO00OO =O00OO0OO0O0OO00OO [1 :].lstrip ()#line:176:s = s[1:].lstrip()
+        if not OOO0OOO0O0O000O0O :#line:177:if not extras:
+            OOO0OOO0O0O000O0O =None #line:178:extras = None
+    if O0O0OOO0O00OO000O :#line:179:if remaining:
+        if O0O0OOO0O00OO000O [0 ]=='@':#line:180:if remaining[0] == '@':
+            O0O0OOO0O00OO000O =O0O0OOO0O00OO000O [1 :].lstrip ()#line:182:remaining = remaining[1:].lstrip()
+            OO000O0O0000O0O0O =NON_SPACE .match (O0O0OOO0O00OO000O )#line:183:m = NON_SPACE.match(remaining)
+            if not OO000O0O0000O0O0O :#line:184:if not m:
+                raise SyntaxError ('invalid URI: %s'%O0O0OOO0O00OO000O )#line:185:raise SyntaxError('invalid URI: %s' % remaining)
+            OOOO0OO0O00OOOOO0 =OO000O0O0000O0O0O .groups ()[0 ]#line:186:uri = m.groups()[0]
+            OO0OOO0OO00OO00OO =urlparse (OOOO0OO0O00OOOOO0 )#line:187:t = urlparse(uri)
+            if not (OO0OOO0OO00OO00OO .scheme and OO0OOO0OO00OO00OO .netloc ):#line:192:if not (t.scheme and t.netloc):
+                raise SyntaxError ('Invalid URL: %s'%OOOO0OO0O00OOOOO0 )#line:193:raise SyntaxError('Invalid URL: %s' % uri)
+            O0O0OOO0O00OO000O =O0O0OOO0O00OO000O [OO000O0O0000O0O0O .end ():].lstrip ()#line:194:remaining = remaining[m.end():].lstrip()
+        else :#line:195:else:
+            def OO0OO00OOOOOOOO00 (O0O0OOOOOO00OOO00 ):#line:197:def get_versions(ver_remaining):
+                ""#line:201:"""
+                O0OO0OOO0O0000000 =COMPARE_OP .match (O0O0OOOOOO00OOO00 )#line:202:m = COMPARE_OP.match(ver_remaining)
+                O000OOOOO00O0OOOO =None #line:203:versions = None
+                if O0OO0OOO0O0000000 :#line:204:if m:
+                    O000OOOOO00O0OOOO =[]#line:205:versions = []
+                    while True :#line:206:while True:
+                        O00OOOOOO00O000O0 =O0OO0OOO0O0000000 .groups ()[0 ]#line:207:op = m.groups()[0]
+                        O0O0OOOOOO00OOO00 =O0O0OOOOOO00OOO00 [O0OO0OOO0O0000000 .end ():]#line:208:ver_remaining = ver_remaining[m.end():]
+                        O0OO0OOO0O0000000 =VERSION_IDENTIFIER .match (O0O0OOOOOO00OOO00 )#line:209:m = VERSION_IDENTIFIER.match(ver_remaining)
+                        if not O0OO0OOO0O0000000 :#line:210:if not m:
+                            raise SyntaxError ('invalid version: %s'%O0O0OOOOOO00OOO00 )#line:211:raise SyntaxError('invalid version: %s' % ver_remaining)
+                        O0OO0OO000O0O0OOO =O0OO0OOO0O0000000 .groups ()[0 ]#line:212:v = m.groups()[0]
+                        O000OOOOO00O0OOOO .append ((O00OOOOOO00O000O0 ,O0OO0OO000O0O0OOO ))#line:213:versions.append((op, v))
+                        O0O0OOOOOO00OOO00 =O0O0OOOOOO00OOO00 [O0OO0OOO0O0000000 .end ():]#line:214:ver_remaining = ver_remaining[m.end():]
+                        if not O0O0OOOOOO00OOO00 or O0O0OOOOOO00OOO00 [0 ]!=',':#line:215:if not ver_remaining or ver_remaining[0] != ',':
+                            break #line:216:break
+                        O0O0OOOOOO00OOO00 =O0O0OOOOOO00OOO00 [1 :].lstrip ()#line:217:ver_remaining = ver_remaining[1:].lstrip()
+                        O0OO0OOO0O0000000 =COMPARE_OP .match (O0O0OOOOOO00OOO00 )#line:218:m = COMPARE_OP.match(ver_remaining)
+                        if not O0OO0OOO0O0000000 :#line:219:if not m:
+                            raise SyntaxError ('invalid constraint: %s'%O0O0OOOOOO00OOO00 )#line:220:raise SyntaxError('invalid constraint: %s' % ver_remaining)
+                    if not O000OOOOO00O0OOOO :#line:221:if not versions:
+                        O000OOOOO00O0OOOO =None #line:222:versions = None
+                return O000OOOOO00O0OOOO ,O0O0OOOOOO00OOO00 #line:223:return versions, ver_remaining
+            if O0O0OOO0O00OO000O [0 ]!='(':#line:225:if remaining[0] != '(':
+                OO0O0OOO0O00OOO0O ,O0O0OOO0O00OO000O =OO0OO00OOOOOOOO00 (O0O0OOO0O00OO000O )#line:226:versions, remaining = get_versions(remaining)
+            else :#line:227:else:
+                O0O0000OOO0O0O0OO =O0O0OOO0O00OO000O .find (')',1 )#line:228:i = remaining.find(')', 1)
+                if O0O0000OOO0O0O0OO <0 :#line:229:if i < 0:
+                    raise SyntaxError ('unterminated parenthesis: %s'%O0O0OOO0O00OO000O )#line:230:raise SyntaxError('unterminated parenthesis: %s' % remaining)
+                O00OO0OO0O0OO00OO =O0O0OOO0O00OO000O [1 :O0O0000OOO0O0O0OO ]#line:231:s = remaining[1:i]
+                O0O0OOO0O00OO000O =O0O0OOO0O00OO000O [O0O0000OOO0O0O0OO +1 :].lstrip ()#line:232:remaining = remaining[i + 1:].lstrip()
+                if COMPARE_OP .match (O00OO0OO0O0OO00OO ):#line:236:if COMPARE_OP.match(s):
+                    OO0O0OOO0O00OOO0O ,_OO0O0OOO0O00OO0OO =OO0OO00OOOOOOOO00 (O00OO0OO0O0OO00OO )#line:237:versions, _ = get_versions(s)
+                else :#line:238:else:
+                    OO000O0O0000O0O0O =VERSION_IDENTIFIER .match (O00OO0OO0O0OO00OO )#line:239:m = VERSION_IDENTIFIER.match(s)
+                    if not OO000O0O0000O0O0O :#line:240:if not m:
+                        raise SyntaxError ('invalid constraint: %s'%O00OO0OO0O0OO00OO )#line:241:raise SyntaxError('invalid constraint: %s' % s)
+                    OO0000OOOO0OOOO0O =OO000O0O0000O0O0O .groups ()[0 ]#line:242:v = m.groups()[0]
+                    O00OO0OO0O0OO00OO =O00OO0OO0O0OO00OO [OO000O0O0000O0O0O .end ():].lstrip ()#line:243:s = s[m.end():].lstrip()
+                    if O00OO0OO0O0OO00OO :#line:244:if s:
+                        raise SyntaxError ('invalid constraint: %s'%O00OO0OO0O0OO00OO )#line:245:raise SyntaxError('invalid constraint: %s' % s)
+                    OO0O0OOO0O00OOO0O =[('~=',OO0000OOOO0OOOO0O )]#line:246:versions = [('~=', v)]
+    if O0O0OOO0O00OO000O :#line:248:if remaining:
+        if O0O0OOO0O00OO000O [0 ]!=';':#line:249:if remaining[0] != ';':
+            raise SyntaxError ('invalid requirement: %s'%O0O0OOO0O00OO000O )#line:250:raise SyntaxError('invalid requirement: %s' % remaining)
+        O0O0OOO0O00OO000O =O0O0OOO0O00OO000O [1 :].lstrip ()#line:251:remaining = remaining[1:].lstrip()
+        O000O00O00O00OO0O ,O0O0OOO0O00OO000O =parse_marker (O0O0OOO0O00OO000O )#line:253:mark_expr, remaining = parse_marker(remaining)
+    if O0O0OOO0O00OO000O and O0O0OOO0O00OO000O [0 ]!='#':#line:255:if remaining and remaining[0] != '#':
+        raise SyntaxError ('unexpected trailing data: %s'%O0O0OOO0O00OO000O )#line:256:raise SyntaxError('unexpected trailing data: %s' % remaining)
+    if not OO0O0OOO0O00OOO0O :#line:258:if not versions:
+        O0OO00O0O0O0O000O =OO0OOO00OO000O000 #line:259:rs = distname
+    else :#line:260:else:
+        O0OO00O0O0O0O000O ='%s %s'%(OO0OOO00OO000O000 ,', '.join (['%s %s'%O000O0O000O00OO00 for O000O0O000O00OO00 in OO0O0OOO0O00OOO0O ]))#line:261:rs = '%s %s' % (distname, ', '.join(['%s %s' % con for con in versions]))
+    return Container (name =OO0OOO00OO000O000 ,extras =OOO0OOO0O0O000O0O ,constraints =OO0O0OOO0O00OOO0O ,marker =O000O00O00O00OO0O ,url =OOOO0OO0O00OOOOO0 ,requirement =O0OO00O0O0O0O000O )#line:263:marker=mark_expr, url=uri, requirement=rs)
+def get_resources_dests (OOOO000O0O0O000OO ,O0OOOOO0OOOO00OO0 ):#line:266:def get_resources_dests(resources_root, rules):
+    ""#line:267:"""Find destinations for resources files"""
+    def O0OO0O00O0OOO0O0O (O000O00O000O0O00O ,OOO0O00O00O00OOO0 ):#line:269:def get_rel_path(root, path):
+        O000O00O000O0O00O =O000O00O000O0O00O .replace (os .path .sep ,'/')#line:271:root = root.replace(os.path.sep, '/')
+        OOO0O00O00O00OOO0 =OOO0O00O00O00OOO0 .replace (os .path .sep ,'/')#line:272:path = path.replace(os.path.sep, '/')
+        assert OOO0O00O00O00OOO0 .startswith (O000O00O000O0O00O )#line:273:assert path.startswith(root)
+        return OOO0O00O00O00OOO0 [len (O000O00O000O0O00O ):].lstrip ('/')#line:274:return path[len(root):].lstrip('/')
+    O0O0000OOO00O00O0 ={}#line:276:destinations = {}
+    for OO0O00O0000000O00 ,O0OO00O0OOO000OO0 ,O00OOO0O0O000OOOO in O0OOOOO0OOOO00OO0 :#line:277:for base, suffix, dest in rules:
+        OO0O00O0OOOOO00O0 =os .path .join (OOOO000O0O0O000OO ,OO0O00O0000000O00 )#line:278:prefix = os.path.join(resources_root, base)
+        for O0O0O00O0OO000OOO in iglob (OO0O00O0OOOOO00O0 ):#line:279:for abs_base in iglob(prefix):
+            OOOO00O0O00OO0O00 =os .path .join (O0O0O00O0OO000OOO ,O0OO00O0OOO000OO0 )#line:280:abs_glob = os.path.join(abs_base, suffix)
+            for O0O00O000OO0OO000 in iglob (OOOO00O0O00OO0O00 ):#line:281:for abs_path in iglob(abs_glob):
+                OOO0O000OOOO000O0 =O0OO0O00O0OOO0O0O (OOOO000O0O0O000OO ,O0O00O000OO0OO000 )#line:282:resource_file = get_rel_path(resources_root, abs_path)
+                if O00OOO0O0O000OOOO is None :#line:283:if dest is None:  # remove the entry if it was here
+                    O0O0000OOO00O00O0 .pop (OOO0O000OOOO000O0 ,None )#line:284:destinations.pop(resource_file, None)
+                else :#line:285:else:
+                    OO0O00O00OOO0O0OO =O0OO0O00O0OOO0O0O (O0O0O00O0OO000OOO ,O0O00O000OO0OO000 )#line:286:rel_path = get_rel_path(abs_base, abs_path)
+                    O000OOOO000000OOO =O00OOO0O0O000OOOO .replace (os .path .sep ,'/').rstrip ('/')#line:287:rel_dest = dest.replace(os.path.sep, '/').rstrip('/')
+                    O0O0000OOO00O00O0 [OOO0O000OOOO000O0 ]=O000OOOO000000OOO +'/'+OO0O00O00OOO0O0OO #line:288:destinations[resource_file] = rel_dest + '/' + rel_path
+    return O0O0000OOO00O00O0 #line:289:return destinations
+def in_venv ():#line:292:def in_venv():
+    if hasattr (sys ,'real_prefix'):#line:293:if hasattr(sys, 'real_prefix'):
+        O0000OOO00O0OOO0O =True #line:295:result = True
+    else :#line:296:else:
+        O0000OOO00O0OOO0O =sys .prefix !=getattr (sys ,'base_prefix',sys .prefix )#line:298:result = sys.prefix != getattr(sys, 'base_prefix', sys.prefix)
+    return O0000OOO00O0OOO0O #line:299:return result
+def get_executable ():#line:302:def get_executable():
+    O00O00OOOO0O00OOO =os .path .normcase (sys .executable )#line:312:result = os.path.normcase(sys.executable)
+    if not isinstance (O00O00OOOO0O00OOO ,text_type ):#line:313:if not isinstance(result, text_type):
+        O00O00OOOO0O00OOO =fsdecode (O00O00OOOO0O00OOO )#line:314:result = fsdecode(result)
+    return O00O00OOOO0O00OOO #line:315:return result
+def proceed (O0O00OOOO0O00000O ,O0O00OOO00OO0OO00 ,error_prompt =None ,default =None ):#line:318:def proceed(prompt, allowed_chars, error_prompt=None, default=None):
+    O0O0O00000OO000O0 =O0O00OOOO0O00000O #line:319:p = prompt
+    while True :#line:320:while True:
+        O0O00000O0OO00O00 =raw_input (O0O0O00000OO000O0 )#line:321:s = raw_input(p)
+        O0O0O00000OO000O0 =O0O00OOOO0O00000O #line:322:p = prompt
+        if not O0O00000O0OO00O00 and default :#line:323:if not s and default:
+            O0O00000O0OO00O00 =default #line:324:s = default
+        if O0O00000O0OO00O00 :#line:325:if s:
+            OOO0O00O0OO00OOOO =O0O00000O0OO00O00 [0 ].lower ()#line:326:c = s[0].lower()
+            if OOO0O00O0OO00OOOO in O0O00OOO00OO0OO00 :#line:327:if c in allowed_chars:
+                break #line:328:break
+            if error_prompt :#line:329:if error_prompt:
+                O0O0O00000OO000O0 ='%c: %s\n%s'%(OOO0O00O0OO00OOOO ,error_prompt ,O0O00OOOO0O00000O )#line:330:p = '%c: %s\n%s' % (c, error_prompt, prompt)
+    return OOO0O00O0OO00OOOO #line:331:return c
+def extract_by_key (O000O0OO0000O0000 ,OOOO000O0O0OO0O0O ):#line:334:def extract_by_key(d, keys):
+    if isinstance (OOOO000O0O0OO0O0O ,string_types ):#line:335:if isinstance(keys, string_types):
+        OOOO000O0O0OO0O0O =OOOO000O0O0OO0O0O .split ()#line:336:keys = keys.split()
+    OO000OO0000000000 ={}#line:337:result = {}
+    for O00O0O0O000OOOO00 in OOOO000O0O0OO0O0O :#line:338:for key in keys:
+        if O00O0O0O000OOOO00 in O000O0OO0000O0000 :#line:339:if key in d:
+            OO000OO0000000000 [O00O0O0O000OOOO00 ]=O000O0OO0000O0000 [O00O0O0O000OOOO00 ]#line:340:result[key] = d[key]
+    return OO000OO0000000000 #line:341:return result
+def read_exports (O000O0OO0O000OOOO ):#line:343:def read_exports(stream):
+    if sys .version_info [0 ]>=3 :#line:344:if sys.version_info[0] >= 3:
+        O000O0OO0O000OOOO =codecs .getreader ('utf-8')(O000O0OO0O000OOOO )#line:346:stream = codecs.getreader('utf-8')(stream)
+    OO00OOOO0O0OO0O0O =O000O0OO0O000OOOO .read ()#line:348:data = stream.read()
+    O000O0OO0O000OOOO =StringIO (OO00OOOO0O0OO0O0O )#line:349:stream = StringIO(data)
+    try :#line:350:try:
+        O00OO00OO0OO0O0O0 =json .load (O000O0OO0O000OOOO )#line:351:jdata = json.load(stream)
+        OOO00OOOO0OOOO000 =O00OO00OO0OO0O0O0 ['extensions']['python.exports']['exports']#line:352:result = jdata['extensions']['python.exports']['exports']
+        for O00000OOOO0O00O0O ,O00O00O0O0OOOOO0O in OOO00OOOO0OOOO000 .items ():#line:353:for group, entries in result.items():
+            for O0OO0O00000OOO000 ,O000O0000O00OO000 in O00O00O0O0OOOOO0O .items ():#line:354:for k, v in entries.items():
+                OO0000O00O00000O0 ='%s = %s'%(O0OO0O00000OOO000 ,O000O0000O00OO000 )#line:355:s = '%s = %s' % (k, v)
+                O0000000O0O0O000O =get_export_entry (OO0000O00O00000O0 )#line:356:entry = get_export_entry(s)
+                assert O0000000O0O0O000O is not None #line:357:assert entry is not None
+                O00O00O0O0OOOOO0O [O0OO0O00000OOO000 ]=O0000000O0O0O000O #line:358:entries[k] = entry
+        return OOO00OOOO0OOOO000 #line:359:return result
+    except Exception :#line:360:except Exception:
+        O000O0OO0O000OOOO .seek (0 ,0 )#line:361:stream.seek(0, 0)
+    def OO0O0O0OOOOO0O00O (OOO0O0OOOO0OOO000 ,OO00OO0OO0O0000OO ):#line:363:def read_stream(cp, stream):
+        if hasattr (OOO0O0OOOO0OOO000 ,'read_file'):#line:364:if hasattr(cp, 'read_file'):
+            OOO0O0OOOO0OOO000 .read_file (OO00OO0OO0O0000OO )#line:365:cp.read_file(stream)
+        else :#line:366:else:
+            OOO0O0OOOO0OOO000 .readfp (OO00OO0OO0O0000OO )#line:367:cp.readfp(stream)
+    O0O0000OOO0O000O0 =configparser .ConfigParser ()#line:369:cp = configparser.ConfigParser()
+    try :#line:370:try:
+        OO0O0O0OOOOO0O00O (O0O0000OOO0O000O0 ,O000O0OO0O000OOOO )#line:371:read_stream(cp, stream)
+    except configparser .MissingSectionHeaderError :#line:372:except configparser.MissingSectionHeaderError:
+        O000O0OO0O000OOOO .close ()#line:373:stream.close()
+        OO00OOOO0O0OO0O0O =textwrap .dedent (OO00OOOO0O0OO0O0O )#line:374:data = textwrap.dedent(data)
+        O000O0OO0O000OOOO =StringIO (OO00OOOO0O0OO0O0O )#line:375:stream = StringIO(data)
+        OO0O0O0OOOOO0O00O (O0O0000OOO0O000O0 ,O000O0OO0O000OOOO )#line:376:read_stream(cp, stream)
+    OOO00OOOO0OOOO000 ={}#line:378:result = {}
+    for O0OOOOO000000O0OO in O0O0000OOO0O000O0 .sections ():#line:379:for key in cp.sections():
+        OOO00OOOO0OOOO000 [O0OOOOO000000O0OO ]=O00O00O0O0OOOOO0O ={}#line:380:result[key] = entries = {}
+        for OOO0O0OO0O0O0O000 ,OOOO0000OO0O00OOO in O0O0000OOO0O000O0 .items (O0OOOOO000000O0OO ):#line:381:for name, value in cp.items(key):
+            OO0000O00O00000O0 ='%s = %s'%(OOO0O0OO0O0O0O000 ,OOOO0000OO0O00OOO )#line:382:s = '%s = %s' % (name, value)
+            O0000000O0O0O000O =get_export_entry (OO0000O00O00000O0 )#line:383:entry = get_export_entry(s)
+            assert O0000000O0O0O000O is not None #line:384:assert entry is not None
+            O00O00O0O0OOOOO0O [OOO0O0OO0O0O0O000 ]=O0000000O0O0O000O #line:386:entries[name] = entry
+    return OOO00OOOO0OOOO000 #line:387:return result
+def write_exports (OOO0OO000O000O0OO ,O000OO00O00OOOO00 ):#line:390:def write_exports(exports, stream):
+    if sys .version_info [0 ]>=3 :#line:391:if sys.version_info[0] >= 3:
+        O000OO00O00OOOO00 =codecs .getwriter ('utf-8')(O000OO00O00OOOO00 )#line:393:stream = codecs.getwriter('utf-8')(stream)
+    O0000O0OOO0OOOOOO =configparser .ConfigParser ()#line:394:cp = configparser.ConfigParser()
+    for O0OO0O0OOOOOOOO0O ,O0000O0OOO0OOO00O in OOO0OO000O000O0OO .items ():#line:395:for k, v in exports.items():
+        O0000O0OOO0OOOOOO .add_section (O0OO0O0OOOOOOOO0O )#line:397:cp.add_section(k)
+        for O0OO00000OO0OO00O in O0000O0OOO0OOO00O .values ():#line:398:for entry in v.values():
+            if O0OO00000OO0OO00O .suffix is None :#line:399:if entry.suffix is None:
+                OOO0000O0OOO0O0OO =O0OO00000OO0OO00O .prefix #line:400:s = entry.prefix
+            else :#line:401:else:
+                OOO0000O0OOO0O0OO ='%s:%s'%(O0OO00000OO0OO00O .prefix ,O0OO00000OO0OO00O .suffix )#line:402:s = '%s:%s' % (entry.prefix, entry.suffix)
+            if O0OO00000OO0OO00O .flags :#line:403:if entry.flags:
+                OOO0000O0OOO0O0OO ='%s [%s]'%(OOO0000O0OOO0O0OO ,', '.join (O0OO00000OO0OO00O .flags ))#line:404:s = '%s [%s]' % (s, ', '.join(entry.flags))
+            O0000O0OOO0OOOOOO .set (O0OO0O0OOOOOOOO0O ,O0OO00000OO0OO00O .name ,OOO0000O0OOO0O0OO )#line:405:cp.set(k, entry.name, s)
+    O0000O0OOO0OOOOOO .write (O000OO00O00OOOO00 )#line:406:cp.write(stream)
+@contextlib .contextmanager #line:409:@contextlib.contextmanager
+def tempdir ():#line:410:def tempdir():
+    O0O000OOOO0O00000 =tempfile .mkdtemp ()#line:411:td = tempfile.mkdtemp()
+    try :#line:412:try:
+        yield O0O000OOOO0O00000 #line:413:yield td
+    finally :#line:414:finally:
+        shutil .rmtree (O0O000OOOO0O00000 )#line:415:shutil.rmtree(td)
+@contextlib .contextmanager #line:417:@contextlib.contextmanager
+def chdir (OOO0000000O0000OO ):#line:418:def chdir(d):
+    O000OOO00O0O0OO00 =os .getcwd ()#line:419:cwd = os.getcwd()
+    try :#line:420:try:
+        os .chdir (OOO0000000O0000OO )#line:421:os.chdir(d)
+        yield #line:422:yield
+    finally :#line:423:finally:
+        os .chdir (O000OOO00O0O0OO00 )#line:424:os.chdir(cwd)
+@contextlib .contextmanager #line:427:@contextlib.contextmanager
+def socket_timeout (seconds =15 ):#line:428:def socket_timeout(seconds=15):
+    OOO0OO0000OO00000 =socket .getdefaulttimeout ()#line:429:cto = socket.getdefaulttimeout()
+    try :#line:430:try:
+        socket .setdefaulttimeout (seconds )#line:431:socket.setdefaulttimeout(seconds)
+        yield #line:432:yield
+    finally :#line:433:finally:
+        socket .setdefaulttimeout (OOO0OO0000OO00000 )#line:434:socket.setdefaulttimeout(cto)
+class cached_property (object ):#line:437:class cached_property(object):
+    def __init__ (OO00OOO00O0000OOO ,OOOOOO0O0OOOOOOO0 ):#line:438:def __init__(self, func):
+        OO00OOO00O0000OOO .func =OOOOOO0O0OOOOOOO0 #line:439:self.func = func
+    def __get__ (O00OO0000O00O00OO ,O00O0O0000OOO000O ,cls =None ):#line:443:def __get__(self, obj, cls=None):
+        if O00O0O0000OOO000O is None :#line:444:if obj is None:
+            return O00OO0000O00O00OO #line:445:return self
+        O0O0OO0OO00O0O0O0 =O00OO0000O00O00OO .func (O00O0O0000OOO000O )#line:446:value = self.func(obj)
+        object .__setattr__ (O00O0O0000OOO000O ,O00OO0000O00O00OO .func .__name__ ,O0O0OO0OO00O0O0O0 )#line:447:object.__setattr__(obj, self.func.__name__, value)
+        return O0O0OO0OO00O0O0O0 #line:449:return value
+def convert_path (O0O0O000OO0O00OO0 ):#line:451:def convert_path(pathname):
+    ""#line:460:"""
+    if os .sep =='/':#line:461:if os.sep == '/':
+        return O0O0O000OO0O00OO0 #line:462:return pathname
+    if not O0O0O000OO0O00OO0 :#line:463:if not pathname:
+        return O0O0O000OO0O00OO0 #line:464:return pathname
+    if O0O0O000OO0O00OO0 [0 ]=='/':#line:465:if pathname[0] == '/':
+        raise ValueError ("path '%s' cannot be absolute"%O0O0O000OO0O00OO0 )#line:466:raise ValueError("path '%s' cannot be absolute" % pathname)
+    if O0O0O000OO0O00OO0 [-1 ]=='/':#line:467:if pathname[-1] == '/':
+        raise ValueError ("path '%s' cannot end with '/'"%O0O0O000OO0O00OO0 )#line:468:raise ValueError("path '%s' cannot end with '/'" % pathname)
+    O0O00O0O000O000OO =O0O0O000OO0O00OO0 .split ('/')#line:470:paths = pathname.split('/')
+    while os .curdir in O0O00O0O000O000OO :#line:471:while os.curdir in paths:
+        O0O00O0O000O000OO .remove (os .curdir )#line:472:paths.remove(os.curdir)
+    if not O0O00O0O000O000OO :#line:473:if not paths:
+        return os .curdir #line:474:return os.curdir
+    return os .path .join (*O0O00O0O000O000OO )#line:475:return os.path.join(*paths)
+class FileOperator (object ):#line:478:class FileOperator(object):
+    def __init__ (OOO00OO0O0OOO0O0O ,dry_run =False ):#line:479:def __init__(self, dry_run=False):
+        OOO00OO0O0OOO0O0O .dry_run =dry_run #line:480:self.dry_run = dry_run
+        OOO00OO0O0OOO0O0O .ensured =set ()#line:481:self.ensured = set()
+        OOO00OO0O0OOO0O0O ._init_record ()#line:482:self._init_record()
+    def _init_record (OO00000O00000OOOO ):#line:484:def _init_record(self):
+        OO00000O00000OOOO .record =False #line:485:self.record = False
+        OO00000O00000OOOO .files_written =set ()#line:486:self.files_written = set()
+        OO00000O00000OOOO .dirs_created =set ()#line:487:self.dirs_created = set()
+    def record_as_written (O0O00O0OOO0OO0O0O ,O0O0000O0O0OOO00O ):#line:489:def record_as_written(self, path):
+        if O0O00O0OOO0OO0O0O .record :#line:490:if self.record:
+            O0O00O0OOO0OO0O0O .files_written .add (O0O0000O0O0OOO00O )#line:491:self.files_written.add(path)
+    def newer (OO000O000O00OO000 ,O0O000OO000O0O00O ,OO0OO0OOOO00O0000 ):#line:493:def newer(self, source, target):
+        ""#line:504:"""
+        if not os .path .exists (O0O000OO000O0O00O ):#line:505:if not os.path.exists(source):
+            raise DistlibException ("file '%r' does not exist"%os .path .abspath (O0O000OO000O0O00O ))#line:507:os.path.abspath(source))
+        if not os .path .exists (OO0OO0OOOO00O0000 ):#line:508:if not os.path.exists(target):
+            return True #line:509:return True
+        return os .stat (O0O000OO000O0O00O ).st_mtime >os .stat (OO0OO0OOOO00O0000 ).st_mtime #line:511:return os.stat(source).st_mtime > os.stat(target).st_mtime
+    def copy_file (O00OOO00O0OO000O0 ,O00O0O0OOO0000O0O ,O000O00000O0OOOOO ,check =True ):#line:513:def copy_file(self, infile, outfile, check=True):
+        ""#line:515:"""
+        O00OOO00O0OO000O0 .ensure_dir (os .path .dirname (O000O00000O0OOOOO ))#line:516:self.ensure_dir(os.path.dirname(outfile))
+        logger .info ('Copying %s to %s',O00O0O0OOO0000O0O ,O000O00000O0OOOOO )#line:517:logger.info('Copying %s to %s', infile, outfile)
+        if not O00OOO00O0OO000O0 .dry_run :#line:518:if not self.dry_run:
+            O000OOOO0000O0000 =None #line:519:msg = None
+            if check :#line:520:if check:
+                if os .path .islink (O000O00000O0OOOOO ):#line:521:if os.path.islink(outfile):
+                    O000OOOO0000O0000 ='%s is a symlink'%O000O00000O0OOOOO #line:522:msg = '%s is a symlink' % outfile
+                elif os .path .exists (O000O00000O0OOOOO )and not os .path .isfile (O000O00000O0OOOOO ):#line:523:elif os.path.exists(outfile) and not os.path.isfile(outfile):
+                    O000OOOO0000O0000 ='%s is a non-regular file'%O000O00000O0OOOOO #line:524:msg = '%s is a non-regular file' % outfile
+            if O000OOOO0000O0000 :#line:525:if msg:
+                raise ValueError (O000OOOO0000O0000 +' which would be overwritten')#line:526:raise ValueError(msg + ' which would be overwritten')
+            shutil .copyfile (O00O0O0OOO0000O0O ,O000O00000O0OOOOO )#line:527:shutil.copyfile(infile, outfile)
+        O00OOO00O0OO000O0 .record_as_written (O000O00000O0OOOOO )#line:528:self.record_as_written(outfile)
+    def copy_stream (O0O00O0O0000O0O0O ,OO000O00O00O0O0OO ,OO00O00OOOOO0OOO0 ,encoding =None ):#line:530:def copy_stream(self, instream, outfile, encoding=None):
+        assert not os .path .isdir (OO00O00OOOOO0OOO0 )#line:531:assert not os.path.isdir(outfile)
+        O0O00O0O0000O0O0O .ensure_dir (os .path .dirname (OO00O00OOOOO0OOO0 ))#line:532:self.ensure_dir(os.path.dirname(outfile))
+        logger .info ('Copying stream %s to %s',OO000O00O00O0O0OO ,OO00O00OOOOO0OOO0 )#line:533:logger.info('Copying stream %s to %s', instream, outfile)
+        if not O0O00O0O0000O0O0O .dry_run :#line:534:if not self.dry_run:
+            if encoding is None :#line:535:if encoding is None:
+                OO0OO0O00OO00O000 =open (OO00O00OOOOO0OOO0 ,'wb')#line:536:outstream = open(outfile, 'wb')
+            else :#line:537:else:
+                OO0OO0O00OO00O000 =codecs .open (OO00O00OOOOO0OOO0 ,'w',encoding =encoding )#line:538:outstream = codecs.open(outfile, 'w', encoding=encoding)
+            try :#line:539:try:
+                shutil .copyfileobj (OO000O00O00O0O0OO ,OO0OO0O00OO00O000 )#line:540:shutil.copyfileobj(instream, outstream)
+            finally :#line:541:finally:
+                OO0OO0O00OO00O000 .close ()#line:542:outstream.close()
+        O0O00O0O0000O0O0O .record_as_written (OO00O00OOOOO0OOO0 )#line:543:self.record_as_written(outfile)
+    def write_binary_file (O00000000000O0O0O ,OOO0OOO0O0O0OO0O0 ,O0000000000000O00 ):#line:545:def write_binary_file(self, path, data):
+        O00000000000O0O0O .ensure_dir (os .path .dirname (OOO0OOO0O0O0OO0O0 ))#line:546:self.ensure_dir(os.path.dirname(path))
+        if not O00000000000O0O0O .dry_run :#line:547:if not self.dry_run:
+            if os .path .exists (OOO0OOO0O0O0OO0O0 ):#line:548:if os.path.exists(path):
+                os .remove (OOO0OOO0O0O0OO0O0 )#line:549:os.remove(path)
+            with open (OOO0OOO0O0O0OO0O0 ,'wb')as O000O00O0OOO0O00O :#line:550:with open(path, 'wb') as f:
+                O000O00O0OOO0O00O .write (O0000000000000O00 )#line:551:f.write(data)
+        O00000000000O0O0O .record_as_written (OOO0OOO0O0O0OO0O0 )#line:552:self.record_as_written(path)
+    def write_text_file (OOOO00OO00OO0O0OO ,OO00O0O00O0OO0O00 ,OO0O0O0OO0O0000O0 ,OOOO00000000OOOOO ):#line:554:def write_text_file(self, path, data, encoding):
+        OOOO00OO00OO0O0OO .write_binary_file (OO00O0O00O0OO0O00 ,OO0O0O0OO0O0000O0 .encode (OOOO00000000OOOOO ))#line:555:self.write_binary_file(path, data.encode(encoding))
+    def set_mode (O00O0O0OOO00OO000 ,OOO00000O000000O0 ,OOO000OO00OOO0OO0 ,O000OO0O0O0O000OO ):#line:557:def set_mode(self, bits, mask, files):
+        if os .name =='posix'or (os .name =='java'and os ._name =='posix'):#line:558:if os.name == 'posix' or (os.name == 'java' and os._name == 'posix'):
+            for OO0OOO00O00000000 in O000OO0O0O0O000OO :#line:561:for f in files:
+                if O00O0O0OOO00OO000 .dry_run :#line:562:if self.dry_run:
+                    logger .info ("changing mode of %s",OO0OOO00O00000000 )#line:563:logger.info("changing mode of %s", f)
+                else :#line:564:else:
+                    O0OO0OOO000000OO0 =(os .stat (OO0OOO00O00000000 ).st_mode |OOO00000O000000O0 )&OOO000OO00OOO0OO0 #line:565:mode = (os.stat(f).st_mode | bits) & mask
+                    logger .info ("changing mode of %s to %o",OO0OOO00O00000000 ,O0OO0OOO000000OO0 )#line:566:logger.info("changing mode of %s to %o", f, mode)
+                    os .chmod (OO0OOO00O00000000 ,O0OO0OOO000000OO0 )#line:567:os.chmod(f, mode)
+    set_executable_mode =lambda OO00O00OOOO00O0OO ,OO00O00O00O0OO00O :OO00O00OOOO00O0OO .set_mode (0o555 ,0o7777 ,OO00O00O00O0OO00O )#line:569:set_executable_mode = lambda s, f: s.set_mode(0o555, 0o7777, f)
+    def ensure_dir (O0OOO00O0OOOO0OO0 ,OO00O0OO00O0OO0OO ):#line:571:def ensure_dir(self, path):
+        OO00O0OO00O0OO0OO =os .path .abspath (OO00O0OO00O0OO0OO )#line:572:path = os.path.abspath(path)
+        if OO00O0OO00O0OO0OO not in O0OOO00O0OOOO0OO0 .ensured and not os .path .exists (OO00O0OO00O0OO0OO ):#line:573:if path not in self.ensured and not os.path.exists(path):
+            O0OOO00O0OOOO0OO0 .ensured .add (OO00O0OO00O0OO0OO )#line:574:self.ensured.add(path)
+            O0OO0O0OOOOO0OO0O ,O000O0O0O00O00OOO =os .path .split (OO00O0OO00O0OO0OO )#line:575:d, f = os.path.split(path)
+            O0OOO00O0OOOO0OO0 .ensure_dir (O0OO0O0OOOOO0OO0O )#line:576:self.ensure_dir(d)
+            logger .info ('Creating %s'%OO00O0OO00O0OO0OO )#line:577:logger.info('Creating %s' % path)
+            if not O0OOO00O0OOOO0OO0 .dry_run :#line:578:if not self.dry_run:
+                os .mkdir (OO00O0OO00O0OO0OO )#line:579:os.mkdir(path)
+            if O0OOO00O0OOOO0OO0 .record :#line:580:if self.record:
+                O0OOO00O0OOOO0OO0 .dirs_created .add (OO00O0OO00O0OO0OO )#line:581:self.dirs_created.add(path)
+    def byte_compile (O000O0O00OOOOOO00 ,O00OOOO0000OO0OO0 ,optimize =False ,force =False ,prefix =None ,hashed_invalidation =False ):#line:583:def byte_compile(self, path, optimize=False, force=False, prefix=None, hashed_invalidation=False):
+        OO0O00OOO0OOO0O0O =cache_from_source (O00OOOO0000OO0OO0 ,not optimize )#line:584:dpath = cache_from_source(path, not optimize)
+        logger .info ('Byte-compiling %s to %s',O00OOOO0000OO0OO0 ,OO0O00OOO0OOO0O0O )#line:585:logger.info('Byte-compiling %s to %s', path, dpath)
+        if not O000O0O00OOOOOO00 .dry_run :#line:586:if not self.dry_run:
+            if force or O000O0O00OOOOOO00 .newer (O00OOOO0000OO0OO0 ,OO0O00OOO0OOO0O0O ):#line:587:if force or self.newer(path, dpath):
+                if not prefix :#line:588:if not prefix:
+                    OOOO0OOOOOO0O0000 =None #line:589:diagpath = None
+                else :#line:590:else:
+                    assert O00OOOO0000OO0OO0 .startswith (prefix )#line:591:assert path.startswith(prefix)
+                    OOOO0OOOOOO0O0000 =O00OOOO0000OO0OO0 [len (prefix ):]#line:592:diagpath = path[len(prefix):]
+            OO0O0OOO0O0OO0OOO ={}#line:593:compile_kwargs = {}
+            if hashed_invalidation and hasattr (py_compile ,'PycInvalidationMode'):#line:594:if hashed_invalidation and hasattr(py_compile, 'PycInvalidationMode'):
+                OO0O0OOO0O0OO0OOO ['invalidation_mode']=py_compile .PycInvalidationMode .CHECKED_HASH #line:595:compile_kwargs['invalidation_mode'] = py_compile.PycInvalidationMode.CHECKED_HASH
+            py_compile .compile (O00OOOO0000OO0OO0 ,OO0O00OOO0OOO0O0O ,OOOO0OOOOOO0O0000 ,True ,**OO0O0OOO0O0OO0OOO )#line:596:py_compile.compile(path, dpath, diagpath, True, **compile_kwargs)     # raise error
+        O000O0O00OOOOOO00 .record_as_written (OO0O00OOO0OOO0O0O )#line:597:self.record_as_written(dpath)
+        return OO0O00OOO0OOO0O0O #line:598:return dpath
+    def ensure_removed (OO0O0000000000OOO ,OO000O0O0OOOO00OO ):#line:600:def ensure_removed(self, path):
+        if os .path .exists (OO000O0O0OOOO00OO ):#line:601:if os.path.exists(path):
+            if os .path .isdir (OO000O0O0OOOO00OO )and not os .path .islink (OO000O0O0OOOO00OO ):#line:602:if os.path.isdir(path) and not os.path.islink(path):
+                logger .debug ('Removing directory tree at %s',OO000O0O0OOOO00OO )#line:603:logger.debug('Removing directory tree at %s', path)
+                if not OO0O0000000000OOO .dry_run :#line:604:if not self.dry_run:
+                    shutil .rmtree (OO000O0O0OOOO00OO )#line:605:shutil.rmtree(path)
+                if OO0O0000000000OOO .record :#line:606:if self.record:
+                    if OO000O0O0OOOO00OO in OO0O0000000000OOO .dirs_created :#line:607:if path in self.dirs_created:
+                        OO0O0000000000OOO .dirs_created .remove (OO000O0O0OOOO00OO )#line:608:self.dirs_created.remove(path)
+            else :#line:609:else:
+                if os .path .islink (OO000O0O0OOOO00OO ):#line:610:if os.path.islink(path):
+                    O000O0OOOO0000000 ='link'#line:611:s = 'link'
+                else :#line:612:else:
+                    O000O0OOOO0000000 ='file'#line:613:s = 'file'
+                logger .debug ('Removing %s %s',O000O0OOOO0000000 ,OO000O0O0OOOO00OO )#line:614:logger.debug('Removing %s %s', s, path)
+                if not OO0O0000000000OOO .dry_run :#line:615:if not self.dry_run:
+                    os .remove (OO000O0O0OOOO00OO )#line:616:os.remove(path)
+                if OO0O0000000000OOO .record :#line:617:if self.record:
+                    if OO000O0O0OOOO00OO in OO0O0000000000OOO .files_written :#line:618:if path in self.files_written:
+                        OO0O0000000000OOO .files_written .remove (OO000O0O0OOOO00OO )#line:619:self.files_written.remove(path)
+    def is_writable (O0OOOO0OOO00OO000 ,O0O0O000O0OO0OOOO ):#line:621:def is_writable(self, path):
+        O0000O00OO0OOO0O0 =False #line:622:result = False
+        while not O0000O00OO0OOO0O0 :#line:623:while not result:
+            if os .path .exists (O0O0O000O0OO0OOOO ):#line:624:if os.path.exists(path):
+                O0000O00OO0OOO0O0 =os .access (O0O0O000O0OO0OOOO ,os .W_OK )#line:625:result = os.access(path, os.W_OK)
+                break #line:626:break
+            OO000OO000OOO00OO =os .path .dirname (O0O0O000O0OO0OOOO )#line:627:parent = os.path.dirname(path)
+            if OO000OO000OOO00OO ==O0O0O000O0OO0OOOO :#line:628:if parent == path:
+                break #line:629:break
+            O0O0O000O0OO0OOOO =OO000OO000OOO00OO #line:630:path = parent
+        return O0000O00OO0OOO0O0 #line:631:return result
+    def commit (O0OO00000O0O0O00O ):#line:633:def commit(self):
+        ""#line:637:"""
+        assert O0OO00000O0O0O00O .record #line:638:assert self.record
+        OO000000O000000OO =O0OO00000O0O0O00O .files_written ,O0OO00000O0O0O00O .dirs_created #line:639:result = self.files_written, self.dirs_created
+        O0OO00000O0O0O00O ._init_record ()#line:640:self._init_record()
+        return OO000000O000000OO #line:641:return result
+    def rollback (O00O00O00000OO0OO ):#line:643:def rollback(self):
+        if not O00O00O00000OO0OO .dry_run :#line:644:if not self.dry_run:
+            for O0OO00O0O00O000OO in list (O00O00O00000OO0OO .files_written ):#line:645:for f in list(self.files_written):
+                if os .path .exists (O0OO00O0O00O000OO ):#line:646:if os.path.exists(f):
+                    os .remove (O0OO00O0O00O000OO )#line:647:os.remove(f)
+            O0OO00OO00O0OO0O0 =sorted (O00O00O00000OO0OO .dirs_created ,reverse =True )#line:651:dirs = sorted(self.dirs_created, reverse=True)
+            for OO0O0OO0O0OO00000 in O0OO00OO00O0OO0O0 :#line:652:for d in dirs:
+                O0O00OO00OO00O0O0 =os .listdir (OO0O0OO0O0OO00000 )#line:653:flist = os.listdir(d)
+                if O0O00OO00OO00O0O0 :#line:654:if flist:
+                    assert O0O00OO00OO00O0O0 ==['__pycache__']#line:655:assert flist == ['__pycache__']
+                    OOO0OOOO0OO0O00OO =os .path .join (OO0O0OO0O0OO00000 ,O0O00OO00OO00O0O0 [0 ])#line:656:sd = os.path.join(d, flist[0])
+                    os .rmdir (OOO0OOOO0OO0O00OO )#line:657:os.rmdir(sd)
+                os .rmdir (OO0O0OO0O0OO00000 )#line:658:os.rmdir(d)     # should fail if non-empty
+        O00O00O00000OO0OO ._init_record ()#line:659:self._init_record()
+def resolve (O0O00O0OO0000OOO0 ,O0O00OOO0O0O00OOO ):#line:661:def resolve(module_name, dotted_path):
+    if O0O00O0OO0000OOO0 in sys .modules :#line:662:if module_name in sys.modules:
+        OO0O0OOOO00000000 =sys .modules [O0O00O0OO0000OOO0 ]#line:663:mod = sys.modules[module_name]
+    else :#line:664:else:
+        OO0O0OOOO00000000 =__import__ (O0O00O0OO0000OOO0 )#line:665:mod = __import__(module_name)
+    if O0O00OOO0O0O00OOO is None :#line:666:if dotted_path is None:
+        OO0OOO00O00OOO000 =OO0O0OOOO00000000 #line:667:result = mod
+    else :#line:668:else:
+        OOOO0O0OO000O0OOO =O0O00OOO0O0O00OOO .split ('.')#line:669:parts = dotted_path.split('.')
+        OO0OOO00O00OOO000 =getattr (OO0O0OOOO00000000 ,OOOO0O0OO000O0OOO .pop (0 ))#line:670:result = getattr(mod, parts.pop(0))
+        for OO0OOOOO000O00OOO in OOOO0O0OO000O0OOO :#line:671:for p in parts:
+            OO0OOO00O00OOO000 =getattr (OO0OOO00O00OOO000 ,OO0OOOOO000O00OOO )#line:672:result = getattr(result, p)
+    return OO0OOO00O00OOO000 #line:673:return result
+class ExportEntry (object ):#line:676:class ExportEntry(object):
+    def __init__ (OO0O000OO00OO0000 ,OOO0000O00O00OO00 ,O000O00OO0OO0OO0O ,O00OO0000OO00O0OO ,O0OO0OO00000O000O ):#line:677:def __init__(self, name, prefix, suffix, flags):
+        OO0O000OO00OO0000 .name =OOO0000O00O00OO00 #line:678:self.name = name
+        OO0O000OO00OO0000 .prefix =O000O00OO0OO0OO0O #line:679:self.prefix = prefix
+        OO0O000OO00OO0000 .suffix =O00OO0000OO00O0OO #line:680:self.suffix = suffix
+        OO0O000OO00OO0000 .flags =O0OO0OO00000O000O #line:681:self.flags = flags
+    @cached_property #line:683:@cached_property
+    def value (O0O00O00O00000OOO ):#line:684:def value(self):
+        return resolve (O0O00O00O00000OOO .prefix ,O0O00O00O00000OOO .suffix )#line:685:return resolve(self.prefix, self.suffix)
+    def __repr__ (O0OO0O00O0O0OOOO0 ):#line:687:def __repr__(self):  # pragma: no cover
+        return '<ExportEntry %s = %s:%s %s>'%(O0OO0O00O0O0OOOO0 .name ,O0OO0O00O0O0OOOO0 .prefix ,O0OO0O00O0O0OOOO0 .suffix ,O0OO0O00O0O0OOOO0 .flags )#line:689:self.suffix, self.flags)
+    def __eq__ (O000OO0OOOO00O00O ,O000OOOOOO0O000O0 ):#line:691:def __eq__(self, other):
+        if not isinstance (O000OOOOOO0O000O0 ,ExportEntry ):#line:692:if not isinstance(other, ExportEntry):
+            OO0OO0OOO00OOOOOO =False #line:693:result = False
+        else :#line:694:else:
+            OO0OO0OOO00OOOOOO =(O000OO0OOOO00O00O .name ==O000OOOOOO0O000O0 .name and O000OO0OOOO00O00O .prefix ==O000OOOOOO0O000O0 .prefix and O000OO0OOOO00O00O .suffix ==O000OOOOOO0O000O0 .suffix and O000OO0OOOO00O00O .flags ==O000OOOOOO0O000O0 .flags )#line:698:self.flags == other.flags)
+        return OO0OO0OOO00OOOOOO #line:699:return result
+    __hash__ =object .__hash__ #line:701:__hash__ = object.__hash__
+ENTRY_RE =re .compile (r'''(?P<name>(\w|[-.+])+)
+                      \s*=\s*(?P<callable>(\w+)([:\.]\w+)*)
+                      \s*(\[\s*(?P<flags>\w+(=\w+)?(,\s*\w+(=\w+)?)*)\s*\])?
+                      ''',re .VERBOSE )#line:707:''', re.VERBOSE)
+def get_export_entry (O0OOO0000000OO0OO ):#line:709:def get_export_entry(specification):
+    OOO000O000OOO0O00 =ENTRY_RE .search (O0OOO0000000OO0OO )#line:710:m = ENTRY_RE.search(specification)
+    if not OOO000O000OOO0O00 :#line:711:if not m:
+        O0OOO0O0O0OOOO000 =None #line:712:result = None
+        if '['in O0OOO0000000OO0OO or ']'in O0OOO0000000OO0OO :#line:713:if '[' in specification or ']' in specification:
+            raise DistlibException ("Invalid specification " "'%s'"%O0OOO0000000OO0OO )#line:715:"'%s'" % specification)
+    else :#line:716:else:
+        OOOOO000O00O00O00 =OOO000O000OOO0O00 .groupdict ()#line:717:d = m.groupdict()
+        O0O0O000O0OOO0000 =OOOOO000O00O00O00 ['name']#line:718:name = d['name']
+        O0OOOOO00OOOOOO00 =OOOOO000O00O00O00 ['callable']#line:719:path = d['callable']
+        O00O0O000OO0000OO =O0OOOOO00OOOOOO00 .count (':')#line:720:colons = path.count(':')
+        if O00O0O000OO0000OO ==0 :#line:721:if colons == 0:
+            OOO00OO0000OO0OOO ,OOOOOO00OOO00O0OO =O0OOOOO00OOOOOO00 ,None #line:722:prefix, suffix = path, None
+        else :#line:723:else:
+            if O00O0O000OO0000OO !=1 :#line:724:if colons != 1:
+                raise DistlibException ("Invalid specification " "'%s'"%O0OOO0000000OO0OO )#line:726:"'%s'" % specification)
+            OOO00OO0000OO0OOO ,OOOOOO00OOO00O0OO =O0OOOOO00OOOOOO00 .split (':')#line:727:prefix, suffix = path.split(':')
+        OO0O00O0O0O000000 =OOOOO000O00O00O00 ['flags']#line:728:flags = d['flags']
+        if OO0O00O0O0O000000 is None :#line:729:if flags is None:
+            if '['in O0OOO0000000OO0OO or ']'in O0OOO0000000OO0OO :#line:730:if '[' in specification or ']' in specification:
+                raise DistlibException ("Invalid specification " "'%s'"%O0OOO0000000OO0OO )#line:732:"'%s'" % specification)
+            OO0O00O0O0O000000 =[]#line:733:flags = []
+        else :#line:734:else:
+            OO0O00O0O0O000000 =[OO000O0O0O000000O .strip ()for OO000O0O0O000000O in OO0O00O0O0O000000 .split (',')]#line:735:flags = [f.strip() for f in flags.split(',')]
+        O0OOO0O0O0OOOO000 =ExportEntry (O0O0O000O0OOO0000 ,OOO00OO0000OO0OOO ,OOOOOO00OOO00O0OO ,OO0O00O0O0O000000 )#line:736:result = ExportEntry(name, prefix, suffix, flags)
+    return O0OOO0O0O0OOOO000 #line:737:return result
+def get_cache_base (suffix =None ):#line:740:def get_cache_base(suffix=None):
+    ""#line:754:"""
+    if suffix is None :#line:755:if suffix is None:
+        suffix ='.distlib'#line:756:suffix = '.distlib'
+    if os .name =='nt'and 'LOCALAPPDATA'in os .environ :#line:757:if os.name == 'nt' and 'LOCALAPPDATA' in os.environ:
+        O00000O0O00OO0000 =os .path .expandvars ('$localappdata')#line:758:result = os.path.expandvars('$localappdata')
+    else :#line:759:else:
+        O00000O0O00OO0000 =os .path .expanduser ('~')#line:761:result = os.path.expanduser('~')
+    if os .path .isdir (O00000O0O00OO0000 ):#line:764:if os.path.isdir(result):
+        O0O0O000O00OO0000 =os .access (O00000O0O00OO0000 ,os .W_OK )#line:765:usable = os.access(result, os.W_OK)
+        if not O0O0O000O00OO0000 :#line:766:if not usable:
+            logger .warning ('Directory exists but is not writable: %s',O00000O0O00OO0000 )#line:767:logger.warning('Directory exists but is not writable: %s', result)
+    else :#line:768:else:
+        try :#line:769:try:
+            os .makedirs (O00000O0O00OO0000 )#line:770:os.makedirs(result)
+            O0O0O000O00OO0000 =True #line:771:usable = True
+        except OSError :#line:772:except OSError:
+            logger .warning ('Unable to create %s',O00000O0O00OO0000 ,exc_info =True )#line:773:logger.warning('Unable to create %s', result, exc_info=True)
+            O0O0O000O00OO0000 =False #line:774:usable = False
+    if not O0O0O000O00OO0000 :#line:775:if not usable:
+        O00000O0O00OO0000 =tempfile .mkdtemp ()#line:776:result = tempfile.mkdtemp()
+        logger .warning ('Default location unusable, using %s',O00000O0O00OO0000 )#line:777:logger.warning('Default location unusable, using %s', result)
+    return os .path .join (O00000O0O00OO0000 ,suffix )#line:778:return os.path.join(result, suffix)
+def path_to_cache_dir (O0OO000O0O00O000O ):#line:781:def path_to_cache_dir(path):
+    ""#line:790:"""
+    OO0O0OOOO000OOOOO ,O00OO00OOO000OOOO =os .path .splitdrive (os .path .abspath (O0OO000O0O00O000O ))#line:791:d, p = os.path.splitdrive(os.path.abspath(path))
+    if OO0O0OOOO000OOOOO :#line:792:if d:
+        OO0O0OOOO000OOOOO =OO0O0OOOO000OOOOO .replace (':','---')#line:793:d = d.replace(':', '---')
+    O00OO00OOO000OOOO =O00OO00OOO000OOOO .replace (os .sep ,'--')#line:794:p = p.replace(os.sep, '--')
+    return OO0O0OOOO000OOOOO +O00OO00OOO000OOOO +'.cache'#line:795:return d + p + '.cache'
+def ensure_slash (OO00O00O0OOO0O00O ):#line:798:def ensure_slash(s):
+    if not OO00O00O0OOO0O00O .endswith ('/'):#line:799:if not s.endswith('/'):
+        return OO00O00O0OOO0O00O +'/'#line:800:return s + '/'
+    return OO00O00O0OOO0O00O #line:801:return s
+def parse_credentials (O0O0OOOO0O0OO0OOO ):#line:804:def parse_credentials(netloc):
+    O000O0OO0000OOO00 =OOOOO00O00000OOOO =None #line:805:username = password = None
+    if '@'in O0O0OOOO0O0OO0OOO :#line:806:if '@' in netloc:
+        OOO00OO0OOOOOO0O0 ,O0O0OOOO0O0OO0OOO =O0O0OOOO0O0OO0OOO .split ('@',1 )#line:807:prefix, netloc = netloc.split('@', 1)
+        if ':'not in OOO00OO0OOOOOO0O0 :#line:808:if ':' not in prefix:
+            O000O0OO0000OOO00 =OOO00OO0OOOOOO0O0 #line:809:username = prefix
+        else :#line:810:else:
+            O000O0OO0000OOO00 ,OOOOO00O00000OOOO =OOO00OO0OOOOOO0O0 .split (':',1 )#line:811:username, password = prefix.split(':', 1)
+    return O000O0OO0000OOO00 ,OOOOO00O00000OOOO ,O0O0OOOO0O0OO0OOO #line:812:return username, password, netloc
+def get_process_umask ():#line:815:def get_process_umask():
+    OO000OOOOO00000OO =os .umask (0o22 )#line:816:result = os.umask(0o22)
+    os .umask (OO000OOOOO00000OO )#line:817:os.umask(result)
+    return OO000OOOOO00000OO #line:818:return result
+def is_string_sequence (O000OOO0O00OOOO0O ):#line:820:def is_string_sequence(seq):
+    O0000OOOO0O0O0O00 =True #line:821:result = True
+    OOOOOO0OO00OOO0O0 =None #line:822:i = None
+    for OOOOOO0OO00OOO0O0 ,O0OO00O0OOOO00OO0 in enumerate (O000OOO0O00OOOO0O ):#line:823:for i, s in enumerate(seq):
+        if not isinstance (O0OO00O0OOOO00OO0 ,string_types ):#line:824:if not isinstance(s, string_types):
+            O0000OOOO0O0O0O00 =False #line:825:result = False
+            break #line:826:break
+    assert OOOOOO0OO00OOO0O0 is not None #line:827:assert i is not None
+    return O0000OOOO0O0O0O00 #line:828:return result
+PROJECT_NAME_AND_VERSION =re .compile ('([a-z0-9_]+([.-][a-z_][a-z0-9_]*)*)-' '([a-z0-9_.+-]+)',re .I )#line:831:'([a-z0-9_.+-]+)', re.I)
+PYTHON_VERSION =re .compile (r'-py(\d\.?\d?)')#line:832:PYTHON_VERSION = re.compile(r'-py(\d\.?\d?)')
+def split_filename (O0OOOO00O00O0OO00 ,project_name =None ):#line:835:def split_filename(filename, project_name=None):
+    ""#line:840:"""
+    O0O0O00OOO0000O00 =None #line:841:result = None
+    OOO0OOOOOO00O0O00 =None #line:842:pyver = None
+    O0OOOO00O00O0OO00 =unquote (O0OOOO00O00O0OO00 ).replace (' ','-')#line:843:filename = unquote(filename).replace(' ', '-')
+    O00O000OO000O00OO =PYTHON_VERSION .search (O0OOOO00O00O0OO00 )#line:844:m = PYTHON_VERSION.search(filename)
+    if O00O000OO000O00OO :#line:845:if m:
+        OOO0OOOOOO00O0O00 =O00O000OO000O00OO .group (1 )#line:846:pyver = m.group(1)
+        O0OOOO00O00O0OO00 =O0OOOO00O00O0OO00 [:O00O000OO000O00OO .start ()]#line:847:filename = filename[:m.start()]
+    if project_name and len (O0OOOO00O00O0OO00 )>len (project_name )+1 :#line:848:if project_name and len(filename) > len(project_name) + 1:
+        O00O000OO000O00OO =re .match (re .escape (project_name )+r'\b',O0OOOO00O00O0OO00 )#line:849:m = re.match(re.escape(project_name) + r'\b', filename)
+        if O00O000OO000O00OO :#line:850:if m:
+            OOO00O0000O00OO0O =O00O000OO000O00OO .end ()#line:851:n = m.end()
+            O0O0O00OOO0000O00 =O0OOOO00O00O0OO00 [:OOO00O0000O00OO0O ],O0OOOO00O00O0OO00 [OOO00O0000O00OO0O +1 :],OOO0OOOOOO00O0O00 #line:852:result = filename[:n], filename[n + 1:], pyver
+    if O0O0O00OOO0000O00 is None :#line:853:if result is None:
+        O00O000OO000O00OO =PROJECT_NAME_AND_VERSION .match (O0OOOO00O00O0OO00 )#line:854:m = PROJECT_NAME_AND_VERSION.match(filename)
+        if O00O000OO000O00OO :#line:855:if m:
+            O0O0O00OOO0000O00 =O00O000OO000O00OO .group (1 ),O00O000OO000O00OO .group (3 ),OOO0OOOOOO00O0O00 #line:856:result = m.group(1), m.group(3), pyver
+    return O0O0O00OOO0000O00 #line:857:return result
+NAME_VERSION_RE =re .compile (r'(?P<name>[\w .-]+)\s*' r'\(\s*(?P<ver>[^\s)]+)\)$')#line:861:r'\(\s*(?P<ver>[^\s)]+)\)$')
+def parse_name_and_version (O00OO0OO0O0O0000O ):#line:863:def parse_name_and_version(p):
+    ""#line:871:"""
+    OOOO0O00O000OOO0O =NAME_VERSION_RE .match (O00OO0OO0O0O0000O )#line:872:m = NAME_VERSION_RE.match(p)
+    if not OOOO0O00O000OOO0O :#line:873:if not m:
+        raise DistlibException ('Ill-formed name/version string: \'%s\''%O00OO0OO0O0O0000O )#line:874:raise DistlibException('Ill-formed name/version string: \'%s\'' % p)
+    OOOO0OO0OOO0000OO =OOOO0O00O000OOO0O .groupdict ()#line:875:d = m.groupdict()
+    return OOOO0OO0OOO0000OO ['name'].strip ().lower (),OOOO0OO0OOO0000OO ['ver']#line:876:return d['name'].strip().lower(), d['ver']
+def get_extras (O000000OO0O00OOOO ,O0OO00OO000OOOO00 ):#line:878:def get_extras(requested, available):
+    O00O000O00O00O00O =set ()#line:879:result = set()
+    O000000OO0O00OOOO =set (O000000OO0O00OOOO or [])#line:880:requested = set(requested or [])
+    O0OO00OO000OOOO00 =set (O0OO00OO000OOOO00 or [])#line:881:available = set(available or [])
+    if '*'in O000000OO0O00OOOO :#line:882:if '*' in requested:
+        O000000OO0O00OOOO .remove ('*')#line:883:requested.remove('*')
+        O00O000O00O00O00O |=O0OO00OO000OOOO00 #line:884:result |= available
+    for O0O000O0O0OO0O000 in O000000OO0O00OOOO :#line:885:for r in requested:
+        if O0O000O0O0OO0O000 =='-':#line:886:if r == '-':
+            O00O000O00O00O00O .add (O0O000O0O0OO0O000 )#line:887:result.add(r)
+        elif O0O000O0O0OO0O000 .startswith ('-'):#line:888:elif r.startswith('-'):
+            OO0OOO000OOOO00O0 =O0O000O0O0OO0O000 [1 :]#line:889:unwanted = r[1:]
+            if OO0OOO000OOOO00O0 not in O0OO00OO000OOOO00 :#line:890:if unwanted not in available:
+                logger .warning ('undeclared extra: %s'%OO0OOO000OOOO00O0 )#line:891:logger.warning('undeclared extra: %s' % unwanted)
+            if OO0OOO000OOOO00O0 in O00O000O00O00O00O :#line:892:if unwanted in result:
+                O00O000O00O00O00O .remove (OO0OOO000OOOO00O0 )#line:893:result.remove(unwanted)
+        else :#line:894:else:
+            if O0O000O0O0OO0O000 not in O0OO00OO000OOOO00 :#line:895:if r not in available:
+                logger .warning ('undeclared extra: %s'%O0O000O0O0OO0O000 )#line:896:logger.warning('undeclared extra: %s' % r)
+            O00O000O00O00O00O .add (O0O000O0O0OO0O000 )#line:897:result.add(r)
+    return O00O000O00O00O00O #line:898:return result
+def _O00O000O0O000O0O0 (OO0OO0OOO000OOOOO ):#line:903:def _get_external_data(url):
+    OO0O0OOO0000OO00O ={}#line:904:result = {}
+    try :#line:905:try:
+        OO0OO00O00OOOO000 =urlopen (OO0OO0OOO000OOOOO )#line:909:resp = urlopen(url)
+        OO00O0O000O0OO0O0 =OO0OO00O00OOOO000 .info ()#line:910:headers = resp.info()
+        OO000000O0O0OO0OO =OO00O0O000O0OO0O0 .get ('Content-Type')#line:911:ct = headers.get('Content-Type')
+        if not OO000000O0O0OO0OO .startswith ('application/json'):#line:912:if not ct.startswith('application/json'):
+            logger .debug ('Unexpected response for JSON request: %s',OO000000O0O0OO0OO )#line:913:logger.debug('Unexpected response for JSON request: %s', ct)
+        else :#line:914:else:
+            OOOO0OO0OOO0000O0 =codecs .getreader ('utf-8')(OO0OO00O00OOOO000 )#line:915:reader = codecs.getreader('utf-8')(resp)
+            OO0O0OOO0000OO00O =json .load (OOOO0OO0OOO0000O0 )#line:918:result = json.load(reader)
+    except Exception as O00O00OOOO0O00O00 :#line:919:except Exception as e:
+        logger .exception ('Failed to get external data for %s: %s',OO0OO0OOO000OOOOO ,O00O00OOOO0O00O00 )#line:920:logger.exception('Failed to get external data for %s: %s', url, e)
+    return OO0O0OOO0000OO00O #line:921:return result
+_O0OO0OO0OO00000O0 ='https://www.red-dove.com/pypi/projects/'#line:923:_external_data_base_url = 'https://www.red-dove.com/pypi/projects/'
+def get_project_data (O00000OO0OO0O0OOO ):#line:925:def get_project_data(name):
+    OO000O00O0OO0000O ='%s/%s/project.json'%(O00000OO0OO0O0OOO [0 ].upper (),O00000OO0OO0O0OOO )#line:926:url = '%s/%s/project.json' % (name[0].upper(), name)
+    OO000O00O0OO0000O =urljoin (_O0OO0OO0OO00000O0 ,OO000O00O0OO0000O )#line:927:url = urljoin(_external_data_base_url, url)
+    O0OO000000O00O0OO =_O00O000O0O000O0O0 (OO000O00O0OO0000O )#line:928:result = _get_external_data(url)
+    return O0OO000000O00O0OO #line:929:return result
+def get_package_data (OOOO000OOOO0000O0 ,OOO0OO00O0OOOO0OO ):#line:931:def get_package_data(name, version):
+    O0O00000O0OO0O000 ='%s/%s/package-%s.json'%(OOOO000OOOO0000O0 [0 ].upper (),OOOO000OOOO0000O0 ,OOO0OO00O0OOOO0OO )#line:932:url = '%s/%s/package-%s.json' % (name[0].upper(), name, version)
+    O0O00000O0OO0O000 =urljoin (_O0OO0OO0OO00000O0 ,O0O00000O0OO0O000 )#line:933:url = urljoin(_external_data_base_url, url)
+    return _O00O000O0O000O0O0 (O0O00000O0OO0O000 )#line:934:return _get_external_data(url)
+class Cache (object ):#line:937:class Cache(object):
+    ""#line:942:"""
+    def __init__ (OOOOO0000O0O00O00 ,OO000O0000O000OO0 ):#line:944:def __init__(self, base):
+        ""#line:949:"""
+        if not os .path .isdir (OO000O0000O000OO0 ):#line:952:if not os.path.isdir(base):  # pragma: no cover
+            os .makedirs (OO000O0000O000OO0 )#line:953:os.makedirs(base)
+        if (os .stat (OO000O0000O000OO0 ).st_mode &0o77 )!=0 :#line:954:if (os.stat(base).st_mode & 0o77) != 0:
+            logger .warning ('Directory \'%s\' is not private',OO000O0000O000OO0 )#line:955:logger.warning('Directory \'%s\' is not private', base)
+        OOOOO0000O0O00O00 .base =os .path .abspath (os .path .normpath (OO000O0000O000OO0 ))#line:956:self.base = os.path.abspath(os.path.normpath(base))
+    def prefix_to_dir (OO0OOOO000O0OO0OO ,O0OOO0OO00000000O ):#line:958:def prefix_to_dir(self, prefix):
+        ""#line:961:"""
+        return path_to_cache_dir (O0OOO0OO00000000O )#line:962:return path_to_cache_dir(prefix)
+    def clear (O00O00O000OOO0O0O ):#line:964:def clear(self):
+        ""#line:967:"""
+        O0O00OO000O000O0O =[]#line:968:not_removed = []
+        for OOO000O0O00OOOO00 in os .listdir (O00O00O000OOO0O0O .base ):#line:969:for fn in os.listdir(self.base):
+            OOO000O0O00OOOO00 =os .path .join (O00O00O000OOO0O0O .base ,OOO000O0O00OOOO00 )#line:970:fn = os.path.join(self.base, fn)
+            try :#line:971:try:
+                if os .path .islink (OOO000O0O00OOOO00 )or os .path .isfile (OOO000O0O00OOOO00 ):#line:972:if os.path.islink(fn) or os.path.isfile(fn):
+                    os .remove (OOO000O0O00OOOO00 )#line:973:os.remove(fn)
+                elif os .path .isdir (OOO000O0O00OOOO00 ):#line:974:elif os.path.isdir(fn):
+                    shutil .rmtree (OOO000O0O00OOOO00 )#line:975:shutil.rmtree(fn)
+            except Exception :#line:976:except Exception:
+                O0O00OO000O000O0O .append (OOO000O0O00OOOO00 )#line:977:not_removed.append(fn)
+        return O0O00OO000O000O0O #line:978:return not_removed
+class EventMixin (object ):#line:981:class EventMixin(object):
+    ""#line:984:"""
+    def __init__ (O0OO000O0O000O00O ):#line:985:def __init__(self):
+        O0OO000O0O000O00O ._subscribers ={}#line:986:self._subscribers = {}
+    def add (O00OOO0O00O0O00O0 ,OOO00OOOOOOOO0O00 ,OOOO0O0OO0O0O0000 ,append =True ):#line:988:def add(self, event, subscriber, append=True):
+        ""#line:997:"""
+        O0OOOOO0000000OO0 =O00OOO0O00O0O00O0 ._subscribers #line:998:subs = self._subscribers
+        if OOO00OOOOOOOO0O00 not in O0OOOOO0000000OO0 :#line:999:if event not in subs:
+            O0OOOOO0000000OO0 [OOO00OOOOOOOO0O00 ]=deque ([OOOO0O0OO0O0O0000 ])#line:1000:subs[event] = deque([subscriber])
+        else :#line:1001:else:
+            OOO00O0OOOO0OOOO0 =O0OOOOO0000000OO0 [OOO00OOOOOOOO0O00 ]#line:1002:sq = subs[event]
+            if append :#line:1003:if append:
+                OOO00O0OOOO0OOOO0 .append (OOOO0O0OO0O0O0000 )#line:1004:sq.append(subscriber)
+            else :#line:1005:else:
+                OOO00O0OOOO0OOOO0 .appendleft (OOOO0O0OO0O0O0000 )#line:1006:sq.appendleft(subscriber)
+    def remove (O00O0000O0O00O0OO ,OO0OO0O00OO0OOO00 ,O0OOO0OOOO000O00O ):#line:1008:def remove(self, event, subscriber):
+        ""#line:1014:"""
+        OO0000O00OO00OOO0 =O00O0000O0O00O0OO ._subscribers #line:1015:subs = self._subscribers
+        if OO0OO0O00OO0OOO00 not in OO0000O00OO00OOO0 :#line:1016:if event not in subs:
+            raise ValueError ('No subscribers: %r'%OO0OO0O00OO0OOO00 )#line:1017:raise ValueError('No subscribers: %r' % event)
+        OO0000O00OO00OOO0 [OO0OO0O00OO0OOO00 ].remove (O0OOO0OOOO000O00O )#line:1018:subs[event].remove(subscriber)
+    def get_subscribers (OOO0OO0OOOO0O00O0 ,O0OOO0O00O00O0OOO ):#line:1020:def get_subscribers(self, event):
+        ""#line:1024:"""
+        return iter (OOO0OO0OOOO0O00O0 ._subscribers .get (O0OOO0O00O00O0OOO ,()))#line:1025:return iter(self._subscribers.get(event, ()))
+    def publish (O0OOO000O00O0O0O0 ,O000OOOOOO0OOO0O0 ,*OOOOO00OOO0OO0O00 ,**O00O00O000O00OO0O ):#line:1027:def publish(self, event, *args, **kwargs):
+        ""#line:1037:"""
+        O0O000O00OOOO0000 =[]#line:1038:result = []
+        for OO0OO0000O0OO00O0 in O0OOO000O00O0O0O0 .get_subscribers (O000OOOOOO0OOO0O0 ):#line:1039:for subscriber in self.get_subscribers(event):
+            try :#line:1040:try:
+                OO00O00OOOO0O00O0 =OO0OO0000O0OO00O0 (O000OOOOOO0OOO0O0 ,*OOOOO00OOO0OO0O00 ,**O00O00O000O00OO0O )#line:1041:value = subscriber(event, *args, **kwargs)
+            except Exception :#line:1042:except Exception:
+                logger .exception ('Exception during event publication')#line:1043:logger.exception('Exception during event publication')
+                OO00O00OOOO0O00O0 =None #line:1044:value = None
+            O0O000O00OOOO0000 .append (OO00O00OOOO0O00O0 )#line:1045:result.append(value)
+        logger .debug ('publish %s: args = %s, kwargs = %s, result = %s',O000OOOOOO0OOO0O0 ,OOOOO00OOO0OO0O00 ,O00O00O000O00OO0O ,O0O000O00OOOO0000 )#line:1047:event, args, kwargs, result)
+        return O0O000O00OOOO0000 #line:1048:return result
+class Sequencer (object ):#line:1053:class Sequencer(object):
+    def __init__ (O0OOOO0OO0O0O00O0 ):#line:1054:def __init__(self):
+        O0OOOO0OO0O0O00O0 ._preds ={}#line:1055:self._preds = {}
+        O0OOOO0OO0O0O00O0 ._succs ={}#line:1056:self._succs = {}
+        O0OOOO0OO0O0O00O0 ._nodes =set ()#line:1057:self._nodes = set()     # nodes with no preds/succs
+    def add_node (O0OO000000O0OOO0O ,OO00OOO00O0OOO0OO ):#line:1059:def add_node(self, node):
+        O0OO000000O0OOO0O ._nodes .add (OO00OOO00O0OOO0OO )#line:1060:self._nodes.add(node)
+    def remove_node (O00OOOOO0OO000000 ,O0O0O00O0OOOOO00O ,edges =False ):#line:1062:def remove_node(self, node, edges=False):
+        if O0O0O00O0OOOOO00O in O00OOOOO0OO000000 ._nodes :#line:1063:if node in self._nodes:
+            O00OOOOO0OO000000 ._nodes .remove (O0O0O00O0OOOOO00O )#line:1064:self._nodes.remove(node)
+        if edges :#line:1065:if edges:
+            for OO00O000OO0O0000O in set (O00OOOOO0OO000000 ._preds .get (O0O0O00O0OOOOO00O ,())):#line:1066:for p in set(self._preds.get(node, ())):
+                O00OOOOO0OO000000 .remove (OO00O000OO0O0000O ,O0O0O00O0OOOOO00O )#line:1067:self.remove(p, node)
+            for OOOO0O0O0OOO0O0O0 in set (O00OOOOO0OO000000 ._succs .get (O0O0O00O0OOOOO00O ,())):#line:1068:for s in set(self._succs.get(node, ())):
+                O00OOOOO0OO000000 .remove (O0O0O00O0OOOOO00O ,OOOO0O0O0OOO0O0O0 )#line:1069:self.remove(node, s)
+            for O0000O0OOOO0O000O ,OO0OOO0OO00OO0O00 in list (O00OOOOO0OO000000 ._preds .items ()):#line:1071:for k, v in list(self._preds.items()):
+                if not OO0OOO0OO00OO0O00 :#line:1072:if not v:
+                    del O00OOOOO0OO000000 ._preds [O0000O0OOOO0O000O ]#line:1073:del self._preds[k]
+            for O0000O0OOOO0O000O ,OO0OOO0OO00OO0O00 in list (O00OOOOO0OO000000 ._succs .items ()):#line:1074:for k, v in list(self._succs.items()):
+                if not OO0OOO0OO00OO0O00 :#line:1075:if not v:
+                    del O00OOOOO0OO000000 ._succs [O0000O0OOOO0O000O ]#line:1076:del self._succs[k]
+    def add (O0O0OO00000OOOOOO ,OO000000O000OOO0O ,O00OOO0OO0OO00OOO ):#line:1078:def add(self, pred, succ):
+        assert OO000000O000OOO0O !=O00OOO0OO0OO00OOO #line:1079:assert pred != succ
+        O0O0OO00000OOOOOO ._preds .setdefault (O00OOO0OO0OO00OOO ,set ()).add (OO000000O000OOO0O )#line:1080:self._preds.setdefault(succ, set()).add(pred)
+        O0O0OO00000OOOOOO ._succs .setdefault (OO000000O000OOO0O ,set ()).add (O00OOO0OO0OO00OOO )#line:1081:self._succs.setdefault(pred, set()).add(succ)
+    def remove (O0OO00OOOO0O0OOOO ,O00OOO00000OOO0O0 ,OO000OOOO00OOO0O0 ):#line:1083:def remove(self, pred, succ):
+        assert O00OOO00000OOO0O0 !=OO000OOOO00OOO0O0 #line:1084:assert pred != succ
+        try :#line:1085:try:
+            O00O000OO0000OOO0 =O0OO00OOOO0O0OOOO ._preds [OO000OOOO00OOO0O0 ]#line:1086:preds = self._preds[succ]
+            OO00O0OOO00000OOO =O0OO00OOOO0O0OOOO ._succs [O00OOO00000OOO0O0 ]#line:1087:succs = self._succs[pred]
+        except KeyError :#line:1088:except KeyError:  # pragma: no cover
+            raise ValueError ('%r not a successor of anything'%OO000OOOO00OOO0O0 )#line:1089:raise ValueError('%r not a successor of anything' % succ)
+        try :#line:1090:try:
+            O00O000OO0000OOO0 .remove (O00OOO00000OOO0O0 )#line:1091:preds.remove(pred)
+            OO00O0OOO00000OOO .remove (OO000OOOO00OOO0O0 )#line:1092:succs.remove(succ)
+        except KeyError :#line:1093:except KeyError:  # pragma: no cover
+            raise ValueError ('%r not a successor of %r'%(OO000OOOO00OOO0O0 ,O00OOO00000OOO0O0 ))#line:1094:raise ValueError('%r not a successor of %r' % (succ, pred))
+    def is_step (OOOO00OO00O00000O ,O000OO000O0OOOOOO ):#line:1096:def is_step(self, step):
+        return (O000OO000O0OOOOOO in OOOO00OO00O00000O ._preds or O000OO000O0OOOOOO in OOOO00OO00O00000O ._succs or O000OO000O0OOOOOO in OOOO00OO00O00000O ._nodes )#line:1098:step in self._nodes)
+    def get_steps (OOO00OOOO0O0000OO ,O0O0000OO00O000O0 ):#line:1100:def get_steps(self, final):
+        if not OOO00OOOO0O0000OO .is_step (O0O0000OO00O000O0 ):#line:1101:if not self.is_step(final):
+            raise ValueError ('Unknown: %r'%O0O0000OO00O000O0 )#line:1102:raise ValueError('Unknown: %r' % final)
+        OOO00O00OOOOOOO0O =[]#line:1103:result = []
+        O0O0O0OO0OO00O000 =[]#line:1104:todo = []
+        O0O0OOOO000O0O00O =set ()#line:1105:seen = set()
+        O0O0O0OO0OO00O000 .append (O0O0000OO00O000O0 )#line:1106:todo.append(final)
+        while O0O0O0OO0OO00O000 :#line:1107:while todo:
+            OO000O000000O0000 =O0O0O0OO0OO00O000 .pop (0 )#line:1108:step = todo.pop(0)
+            if OO000O000000O0000 in O0O0OOOO000O0O00O :#line:1109:if step in seen:
+                if OO000O000000O0000 !=O0O0000OO00O000O0 :#line:1115:if step != final:
+                    OOO00O00OOOOOOO0O .remove (OO000O000000O0000 )#line:1116:result.remove(step)
+                    OOO00O00OOOOOOO0O .append (OO000O000000O0000 )#line:1117:result.append(step)
+            else :#line:1118:else:
+                O0O0OOOO000O0O00O .add (OO000O000000O0000 )#line:1119:seen.add(step)
+                OOO00O00OOOOOOO0O .append (OO000O000000O0000 )#line:1120:result.append(step)
+                OOO00OO0OO0O00O00 =OOO00OOOO0O0000OO ._preds .get (OO000O000000O0000 ,())#line:1121:preds = self._preds.get(step, ())
+                O0O0O0OO0OO00O000 .extend (OOO00OO0OO0O00O00 )#line:1122:todo.extend(preds)
+        return reversed (OOO00O00OOOOOOO0O )#line:1123:return reversed(result)
+    @property #line:1125:@property
+    def strong_connections (O0OOOO0O000OOOO00 ):#line:1126:def strong_connections(self):
+        O0OO0000OO0O0O00O =[0 ]#line:1128:index_counter = [0]
+        O0OOOO0O00000O00O =[]#line:1129:stack = []
+        OOOOOO000OOOOO00O ={}#line:1130:lowlinks = {}
+        O00000OO0OO0O0000 ={}#line:1131:index = {}
+        OO0O0O0000OOOOOO0 =[]#line:1132:result = []
+        OO00O0000OO00000O =O0OOOO0O000OOOO00 ._succs #line:1134:graph = self._succs
+        def OO0OO000OO0OOOO00 (O0000000000OO0000 ):#line:1136:def strongconnect(node):
+            O00000OO0OO0O0000 [O0000000000OO0000 ]=O0OO0000OO0O0O00O [0 ]#line:1138:index[node] = index_counter[0]
+            OOOOOO000OOOOO00O [O0000000000OO0000 ]=O0OO0000OO0O0O00O [0 ]#line:1139:lowlinks[node] = index_counter[0]
+            O0OO0000OO0O0O00O [0 ]+=1 #line:1140:index_counter[0] += 1
+            O0OOOO0O00000O00O .append (O0000000000OO0000 )#line:1141:stack.append(node)
+            try :#line:1144:try:
+                O000OOO0O0O0O0O0O =OO00O0000OO00000O [O0000000000OO0000 ]#line:1145:successors = graph[node]
+            except Exception :#line:1146:except Exception:
+                O000OOO0O0O0O0O0O =[]#line:1147:successors = []
+            for O0OOOO00O0000O00O in O000OOO0O0O0O0O0O :#line:1148:for successor in successors:
+                if O0OOOO00O0000O00O not in OOOOOO000OOOOO00O :#line:1149:if successor not in lowlinks:
+                    OO0OO000OO0OOOO00 (O0OOOO00O0000O00O )#line:1151:strongconnect(successor)
+                    OOOOOO000OOOOO00O [O0000000000OO0000 ]=min (OOOOOO000OOOOO00O [O0000000000OO0000 ],OOOOOO000OOOOO00O [O0OOOO00O0000O00O ])#line:1152:lowlinks[node] = min(lowlinks[node],lowlinks[successor])
+                elif O0OOOO00O0000O00O in O0OOOO0O00000O00O :#line:1153:elif successor in stack:
+                    OOOOOO000OOOOO00O [O0000000000OO0000 ]=min (OOOOOO000OOOOO00O [O0000000000OO0000 ],O00000OO0OO0O0000 [O0OOOO00O0000O00O ])#line:1156:lowlinks[node] = min(lowlinks[node],index[successor])
+            if OOOOOO000OOOOO00O [O0000000000OO0000 ]==O00000OO0OO0O0000 [O0000000000OO0000 ]:#line:1159:if lowlinks[node] == index[node]:
+                O0OOOOO00OO00O0OO =[]#line:1160:connected_component = []
+                while True :#line:1162:while True:
+                    O0OOOO00O0000O00O =O0OOOO0O00000O00O .pop ()#line:1163:successor = stack.pop()
+                    O0OOOOO00OO00O0OO .append (O0OOOO00O0000O00O )#line:1164:connected_component.append(successor)
+                    if O0OOOO00O0000O00O ==O0000000000OO0000 :break #line:1165:if successor == node: break
+                OO0O0OO0O00O0O00O =tuple (O0OOOOO00OO00O0OO )#line:1166:component = tuple(connected_component)
+                OO0O0O0000OOOOOO0 .append (OO0O0OO0O00O0O00O )#line:1168:result.append(component)
+        for OOOO0000000O000O0 in OO00O0000OO00000O :#line:1170:for node in graph:
+            if OOOO0000000O000O0 not in OOOOOO000OOOOO00O :#line:1171:if node not in lowlinks:
+                OO0OO000OO0OOOO00 (OOOO0000000O000O0 )#line:1172:strongconnect(node)
+        return OO0O0O0000OOOOOO0 #line:1174:return result
+    @property #line:1176:@property
+    def dot (OO00OOO0O0OOO0OOO ):#line:1177:def dot(self):
+        OOO00O0O0OO0OO00O =['digraph G {']#line:1178:result = ['digraph G {']
+        for OO00O00O00O00O0O0 in OO00OOO0O0OOO0OOO ._preds :#line:1179:for succ in self._preds:
+            O000OO0O0O0OO00O0 =OO00OOO0O0OOO0OOO ._preds [OO00O00O00O00O0O0 ]#line:1180:preds = self._preds[succ]
+            for OOOO0OO0O0OO0O0O0 in O000OO0O0O0OO00O0 :#line:1181:for pred in preds:
+                OOO00O0O0OO0OO00O .append ('  %s -> %s;'%(OOOO0OO0O0OO0O0O0 ,OO00O00O00O00O0O0 ))#line:1182:result.append('  %s -> %s;' % (pred, succ))
+        for O0OO0OOOO000OOOO0 in OO00OOO0O0OOO0OOO ._nodes :#line:1183:for node in self._nodes:
+            OOO00O0O0OO0OO00O .append ('  %s;'%O0OO0OOOO000OOOO0 )#line:1184:result.append('  %s;' % node)
+        OOO00O0O0OO0OO00O .append ('}')#line:1185:result.append('}')
+        return '\n'.join (OOO00O0O0OO0OO00O )#line:1186:return '\n'.join(result)
+ARCHIVE_EXTENSIONS =('.tar.gz','.tar.bz2','.tar','.zip','.tgz','.tbz','.whl')#line:1193:'.tgz', '.tbz', '.whl')
+def unarchive (OO00O0OOOOO0O00OO ,O0O00OO0OO0000OOO ,format =None ,check =True ):#line:1195:def unarchive(archive_filename, dest_dir, format=None, check=True):
+    def OO00O0O0O0OO0OOOO (O0000O0O00O00O00O ):#line:1197:def check_path(path):
+        if not isinstance (O0000O0O00O00O00O ,text_type ):#line:1198:if not isinstance(path, text_type):
+            O0000O0O00O00O00O =O0000O0O00O00O00O .decode ('utf-8')#line:1199:path = path.decode('utf-8')
+        OOO00000OO0O0O0O0 =os .path .abspath (os .path .join (O0O00OO0OO0000OOO ,O0000O0O00O00O00O ))#line:1200:p = os.path.abspath(os.path.join(dest_dir, path))
+        if not OOO00000OO0O0O0O0 .startswith (O0O00OO0OO0000OOO )or OOO00000OO0O0O0O0 [OO0O00OOO0O0000O0 ]!=os .sep :#line:1201:if not p.startswith(dest_dir) or p[plen] != os.sep:
+            raise ValueError ('path outside destination: %r'%OOO00000OO0O0O0O0 )#line:1202:raise ValueError('path outside destination: %r' % p)
+    O0O00OO0OO0000OOO =os .path .abspath (O0O00OO0OO0000OOO )#line:1204:dest_dir = os.path.abspath(dest_dir)
+    OO0O00OOO0O0000O0 =len (O0O00OO0OO0000OOO )#line:1205:plen = len(dest_dir)
+    O0O0OO0O00OO00O00 =None #line:1206:archive = None
+    if format is None :#line:1207:if format is None:
+        if OO00O0OOOOO0O00OO .endswith (('.zip','.whl')):#line:1208:if archive_filename.endswith(('.zip', '.whl')):
+            format ='zip'#line:1209:format = 'zip'
+        elif OO00O0OOOOO0O00OO .endswith (('.tar.gz','.tgz')):#line:1210:elif archive_filename.endswith(('.tar.gz', '.tgz')):
+            format ='tgz'#line:1211:format = 'tgz'
+            OO00OOO0000OO0O00 ='r:gz'#line:1212:mode = 'r:gz'
+        elif OO00O0OOOOO0O00OO .endswith (('.tar.bz2','.tbz')):#line:1213:elif archive_filename.endswith(('.tar.bz2', '.tbz')):
+            format ='tbz'#line:1214:format = 'tbz'
+            OO00OOO0000OO0O00 ='r:bz2'#line:1215:mode = 'r:bz2'
+        elif OO00O0OOOOO0O00OO .endswith ('.tar'):#line:1216:elif archive_filename.endswith('.tar'):
+            format ='tar'#line:1217:format = 'tar'
+            OO00OOO0000OO0O00 ='r'#line:1218:mode = 'r'
+        else :#line:1219:else:  # pragma: no cover
+            raise ValueError ('Unknown format for %r'%OO00O0OOOOO0O00OO )#line:1220:raise ValueError('Unknown format for %r' % archive_filename)
+    try :#line:1221:try:
+        if format =='zip':#line:1222:if format == 'zip':
+            O0O0OO0O00OO00O00 =ZipFile (OO00O0OOOOO0O00OO ,'r')#line:1223:archive = ZipFile(archive_filename, 'r')
+            if check :#line:1224:if check:
+                O00000OOOO00000O0 =O0O0OO0O00OO00O00 .namelist ()#line:1225:names = archive.namelist()
+                for O00O0OOO00OOOO0OO in O00000OOOO00000O0 :#line:1226:for name in names:
+                    OO00O0O0O0OO0OOOO (O00O0OOO00OOOO0OO )#line:1227:check_path(name)
+        else :#line:1228:else:
+            O0O0OO0O00OO00O00 =tarfile .open (OO00O0OOOOO0O00OO ,OO00OOO0000OO0O00 )#line:1229:archive = tarfile.open(archive_filename, mode)
+            if check :#line:1230:if check:
+                O00000OOOO00000O0 =O0O0OO0O00OO00O00 .getnames ()#line:1231:names = archive.getnames()
+                for O00O0OOO00OOOO0OO in O00000OOOO00000O0 :#line:1232:for name in names:
+                    OO00O0O0O0OO0OOOO (O00O0OOO00OOOO0OO )#line:1233:check_path(name)
+        if format !='zip'and sys .version_info [0 ]<3 :#line:1234:if format != 'zip' and sys.version_info[0] < 3:
+            for OOO00OO0O0O000O0O in O0O0OO0O00OO00O00 .getmembers ():#line:1239:for tarinfo in archive.getmembers():
+                if not isinstance (OOO00OO0O0O000O0O .name ,text_type ):#line:1240:if not isinstance(tarinfo.name, text_type):
+                    OOO00OO0O0O000O0O .name =OOO00OO0O0O000O0O .name .decode ('utf-8')#line:1241:tarinfo.name = tarinfo.name.decode('utf-8')
+        O0O0OO0O00OO00O00 .extractall (O0O00OO0OO0000OOO )#line:1242:archive.extractall(dest_dir)
+    finally :#line:1244:finally:
+        if O0O0OO0O00OO00O00 :#line:1245:if archive:
+            O0O0OO0O00OO00O00 .close ()#line:1246:archive.close()
+def zip_dir (O0OOO0OOOO000OOO0 ):#line:1249:def zip_dir(directory):
+    ""#line:1250:"""zip a directory tree into a BytesIO object"""
+    O00OOO0O0OOOOO000 =io .BytesIO ()#line:1251:result = io.BytesIO()
+    OOO0O0OOOO0OOO0O0 =len (O0OOO0OOOO000OOO0 )#line:1252:dlen = len(directory)
+    with ZipFile (O00OOO0O0OOOOO000 ,"w")as OOO0OO0O00000O00O :#line:1253:with ZipFile(result, "w") as zf:
+        for O000O0000OO0OOOO0 ,OO0O0000OO00000OO ,OO0000OO0O00OOOOO in os .walk (O0OOO0OOOO000OOO0 ):#line:1254:for root, dirs, files in os.walk(directory):
+            for OO000OO0OO0000OOO in OO0000OO0O00OOOOO :#line:1255:for name in files:
+                OOOOOO00O0000OO0O =os .path .join (O000O0000OO0OOOO0 ,OO000OO0OO0000OOO )#line:1256:full = os.path.join(root, name)
+                OOOO000O0OO000OOO =O000O0000OO0OOOO0 [OOO0O0OOOO0OOO0O0 :]#line:1257:rel = root[dlen:]
+                OOO0OOOOOO0O00OO0 =os .path .join (OOOO000O0OO000OOO ,OO000OO0OO0000OOO )#line:1258:dest = os.path.join(rel, name)
+                OOO0OO0O00000O00O .write (OOOOOO00O0000OO0O ,OOO0OOOOOO0O00OO0 )#line:1259:zf.write(full, dest)
+    return O00OOO0O0OOOOO000 #line:1260:return result
+UNITS =('','K','M','G','T','P')#line:1266:UNITS = ('', 'K', 'M', 'G','T','P')
+class Progress (object ):#line:1269:class Progress(object):
+    unknown ='UNKNOWN'#line:1270:unknown = 'UNKNOWN'
+    def __init__ (OO0O00OO00000OO0O ,minval =0 ,maxval =100 ):#line:1272:def __init__(self, minval=0, maxval=100):
+        assert maxval is None or maxval >=minval #line:1273:assert maxval is None or maxval >= minval
+        OO0O00OO00000OO0O .min =OO0O00OO00000OO0O .cur =minval #line:1274:self.min = self.cur = minval
+        OO0O00OO00000OO0O .max =maxval #line:1275:self.max = maxval
+        OO0O00OO00000OO0O .started =None #line:1276:self.started = None
+        OO0O00OO00000OO0O .elapsed =0 #line:1277:self.elapsed = 0
+        OO0O00OO00000OO0O .done =False #line:1278:self.done = False
+    def update (OO0OOOOOO0O000O0O ,O000O00O00O0000O0 ):#line:1280:def update(self, curval):
+        assert OO0OOOOOO0O000O0O .min <=O000O00O00O0000O0 #line:1281:assert self.min <= curval
+        assert OO0OOOOOO0O000O0O .max is None or O000O00O00O0000O0 <=OO0OOOOOO0O000O0O .max #line:1282:assert self.max is None or curval <= self.max
+        OO0OOOOOO0O000O0O .cur =O000O00O00O0000O0 #line:1283:self.cur = curval
+        OO0O000OO0O0O00OO =time .time ()#line:1284:now = time.time()
+        if OO0OOOOOO0O000O0O .started is None :#line:1285:if self.started is None:
+            OO0OOOOOO0O000O0O .started =OO0O000OO0O0O00OO #line:1286:self.started = now
+        else :#line:1287:else:
+            OO0OOOOOO0O000O0O .elapsed =OO0O000OO0O0O00OO -OO0OOOOOO0O000O0O .started #line:1288:self.elapsed = now - self.started
+    def increment (OOOO0OOOOO0O0000O ,O00O0O0OOO0OO0000 ):#line:1290:def increment(self, incr):
+        assert O00O0O0OOO0OO0000 >=0 #line:1291:assert incr >= 0
+        OOOO0OOOOO0O0000O .update (OOOO0OOOOO0O0000O .cur +O00O0O0OOO0OO0000 )#line:1292:self.update(self.cur + incr)
+    def start (OO0O00O00000OOO00 ):#line:1294:def start(self):
+        OO0O00O00000OOO00 .update (OO0O00O00000OOO00 .min )#line:1295:self.update(self.min)
+        return OO0O00O00000OOO00 #line:1296:return self
+    def stop (O00O00OOO0OO000O0 ):#line:1298:def stop(self):
+        if O00O00OOO0OO000O0 .max is not None :#line:1299:if self.max is not None:
+            O00O00OOO0OO000O0 .update (O00O00OOO0OO000O0 .max )#line:1300:self.update(self.max)
+        O00O00OOO0OO000O0 .done =True #line:1301:self.done = True
+    @property #line:1303:@property
+    def maximum (OOO0OO00O000OOOOO ):#line:1304:def maximum(self):
+        return OOO0OO00O000OOOOO .unknown if OOO0OO00O000OOOOO .max is None else OOO0OO00O000OOOOO .max #line:1305:return self.unknown if self.max is None else self.max
+    @property #line:1307:@property
+    def percentage (OO0O00O0O0OOOO0OO ):#line:1308:def percentage(self):
+        if OO0O00O0O0OOOO0OO .done :#line:1309:if self.done:
+            O00O0OO00OOOO0000 ='100 %'#line:1310:result = '100 %'
+        elif OO0O00O0O0OOOO0OO .max is None :#line:1311:elif self.max is None:
+            O00O0OO00OOOO0000 =' ?? %'#line:1312:result = ' ?? %'
+        else :#line:1313:else:
+            O00O000OOOOOO000O =100.0 *(OO0O00O0O0OOOO0OO .cur -OO0O00O0O0OOOO0OO .min )/(OO0O00O0O0OOOO0OO .max -OO0O00O0O0OOOO0OO .min )#line:1314:v = 100.0 * (self.cur - self.min) / (self.max - self.min)
+            O00O0OO00OOOO0000 ='%3d %%'%O00O000OOOOOO000O #line:1315:result = '%3d %%' % v
+        return O00O0OO00OOOO0000 #line:1316:return result
+    def format_duration (OOOO00O0OOOO00000 ,O000OOO0OO0OO0000 ):#line:1318:def format_duration(self, duration):
+        if (O000OOO0OO0OO0000 <=0 )and OOOO00O0OOOO00000 .max is None or OOOO00O0OOOO00000 .cur ==OOOO00O0OOOO00000 .min :#line:1319:if (duration <= 0) and self.max is None or self.cur == self.min:
+            O0OOO000OO0OO0OO0 ='??:??:??'#line:1320:result = '??:??:??'
+        else :#line:1323:else:
+            O0OOO000OO0OO0OO0 =time .strftime ('%H:%M:%S',time .gmtime (O000OOO0OO0OO0000 ))#line:1324:result = time.strftime('%H:%M:%S', time.gmtime(duration))
+        return O0OOO000OO0OO0OO0 #line:1325:return result
+    @property #line:1327:@property
+    def ETA (OO0OO000OO00OO000 ):#line:1328:def ETA(self):
+        if OO0OO000OO00OO000 .done :#line:1329:if self.done:
+            OOOOO0OOOO0OOOOO0 ='Done'#line:1330:prefix = 'Done'
+            OO0OO0000OOO0OO0O =OO0OO000OO00OO000 .elapsed #line:1331:t = self.elapsed
+        else :#line:1333:else:
+            OOOOO0OOOO0OOOOO0 ='ETA '#line:1334:prefix = 'ETA '
+            if OO0OO000OO00OO000 .max is None :#line:1335:if self.max is None:
+                OO0OO0000OOO0OO0O =-1 #line:1336:t = -1
+            elif OO0OO000OO00OO000 .elapsed ==0 or (OO0OO000OO00OO000 .cur ==OO0OO000OO00OO000 .min ):#line:1337:elif self.elapsed == 0 or (self.cur == self.min):
+                OO0OO0000OOO0OO0O =0 #line:1338:t = 0
+            else :#line:1339:else:
+                OO0OO0000OOO0OO0O =float (OO0OO000OO00OO000 .max -OO0OO000OO00OO000 .min )#line:1341:t = float(self.max - self.min)
+                OO0OO0000OOO0OO0O /=OO0OO000OO00OO000 .cur -OO0OO000OO00OO000 .min #line:1342:t /= self.cur - self.min
+                OO0OO0000OOO0OO0O =(OO0OO0000OOO0OO0O -1 )*OO0OO000OO00OO000 .elapsed #line:1343:t = (t - 1) * self.elapsed
+        return '%s: %s'%(OOOOO0OOOO0OOOOO0 ,OO0OO000OO00OO000 .format_duration (OO0OO0000OOO0OO0O ))#line:1344:return '%s: %s' % (prefix, self.format_duration(t))
+    @property #line:1346:@property
+    def speed (O000OO00O00O0OO00 ):#line:1347:def speed(self):
+        if O000OO00O00O0OO00 .elapsed ==0 :#line:1348:if self.elapsed == 0:
+            OO000OOO0OOOOO00O =0.0 #line:1349:result = 0.0
+        else :#line:1350:else:
+            OO000OOO0OOOOO00O =(O000OO00O00O0OO00 .cur -O000OO00O00O0OO00 .min )/O000OO00O00O0OO00 .elapsed #line:1351:result = (self.cur - self.min) / self.elapsed
+        for O0O00O000O000O0OO in UNITS :#line:1352:for unit in UNITS:
+            if OO000OOO0OOOOO00O <1000 :#line:1353:if result < 1000:
+                break #line:1354:break
+            OO000OOO0OOOOO00O /=1000.0 #line:1355:result /= 1000.0
+        return '%d %sB/s'%(OO000OOO0OOOOO00O ,O0O00O000O000O0OO )#line:1356:return '%d %sB/s' % (result, unit)
+RICH_GLOB =re .compile (r'\{([^}]*)\}')#line:1362:RICH_GLOB = re.compile(r'\{([^}]*)\}')
+_OO0OO00O000OOOOO0 =re .compile (r'[^/\\,{]\*\*|\*\*[^/\\,}]')#line:1363:_CHECK_RECURSIVE_GLOB = re.compile(r'[^/\\,{]\*\*|\*\*[^/\\,}]')
+_OOO0O0OOOOO0O0OO0 =re .compile (r'^[^{]*\}|\{[^}]*$')#line:1364:_CHECK_MISMATCH_SET = re.compile(r'^[^{]*\}|\{[^}]*$')
+def iglob (OO0O00O0OO0O0OOO0 ):#line:1367:def iglob(path_glob):
+    ""#line:1368:"""Extended globbing function that supports ** and {opt1,opt2,opt3}."""
+    if _OO0OO00O000OOOOO0 .search (OO0O00O0OO0O0OOO0 ):#line:1369:if _CHECK_RECURSIVE_GLOB.search(path_glob):
+        O0000O0OO00O0O00O ="""invalid glob %r: recursive glob "**" must be used alone"""#line:1370:msg = """invalid glob %r: recursive glob "**" must be used alone"""
+        raise ValueError (O0000O0OO00O0O00O %OO0O00O0OO0O0OOO0 )#line:1371:raise ValueError(msg % path_glob)
+    if _OOO0O0OOOOO0O0OO0 .search (OO0O00O0OO0O0OOO0 ):#line:1372:if _CHECK_MISMATCH_SET.search(path_glob):
+        O0000O0OO00O0O00O ="""invalid glob %r: mismatching set marker '{' or '}'"""#line:1373:msg = """invalid glob %r: mismatching set marker '{' or '}'"""
+        raise ValueError (O0000O0OO00O0O00O %OO0O00O0OO0O0OOO0 )#line:1374:raise ValueError(msg % path_glob)
+    return _O0O0OO0O0OO0OOOOO (OO0O00O0OO0O0OOO0 )#line:1375:return _iglob(path_glob)
+def _O0O0OO0O0OO0OOOOO (O0000O00OO0OOOO0O ):#line:1378:def _iglob(path_glob):
+    OO0O000OOOOO00OOO =RICH_GLOB .split (O0000O00OO0OOOO0O ,1 )#line:1379:rich_path_glob = RICH_GLOB.split(path_glob, 1)
+    if len (OO0O000OOOOO00OOO )>1 :#line:1380:if len(rich_path_glob) > 1:
+        assert len (OO0O000OOOOO00OOO )==3 ,OO0O000OOOOO00OOO #line:1381:assert len(rich_path_glob) == 3, rich_path_glob
+        O000OOO00O0OOO0O0 ,OO0OO0O0OOOO0OO0O ,O0000OOO0OO00OO00 =OO0O000OOOOO00OOO #line:1382:prefix, set, suffix = rich_path_glob
+        for O00OOO0O0O0OOO000 in OO0OO0O0OOOO0OO0O .split (','):#line:1383:for item in set.split(','):
+            for OO0O00OO000OO0OOO in _O0O0OO0O0OO0OOOOO (''.join ((O000OOO00O0OOO0O0 ,O00OOO0O0O0OOO000 ,O0000OOO0OO00OO00 ))):#line:1384:for path in _iglob(''.join((prefix, item, suffix))):
+                yield OO0O00OO000OO0OOO #line:1385:yield path
+    else :#line:1386:else:
+        if '**'not in O0000O00OO0OOOO0O :#line:1387:if '**' not in path_glob:
+            for O00OOO0O0O0OOO000 in std_iglob (O0000O00OO0OOOO0O ):#line:1388:for item in std_iglob(path_glob):
+                yield O00OOO0O0O0OOO000 #line:1389:yield item
+        else :#line:1390:else:
+            O000OOO00O0OOO0O0 ,O0OO000O00OO0OO0O =O0000O00OO0OOOO0O .split ('**',1 )#line:1391:prefix, radical = path_glob.split('**', 1)
+            if O000OOO00O0OOO0O0 =='':#line:1392:if prefix == '':
+                O000OOO00O0OOO0O0 ='.'#line:1393:prefix = '.'
+            if O0OO000O00OO0OO0O =='':#line:1394:if radical == '':
+                O0OO000O00OO0OO0O ='*'#line:1395:radical = '*'
+            else :#line:1396:else:
+                O0OO000O00OO0OO0O =O0OO000O00OO0OO0O .lstrip ('/')#line:1398:radical = radical.lstrip('/')
+                O0OO000O00OO0OO0O =O0OO000O00OO0OO0O .lstrip ('\\')#line:1399:radical = radical.lstrip('\\')
+            for OO0O00OO000OO0OOO ,OOO0OO0O0O0O0OOO0 ,O0OOOOO0OOO00000O in os .walk (O000OOO00O0OOO0O0 ):#line:1400:for path, dir, files in os.walk(prefix):
+                OO0O00OO000OO0OOO =os .path .normpath (OO0O00OO000OO0OOO )#line:1401:path = os.path.normpath(path)
+                for OO0000OOO0OOO00O0 in _O0O0OO0O0OO0OOOOO (os .path .join (OO0O00OO000OO0OOO ,O0OO000O00OO0OO0O )):#line:1402:for fn in _iglob(os.path.join(path, radical)):
+                    yield OO0000OOO0OOO00O0 #line:1403:yield fn
+if ssl :#line:1405:if ssl:
+    from .compat import (HTTPSHandler as BaseHTTPSHandler ,match_hostname ,CertificateError )#line:1407:CertificateError)
+    class HTTPSConnection (httplib .HTTPSConnection ):#line:1414:class HTTPSConnection(httplib.HTTPSConnection):
+        ca_certs =None #line:1415:ca_certs = None # set this to the path to the certs file (.pem)
+        check_domain =True #line:1416:check_domain = True # only used if ca_certs is not None
+        def connect (OO00000O0O00O0OO0 ):#line:1419:def connect(self):
+            OO0OO0000O000OOOO =socket .create_connection ((OO00000O0O00O0OO0 .host ,OO00000O0O00O0OO0 .port ),OO00000O0O00O0OO0 .timeout )#line:1420:sock = socket.create_connection((self.host, self.port), self.timeout)
+            if getattr (OO00000O0O00O0OO0 ,'_tunnel_host',False ):#line:1421:if getattr(self, '_tunnel_host', False):
+                OO00000O0O00O0OO0 .sock =OO0OO0000O000OOOO #line:1422:self.sock = sock
+                OO00000O0O00O0OO0 ._tunnel ()#line:1423:self._tunnel()
+            if not hasattr (ssl ,'SSLContext'):#line:1425:if not hasattr(ssl, 'SSLContext'):
+                if OO00000O0O00O0OO0 .ca_certs :#line:1427:if self.ca_certs:
+                    OOO00000000O0O0O0 =ssl .CERT_REQUIRED #line:1428:cert_reqs = ssl.CERT_REQUIRED
+                else :#line:1429:else:
+                    OOO00000000O0O0O0 =ssl .CERT_NONE #line:1430:cert_reqs = ssl.CERT_NONE
+                OO00000O0O00O0OO0 .sock =ssl .wrap_socket (OO0OO0000O000OOOO ,OO00000O0O00O0OO0 .key_file ,OO00000O0O00O0OO0 .cert_file ,cert_reqs =OOO00000000O0O0O0 ,ssl_version =ssl .PROTOCOL_SSLv23 ,ca_certs =OO00000O0O00O0OO0 .ca_certs )#line:1434:ca_certs=self.ca_certs)
+            else :#line:1435:else:  # pragma: no cover
+                O0OOOO0O0OO0OO0O0 =ssl .SSLContext (ssl .PROTOCOL_SSLv23 )#line:1436:context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                O0OOOO0O0OO0OO0O0 .options |=ssl .OP_NO_SSLv2 #line:1437:context.options |= ssl.OP_NO_SSLv2
+                if OO00000O0O00O0OO0 .cert_file :#line:1438:if self.cert_file:
+                    O0OOOO0O0OO0OO0O0 .load_cert_chain (OO00000O0O00O0OO0 .cert_file ,OO00000O0O00O0OO0 .key_file )#line:1439:context.load_cert_chain(self.cert_file, self.key_file)
+                O00O000OOO0OOOOO0 ={}#line:1440:kwargs = {}
+                if OO00000O0O00O0OO0 .ca_certs :#line:1441:if self.ca_certs:
+                    O0OOOO0O0OO0OO0O0 .verify_mode =ssl .CERT_REQUIRED #line:1442:context.verify_mode = ssl.CERT_REQUIRED
+                    O0OOOO0O0OO0OO0O0 .load_verify_locations (cafile =OO00000O0O00O0OO0 .ca_certs )#line:1443:context.load_verify_locations(cafile=self.ca_certs)
+                    if getattr (ssl ,'HAS_SNI',False ):#line:1444:if getattr(ssl, 'HAS_SNI', False):
+                        O00O000OOO0OOOOO0 ['server_hostname']=OO00000O0O00O0OO0 .host #line:1445:kwargs['server_hostname'] = self.host
+                OO00000O0O00O0OO0 .sock =O0OOOO0O0OO0OO0O0 .wrap_socket (OO0OO0000O000OOOO ,**O00O000OOO0OOOOO0 )#line:1446:self.sock = context.wrap_socket(sock, **kwargs)
+            if OO00000O0O00O0OO0 .ca_certs and OO00000O0O00O0OO0 .check_domain :#line:1447:if self.ca_certs and self.check_domain:
+                try :#line:1448:try:
+                    match_hostname (OO00000O0O00O0OO0 .sock .getpeercert (),OO00000O0O00O0OO0 .host )#line:1449:match_hostname(self.sock.getpeercert(), self.host)
+                    logger .debug ('Host verified: %s',OO00000O0O00O0OO0 .host )#line:1450:logger.debug('Host verified: %s', self.host)
+                except CertificateError :#line:1451:except CertificateError:  # pragma: no cover
+                    OO00000O0O00O0OO0 .sock .shutdown (socket .SHUT_RDWR )#line:1452:self.sock.shutdown(socket.SHUT_RDWR)
+                    OO00000O0O00O0OO0 .sock .close ()#line:1453:self.sock.close()
+                    raise #line:1454:raise
+    class HTTPSHandler (BaseHTTPSHandler ):#line:1456:class HTTPSHandler(BaseHTTPSHandler):
+        def __init__ (O000OOOO0OOO000OO ,O00O0OO0O0OOOO0OO ,check_domain =True ):#line:1457:def __init__(self, ca_certs, check_domain=True):
+            BaseHTTPSHandler .__init__ (O000OOOO0OOO000OO )#line:1458:BaseHTTPSHandler.__init__(self)
+            O000OOOO0OOO000OO .ca_certs =O00O0OO0O0OOOO0OO #line:1459:self.ca_certs = ca_certs
+            O000OOOO0OOO000OO .check_domain =check_domain #line:1460:self.check_domain = check_domain
+        def _conn_maker (OO0O0O0OO0O0O00O0 ,*O0O00O00OOOO0O000 ,**O0OO0O00O0OOOOOOO ):#line:1462:def _conn_maker(self, *args, **kwargs):
+            ""#line:1471:"""
+            OOOO0OO0OO0O0OOOO =HTTPSConnection (*O0O00O00OOOO0O000 ,**O0OO0O00O0OOOOOOO )#line:1472:result = HTTPSConnection(*args, **kwargs)
+            if OO0O0O0OO0O0O00O0 .ca_certs :#line:1473:if self.ca_certs:
+                OOOO0OO0OO0O0OOOO .ca_certs =OO0O0O0OO0O0O00O0 .ca_certs #line:1474:result.ca_certs = self.ca_certs
+                OOOO0OO0OO0O0OOOO .check_domain =OO0O0O0OO0O0O00O0 .check_domain #line:1475:result.check_domain = self.check_domain
+            return OOOO0OO0OO0O0OOOO #line:1476:return result
+        def https_open (O00O00O00000OO0O0 ,OOOOOO0O000OOO00O ):#line:1478:def https_open(self, req):
+            try :#line:1479:try:
+                return O00O00O00000OO0O0 .do_open (O00O00O00000OO0O0 ._conn_maker ,OOOOOO0O000OOO00O )#line:1480:return self.do_open(self._conn_maker, req)
+            except URLError as OOO00OO0OO0000O00 :#line:1481:except URLError as e:
+                if 'certificate verify failed'in str (OOO00OO0OO0000O00 .reason ):#line:1482:if 'certificate verify failed' in str(e.reason):
+                    raise CertificateError ('Unable to verify server certificate ' 'for %s'%OOOOOO0O000OOO00O .host )#line:1484:'for %s' % req.host)
+                else :#line:1485:else:
+                    raise #line:1486:raise
+    class HTTPSOnlyHandler (HTTPSHandler ,HTTPHandler ):#line:1497:class HTTPSOnlyHandler(HTTPSHandler, HTTPHandler):
+        def http_open (O00OO0OO00O0OO0OO ,O000OO00O0OOO00OO ):#line:1498:def http_open(self, req):
+            raise URLError ('Unexpected HTTP request on what should be a secure ' 'connection: %s'%O000OO00O0OOO00OO )#line:1500:'connection: %s' % req)
+_OO0OO0OO0OOOO000O =sys .version_info [:2 ]#line:1506:_ver_info = sys.version_info[:2]
+if _OO0OO0OO0OOOO000O ==(2 ,6 ):#line:1508:if _ver_info == (2, 6):
+    class HTTP (httplib .HTTP ):#line:1509:class HTTP(httplib.HTTP):
+        def __init__ (O00OOOOOO00O0OO00 ,host ='',port =None ,**OOOO0OO0000OO00OO ):#line:1510:def __init__(self, host='', port=None, **kwargs):
+            if port ==0 :#line:1511:if port == 0:   # 0 means use port 0, not the default port
+                port =None #line:1512:port = None
+            O00OOOOOO00O0OO00 ._setup (O00OOOOOO00O0OO00 ._connection_class (host ,port ,**OOOO0OO0000OO00OO ))#line:1513:self._setup(self._connection_class(host, port, **kwargs))
+    if ssl :#line:1516:if ssl:
+        class HTTPS (httplib .HTTPS ):#line:1517:class HTTPS(httplib.HTTPS):
+            def __init__ (O0O0OO0OOOOO000OO ,host ='',port =None ,**O00O0O00O000O00O0 ):#line:1518:def __init__(self, host='', port=None, **kwargs):
+                if port ==0 :#line:1519:if port == 0:   # 0 means use port 0, not the default port
+                    port =None #line:1520:port = None
+                O0O0OO0OOOOO000OO ._setup (O0O0OO0OOOOO000OO ._connection_class (host ,port ,**O00O0O00O000O00O0 ))#line:1521:self._setup(self._connection_class(host, port, **kwargs))
+class Transport (xmlrpclib .Transport ):#line:1524:class Transport(xmlrpclib.Transport):
+    def __init__ (OO000O0OO000OO0OO ,OOO00O0000OO0OO0O ,use_datetime =0 ):#line:1525:def __init__(self, timeout, use_datetime=0):
+        OO000O0OO000OO0OO .timeout =OOO00O0000OO0OO0O #line:1526:self.timeout = timeout
+        xmlrpclib .Transport .__init__ (OO000O0OO000OO0OO ,use_datetime )#line:1527:xmlrpclib.Transport.__init__(self, use_datetime)
+    def make_connection (O000OO0OO00O0000O ,OOO00000O0O0000O0 ):#line:1529:def make_connection(self, host):
+        OO0O00O0OOOO0OO00 ,O0OO0OO0000O0OO0O ,O0OO000OO00OO0000 =O000OO0OO00O0000O .get_host_info (OOO00000O0O0000O0 )#line:1530:h, eh, x509 = self.get_host_info(host)
+        if _OO0OO0OO0OOOO000O ==(2 ,6 ):#line:1531:if _ver_info == (2, 6):
+            OO0OOO00O0OO0O000 =HTTP (OO0O00O0OOOO0OO00 ,timeout =O000OO0OO00O0000O .timeout )#line:1532:result = HTTP(h, timeout=self.timeout)
+        else :#line:1533:else:
+            if not O000OO0OO00O0000O ._connection or OOO00000O0O0000O0 !=O000OO0OO00O0000O ._connection [0 ]:#line:1534:if not self._connection or host != self._connection[0]:
+                O000OO0OO00O0000O ._extra_headers =O0OO0OO0000O0OO0O #line:1535:self._extra_headers = eh
+                O000OO0OO00O0000O ._connection =OOO00000O0O0000O0 ,httplib .HTTPConnection (OO0O00O0OOOO0OO00 )#line:1536:self._connection = host, httplib.HTTPConnection(h)
+            OO0OOO00O0OO0O000 =O000OO0OO00O0000O ._connection [1 ]#line:1537:result = self._connection[1]
+        return OO0OOO00O0OO0O000 #line:1538:return result
+if ssl :#line:1540:if ssl:
+    class SafeTransport (xmlrpclib .SafeTransport ):#line:1541:class SafeTransport(xmlrpclib.SafeTransport):
+        def __init__ (OO0000OO0OO00O00O ,OO00O00O0OOO00000 ,use_datetime =0 ):#line:1542:def __init__(self, timeout, use_datetime=0):
+            OO0000OO0OO00O00O .timeout =OO00O00O0OOO00000 #line:1543:self.timeout = timeout
+            xmlrpclib .SafeTransport .__init__ (OO0000OO0OO00O00O ,use_datetime )#line:1544:xmlrpclib.SafeTransport.__init__(self, use_datetime)
+        def make_connection (OO00O000O0OO000O0 ,O0O000O0O0OOO00O0 ):#line:1546:def make_connection(self, host):
+            OOOOOO0O0000OOOOO ,O000O00OOOO0O0O00 ,O00000OOOOO00O0OO =OO00O000O0OO000O0 .get_host_info (O0O000O0O0OOO00O0 )#line:1547:h, eh, kwargs = self.get_host_info(host)
+            if not O00000OOOOO00O0OO :#line:1548:if not kwargs:
+                O00000OOOOO00O0OO ={}#line:1549:kwargs = {}
+            O00000OOOOO00O0OO ['timeout']=OO00O000O0OO000O0 .timeout #line:1550:kwargs['timeout'] = self.timeout
+            if _OO0OO0OO0OOOO000O ==(2 ,6 ):#line:1551:if _ver_info == (2, 6):
+                O000O0O00OOO0OO00 =HTTPS (O0O000O0O0OOO00O0 ,None ,**O00000OOOOO00O0OO )#line:1552:result = HTTPS(host, None, **kwargs)
+            else :#line:1553:else:
+                if not OO00O000O0OO000O0 ._connection or O0O000O0O0OOO00O0 !=OO00O000O0OO000O0 ._connection [0 ]:#line:1554:if not self._connection or host != self._connection[0]:
+                    OO00O000O0OO000O0 ._extra_headers =O000O00OOOO0O0O00 #line:1555:self._extra_headers = eh
+                    OO00O000O0OO000O0 ._connection =O0O000O0O0OOO00O0 ,httplib .HTTPSConnection (OOOOOO0O0000OOOOO ,None ,**O00000OOOOO00O0OO )#line:1557:**kwargs)
+                O000O0O00OOO0OO00 =OO00O000O0OO000O0 ._connection [1 ]#line:1558:result = self._connection[1]
+            return O000O0O00OOO0OO00 #line:1559:return result
+class ServerProxy (xmlrpclib .ServerProxy ):#line:1562:class ServerProxy(xmlrpclib.ServerProxy):
+    def __init__ (O0OOOOO0OOO000O0O ,OOO00000O0OOOO0OO ,**OOO00O0OOO0OO00O0 ):#line:1563:def __init__(self, uri, **kwargs):
+        O0OOOOO0OOO000O0O .timeout =O0OOO000OO00OO00O =OOO00O0OOO0OO00O0 .pop ('timeout',None )#line:1564:self.timeout = timeout = kwargs.pop('timeout', None)
+        if O0OOO000OO00OO00O is not None :#line:1567:if timeout is not None:
+            O000O00O0OOOO0O0O ,_OO000O00OOOOOO000 =splittype (OOO00000O0OOOO0OO )#line:1568:scheme, _ = splittype(uri)
+            O00000OOOO0O00OO0 =OOO00O0OOO0OO00O0 .get ('use_datetime',0 )#line:1569:use_datetime = kwargs.get('use_datetime', 0)
+            if O000O00O0OOOO0O0O =='https':#line:1570:if scheme == 'https':
+                O0OOOOOO000OOOOOO =SafeTransport #line:1571:tcls = SafeTransport
+            else :#line:1572:else:
+                O0OOOOOO000OOOOOO =Transport #line:1573:tcls = Transport
+            OOO00O0OOO0OO00O0 ['transport']=OO0OO00OOOO0OO000 =O0OOOOOO000OOOOOO (O0OOO000OO00OO00O ,use_datetime =O00000OOOO0O00OO0 )#line:1574:kwargs['transport'] = t = tcls(timeout, use_datetime=use_datetime)
+            O0OOOOO0OOO000O0O .transport =OO0OO00OOOO0OO000 #line:1575:self.transport = t
+        xmlrpclib .ServerProxy .__init__ (O0OOOOO0OOO000O0O ,OOO00000O0OOOO0OO ,**OOO00O0OOO0OO00O0 )#line:1576:xmlrpclib.ServerProxy.__init__(self, uri, **kwargs)
+def _OOO0OO0000000O000 (OO00OO0OOOOO00000 ,OOO0OOOO00O0OO0O0 ,**O0000OOO00OOOO0O0 ):#line:1583:def _csv_open(fn, mode, **kwargs):
+    if sys .version_info [0 ]<3 :#line:1584:if sys.version_info[0] < 3:
+        OOO0OOOO00O0OO0O0 +='b'#line:1585:mode += 'b'
+    else :#line:1586:else:
+        O0000OOO00OOOO0O0 ['newline']=''#line:1587:kwargs['newline'] = ''
+        O0000OOO00OOOO0O0 ['encoding']='utf-8'#line:1590:kwargs['encoding'] = 'utf-8'
+    return open (OO00OO0OOOOO00000 ,OOO0OOOO00O0OO0O0 ,**O0000OOO00OOOO0O0 )#line:1591:return open(fn, mode, **kwargs)
+class CSVBase (object ):#line:1594:class CSVBase(object):
+    defaults ={'delimiter':str (','),'quotechar':str ('"'),'lineterminator':str ('\n')}#line:1599:}
+    def __enter__ (O00O0O000O0OOO0OO ):#line:1601:def __enter__(self):
+        return O00O0O000O0OOO0OO #line:1602:return self
+    def __exit__ (O0O0O0OO0O0OO00O0 ,*O000O0O0OO00OOOO0 ):#line:1604:def __exit__(self, *exc_info):
+        O0O0O0OO0O0OO00O0 .stream .close ()#line:1605:self.stream.close()
+class CSVReader (CSVBase ):#line:1608:class CSVReader(CSVBase):
+    def __init__ (OOOO0OOO0O0O000O0 ,**O000OO0000O00O0OO ):#line:1609:def __init__(self, **kwargs):
+        if 'stream'in O000OO0000O00O0OO :#line:1610:if 'stream' in kwargs:
+            O0OO000OO0OO0O0O0 =O000OO0000O00O0OO ['stream']#line:1611:stream = kwargs['stream']
+            if sys .version_info [0 ]>=3 :#line:1612:if sys.version_info[0] >= 3:
+                O0OO000OO0OO0O0O0 =codecs .getreader ('utf-8')(O0OO000OO0OO0O0O0 )#line:1614:stream = codecs.getreader('utf-8')(stream)
+            OOOO0OOO0O0O000O0 .stream =O0OO000OO0OO0O0O0 #line:1615:self.stream = stream
+        else :#line:1616:else:
+            OOOO0OOO0O0O000O0 .stream =_OOO0OO0000000O000 (O000OO0000O00O0OO ['path'],'r')#line:1617:self.stream = _csv_open(kwargs['path'], 'r')
+        OOOO0OOO0O0O000O0 .reader =csv .reader (OOOO0OOO0O0O000O0 .stream ,**OOOO0OOO0O0O000O0 .defaults )#line:1618:self.reader = csv.reader(self.stream, **self.defaults)
+    def __iter__ (OO0O0O0000OOO00OO ):#line:1620:def __iter__(self):
+        return OO0O0O0000OOO00OO #line:1621:return self
+    def next (O000O0OOOO00000OO ):#line:1623:def next(self):
+        O0OOO0OO00OO00OOO =next (O000O0OOOO00000OO .reader )#line:1624:result = next(self.reader)
+        if sys .version_info [0 ]<3 :#line:1625:if sys.version_info[0] < 3:
+            for O0OO0O0OOO0O000OO ,OOO00O000OOO0000O in enumerate (O0OOO0OO00OO00OOO ):#line:1626:for i, item in enumerate(result):
+                if not isinstance (OOO00O000OOO0000O ,text_type ):#line:1627:if not isinstance(item, text_type):
+                    O0OOO0OO00OO00OOO [O0OO0O0OOO0O000OO ]=OOO00O000OOO0000O .decode ('utf-8')#line:1628:result[i] = item.decode('utf-8')
+        return O0OOO0OO00OO00OOO #line:1629:return result
+    __next__ =next #line:1631:__next__ = next
+class CSVWriter (CSVBase ):#line:1633:class CSVWriter(CSVBase):
+    def __init__ (OO00OO0OO000O00OO ,OOOO0000O0000OO0O ,**O0O0OOO000O0OOOOO ):#line:1634:def __init__(self, fn, **kwargs):
+        OO00OO0OO000O00OO .stream =_OOO0OO0000000O000 (OOOO0000O0000OO0O ,'w')#line:1635:self.stream = _csv_open(fn, 'w')
+        OO00OO0OO000O00OO .writer =csv .writer (OO00OO0OO000O00OO .stream ,**OO00OO0OO000O00OO .defaults )#line:1636:self.writer = csv.writer(self.stream, **self.defaults)
+    def writerow (OOOO00OOOOO0OO000 ,O0OO0OOOOOO0OOOO0 ):#line:1638:def writerow(self, row):
+        if sys .version_info [0 ]<3 :#line:1639:if sys.version_info[0] < 3:
+            O0O0OOOO0O0OO0000 =[]#line:1640:r = []
+            for OO0OO00O00OOO0O0O in O0OO0OOOOOO0OOOO0 :#line:1641:for item in row:
+                if isinstance (OO0OO00O00OOO0O0O ,text_type ):#line:1642:if isinstance(item, text_type):
+                    OO0OO00O00OOO0O0O =OO0OO00O00OOO0O0O .encode ('utf-8')#line:1643:item = item.encode('utf-8')
+                O0O0OOOO0O0OO0000 .append (OO0OO00O00OOO0O0O )#line:1644:r.append(item)
+            O0OO0OOOOOO0OOOO0 =O0O0OOOO0O0OO0000 #line:1645:row = r
+        OOOO00OOOOO0OO000 .writer .writerow (O0OO0OOOOOO0OOOO0 )#line:1646:self.writer.writerow(row)
+class Configurator (BaseConfigurator ):#line:1652:class Configurator(BaseConfigurator):
+    value_converters =dict (BaseConfigurator .value_converters )#line:1654:value_converters = dict(BaseConfigurator.value_converters)
+    value_converters ['inc']='inc_convert'#line:1655:value_converters['inc'] = 'inc_convert'
+    def __init__ (OOOOO0O0O0OO0O0O0 ,O0OOOO0O0O000OO0O ,base =None ):#line:1657:def __init__(self, config, base=None):
+        super (Configurator ,OOOOO0O0O0OO0O0O0 ).__init__ (O0OOOO0O0O000OO0O )#line:1658:super(Configurator, self).__init__(config)
+        OOOOO0O0O0OO0O0O0 .base =base or os .getcwd ()#line:1659:self.base = base or os.getcwd()
+    def configure_custom (O0O00000OOO0OOO0O ,O00OO00O000OO0O00 ):#line:1661:def configure_custom(self, config):
+        def O0000OOO0O000O0OO (O00O000OO00O0OO00 ):#line:1662:def convert(o):
+            if isinstance (O00O000OO00O0OO00 ,(list ,tuple )):#line:1663:if isinstance(o, (list, tuple)):
+                O0O00O0O0OOO0OO00 =type (O00O000OO00O0OO00 )([O0000OOO0O000O0OO (O0O000O0OO00OO000 )for O0O000O0OO00OO000 in O00O000OO00O0OO00 ])#line:1664:result = type(o)([convert(i) for i in o])
+            elif isinstance (O00O000OO00O0OO00 ,dict ):#line:1665:elif isinstance(o, dict):
+                if '()'in O00O000OO00O0OO00 :#line:1666:if '()' in o:
+                    O0O00O0O0OOO0OO00 =O0O00000OOO0OOO0O .configure_custom (O00O000OO00O0OO00 )#line:1667:result = self.configure_custom(o)
+                else :#line:1668:else:
+                    O0O00O0O0OOO0OO00 ={}#line:1669:result = {}
+                    for OOOOOO0OO000OO0O0 in O00O000OO00O0OO00 :#line:1670:for k in o:
+                        O0O00O0O0OOO0OO00 [OOOOOO0OO000OO0O0 ]=O0000OOO0O000O0OO (O00O000OO00O0OO00 [OOOOOO0OO000OO0O0 ])#line:1671:result[k] = convert(o[k])
+            else :#line:1672:else:
+                O0O00O0O0OOO0OO00 =O0O00000OOO0OOO0O .convert (O00O000OO00O0OO00 )#line:1673:result = self.convert(o)
+            return O0O00O0O0OOO0OO00 #line:1674:return result
+        OOOO0O000OO0OO0OO =O00OO00O000OO0O00 .pop ('()')#line:1676:c = config.pop('()')
+        if not callable (OOOO0O000OO0OO0OO ):#line:1677:if not callable(c):
+            OOOO0O000OO0OO0OO =O0O00000OOO0OOO0O .resolve (OOOO0O000OO0OO0OO )#line:1678:c = self.resolve(c)
+        OOOOO0OO0OOOO00OO =O00OO00O000OO0O00 .pop ('.',None )#line:1679:props = config.pop('.', None)
+        O0OO000000O0O0OOO =O00OO00O000OO0O00 .pop ('[]',())#line:1681:args = config.pop('[]', ())
+        if O0OO000000O0O0OOO :#line:1682:if args:
+            O0OO000000O0O0OOO =tuple ([O0000OOO0O000O0OO (OO000OO00O0O0000O )for OO000OO00O0O0000O in O0OO000000O0O0OOO ])#line:1683:args = tuple([convert(o) for o in args])
+        O0OOOOOO00O00O0O0 =[(O00OOO00O0OO0OOOO ,O0000OOO0O000O0OO (O00OO00O000OO0O00 [O00OOO00O0OO0OOOO ]))for O00OOO00O0OO0OOOO in O00OO00O000OO0O00 if valid_ident (O00OOO00O0OO0OOOO )]#line:1684:items = [(k, convert(config[k])) for k in config if valid_ident(k)]
+        OOO0O0O0O00O00O0O =dict (O0OOOOOO00O00O0O0 )#line:1685:kwargs = dict(items)
+        O0O00O00OOO0O0O00 =OOOO0O000OO0OO0OO (*O0OO000000O0O0OOO ,**OOO0O0O0O00O00O0O )#line:1686:result = c(*args, **kwargs)
+        if OOOOO0OO0OOOO00OO :#line:1687:if props:
+            for O0OOO00OOOO0O000O ,OO0OO00O0000OOOOO in OOOOO0OO0OOOO00OO .items ():#line:1688:for n, v in props.items():
+                setattr (O0O00O00OOO0O0O00 ,O0OOO00OOOO0O000O ,O0000OOO0O000O0OO (OO0OO00O0000OOOOO ))#line:1689:setattr(result, n, convert(v))
+        return O0O00O00OOO0O0O00 #line:1690:return result
+    def __getitem__ (O0O0OO0OO000O0OO0 ,O0OOO0O000OO00OOO ):#line:1692:def __getitem__(self, key):
+        OOOOOO0O0O0O0OO00 =O0O0OO0OO000O0OO0 .config [O0OOO0O000OO00OOO ]#line:1693:result = self.config[key]
+        if isinstance (OOOOOO0O0O0O0OO00 ,dict )and '()'in OOOOOO0O0O0O0OO00 :#line:1694:if isinstance(result, dict) and '()' in result:
+            O0O0OO0OO000O0OO0 .config [O0OOO0O000OO00OOO ]=OOOOOO0O0O0O0OO00 =O0O0OO0OO000O0OO0 .configure_custom (OOOOOO0O0O0O0OO00 )#line:1695:self.config[key] = result = self.configure_custom(result)
+        return OOOOOO0O0O0O0OO00 #line:1696:return result
+    def inc_convert (OOO0O0OO0O0OOOOO0 ,OOOO000OO00OOO00O ):#line:1698:def inc_convert(self, value):
+        ""#line:1699:"""Default converter for the inc:// protocol."""
+        if not os .path .isabs (OOOO000OO00OOO00O ):#line:1700:if not os.path.isabs(value):
+            OOOO000OO00OOO00O =os .path .join (OOO0O0OO0O0OOOOO0 .base ,OOOO000OO00OOO00O )#line:1701:value = os.path.join(self.base, value)
+        with codecs .open (OOOO000OO00OOO00O ,'r',encoding ='utf-8')as OOO00OOO000O000OO :#line:1702:with codecs.open(value, 'r', encoding='utf-8') as f:
+            O0000OO000O0O000O =json .load (OOO00OOO000O000OO )#line:1703:result = json.load(f)
+        return O0000OO000O0O000O #line:1704:return result
+class SubprocessMixin (object ):#line:1707:class SubprocessMixin(object):
+    ""#line:1710:"""
+    def __init__ (O0OO00OO00OO0O00O ,verbose =False ,progress =None ):#line:1711:def __init__(self, verbose=False, progress=None):
+        O0OO00OO00OO0O00O .verbose =verbose #line:1712:self.verbose = verbose
+        O0OO00OO00OO0O00O .progress =progress #line:1713:self.progress = progress
+    def reader (OO00O00O0O00000O0 ,OOO000OOO00OOO000 ,O0O0O0O00OO0O0000 ):#line:1715:def reader(self, stream, context):
+        ""#line:1719:"""
+        O0O0O0O00OO000O0O =OO00O00O0O00000O0 .progress #line:1720:progress = self.progress
+        O00000OOO000OOOOO =OO00O00O0O00000O0 .verbose #line:1721:verbose = self.verbose
+        while True :#line:1722:while True:
+            OOO0000O0OOOO00O0 =OOO000OOO00OOO000 .readline ()#line:1723:s = stream.readline()
+            if not OOO0000O0OOOO00O0 :#line:1724:if not s:
+                break #line:1725:break
+            if O0O0O0O00OO000O0O is not None :#line:1726:if progress is not None:
+                O0O0O0O00OO000O0O (OOO0000O0OOOO00O0 ,O0O0O0O00OO0O0000 )#line:1727:progress(s, context)
+            else :#line:1728:else:
+                if not O00000OOO000OOOOO :#line:1729:if not verbose:
+                    sys .stderr .write ('.')#line:1730:sys.stderr.write('.')
+                else :#line:1731:else:
+                    sys .stderr .write (OOO0000O0OOOO00O0 .decode ('utf-8'))#line:1732:sys.stderr.write(s.decode('utf-8'))
+                sys .stderr .flush ()#line:1733:sys.stderr.flush()
+        OOO000OOO00OOO000 .close ()#line:1734:stream.close()
+    def run_command (OOOO00O0O0OOO0000 ,OOOO00O0000O0O0O0 ,**OO00OOO000O00O000 ):#line:1736:def run_command(self, cmd, **kwargs):
+        O0OO00O0OOO00OOOO =subprocess .Popen (OOOO00O0000O0O0O0 ,stdout =subprocess .PIPE ,stderr =subprocess .PIPE ,**OO00OOO000O00O000 )#line:1738:stderr=subprocess.PIPE, **kwargs)
+        OO0O0000000O0OOOO =threading .Thread (target =OOOO00O0O0OOO0000 .reader ,args =(O0OO00O0OOO00OOOO .stdout ,'stdout'))#line:1739:t1 = threading.Thread(target=self.reader, args=(p.stdout, 'stdout'))
+        OO0O0000000O0OOOO .start ()#line:1740:t1.start()
+        O00OO00000O00OOO0 =threading .Thread (target =OOOO00O0O0OOO0000 .reader ,args =(O0OO00O0OOO00OOOO .stderr ,'stderr'))#line:1741:t2 = threading.Thread(target=self.reader, args=(p.stderr, 'stderr'))
+        O00OO00000O00OOO0 .start ()#line:1742:t2.start()
+        O0OO00O0OOO00OOOO .wait ()#line:1743:p.wait()
+        OO0O0000000O0OOOO .join ()#line:1744:t1.join()
+        O00OO00000O00OOO0 .join ()#line:1745:t2.join()
+        if OOOO00O0O0OOO0000 .progress is not None :#line:1746:if self.progress is not None:
+            OOOO00O0O0OOO0000 .progress ('done.','main')#line:1747:self.progress('done.', 'main')
+        elif OOOO00O0O0OOO0000 .verbose :#line:1748:elif self.verbose:
+            sys .stderr .write ('done.\n')#line:1749:sys.stderr.write('done.\n')
+        return O0OO00O0OOO00OOOO #line:1750:return p
+def normalize_name (OO00OO000OOOOOOO0 ):#line:1753:def normalize_name(name):
+    ""#line:1754:"""Normalize a python package name a la PEP 503"""
+    return re .sub ('[-_.]+','-',OO00OO000OOOOOOO0 ).lower ()#line:1756:return re.sub('[-_.]+', '-', name).lower()

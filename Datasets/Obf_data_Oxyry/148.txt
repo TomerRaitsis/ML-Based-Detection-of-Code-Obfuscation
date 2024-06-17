@@ -1,0 +1,339 @@
+from __future__ import absolute_import #line:1:from __future__ import absolute_import
+import errno #line:2:import errno
+import logging #line:3:import logging
+import sys #line:4:import sys
+import warnings #line:5:import warnings
+from socket import error as SocketError ,timeout as SocketTimeout #line:7:from socket import error as SocketError, timeout as SocketTimeout
+import socket #line:8:import socket
+from .exceptions import (ClosedPoolError ,ProtocolError ,EmptyPoolError ,HeaderParsingError ,HostChangedError ,LocationValueError ,MaxRetryError ,ProxyError ,ReadTimeoutError ,SSLError ,TimeoutError ,InsecureRequestWarning ,NewConnectionError ,)#line:25:)
+from .packages .ssl_match_hostname import CertificateError #line:26:from .packages.ssl_match_hostname import CertificateError
+from .packages import six #line:27:from .packages import six
+from .packages .six .moves import queue #line:28:from .packages.six.moves import queue
+from .connection import (port_by_scheme ,DummyConnection ,HTTPConnection ,HTTPSConnection ,VerifiedHTTPSConnection ,HTTPException ,BaseSSLError ,)#line:34:)
+from .request import RequestMethods #line:35:from .request import RequestMethods
+from .response import HTTPResponse #line:36:from .response import HTTPResponse
+from .util .connection import is_connection_dropped #line:38:from .util.connection import is_connection_dropped
+from .util .request import set_file_position #line:39:from .util.request import set_file_position
+from .util .response import assert_header_parsing #line:40:from .util.response import assert_header_parsing
+from .util .retry import Retry #line:41:from .util.retry import Retry
+from .util .timeout import Timeout #line:42:from .util.timeout import Timeout
+from .util .url import get_host ,Url ,NORMALIZABLE_SCHEMES #line:43:from .util.url import get_host, Url, NORMALIZABLE_SCHEMES
+from .util .queue import LifoQueue #line:44:from .util.queue import LifoQueue
+xrange =six .moves .xrange #line:47:xrange = six.moves.xrange
+log =logging .getLogger (__name__ )#line:49:log = logging.getLogger(__name__)
+_OO0O0OOO0OO00OOOO =object ()#line:51:_Default = object()
+class ConnectionPool (object ):#line:55:class ConnectionPool(object):
+    ""#line:59:"""
+    scheme =None #line:61:scheme = None
+    QueueCls =LifoQueue #line:62:QueueCls = LifoQueue
+    def __init__ (OO0000O0O0OOOOO00 ,OOOOOOOO0OOOO000O ,port =None ):#line:64:def __init__(self, host, port=None):
+        if not OOOOOOOO0OOOO000O :#line:65:if not host:
+            raise LocationValueError ("No host specified.")#line:66:raise LocationValueError("No host specified.")
+        OO0000O0O0OOOOO00 .host =_OOO0O0OOO000OOO00 (OOOOOOOO0OOOO000O ,OO0000O0O0OOOOO00 .scheme )#line:68:self.host = _ipv6_host(host, self.scheme)
+        OO0000O0O0OOOOO00 ._proxy_host =OOOOOOOO0OOOO000O .lower ()#line:69:self._proxy_host = host.lower()
+        OO0000O0O0OOOOO00 .port =port #line:70:self.port = port
+    def __str__ (OO0OO00OO00OO0000 ):#line:72:def __str__(self):
+        return '%s(host=%r, port=%r)'%(type (OO0OO00OO00OO0000 ).__name__ ,OO0OO00OO00OO0000 .host ,OO0OO00OO00OO0000 .port )#line:74:self.host, self.port)
+    def __enter__ (OO00OOOOOOO00O0OO ):#line:76:def __enter__(self):
+        return OO00OOOOOOO00O0OO #line:77:return self
+    def __exit__ (O0OOOOOOO0000OO0O ,O0O0000OO0OOO0000 ,OO00000O0OO00000O ,O00O0OO00O0OOOO0O ):#line:79:def __exit__(self, exc_type, exc_val, exc_tb):
+        O0OOOOOOO0000OO0O .close ()#line:80:self.close()
+        return False #line:82:return False
+    def close (OO00O0O0O0000OOO0 ):#line:84:def close(self):
+        ""#line:87:"""
+        pass #line:88:pass
+_O000OO0OOOO0O00OO ={errno .EAGAIN ,errno .EWOULDBLOCK }#line:92:_blocking_errnos = {errno.EAGAIN, errno.EWOULDBLOCK}
+class HTTPConnectionPool (ConnectionPool ,RequestMethods ):#line:95:class HTTPConnectionPool(ConnectionPool, RequestMethods):
+    ""#line:153:"""
+    scheme ='http'#line:155:scheme = 'http'
+    ConnectionCls =HTTPConnection #line:156:ConnectionCls = HTTPConnection
+    ResponseCls =HTTPResponse #line:157:ResponseCls = HTTPResponse
+    def __init__ (O0OOOO00O0OOOOOO0 ,O00OOOOO0OOOO0O00 ,port =None ,strict =False ,timeout =Timeout .DEFAULT_TIMEOUT ,maxsize =1 ,block =False ,headers =None ,retries =None ,_proxy =None ,_proxy_headers =None ,**O000OOO0OO0O0OO0O ):#line:163:**conn_kw):
+        ConnectionPool .__init__ (O0OOOO00O0OOOOOO0 ,O00OOOOO0OOOO0O00 ,port )#line:164:ConnectionPool.__init__(self, host, port)
+        RequestMethods .__init__ (O0OOOO00O0OOOOOO0 ,headers )#line:165:RequestMethods.__init__(self, headers)
+        O0OOOO00O0OOOOOO0 .strict =strict #line:167:self.strict = strict
+        if not isinstance (timeout ,Timeout ):#line:169:if not isinstance(timeout, Timeout):
+            timeout =Timeout .from_float (timeout )#line:170:timeout = Timeout.from_float(timeout)
+        if retries is None :#line:172:if retries is None:
+            retries =Retry .DEFAULT #line:173:retries = Retry.DEFAULT
+        O0OOOO00O0OOOOOO0 .timeout =timeout #line:175:self.timeout = timeout
+        O0OOOO00O0OOOOOO0 .retries =retries #line:176:self.retries = retries
+        O0OOOO00O0OOOOOO0 .pool =O0OOOO00O0OOOOOO0 .QueueCls (maxsize )#line:178:self.pool = self.QueueCls(maxsize)
+        O0OOOO00O0OOOOOO0 .block =block #line:179:self.block = block
+        O0OOOO00O0OOOOOO0 .proxy =_proxy #line:181:self.proxy = _proxy
+        O0OOOO00O0OOOOOO0 .proxy_headers =_proxy_headers or {}#line:182:self.proxy_headers = _proxy_headers or {}
+        for _OO0O000O0O0O000O0 in xrange (maxsize ):#line:185:for _ in xrange(maxsize):
+            O0OOOO00O0OOOOOO0 .pool .put (None )#line:186:self.pool.put(None)
+        O0OOOO00O0OOOOOO0 .num_connections =0 #line:189:self.num_connections = 0
+        O0OOOO00O0OOOOOO0 .num_requests =0 #line:190:self.num_requests = 0
+        O0OOOO00O0OOOOOO0 .conn_kw =O000OOO0OO0O0OO0O #line:191:self.conn_kw = conn_kw
+        if O0OOOO00O0OOOOOO0 .proxy :#line:193:if self.proxy:
+            O0OOOO00O0OOOOOO0 .conn_kw .setdefault ('socket_options',[])#line:197:self.conn_kw.setdefault('socket_options', [])
+    def _new_conn (OOO0O000OO0O0OO00 ):#line:199:def _new_conn(self):
+        ""#line:202:"""
+        OOO0O000OO0O0OO00 .num_connections +=1 #line:203:self.num_connections += 1
+        log .debug ("Starting new HTTP connection (%d): %s:%s",OOO0O000OO0O0OO00 .num_connections ,OOO0O000OO0O0OO00 .host ,OOO0O000OO0O0OO00 .port or "80")#line:205:self.num_connections, self.host, self.port or "80")
+        OOO0OO00O0O00000O =OOO0O000OO0O0OO00 .ConnectionCls (host =OOO0O000OO0O0OO00 .host ,port =OOO0O000OO0O0OO00 .port ,timeout =OOO0O000OO0O0OO00 .timeout .connect_timeout ,strict =OOO0O000OO0O0OO00 .strict ,**OOO0O000OO0O0OO00 .conn_kw )#line:209:strict=self.strict, **self.conn_kw)
+        return OOO0OO00O0O00000O #line:210:return conn
+    def _get_conn (O000O00O000O00000 ,timeout =None ):#line:212:def _get_conn(self, timeout=None):
+        ""#line:223:"""
+        OOO0000OO0OOOOOO0 =None #line:224:conn = None
+        try :#line:225:try:
+            OOO0000OO0OOOOOO0 =O000O00O000O00000 .pool .get (block =O000O00O000O00000 .block ,timeout =timeout )#line:226:conn = self.pool.get(block=self.block, timeout=timeout)
+        except AttributeError :#line:228:except AttributeError:  # self.pool is None
+            raise ClosedPoolError (O000O00O000O00000 ,"Pool is closed.")#line:229:raise ClosedPoolError(self, "Pool is closed.")
+        except queue .Empty :#line:231:except queue.Empty:
+            if O000O00O000O00000 .block :#line:232:if self.block:
+                raise EmptyPoolError (O000O00O000O00000 ,"Pool reached maximum size and no more " "connections are allowed.")#line:235:"connections are allowed.")
+            pass #line:236:pass  # Oh well, we'll create a new connection then
+        if OOO0000OO0OOOOOO0 and is_connection_dropped (OOO0000OO0OOOOOO0 ):#line:239:if conn and is_connection_dropped(conn):
+            log .debug ("Resetting dropped connection: %s",O000O00O000O00000 .host )#line:240:log.debug("Resetting dropped connection: %s", self.host)
+            OOO0000OO0OOOOOO0 .close ()#line:241:conn.close()
+            if getattr (OOO0000OO0OOOOOO0 ,'auto_open',1 )==0 :#line:242:if getattr(conn, 'auto_open', 1) == 0:
+                OOO0000OO0OOOOOO0 =None #line:246:conn = None
+        return OOO0000OO0OOOOOO0 or O000O00O000O00000 ._new_conn ()#line:248:return conn or self._new_conn()
+    def _put_conn (OOOO0O0OO000OO0O0 ,OO0OO0O0O00000O00 ):#line:250:def _put_conn(self, conn):
+        ""#line:263:"""
+        try :#line:264:try:
+            OOOO0O0OO000OO0O0 .pool .put (OO0OO0O0O00000O00 ,block =False )#line:265:self.pool.put(conn, block=False)
+            return #line:266:return  # Everything is dandy, done.
+        except AttributeError :#line:267:except AttributeError:
+            pass #line:269:pass
+        except queue .Full :#line:270:except queue.Full:
+            log .warning ("Connection pool is full, discarding connection: %s",OOOO0O0OO000OO0O0 .host )#line:274:self.host)
+        if OO0OO0O0O00000O00 :#line:277:if conn:
+            OO0OO0O0O00000O00 .close ()#line:278:conn.close()
+    def _validate_conn (OO0O0O000O00O0OO0 ,OO00OO00O00000000 ):#line:280:def _validate_conn(self, conn):
+        ""#line:283:"""
+        pass #line:284:pass
+    def _prepare_proxy (OOOO0OO0O0O0O0OO0 ,OOO0000000O000O00 ):#line:286:def _prepare_proxy(self, conn):
+        pass #line:288:pass
+    def _get_timeout (OO00O000O0O0OO00O ,O00O0OOOOO0OO0000 ):#line:290:def _get_timeout(self, timeout):
+        ""#line:291:""" Helper that always returns a :class:`urllib3.util.Timeout` """
+        if O00O0OOOOO0OO0000 is _OO0O0OOO0OO00OOOO :#line:292:if timeout is _Default:
+            return OO00O000O0O0OO00O .timeout .clone ()#line:293:return self.timeout.clone()
+        if isinstance (O00O0OOOOO0OO0000 ,Timeout ):#line:295:if isinstance(timeout, Timeout):
+            return O00O0OOOOO0OO0000 .clone ()#line:296:return timeout.clone()
+        else :#line:297:else:
+            return Timeout .from_float (O00O0OOOOO0OO0000 )#line:300:return Timeout.from_float(timeout)
+    def _raise_timeout (OOOO00O0O0OO0O000 ,OO0O0OO0OOOOOOOO0 ,OOO0000O0O0000OO0 ,OOOO0O0O00OOOO000 ):#line:302:def _raise_timeout(self, err, url, timeout_value):
+        ""#line:303:"""Is the error actually a timeout? Will raise a ReadTimeout or pass"""
+        if isinstance (OO0O0OO0OOOOOOOO0 ,SocketTimeout ):#line:305:if isinstance(err, SocketTimeout):
+            raise ReadTimeoutError (OOOO00O0O0OO0O000 ,OOO0000O0O0000OO0 ,"Read timed out. (read timeout=%s)"%OOOO0O0O00OOOO000 )#line:306:raise ReadTimeoutError(self, url, "Read timed out. (read timeout=%s)" % timeout_value)
+        if hasattr (OO0O0OO0OOOOOOOO0 ,'errno')and OO0O0OO0OOOOOOOO0 .errno in _O000OO0OOOO0O00OO :#line:310:if hasattr(err, 'errno') and err.errno in _blocking_errnos:
+            raise ReadTimeoutError (OOOO00O0O0OO0O000 ,OOO0000O0O0000OO0 ,"Read timed out. (read timeout=%s)"%OOOO0O0O00OOOO000 )#line:311:raise ReadTimeoutError(self, url, "Read timed out. (read timeout=%s)" % timeout_value)
+        if 'timed out'in str (OO0O0OO0OOOOOOOO0 )or 'did not complete (read)'in str (OO0O0OO0OOOOOOOO0 ):#line:316:if 'timed out' in str(err) or 'did not complete (read)' in str(err):  # Python < 2.7.4
+            raise ReadTimeoutError (OOOO00O0O0OO0O000 ,OOO0000O0O0000OO0 ,"Read timed out. (read timeout=%s)"%OOOO0O0O00OOOO000 )#line:317:raise ReadTimeoutError(self, url, "Read timed out. (read timeout=%s)" % timeout_value)
+    def _make_request (OOO0O00O0O00OO0O0 ,OO0OOO0OO00O00O0O ,OOO0OO0OO0O0O00O0 ,OOOO0O00OOO000O0O ,timeout =_OO0O0OOO0OO00OOOO ,chunked =False ,**O000O0O0O0OOOO000 ):#line:320:**httplib_request_kw):
+        ""#line:334:"""
+        OOO0O00O0O00OO0O0 .num_requests +=1 #line:335:self.num_requests += 1
+        O000O00O0OO000000 =OOO0O00O0O00OO0O0 ._get_timeout (timeout )#line:337:timeout_obj = self._get_timeout(timeout)
+        O000O00O0OO000000 .start_connect ()#line:338:timeout_obj.start_connect()
+        OO0OOO0OO00O00O0O .timeout =O000O00O0OO000000 .connect_timeout #line:339:conn.timeout = timeout_obj.connect_timeout
+        try :#line:342:try:
+            OOO0O00O0O00OO0O0 ._validate_conn (OO0OOO0OO00O00O0O )#line:343:self._validate_conn(conn)
+        except (SocketTimeout ,BaseSSLError )as O0O00OOO0OOO0000O :#line:344:except (SocketTimeout, BaseSSLError) as e:
+            OOO0O00O0O00OO0O0 ._raise_timeout (err =O0O00OOO0OOO0000O ,url =OOOO0O00OOO000O0O ,timeout_value =OO0OOO0OO00O00O0O .timeout )#line:346:self._raise_timeout(err=e, url=url, timeout_value=conn.timeout)
+            raise #line:347:raise
+        if chunked :#line:351:if chunked:
+            OO0OOO0OO00O00O0O .request_chunked (OOO0OO0OO0O0O00O0 ,OOOO0O00OOO000O0O ,**O000O0O0O0OOOO000 )#line:352:conn.request_chunked(method, url, **httplib_request_kw)
+        else :#line:353:else:
+            OO0OOO0OO00O00O0O .request (OOO0OO0OO0O0O00O0 ,OOOO0O00OOO000O0O ,**O000O0O0O0OOOO000 )#line:354:conn.request(method, url, **httplib_request_kw)
+        OO0OOOOO0OOOOO000 =O000O00O0OO000000 .read_timeout #line:357:read_timeout = timeout_obj.read_timeout
+        if getattr (OO0OOO0OO00O00O0O ,'sock',None ):#line:360:if getattr(conn, 'sock', None):
+            if OO0OOOOO0OOOOO000 ==0 :#line:366:if read_timeout == 0:
+                raise ReadTimeoutError (OOO0O00O0O00OO0O0 ,OOOO0O00OOO000O0O ,"Read timed out. (read timeout=%s)"%OO0OOOOO0OOOOO000 )#line:368:self, url, "Read timed out. (read timeout=%s)" % read_timeout)
+            if OO0OOOOO0OOOOO000 is Timeout .DEFAULT_TIMEOUT :#line:369:if read_timeout is Timeout.DEFAULT_TIMEOUT:
+                OO0OOO0OO00O00O0O .sock .settimeout (socket .getdefaulttimeout ())#line:370:conn.sock.settimeout(socket.getdefaulttimeout())
+            else :#line:371:else:  # None or a value
+                OO0OOO0OO00O00O0O .sock .settimeout (OO0OOOOO0OOOOO000 )#line:372:conn.sock.settimeout(read_timeout)
+        try :#line:375:try:
+            try :#line:376:try:  # Python 2.7, use buffering of HTTP responses
+                OO00OOO0OOOO00OO0 =OO0OOO0OO00O00O0O .getresponse (buffering =True )#line:377:httplib_response = conn.getresponse(buffering=True)
+            except TypeError :#line:378:except TypeError:  # Python 3
+                try :#line:379:try:
+                    OO00OOO0OOOO00OO0 =OO0OOO0OO00O00O0O .getresponse ()#line:380:httplib_response = conn.getresponse()
+                except Exception as O0O00OOO0OOO0000O :#line:381:except Exception as e:
+                    six .raise_from (O0O00OOO0OOO0000O ,None )#line:384:six.raise_from(e, None)
+        except (SocketTimeout ,BaseSSLError ,SocketError )as O0O00OOO0OOO0000O :#line:385:except (SocketTimeout, BaseSSLError, SocketError) as e:
+            OOO0O00O0O00OO0O0 ._raise_timeout (err =O0O00OOO0OOO0000O ,url =OOOO0O00OOO000O0O ,timeout_value =OO0OOOOO0OOOOO000 )#line:386:self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+            raise #line:387:raise
+        O0000O0OOOOO000OO =getattr (OO0OOO0OO00O00O0O ,'_http_vsn_str','HTTP/?')#line:390:http_version = getattr(conn, '_http_vsn_str', 'HTTP/?')
+        log .debug ("%s://%s:%s \"%s %s %s\" %s %s",OOO0O00O0O00OO0O0 .scheme ,OOO0O00O0O00OO0O0 .host ,OOO0O00O0O00OO0O0 .port ,OOO0OO0OO0O0O00O0 ,OOOO0O00OOO000O0O ,O0000O0OOOOO000OO ,OO00OOO0OOOO00OO0 .status ,OO00OOO0OOOO00OO0 .length )#line:393:httplib_response.length)
+        try :#line:395:try:
+            assert_header_parsing (OO00OOO0OOOO00OO0 .msg )#line:396:assert_header_parsing(httplib_response.msg)
+        except (HeaderParsingError ,TypeError )as OOOO0OO000O000O00 :#line:397:except (HeaderParsingError, TypeError) as hpe:  # Platform-specific: Python 3
+            log .warning ('Failed to parse headers (url=%s): %s',OOO0O00O0O00OO0O0 ._absolute_url (OOOO0O00OOO000O0O ),OOOO0OO000O000O00 ,exc_info =True )#line:400:self._absolute_url(url), hpe, exc_info=True)
+        return OO00OOO0OOOO00OO0 #line:402:return httplib_response
+    def _absolute_url (O00O00OO000O00000 ,O0000O00O0OOOOO00 ):#line:404:def _absolute_url(self, path):
+        return Url (scheme =O00O00OO000O00000 .scheme ,host =O00O00OO000O00000 .host ,port =O00O00OO000O00000 .port ,path =O0000O00O0OOOOO00 ).url #line:405:return Url(scheme=self.scheme, host=self.host, port=self.port, path=path).url
+    def close (O00OOOOOO0OOOOO00 ):#line:407:def close(self):
+        ""#line:410:"""
+        if O00OOOOOO0OOOOO00 .pool is None :#line:411:if self.pool is None:
+            return #line:412:return
+        O0O0OO0O0000O0O0O ,O00OOOOOO0OOOOO00 .pool =O00OOOOOO0OOOOO00 .pool ,None #line:414:old_pool, self.pool = self.pool, None
+        try :#line:416:try:
+            while True :#line:417:while True:
+                OOOOOO000OOOO0OOO =O0O0OO0O0000O0O0O .get (block =False )#line:418:conn = old_pool.get(block=False)
+                if OOOOOO000OOOO0OOO :#line:419:if conn:
+                    OOOOOO000OOOO0OOO .close ()#line:420:conn.close()
+        except queue .Empty :#line:422:except queue.Empty:
+            pass #line:423:pass  # Done.
+    def is_same_host (O00O0O0O00O000O00 ,O00O00OO00OO0000O ):#line:425:def is_same_host(self, url):
+        ""#line:429:"""
+        if O00O00OO00OO0000O .startswith ('/'):#line:430:if url.startswith('/'):
+            return True #line:431:return True
+        OO00OO0000O0O0OO0 ,O00OOOO0000O00O00 ,OOO000000OO00O00O =get_host (O00O00OO00OO0000O )#line:434:scheme, host, port = get_host(url)
+        O00OOOO0000O00O00 =_OOO0O0OOO000OOO00 (O00OOOO0000O00O00 ,O00O0O0O00O000O00 .scheme )#line:436:host = _ipv6_host(host, self.scheme)
+        if O00O0O0O00O000O00 .port and not OOO000000OO00O00O :#line:439:if self.port and not port:
+            OOO000000OO00O00O =port_by_scheme .get (OO00OO0000O0O0OO0 )#line:440:port = port_by_scheme.get(scheme)
+        elif not O00O0O0O00O000O00 .port and OOO000000OO00O00O ==port_by_scheme .get (OO00OO0000O0O0OO0 ):#line:441:elif not self.port and port == port_by_scheme.get(scheme):
+            OOO000000OO00O00O =None #line:442:port = None
+        return (OO00OO0000O0O0OO0 ,O00OOOO0000O00O00 ,OOO000000OO00O00O )==(O00O0O0O00O000O00 .scheme ,O00O0O0O00O000O00 .host ,O00O0O0O00O000O00 .port )#line:444:return (scheme, host, port) == (self.scheme, self.host, self.port)
+    def urlopen (O00O0OO00000O00OO ,O0OO00OO00OO00OO0 ,O000000OO00OO000O ,body =None ,headers =None ,retries =None ,redirect =True ,assert_same_host =True ,timeout =_OO0O0OOO0OO00OOOO ,pool_timeout =None ,release_conn =None ,chunked =False ,body_pos =None ,**O0O000OO0000O00OO ):#line:449:body_pos=None, **response_kw):
+        ""#line:539:"""
+        if headers is None :#line:540:if headers is None:
+            headers =O00O0OO00000O00OO .headers #line:541:headers = self.headers
+        if not isinstance (retries ,Retry ):#line:543:if not isinstance(retries, Retry):
+            retries =Retry .from_int (retries ,redirect =redirect ,default =O00O0OO00000O00OO .retries )#line:544:retries = Retry.from_int(retries, redirect=redirect, default=self.retries)
+        if release_conn is None :#line:546:if release_conn is None:
+            release_conn =O0O000OO0000O00OO .get ('preload_content',True )#line:547:release_conn = response_kw.get('preload_content', True)
+        if assert_same_host and not O00O0OO00000O00OO .is_same_host (O000000OO00OO000O ):#line:550:if assert_same_host and not self.is_same_host(url):
+            raise HostChangedError (O00O0OO00000O00OO ,O000000OO00OO000O ,retries )#line:551:raise HostChangedError(self, url, retries)
+        O0OO0O000000000OO =None #line:553:conn = None
+        OOOO0O0OO0O000O0O =release_conn #line:564:release_this_conn = release_conn
+        if O00O0OO00000O00OO .scheme =='http':#line:569:if self.scheme == 'http':
+            headers =headers .copy ()#line:570:headers = headers.copy()
+            headers .update (O00O0OO00000O00OO .proxy_headers )#line:571:headers.update(self.proxy_headers)
+        OOOOO0O0OOO00O000 =None #line:575:err = None
+        OOOOO0O0OO000000O =False #line:579:clean_exit = False
+        body_pos =set_file_position (body ,body_pos )#line:583:body_pos = set_file_position(body, body_pos)
+        try :#line:585:try:
+            O00O00O0O000O00O0 =O00O0OO00000O00OO ._get_timeout (timeout )#line:587:timeout_obj = self._get_timeout(timeout)
+            O0OO0O000000000OO =O00O0OO00000O00OO ._get_conn (timeout =pool_timeout )#line:588:conn = self._get_conn(timeout=pool_timeout)
+            O0OO0O000000000OO .timeout =O00O00O0O000O00O0 .connect_timeout #line:590:conn.timeout = timeout_obj.connect_timeout
+            O0O0OO0OO00OOO00O =O00O0OO00000O00OO .proxy is not None and not getattr (O0OO0O000000000OO ,'sock',None )#line:592:is_new_proxy_conn = self.proxy is not None and not getattr(conn, 'sock', None)
+            if O0O0OO0OO00OOO00O :#line:593:if is_new_proxy_conn:
+                O00O0OO00000O00OO ._prepare_proxy (O0OO0O000000000OO )#line:594:self._prepare_proxy(conn)
+            O0OOO0OOO00O00OO0 =O00O0OO00000O00OO ._make_request (O0OO0O000000000OO ,O0OO00OO00OO00OO0 ,O000000OO00OO000O ,timeout =O00O00O0O000O00O0 ,body =body ,headers =headers ,chunked =chunked )#line:600:chunked=chunked)
+            OOO000OO00O0O0000 =O0OO0O000000000OO if not release_conn else None #line:606:response_conn = conn if not release_conn else None
+            O0O000OO0000O00OO ['request_method']=O0OO00OO00OO00OO0 #line:609:response_kw['request_method'] = method
+            OOO00000O0OO0OOO0 =O00O0OO00000O00OO .ResponseCls .from_httplib (O0OOO0OOO00O00OO0 ,pool =O00O0OO00000O00OO ,connection =OOO000OO00O0O0000 ,retries =retries ,**O0O000OO0000O00OO )#line:616:**response_kw)
+            OOOOO0O0OO000000O =True #line:619:clean_exit = True
+        except queue .Empty :#line:621:except queue.Empty:
+            raise EmptyPoolError (O00O0OO00000O00OO ,"No pool connections are available.")#line:623:raise EmptyPoolError(self, "No pool connections are available.")
+        except (TimeoutError ,HTTPException ,SocketError ,ProtocolError ,BaseSSLError ,SSLError ,CertificateError )as O00OOO0OO0O0OOOOO :#line:626:BaseSSLError, SSLError, CertificateError) as e:
+            OOOOO0O0OO000000O =False #line:629:clean_exit = False
+            if isinstance (O00OOO0OO0O0OOOOO ,(BaseSSLError ,CertificateError )):#line:630:if isinstance(e, (BaseSSLError, CertificateError)):
+                O00OOO0OO0O0OOOOO =SSLError (O00OOO0OO0O0OOOOO )#line:631:e = SSLError(e)
+            elif isinstance (O00OOO0OO0O0OOOOO ,(SocketError ,NewConnectionError ))and O00O0OO00000O00OO .proxy :#line:632:elif isinstance(e, (SocketError, NewConnectionError)) and self.proxy:
+                O00OOO0OO0O0OOOOO =ProxyError ('Cannot connect to proxy.',O00OOO0OO0O0OOOOO )#line:633:e = ProxyError('Cannot connect to proxy.', e)
+            elif isinstance (O00OOO0OO0O0OOOOO ,(SocketError ,HTTPException )):#line:634:elif isinstance(e, (SocketError, HTTPException)):
+                O00OOO0OO0O0OOOOO =ProtocolError ('Connection aborted.',O00OOO0OO0O0OOOOO )#line:635:e = ProtocolError('Connection aborted.', e)
+            retries =retries .increment (O0OO00OO00OO00OO0 ,O000000OO00OO000O ,error =O00OOO0OO0O0OOOOO ,_pool =O00O0OO00000O00OO ,_stacktrace =sys .exc_info ()[2 ])#line:638:_stacktrace=sys.exc_info()[2])
+            retries .sleep ()#line:639:retries.sleep()
+            OOOOO0O0OOO00O000 =O00OOO0OO0O0OOOOO #line:642:err = e
+        finally :#line:644:finally:
+            if not OOOOO0O0OO000000O :#line:645:if not clean_exit:
+                O0OO0O000000000OO =O0OO0O000000000OO and O0OO0O000000000OO .close ()#line:650:conn = conn and conn.close()
+                OOOO0O0OO0O000O0O =True #line:651:release_this_conn = True
+            if OOOO0O0OO0O000O0O :#line:653:if release_this_conn:
+                O00O0OO00000O00OO ._put_conn (O0OO0O000000000OO )#line:657:self._put_conn(conn)
+        if not O0OO0O000000000OO :#line:659:if not conn:
+            log .warning ("Retrying (%r) after connection " "broken by '%r': %s",retries ,OOOOO0O0OOO00O000 ,O000000OO00OO000O )#line:662:"broken by '%r': %s", retries, err, url)
+            return O00O0OO00000O00OO .urlopen (O0OO00OO00OO00OO0 ,O000000OO00OO000O ,body ,headers ,retries ,redirect ,assert_same_host ,timeout =timeout ,pool_timeout =pool_timeout ,release_conn =release_conn ,body_pos =body_pos ,**O0O000OO0000O00OO )#line:667:**response_kw)
+        def OO00O00000OO0O0O0 (OO0O0000O000OOOOO ):#line:669:def drain_and_release_conn(response):
+            try :#line:670:try:
+                OO0O0000O000OOOOO .read ()#line:673:response.read()
+            except (TimeoutError ,HTTPException ,SocketError ,ProtocolError ,BaseSSLError ,SSLError )as O0O00O0O0OO0OO0O0 :#line:675:BaseSSLError, SSLError) as e:
+                pass #line:676:pass
+        OO0O0O00OOOOO0O0O =redirect and OOO00000O0OO0OOO0 .get_redirect_location ()#line:679:redirect_location = redirect and response.get_redirect_location()
+        if OO0O0O00OOOOO0O0O :#line:680:if redirect_location:
+            if OOO00000O0OO0OOO0 .status ==303 :#line:681:if response.status == 303:
+                O0OO00OO00OO00OO0 ='GET'#line:682:method = 'GET'
+            try :#line:684:try:
+                retries =retries .increment (O0OO00OO00OO00OO0 ,O000000OO00OO000O ,response =OOO00000O0OO0OOO0 ,_pool =O00O0OO00000O00OO )#line:685:retries = retries.increment(method, url, response=response, _pool=self)
+            except MaxRetryError :#line:686:except MaxRetryError:
+                if retries .raise_on_redirect :#line:687:if retries.raise_on_redirect:
+                    OO00O00000OO0O0O0 (OOO00000O0OO0OOO0 )#line:690:drain_and_release_conn(response)
+                    raise #line:691:raise
+                return OOO00000O0OO0OOO0 #line:692:return response
+            OO00O00000OO0O0O0 (OOO00000O0OO0OOO0 )#line:695:drain_and_release_conn(response)
+            retries .sleep_for_retry (OOO00000O0OO0OOO0 )#line:697:retries.sleep_for_retry(response)
+            log .debug ("Redirecting %s -> %s",O000000OO00OO000O ,OO0O0O00OOOOO0O0O )#line:698:log.debug("Redirecting %s -> %s", url, redirect_location)
+            return O00O0OO00000O00OO .urlopen (O0OO00OO00OO00OO0 ,OO0O0O00OOOOO0O0O ,body ,headers ,retries =retries ,redirect =redirect ,assert_same_host =assert_same_host ,timeout =timeout ,pool_timeout =pool_timeout ,release_conn =release_conn ,body_pos =body_pos ,**O0O000OO0000O00OO )#line:705:**response_kw)
+        OOO0OO0OO0O0O000O =bool (OOO00000O0OO0OOO0 .getheader ('Retry-After'))#line:708:has_retry_after = bool(response.getheader('Retry-After'))
+        if retries .is_retry (O0OO00OO00OO00OO0 ,OOO00000O0OO0OOO0 .status ,OOO0OO0OO0O0O000O ):#line:709:if retries.is_retry(method, response.status, has_retry_after):
+            try :#line:710:try:
+                retries =retries .increment (O0OO00OO00OO00OO0 ,O000000OO00OO000O ,response =OOO00000O0OO0OOO0 ,_pool =O00O0OO00000O00OO )#line:711:retries = retries.increment(method, url, response=response, _pool=self)
+            except MaxRetryError :#line:712:except MaxRetryError:
+                if retries .raise_on_status :#line:713:if retries.raise_on_status:
+                    OO00O00000OO0O0O0 (OOO00000O0OO0OOO0 )#line:716:drain_and_release_conn(response)
+                    raise #line:717:raise
+                return OOO00000O0OO0OOO0 #line:718:return response
+            OO00O00000OO0O0O0 (OOO00000O0OO0OOO0 )#line:721:drain_and_release_conn(response)
+            retries .sleep (OOO00000O0OO0OOO0 )#line:723:retries.sleep(response)
+            log .debug ("Retry: %s",O000000OO00OO000O )#line:724:log.debug("Retry: %s", url)
+            return O00O0OO00000O00OO .urlopen (O0OO00OO00OO00OO0 ,O000000OO00OO000O ,body ,headers ,retries =retries ,redirect =redirect ,assert_same_host =assert_same_host ,timeout =timeout ,pool_timeout =pool_timeout ,release_conn =release_conn ,body_pos =body_pos ,**O0O000OO0000O00OO )#line:731:body_pos=body_pos, **response_kw)
+        return OOO00000O0OO0OOO0 #line:733:return response
+class HTTPSConnectionPool (HTTPConnectionPool ):#line:736:class HTTPSConnectionPool(HTTPConnectionPool):
+    ""#line:752:"""
+    scheme ='https'#line:754:scheme = 'https'
+    ConnectionCls =HTTPSConnection #line:755:ConnectionCls = HTTPSConnection
+    def __init__ (O0OOO00OO000000O0 ,O00O0O0O00OOO00O0 ,port =None ,strict =False ,timeout =Timeout .DEFAULT_TIMEOUT ,maxsize =1 ,block =False ,headers =None ,retries =None ,_proxy =None ,_proxy_headers =None ,key_file =None ,cert_file =None ,cert_reqs =None ,ca_certs =None ,ssl_version =None ,assert_hostname =None ,assert_fingerprint =None ,ca_cert_dir =None ,**OOOOO00O0O0O0O0O0 ):#line:764:ca_cert_dir=None, **conn_kw):
+        HTTPConnectionPool .__init__ (O0OOO00OO000000O0 ,O00O0O0O00OOO00O0 ,port ,strict ,timeout ,maxsize ,block ,headers ,retries ,_proxy ,_proxy_headers ,**OOOOO00O0O0O0O0O0 )#line:768:**conn_kw)
+        if ca_certs and cert_reqs is None :#line:770:if ca_certs and cert_reqs is None:
+            cert_reqs ='CERT_REQUIRED'#line:771:cert_reqs = 'CERT_REQUIRED'
+        O0OOO00OO000000O0 .key_file =key_file #line:773:self.key_file = key_file
+        O0OOO00OO000000O0 .cert_file =cert_file #line:774:self.cert_file = cert_file
+        O0OOO00OO000000O0 .cert_reqs =cert_reqs #line:775:self.cert_reqs = cert_reqs
+        O0OOO00OO000000O0 .ca_certs =ca_certs #line:776:self.ca_certs = ca_certs
+        O0OOO00OO000000O0 .ca_cert_dir =ca_cert_dir #line:777:self.ca_cert_dir = ca_cert_dir
+        O0OOO00OO000000O0 .ssl_version =ssl_version #line:778:self.ssl_version = ssl_version
+        O0OOO00OO000000O0 .assert_hostname =assert_hostname #line:779:self.assert_hostname = assert_hostname
+        O0OOO00OO000000O0 .assert_fingerprint =assert_fingerprint #line:780:self.assert_fingerprint = assert_fingerprint
+    def _prepare_conn (O0OOOOOOO00O0000O ,O00O000O000OOOO00 ):#line:782:def _prepare_conn(self, conn):
+        ""#line:786:"""
+        if isinstance (O00O000O000OOOO00 ,VerifiedHTTPSConnection ):#line:788:if isinstance(conn, VerifiedHTTPSConnection):
+            O00O000O000OOOO00 .set_cert (key_file =O0OOOOOOO00O0000O .key_file ,cert_file =O0OOOOOOO00O0000O .cert_file ,cert_reqs =O0OOOOOOO00O0000O .cert_reqs ,ca_certs =O0OOOOOOO00O0000O .ca_certs ,ca_cert_dir =O0OOOOOOO00O0000O .ca_cert_dir ,assert_hostname =O0OOOOOOO00O0000O .assert_hostname ,assert_fingerprint =O0OOOOOOO00O0000O .assert_fingerprint )#line:795:assert_fingerprint=self.assert_fingerprint)
+            O00O000O000OOOO00 .ssl_version =O0OOOOOOO00O0000O .ssl_version #line:796:conn.ssl_version = self.ssl_version
+        return O00O000O000OOOO00 #line:797:return conn
+    def _prepare_proxy (O0O0OOOO00O00OO00 ,OOO0000OO0O00OOO0 ):#line:799:def _prepare_proxy(self, conn):
+        ""#line:803:"""
+        OOO0000OO0O00OOO0 .set_tunnel (O0O0OOOO00O00OO00 ._proxy_host ,O0O0OOOO00O00OO00 .port ,O0O0OOOO00O00OO00 .proxy_headers )#line:804:conn.set_tunnel(self._proxy_host, self.port, self.proxy_headers)
+        OOO0000OO0O00OOO0 .connect ()#line:805:conn.connect()
+    def _new_conn (OO00O0OOOOOO0OO00 ):#line:807:def _new_conn(self):
+        ""#line:810:"""
+        OO00O0OOOOOO0OO00 .num_connections +=1 #line:811:self.num_connections += 1
+        log .debug ("Starting new HTTPS connection (%d): %s:%s",OO00O0OOOOOO0OO00 .num_connections ,OO00O0OOOOOO0OO00 .host ,OO00O0OOOOOO0OO00 .port or "443")#line:813:self.num_connections, self.host, self.port or "443")
+        if not OO00O0OOOOOO0OO00 .ConnectionCls or OO00O0OOOOOO0OO00 .ConnectionCls is DummyConnection :#line:815:if not self.ConnectionCls or self.ConnectionCls is DummyConnection:
+            raise SSLError ("Can't connect to HTTPS URL because the SSL " "module is not available.")#line:817:"module is not available.")
+        O0O00OO00OOO00OOO =OO00O0OOOOOO0OO00 .host #line:819:actual_host = self.host
+        O0O0O00000OOOO00O =OO00O0OOOOOO0OO00 .port #line:820:actual_port = self.port
+        if OO00O0OOOOOO0OO00 .proxy is not None :#line:821:if self.proxy is not None:
+            O0O00OO00OOO00OOO =OO00O0OOOOOO0OO00 .proxy .host #line:822:actual_host = self.proxy.host
+            O0O0O00000OOOO00O =OO00O0OOOOOO0OO00 .proxy .port #line:823:actual_port = self.proxy.port
+        OOO00O000O00OOO0O =OO00O0OOOOOO0OO00 .ConnectionCls (host =O0O00OO00OOO00OOO ,port =O0O0O00000OOOO00O ,timeout =OO00O0OOOOOO0OO00 .timeout .connect_timeout ,strict =OO00O0OOOOOO0OO00 .strict ,**OO00O0OOOOOO0OO00 .conn_kw )#line:827:strict=self.strict, **self.conn_kw)
+        return OO00O0OOOOOO0OO00 ._prepare_conn (OOO00O000O00OOO0O )#line:829:return self._prepare_conn(conn)
+    def _validate_conn (O0O0000OOO0OO0O0O ,OO000O00O0O0OOO00 ):#line:831:def _validate_conn(self, conn):
+        ""#line:834:"""
+        super (HTTPSConnectionPool ,O0O0000OOO0OO0O0O )._validate_conn (OO000O00O0O0OOO00 )#line:835:super(HTTPSConnectionPool, self)._validate_conn(conn)
+        if not getattr (OO000O00O0O0OOO00 ,'sock',None ):#line:838:if not getattr(conn, 'sock', None):  # AppEngine might not have  `.sock`
+            OO000O00O0O0OOO00 .connect ()#line:839:conn.connect()
+        if not OO000O00O0O0OOO00 .is_verified :#line:841:if not conn.is_verified:
+            warnings .warn (('Unverified HTTPS request is being made. ' 'Adding certificate verification is strongly advised. See: ' 'https://urllib3.readthedocs.io/en/latest/advanced-usage.html' '#ssl-warnings'),InsecureRequestWarning )#line:847:InsecureRequestWarning)
+def connection_from_url (O00OO0O0OO000OOO0 ,**OO000O0OO00OO0OOO ):#line:850:def connection_from_url(url, **kw):
+    ""#line:869:"""
+    OO0000O0O00OO0O00 ,OOO0OOO0000O0O000 ,OO0OOOOO0OO0000O0 =get_host (O00OO0O0OO000OOO0 )#line:870:scheme, host, port = get_host(url)
+    OO0OOOOO0OO0000O0 =OO0OOOOO0OO0000O0 or port_by_scheme .get (OO0000O0O00OO0O00 ,80 )#line:871:port = port or port_by_scheme.get(scheme, 80)
+    if OO0000O0O00OO0O00 =='https':#line:872:if scheme == 'https':
+        return HTTPSConnectionPool (OOO0OOO0000O0O000 ,port =OO0OOOOO0OO0000O0 ,**OO000O0OO00OO0OOO )#line:873:return HTTPSConnectionPool(host, port=port, **kw)
+    else :#line:874:else:
+        return HTTPConnectionPool (OOO0OOO0000O0O000 ,port =OO0OOOOO0OO0000O0 ,**OO000O0OO00OO0OOO )#line:875:return HTTPConnectionPool(host, port=port, **kw)
+def _OOO0O0OOO000OOO00 (O00O00O0OOOO0O0OO ,O00OO00O0O000O0O0 ):#line:878:def _ipv6_host(host, scheme):
+    ""#line:881:"""
+    if O00O00O0OOOO0O0OO .startswith ('[')and O00O00O0OOOO0O0OO .endswith (']'):#line:892:if host.startswith('[') and host.endswith(']'):
+        O00O00O0OOOO0O0OO =O00O00O0OOOO0O0OO .replace ('%25','%').strip ('[]')#line:893:host = host.replace('%25', '%').strip('[]')
+    if O00OO00O0O000O0O0 in NORMALIZABLE_SCHEMES :#line:894:if scheme in NORMALIZABLE_SCHEMES:
+        O00O00O0OOOO0O0OO =O00O00O0OOOO0O0OO .lower ()#line:895:host = host.lower()
+    return O00O00O0OOOO0O0OO #line:896:return host

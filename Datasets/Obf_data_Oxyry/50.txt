@@ -1,0 +1,1053 @@
+""#line:1:"""CSS matcher."""
+from datetime import datetime #line:2:from datetime import datetime
+from .import util #line:3:from . import util
+import re #line:4:import re
+from .import css_types as ct #line:5:from .import css_types as ct
+import unicodedata #line:6:import unicodedata
+RE_NOT_EMPTY =re .compile ('[^ \t\r\n\f]')#line:9:RE_NOT_EMPTY = re.compile('[^ \t\r\n\f]')
+RE_NOT_WS =re .compile ('[^ \t\r\n\f]+')#line:11:RE_NOT_WS = re.compile('[^ \t\r\n\f]+')
+REL_PARENT =' '#line:14:REL_PARENT = ' '
+REL_CLOSE_PARENT ='>'#line:15:REL_CLOSE_PARENT = '>'
+REL_SIBLING ='~'#line:16:REL_SIBLING = '~'
+REL_CLOSE_SIBLING ='+'#line:17:REL_CLOSE_SIBLING = '+'
+REL_HAS_PARENT =': '#line:20:REL_HAS_PARENT = ': '
+REL_HAS_CLOSE_PARENT =':>'#line:21:REL_HAS_CLOSE_PARENT = ':>'
+REL_HAS_SIBLING =':~'#line:22:REL_HAS_SIBLING = ':~'
+REL_HAS_CLOSE_SIBLING =':+'#line:23:REL_HAS_CLOSE_SIBLING = ':+'
+NS_XHTML ='http://www.w3.org/1999/xhtml'#line:25:NS_XHTML = 'http://www.w3.org/1999/xhtml'
+NS_XML ='http://www.w3.org/XML/1998/namespace'#line:26:NS_XML = 'http://www.w3.org/XML/1998/namespace'
+DIR_FLAGS =ct .SEL_DIR_LTR |ct .SEL_DIR_RTL #line:28:DIR_FLAGS = ct.SEL_DIR_LTR | ct.SEL_DIR_RTL
+RANGES =ct .SEL_IN_RANGE |ct .SEL_OUT_OF_RANGE #line:29:RANGES = ct.SEL_IN_RANGE | ct.SEL_OUT_OF_RANGE
+DIR_MAP ={'ltr':ct .SEL_DIR_LTR ,'rtl':ct .SEL_DIR_RTL ,'auto':0 }#line:35:}
+RE_NUM =re .compile (r"^(?P<value>-?(?:[0-9]{1,}(\.[0-9]+)?|\.[0-9]+))$")#line:37:RE_NUM = re.compile(r"^(?P<value>-?(?:[0-9]{1,}(\.[0-9]+)?|\.[0-9]+))$")
+RE_TIME =re .compile (r'^(?P<hour>[0-9]{2}):(?P<minutes>[0-9]{2})$')#line:38:RE_TIME = re.compile(r'^(?P<hour>[0-9]{2}):(?P<minutes>[0-9]{2})$')
+RE_MONTH =re .compile (r'^(?P<year>[0-9]{4,})-(?P<month>[0-9]{2})$')#line:39:RE_MONTH = re.compile(r'^(?P<year>[0-9]{4,})-(?P<month>[0-9]{2})$')
+RE_WEEK =re .compile (r'^(?P<year>[0-9]{4,})-W(?P<week>[0-9]{2})$')#line:40:RE_WEEK = re.compile(r'^(?P<year>[0-9]{4,})-W(?P<week>[0-9]{2})$')
+RE_DATE =re .compile (r'^(?P<year>[0-9]{4,})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})$')#line:41:RE_DATE = re.compile(r'^(?P<year>[0-9]{4,})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})$')
+RE_DATETIME =re .compile (r'^(?P<year>[0-9]{4,})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})T(?P<hour>[0-9]{2}):(?P<minutes>[0-9]{2})$')#line:44:)
+RE_WILD_STRIP =re .compile (r'(?:(?:-\*-)(?:\*(?:-|$))*|-\*$)')#line:45:RE_WILD_STRIP = re.compile(r'(?:(?:-\*-)(?:\*(?:-|$))*|-\*$)')
+MONTHS_30 =(4 ,6 ,9 ,11 )#line:47:MONTHS_30 = (4, 6, 9, 11)  # April, June, September, and November
+FEB =2 #line:48:FEB = 2
+SHORT_MONTH =30 #line:49:SHORT_MONTH = 30
+LONG_MONTH =31 #line:50:LONG_MONTH = 31
+FEB_MONTH =28 #line:51:FEB_MONTH = 28
+FEB_LEAP_MONTH =29 #line:52:FEB_LEAP_MONTH = 29
+DAYS_IN_WEEK =7 #line:53:DAYS_IN_WEEK = 7
+class _OOO00O00OOOO00O0O (object ):#line:56:class _FakeParent(object):
+    ""#line:63:"""
+    def __init__ (O0OOOOOO00OOOO0O0 ,OOO000OOOO0O0O000 ):#line:65:def __init__(self, element):
+        ""#line:66:"""Initialize."""
+        O0OOOOOO00OOOO0O0 .contents =[OOO000OOOO0O0O000 ]#line:68:self.contents = [element]
+    def __len__ (OOOOO0OOOOO00OO00 ):#line:70:def __len__(self):
+        ""#line:71:"""Length."""
+        return len (OOOOO0OOOOO00OO00 .contents )#line:73:return len(self.contents)
+class _O0OO0OOOOOOOO0O00 (object ):#line:76:class _DocumentNav(object):
+    ""#line:77:"""Navigate a Beautiful Soup document."""
+    @classmethod #line:79:@classmethod
+    def assert_valid_input (O0O0O0O00O00000O0 ,OO0000OOO0O0O0OO0 ):#line:80:def assert_valid_input(cls, tag):
+        ""#line:81:"""Check if valid input tag or document."""
+        if not O0O0O0O00O00000O0 .is_tag (OO0000OOO0O0O0OO0 ):#line:84:if not cls.is_tag(tag):
+            raise TypeError ("Expected a BeautifulSoup 'Tag', but instead recieved type {}".format (type (OO0000OOO0O0O0OO0 )))#line:85:raise TypeError("Expected a BeautifulSoup 'Tag', but instead recieved type {}".format(type(tag)))
+    @staticmethod #line:87:@staticmethod
+    def is_doc (OOOOOO00OOO0OOOO0 ):#line:88:def is_doc(obj):
+        ""#line:89:"""Is `BeautifulSoup` object."""
+        import bs4 #line:91:import bs4
+        return isinstance (OOOOOO00OOO0OOOO0 ,bs4 .BeautifulSoup )#line:92:return isinstance(obj, bs4.BeautifulSoup)
+    @staticmethod #line:94:@staticmethod
+    def is_tag (OO0O000O0O0OO000O ):#line:95:def is_tag(obj):
+        ""#line:96:"""Is tag."""
+        import bs4 #line:98:import bs4
+        return isinstance (OO0O000O0O0OO000O ,bs4 .Tag )#line:99:return isinstance(obj, bs4.Tag)
+    @staticmethod #line:101:@staticmethod
+    def is_declaration (O000OOOO0O000000O ):#line:102:def is_declaration(obj):  # pragma: no cover
+        ""#line:103:"""Is declaration."""
+        import bs4 #line:105:import bs4
+        return isinstance (O000OOOO0O000000O ,bs4 .Declaration )#line:106:return isinstance(obj, bs4.Declaration)
+    @staticmethod #line:108:@staticmethod
+    def is_cdata (O00O00O0OOO00O000 ):#line:109:def is_cdata(obj):
+        ""#line:110:"""Is CDATA."""
+        import bs4 #line:112:import bs4
+        return isinstance (O00O00O0OOO00O000 ,bs4 .CData )#line:113:return isinstance(obj, bs4.CData)
+    @staticmethod #line:115:@staticmethod
+    def is_processing_instruction (OO00O0OO0O0OOOO0O ):#line:116:def is_processing_instruction(obj):  # pragma: no cover
+        ""#line:117:"""Is processing instruction."""
+        import bs4 #line:119:import bs4
+        return isinstance (OO00O0OO0O0OOOO0O ,bs4 .ProcessingInstruction )#line:120:return isinstance(obj, bs4.ProcessingInstruction)
+    @staticmethod #line:122:@staticmethod
+    def is_navigable_string (O0O0000O00O00OO0O ):#line:123:def is_navigable_string(obj):
+        ""#line:124:"""Is navigable string."""
+        import bs4 #line:126:import bs4
+        return isinstance (O0O0000O00O00OO0O ,bs4 .NavigableString )#line:127:return isinstance(obj, bs4.NavigableString)
+    @staticmethod #line:129:@staticmethod
+    def is_special_string (OOOO0OOOOOOO0OO0O ):#line:130:def is_special_string(obj):
+        ""#line:131:"""Is special string."""
+        import bs4 #line:133:import bs4
+        return isinstance (OOOO0OOOOOOO0OO0O ,(bs4 .Comment ,bs4 .Declaration ,bs4 .CData ,bs4 .ProcessingInstruction ,bs4 .Doctype ))#line:134:return isinstance(obj, (bs4.Comment, bs4.Declaration, bs4.CData, bs4.ProcessingInstruction, bs4.Doctype))
+    @classmethod #line:136:@classmethod
+    def is_content_string (O00O00000O0OOO000 ,O00O00OOO0OOOO00O ):#line:137:def is_content_string(cls, obj):
+        ""#line:138:"""Check if node is content string."""
+        return O00O00000O0OOO000 .is_navigable_string (O00O00OOO0OOOO00O )and not O00O00000O0OOO000 .is_special_string (O00O00OOO0OOOO00O )#line:140:return cls.is_navigable_string(obj) and not cls.is_special_string(obj)
+    @staticmethod #line:142:@staticmethod
+    def create_fake_parent (OOOO0O00OO0000000 ):#line:143:def create_fake_parent(el):
+        ""#line:144:"""Create fake parent for a given element."""
+        return _OOO00O00OOOO00O0O (OOOO0O00OO0000000 )#line:146:return _FakeParent(el)
+    @staticmethod #line:148:@staticmethod
+    def is_xml_tree (OOO00OO0O00O00O0O ):#line:149:def is_xml_tree(el):
+        ""#line:150:"""Check if element (or document) is from a XML tree."""
+        return OOO00OO0O00O00O0O ._is_xml #line:152:return el._is_xml
+    def is_iframe (O0OO00OOOO00000O0 ,OO0O0OOOO0OOO00O0 ):#line:154:def is_iframe(self, el):
+        ""#line:155:"""Check if element is an `iframe`."""
+        return ((OO0O0OOOO0OOO00O0 .name if O0OO00OOOO00000O0 .is_xml_tree (OO0O0OOOO0OOO00O0 )else util .lower (OO0O0OOOO0OOO00O0 .name ))=='iframe')and O0OO00OOOO00000O0 .is_html_tag (OO0O0OOOO0OOO00O0 )#line:157:return ((el.name if self.is_xml_tree(el) else util.lower(el.name)) == 'iframe') and self.is_html_tag(el)
+    def is_root (OOO0O0OOO0OO0OO00 ,OOO00O0O0OO000O00 ):#line:159:def is_root(self, el):
+        ""#line:165:"""
+        OOOOO0O0OO0O0OOO0 =OOO0O0OOO0OO0OO00 .root and OOO0O0OOO0OO0OO00 .root is OOO00O0O0OO000O00 #line:167:root = self.root and self.root is el
+        if not OOOOO0O0OO0O0OOO0 :#line:168:if not root:
+            OO0O00O00O00OO0O0 =OOO0O0OOO0OO0OO00 .get_parent (OOO00O0O0OO000O00 )#line:169:parent = self.get_parent(el)
+            OOOOO0O0OO0O0OOO0 =OO0O00O00O00OO0O0 is not None and OOO0O0OOO0OO0OO00 .is_html and OOO0O0OOO0OO0OO00 .is_iframe (OO0O00O00O00OO0O0 )#line:170:root = parent is not None and self.is_html and self.is_iframe(parent)
+        return OOOOO0O0OO0O0OOO0 #line:171:return root
+    def get_contents (O0000OO00OOO00O00 ,OO00000O0OOOO0OO0 ,no_iframe =False ):#line:173:def get_contents(self, el, no_iframe=False):
+        ""#line:174:"""Get contents or contents in reverse."""
+        if not no_iframe or not O0000OO00OOO00O00 .is_iframe (OO00000O0OOOO0OO0 ):#line:175:if not no_iframe or not self.is_iframe(el):
+            for OO00OOO00O000OO00 in OO00000O0OOOO0OO0 .contents :#line:176:for content in el.contents:
+                yield OO00OOO00O000OO00 #line:177:yield content
+    def get_children (O0O0O0000OO00OO00 ,OO0O00OO000OOO00O ,start =None ,reverse =False ,tags =True ,no_iframe =False ):#line:179:def get_children(self, el, start=None, reverse=False, tags=True, no_iframe=False):
+        ""#line:180:"""Get children."""
+        if not no_iframe or not O0O0O0000OO00OO00 .is_iframe (OO0O00OO000OOO00O ):#line:182:if not no_iframe or not self.is_iframe(el):
+            O00000OO00OOOO0O0 =len (OO0O00OO000OOO00O .contents )-1 #line:183:last = len(el.contents) - 1
+            if start is None :#line:184:if start is None:
+                O0OO00OO0OO0OOO0O =O00000OO00OOOO0O0 if reverse else 0 #line:185:index = last if reverse else 0
+            else :#line:186:else:
+                O0OO00OO0OO0OOO0O =start #line:187:index = start
+            O0O0OO0OOOO0O000O =-1 if reverse else O00000OO00OOOO0O0 +1 #line:188:end = -1 if reverse else last + 1
+            O0OOOOO0O0OO0OO00 =-1 if reverse else 1 #line:189:incr = -1 if reverse else 1
+            if 0 <=O0OO00OO0OO0OOO0O <=O00000OO00OOOO0O0 :#line:191:if 0 <= index <= last:
+                while O0OO00OO0OO0OOO0O !=O0O0OO0OOOO0O000O :#line:192:while index != end:
+                    O0000OO0OO0000OO0 =OO0O00OO000OOO00O .contents [O0OO00OO0OO0OOO0O ]#line:193:node = el.contents[index]
+                    O0OO00OO0OO0OOO0O +=O0OOOOO0O0OO0OO00 #line:194:index += incr
+                    if not tags or O0O0O0000OO00OO00 .is_tag (O0000OO0OO0000OO0 ):#line:195:if not tags or self.is_tag(node):
+                        yield O0000OO0OO0000OO0 #line:196:yield node
+    def get_descendants (OO00O0000OOO000OO ,OO000O000O000O00O ,tags =True ,no_iframe =False ):#line:198:def get_descendants(self, el, tags=True, no_iframe=False):
+        ""#line:199:"""Get descendants."""
+        if not no_iframe or not OO00O0000OOO000OO .is_iframe (OO000O000O000O00O ):#line:201:if not no_iframe or not self.is_iframe(el):
+            O0O000OOO0OO00O00 =None #line:202:next_good = None
+            for O00OOO00OOOO0OOO0 in OO000O000O000O00O .descendants :#line:203:for child in el.descendants:
+                if O0O000OOO0OO00O00 is not None :#line:205:if next_good is not None:
+                    if O00OOO00OOOO0OOO0 is not O0O000OOO0OO00O00 :#line:206:if child is not next_good:
+                        continue #line:207:continue
+                    O0O000OOO0OO00O00 =None #line:208:next_good = None
+                O00O000OO00OO00O0 =OO00O0000OOO000OO .is_tag (O00OOO00OOOO0OOO0 )#line:210:is_tag = self.is_tag(child)
+                if no_iframe and O00O000OO00OO00O0 and OO00O0000OOO000OO .is_iframe (O00OOO00OOOO0OOO0 ):#line:212:if no_iframe and is_tag and self.is_iframe(child):
+                    if O00OOO00OOOO0OOO0 .next_sibling is not None :#line:213:if child.next_sibling is not None:
+                        O0O000OOO0OO00O00 =O00OOO00OOOO0OOO0 .next_sibling #line:214:next_good = child.next_sibling
+                    else :#line:215:else:
+                        OOO00OOOOO0OOOO0O =O00OOO00OOOO0OOO0 #line:216:last_child = child
+                        while OO00O0000OOO000OO .is_tag (OOO00OOOOO0OOOO0O )and OOO00OOOOO0OOOO0O .contents :#line:217:while self.is_tag(last_child) and last_child.contents:
+                            OOO00OOOOO0OOOO0O =OOO00OOOOO0OOOO0O .contents [-1 ]#line:218:last_child = last_child.contents[-1]
+                        O0O000OOO0OO00O00 =OOO00OOOOO0OOOO0O .next_element #line:219:next_good = last_child.next_element
+                    yield O00OOO00OOOO0OOO0 #line:220:yield child
+                    if O0O000OOO0OO00O00 is None :#line:221:if next_good is None:
+                        break #line:222:break
+                    continue #line:224:continue  # pragma: no cover
+                if not tags or O00O000OO00OO00O0 :#line:226:if not tags or is_tag:
+                    yield O00OOO00OOOO0OOO0 #line:227:yield child
+    def get_parent (OO0OO00OOO00OO0OO ,OO0O000O0OO00O00O ,no_iframe =False ):#line:229:def get_parent(self, el, no_iframe=False):
+        ""#line:230:"""Get parent."""
+        OOOOO0OOOO00OOOO0 =OO0O000O0OO00O00O .parent #line:232:parent = el.parent
+        if no_iframe and OOOOO0OOOO00OOOO0 is not None and OO0OO00OOO00OO0OO .is_iframe (OOOOO0OOOO00OOOO0 ):#line:233:if no_iframe and parent is not None and self.is_iframe(parent):
+            OOOOO0OOOO00OOOO0 =None #line:234:parent = None
+        return OOOOO0OOOO00OOOO0 #line:235:return parent
+    @staticmethod #line:237:@staticmethod
+    def get_tag_name (O0OO000O00O0000OO ):#line:238:def get_tag_name(el):
+        ""#line:239:"""Get tag."""
+        return O0OO000O00O0000OO .name #line:241:return el.name
+    @staticmethod #line:243:@staticmethod
+    def get_prefix_name (O00O00000OO0OO000 ):#line:244:def get_prefix_name(el):
+        ""#line:245:"""Get prefix."""
+        return O00O00000OO0OO000 .prefix #line:247:return el.prefix
+    @staticmethod #line:249:@staticmethod
+    def get_uri (O0OOO0000OO0OO0OO ):#line:250:def get_uri(el):
+        ""#line:251:"""Get namespace `URI`."""
+        return O0OOO0000OO0OO0OO .namespace #line:253:return el.namespace
+    @classmethod #line:255:@classmethod
+    def get_next (OO00OO0OOOO0O0O0O ,OOOOO0O000O00O00O ,tags =True ):#line:256:def get_next(cls, el, tags=True):
+        ""#line:257:"""Get next sibling tag."""
+        O000O00O00OOOOOOO =OOOOO0O000O00O00O .next_sibling #line:259:sibling = el.next_sibling
+        while tags and not OO00OO0OOOO0O0O0O .is_tag (O000O00O00OOOOOOO )and O000O00O00OOOOOOO is not None :#line:260:while tags and not cls.is_tag(sibling) and sibling is not None:
+            O000O00O00OOOOOOO =O000O00O00OOOOOOO .next_sibling #line:261:sibling = sibling.next_sibling
+        return O000O00O00OOOOOOO #line:262:return sibling
+    @classmethod #line:264:@classmethod
+    def get_previous (O0O0O0OOOO0O00O0O ,O0O00OO000O00OOOO ,tags =True ):#line:265:def get_previous(cls, el, tags=True):
+        ""#line:266:"""Get previous sibling tag."""
+        OO0OOO0000000O00O =O0O00OO000O00OOOO .previous_sibling #line:268:sibling = el.previous_sibling
+        while tags and not O0O0O0OOOO0O00O0O .is_tag (OO0OOO0000000O00O )and OO0OOO0000000O00O is not None :#line:269:while tags and not cls.is_tag(sibling) and sibling is not None:
+            OO0OOO0000000O00O =OO0OOO0000000O00O .previous_sibling #line:270:sibling = sibling.previous_sibling
+        return OO0OOO0000000O00O #line:271:return sibling
+    @staticmethod #line:273:@staticmethod
+    def has_html_ns (OOOOOOO00O0000O00 ):#line:274:def has_html_ns(el):
+        ""#line:280:"""
+        O0O0000O00O0OOOO0 =getattr (OOOOOOO00O0000O00 ,'namespace')if OOOOOOO00O0000O00 else None #line:282:ns = getattr(el, 'namespace') if el else None
+        return O0O0000O00O0OOOO0 and O0O0000O00O0OOOO0 ==NS_XHTML #line:283:return ns and ns == NS_XHTML
+    @staticmethod #line:285:@staticmethod
+    def split_namespace (O000OOOO0000O0O00 ,O0O00O0OO00OO0O00 ):#line:286:def split_namespace(el, attr_name):
+        ""#line:287:"""Return namespace and attribute name without the prefix."""
+        return getattr (O0O00O0OO00OO0O00 ,'namespace',None ),getattr (O0O00O0OO00OO0O00 ,'name',None )#line:289:return getattr(attr_name, 'namespace', None), getattr(attr_name, 'name', None)
+    @staticmethod #line:291:@staticmethod
+    def get_attribute_by_name (O0O00000O0OOO0O00 ,OO0OO0OOOOOO0OO00 ,default =None ):#line:292:def get_attribute_by_name(el, name, default=None):
+        ""#line:293:"""Get attribute by name."""
+        OOOOOOO00OOO0O0O0 =default #line:295:value = default
+        if O0O00000O0OOO0O00 ._is_xml :#line:296:if el._is_xml:
+            try :#line:297:try:
+                OOOOOOO00OOO0O0O0 =O0O00000O0OOO0O00 .attrs [OO0OO0OOOOOO0OO00 ]#line:298:value = el.attrs[name]
+            except KeyError :#line:299:except KeyError:
+                pass #line:300:pass
+        else :#line:301:else:
+            for O000O00O00OOO0OO0 ,OO0OOO00O0OOO000O in O0O00000O0OOO0O00 .attrs .items ():#line:302:for k, v in el.attrs.items():
+                if util .lower (O000O00O00OOO0OO0 )==OO0OO0OOOOOO0OO00 :#line:303:if util.lower(k) == name:
+                    OOOOOOO00OOO0O0O0 =OO0OOO00O0OOO000O #line:304:value = v
+                    break #line:305:break
+        return OOOOOOO00OOO0O0O0 #line:306:return value
+    @staticmethod #line:308:@staticmethod
+    def iter_attributes (O00O00000000OO000 ):#line:309:def iter_attributes(el):
+        ""#line:310:"""Iterate attributes."""
+        for OO0O00O0O0O00O00O ,O0OO000OOOOOO0000 in O00O00000000OO000 .attrs .items ():#line:312:for k, v in el.attrs.items():
+            yield OO0O00O0O0O00O00O ,O0OO000OOOOOO0000 #line:313:yield k, v
+    @classmethod #line:315:@classmethod
+    def get_classes (OOOO0000000OOO00O ,OOOO000O000000000 ):#line:316:def get_classes(cls, el):
+        ""#line:317:"""Get classes."""
+        O00000OOOOO0OO0OO =OOOO0000000OOO00O .get_attribute_by_name (OOOO000O000000000 ,'class',[])#line:319:classes = cls.get_attribute_by_name(el, 'class', [])
+        if isinstance (O00000OOOOO0OO0OO ,str ):#line:320:if isinstance(classes, str):
+            O00000OOOOO0OO0OO =RE_NOT_WS .findall (O00000OOOOO0OO0OO )#line:321:classes = RE_NOT_WS.findall(classes)
+        return O00000OOOOO0OO0OO #line:322:return classes
+    def get_text (O0000O0OOOO0OO00O ,OO0O0O0O0OO0O0OO0 ,no_iframe =False ):#line:324:def get_text(self, el, no_iframe=False):
+        ""#line:325:"""Get text."""
+        return ''.join ([O0O0OO0OOOO0000OO for O0O0OO0OOOO0000OO in O0000O0OOOO0OO00O .get_descendants (OO0O0O0O0OO0O0OO0 ,tags =False ,no_iframe =no_iframe )if O0000O0OOOO0OO00O .is_content_string (O0O0OO0OOOO0000OO )])#line:329:)
+class Inputs (object ):#line:332:class Inputs(object):
+    ""#line:333:"""Class for parsing and validating input items."""
+    @staticmethod #line:335:@staticmethod
+    def validate_day (O0O00000OO0OO00O0 ,O0O0O000000000O00 ,OO00OOO000O00OO00 ):#line:336:def validate_day(year, month, day):
+        ""#line:337:"""Validate day."""
+        O0OOO00O0O0O0OOO0 =LONG_MONTH #line:339:max_days = LONG_MONTH
+        if O0O0O000000000O00 ==FEB :#line:340:if month == FEB:
+            O0OOO00O0O0O0OOO0 =FEB_LEAP_MONTH if ((O0O00000OO0OO00O0 %4 ==0 )and (O0O00000OO0OO00O0 %100 !=0 ))or (O0O00000OO0OO00O0 %400 ==0 )else FEB_MONTH #line:341:max_days = FEB_LEAP_MONTH if ((year % 4 == 0) and (year % 100 != 0)) or (year % 400 == 0) else FEB_MONTH
+        elif O0O0O000000000O00 in MONTHS_30 :#line:342:elif month in MONTHS_30:
+            O0OOO00O0O0O0OOO0 =SHORT_MONTH #line:343:max_days = SHORT_MONTH
+        return 1 <=OO00OOO000O00OO00 <=O0OOO00O0O0O0OOO0 #line:344:return 1 <= day <= max_days
+    @staticmethod #line:346:@staticmethod
+    def validate_week (OO0O0O00O0OO00O00 ,O00OOOO0OO0OO0O0O ):#line:347:def validate_week(year, week):
+        ""#line:348:"""Validate week."""
+        OOOO0OOOOOO000OOO =datetime .strptime ("{}-{}-{}".format (12 ,31 ,OO0O0O00O0OO00O00 ),"%m-%d-%Y").isocalendar ()[1 ]#line:350:max_week = datetime.strptime("{}-{}-{}".format(12, 31, year), "%m-%d-%Y").isocalendar()[1]
+        if OOOO0OOOOOO000OOO ==1 :#line:351:if max_week == 1:
+            OOOO0OOOOOO000OOO =53 #line:352:max_week = 53
+        return 1 <=O00OOOO0OO0OO0O0O <=OOOO0OOOOOO000OOO #line:353:return 1 <= week <= max_week
+    @staticmethod #line:355:@staticmethod
+    def validate_month (O0OO0OO0OO0O0O0O0 ):#line:356:def validate_month(month):
+        ""#line:357:"""Validate month."""
+        return 1 <=O0OO0OO0OO0O0O0O0 <=12 #line:359:return 1 <= month <= 12
+    @staticmethod #line:361:@staticmethod
+    def validate_year (O0O000OOOOOOO000O ):#line:362:def validate_year(year):
+        ""#line:363:"""Validate year."""
+        return 1 <=O0O000OOOOOOO000O #line:365:return 1 <= year
+    @staticmethod #line:367:@staticmethod
+    def validate_hour (OOO0000000O000OO0 ):#line:368:def validate_hour(hour):
+        ""#line:369:"""Validate hour."""
+        return 0 <=OOO0000000O000OO0 <=23 #line:371:return 0 <= hour <= 23
+    @staticmethod #line:373:@staticmethod
+    def validate_minutes (OO0OOO0OOO000OO0O ):#line:374:def validate_minutes(minutes):
+        ""#line:375:"""Validate minutes."""
+        return 0 <=OO0OOO0OOO000OO0O <=59 #line:377:return 0 <= minutes <= 59
+    @classmethod #line:379:@classmethod
+    def parse_value (OO000OO0O0O0O00OO ,OOO00000OOO0O0O0O ,OOOOO00000000O0O0 ):#line:380:def parse_value(cls, itype, value):
+        ""#line:381:"""Parse the input value."""
+        OO000OO0OOOO000OO =None #line:383:parsed = None
+        if OOO00000OOO0O0O0O =="date":#line:384:if itype == "date":
+            O0OO00O0OOOOOOOO0 =RE_DATE .match (OOOOO00000000O0O0 )#line:385:m = RE_DATE.match(value)
+            if O0OO00O0OOOOOOOO0 :#line:386:if m:
+                OO0O0O000OOOO0O00 =int (O0OO00O0OOOOOOOO0 .group ('year'),10 )#line:387:year = int(m.group('year'), 10)
+                O00OO0000O0O000O0 =int (O0OO00O0OOOOOOOO0 .group ('month'),10 )#line:388:month = int(m.group('month'), 10)
+                O00O00O00OOOO0OOO =int (O0OO00O0OOOOOOOO0 .group ('day'),10 )#line:389:day = int(m.group('day'), 10)
+                if OO000OO0O0O0O00OO .validate_year (OO0O0O000OOOO0O00 )and OO000OO0O0O0O00OO .validate_month (O00OO0000O0O000O0 )and OO000OO0O0O0O00OO .validate_day (OO0O0O000OOOO0O00 ,O00OO0000O0O000O0 ,O00O00O00OOOO0OOO ):#line:390:if cls.validate_year(year) and cls.validate_month(month) and cls.validate_day(year, month, day):
+                    OO000OO0OOOO000OO =(OO0O0O000OOOO0O00 ,O00OO0000O0O000O0 ,O00O00O00OOOO0OOO )#line:391:parsed = (year, month, day)
+        elif OOO00000OOO0O0O0O =="month":#line:392:elif itype == "month":
+            O0OO00O0OOOOOOOO0 =RE_MONTH .match (OOOOO00000000O0O0 )#line:393:m = RE_MONTH.match(value)
+            if O0OO00O0OOOOOOOO0 :#line:394:if m:
+                OO0O0O000OOOO0O00 =int (O0OO00O0OOOOOOOO0 .group ('year'),10 )#line:395:year = int(m.group('year'), 10)
+                O00OO0000O0O000O0 =int (O0OO00O0OOOOOOOO0 .group ('month'),10 )#line:396:month = int(m.group('month'), 10)
+                if OO000OO0O0O0O00OO .validate_year (OO0O0O000OOOO0O00 )and OO000OO0O0O0O00OO .validate_month (O00OO0000O0O000O0 ):#line:397:if cls.validate_year(year) and cls.validate_month(month):
+                    OO000OO0OOOO000OO =(OO0O0O000OOOO0O00 ,O00OO0000O0O000O0 )#line:398:parsed = (year, month)
+        elif OOO00000OOO0O0O0O =="week":#line:399:elif itype == "week":
+            O0OO00O0OOOOOOOO0 =RE_WEEK .match (OOOOO00000000O0O0 )#line:400:m = RE_WEEK.match(value)
+            if O0OO00O0OOOOOOOO0 :#line:401:if m:
+                OO0O0O000OOOO0O00 =int (O0OO00O0OOOOOOOO0 .group ('year'),10 )#line:402:year = int(m.group('year'), 10)
+                O000OOOOOO000O000 =int (O0OO00O0OOOOOOOO0 .group ('week'),10 )#line:403:week = int(m.group('week'), 10)
+                if OO000OO0O0O0O00OO .validate_year (OO0O0O000OOOO0O00 )and OO000OO0O0O0O00OO .validate_week (OO0O0O000OOOO0O00 ,O000OOOOOO000O000 ):#line:404:if cls.validate_year(year) and cls.validate_week(year, week):
+                    OO000OO0OOOO000OO =(OO0O0O000OOOO0O00 ,O000OOOOOO000O000 )#line:405:parsed = (year, week)
+        elif OOO00000OOO0O0O0O =="time":#line:406:elif itype == "time":
+            O0OO00O0OOOOOOOO0 =RE_TIME .match (OOOOO00000000O0O0 )#line:407:m = RE_TIME.match(value)
+            if O0OO00O0OOOOOOOO0 :#line:408:if m:
+                O00OOO0O0OOO0OOO0 =int (O0OO00O0OOOOOOOO0 .group ('hour'),10 )#line:409:hour = int(m.group('hour'), 10)
+                O0OOO000OO00000O0 =int (O0OO00O0OOOOOOOO0 .group ('minutes'),10 )#line:410:minutes = int(m.group('minutes'), 10)
+                if OO000OO0O0O0O00OO .validate_hour (O00OOO0O0OOO0OOO0 )and OO000OO0O0O0O00OO .validate_minutes (O0OOO000OO00000O0 ):#line:411:if cls.validate_hour(hour) and cls.validate_minutes(minutes):
+                    OO000OO0OOOO000OO =(O00OOO0O0OOO0OOO0 ,O0OOO000OO00000O0 )#line:412:parsed = (hour, minutes)
+        elif OOO00000OOO0O0O0O =="datetime-local":#line:413:elif itype == "datetime-local":
+            O0OO00O0OOOOOOOO0 =RE_DATETIME .match (OOOOO00000000O0O0 )#line:414:m = RE_DATETIME.match(value)
+            if O0OO00O0OOOOOOOO0 :#line:415:if m:
+                OO0O0O000OOOO0O00 =int (O0OO00O0OOOOOOOO0 .group ('year'),10 )#line:416:year = int(m.group('year'), 10)
+                O00OO0000O0O000O0 =int (O0OO00O0OOOOOOOO0 .group ('month'),10 )#line:417:month = int(m.group('month'), 10)
+                O00O00O00OOOO0OOO =int (O0OO00O0OOOOOOOO0 .group ('day'),10 )#line:418:day = int(m.group('day'), 10)
+                O00OOO0O0OOO0OOO0 =int (O0OO00O0OOOOOOOO0 .group ('hour'),10 )#line:419:hour = int(m.group('hour'), 10)
+                O0OOO000OO00000O0 =int (O0OO00O0OOOOOOOO0 .group ('minutes'),10 )#line:420:minutes = int(m.group('minutes'), 10)
+                if (OO000OO0O0O0O00OO .validate_year (OO0O0O000OOOO0O00 )and OO000OO0O0O0O00OO .validate_month (O00OO0000O0O000O0 )and OO000OO0O0O0O00OO .validate_day (OO0O0O000OOOO0O00 ,O00OO0000O0O000O0 ,O00O00O00OOOO0OOO )and OO000OO0O0O0O00OO .validate_hour (O00OOO0O0OOO0OOO0 )and OO000OO0O0O0O00OO .validate_minutes (O0OOO000OO00000O0 )):#line:424:):
+                    OO000OO0OOOO000OO =(OO0O0O000OOOO0O00 ,O00OO0000O0O000O0 ,O00O00O00OOOO0OOO ,O00OOO0O0OOO0OOO0 ,O0OOO000OO00000O0 )#line:425:parsed = (year, month, day, hour, minutes)
+        elif OOO00000OOO0O0O0O in ("number","range"):#line:426:elif itype in ("number", "range"):
+            O0OO00O0OOOOOOOO0 =RE_NUM .match (OOOOO00000000O0O0 )#line:427:m = RE_NUM.match(value)
+            if O0OO00O0OOOOOOOO0 :#line:428:if m:
+                OO000OO0OOOO000OO =float (O0OO00O0OOOOOOOO0 .group ('value'))#line:429:parsed = float(m.group('value'))
+        return OO000OO0OOOO000OO #line:430:return parsed
+class _O0O00O0OO00O0OOOO (object ):#line:433:class _Match(object):
+    ""#line:434:"""Perform CSS matching."""
+    def __init__ (OO00OO0OOOOO0OOO0 ,OO0OO0O000OOOO000 ,OOO0OOO00OOOO00OO ,O0000000O00O0OO0O ,O00O0O00O0OOOO0OO ):#line:436:def __init__(self, selectors, scope, namespaces, flags):
+        ""#line:437:"""Initialize."""
+        OO00OO0OOOOO0OOO0 .assert_valid_input (OOO0OOO00OOOO00OO )#line:439:self.assert_valid_input(scope)
+        OO00OO0OOOOO0OOO0 .tag =OOO0OOO00OOOO00OO #line:440:self.tag = scope
+        OO00OO0OOOOO0OOO0 .cached_meta_lang =[]#line:441:self.cached_meta_lang = []
+        OO00OO0OOOOO0OOO0 .cached_default_forms =[]#line:442:self.cached_default_forms = []
+        OO00OO0OOOOO0OOO0 .cached_indeterminate_forms =[]#line:443:self.cached_indeterminate_forms = []
+        OO00OO0OOOOO0OOO0 .selectors =OO0OO0O000OOOO000 #line:444:self.selectors = selectors
+        OO00OO0OOOOO0OOO0 .namespaces ={}if O0000000O00O0OO0O is None else O0000000O00O0OO0O #line:445:self.namespaces = {} if namespaces is None else namespaces
+        OO00OO0OOOOO0OOO0 .flags =O00O0O00O0OOOO0OO #line:446:self.flags = flags
+        OO00OO0OOOOO0OOO0 .iframe_restrict =False #line:447:self.iframe_restrict = False
+        O0O0O0O0OO0O0OOO0 =OOO0OOO00OOOO00OO #line:450:doc = scope
+        OOOOO00OO0O0000OO =OO00OO0OOOOO0OOO0 .get_parent (O0O0O0O0OO0O0OOO0 )#line:451:parent = self.get_parent(doc)
+        while OOOOO00OO0O0000OO :#line:452:while parent:
+            O0O0O0O0OO0O0OOO0 =OOOOO00OO0O0000OO #line:453:doc = parent
+            OOOOO00OO0O0000OO =OO00OO0OOOOO0OOO0 .get_parent (O0O0O0O0OO0O0OOO0 )#line:454:parent = self.get_parent(doc)
+        OO0O0O0OOO00O00O0 =None #line:455:root = None
+        if not OO00OO0OOOOO0OOO0 .is_doc (O0O0O0O0OO0O0OOO0 ):#line:456:if not self.is_doc(doc):
+            OO0O0O0OOO00O00O0 =O0O0O0O0OO0O0OOO0 #line:457:root = doc
+        else :#line:458:else:
+            for O00O0OOO0O0OOO000 in OO00OO0OOOOO0OOO0 .get_children (O0O0O0O0OO0O0OOO0 ):#line:459:for child in self.get_children(doc):
+                OO0O0O0OOO00O00O0 =O00O0OOO0O0OOO000 #line:460:root = child
+                break #line:461:break
+        OO00OO0OOOOO0OOO0 .root =OO0O0O0OOO00O00O0 #line:463:self.root = root
+        OO00OO0OOOOO0OOO0 .scope =OOO0OOO00OOOO00OO if OOO0OOO00OOOO00OO is not O0O0O0O0OO0O0OOO0 else OO0O0O0OOO00O00O0 #line:464:self.scope = scope if scope is not doc else root
+        OO00OO0OOOOO0OOO0 .has_html_namespace =OO00OO0OOOOO0OOO0 .has_html_ns (OO0O0O0OOO00O00O0 )#line:465:self.has_html_namespace = self.has_html_ns(root)
+        OO00OO0OOOOO0OOO0 .is_xml =OO00OO0OOOOO0OOO0 .is_xml_tree (O0O0O0O0OO0O0OOO0 )#line:468:self.is_xml = self.is_xml_tree(doc)
+        OO00OO0OOOOO0OOO0 .is_html =not OO00OO0OOOOO0OOO0 .is_xml or OO00OO0OOOOO0OOO0 .has_html_namespace #line:469:self.is_html = not self.is_xml or self.has_html_namespace
+    def supports_namespaces (O00OOOO0OO000OO0O ):#line:471:def supports_namespaces(self):
+        ""#line:472:"""Check if namespaces are supported in the HTML type."""
+        return O00OOOO0OO000OO0O .is_xml or O00OOOO0OO000OO0O .has_html_namespace #line:474:return self.is_xml or self.has_html_namespace
+    def get_tag_ns (OOOOOOOO00000OO00 ,O0OO00O00O0O0OO0O ):#line:476:def get_tag_ns(self, el):
+        ""#line:477:"""Get tag namespace."""
+        if OOOOOOOO00000OO00 .supports_namespaces ():#line:479:if self.supports_namespaces():
+            O0O00OOOO0O000O00 =''#line:480:namespace = ''
+            OO0OO0OO0O00O0OOO =OOOOOOOO00000OO00 .get_uri (O0OO00O00O0O0OO0O )#line:481:ns = self.get_uri(el)
+            if OO0OO0OO0O00O0OOO :#line:482:if ns:
+                O0O00OOOO0O000O00 =OO0OO0OO0O00O0OOO #line:483:namespace = ns
+        else :#line:484:else:
+            O0O00OOOO0O000O00 =NS_XHTML #line:485:namespace = NS_XHTML
+        return O0O00OOOO0O000O00 #line:486:return namespace
+    def is_html_tag (O0O0OO00O0OO0O0O0 ,O0O000O000O000OO0 ):#line:488:def is_html_tag(self, el):
+        ""#line:489:"""Check if tag is in HTML namespace."""
+        return O0O0OO00O0OO0O0O0 .get_tag_ns (O0O000O000O000OO0 )==NS_XHTML #line:491:return self.get_tag_ns(el) == NS_XHTML
+    def get_tag (O0O0OO0OO00O00O00 ,OO0000O0000OO000O ):#line:493:def get_tag(self, el):
+        ""#line:494:"""Get tag."""
+        O0O00OO00OOOO000O =O0O0OO0OO00O00O00 .get_tag_name (OO0000O0000OO000O )#line:496:name = self.get_tag_name(el)
+        return util .lower (O0O00OO00OOOO000O )if O0O00OO00OOOO000O is not None and not O0O0OO0OO00O00O00 .is_xml else O0O00OO00OOOO000O #line:497:return util.lower(name) if name is not None and not self.is_xml else name
+    def get_prefix (O00O0OOO0O000O0OO ,O000O0O00O0OO0O0O ):#line:499:def get_prefix(self, el):
+        ""#line:500:"""Get prefix."""
+        OOOO0OO0000O0OOOO =O00O0OOO0O000O0OO .get_prefix_name (O000O0O00O0OO0O0O )#line:502:prefix = self.get_prefix_name(el)
+        return util .lower (OOOO0OO0000O0OOOO )if OOOO0OO0000O0OOOO is not None and not O00O0OOO0O000O0OO .is_xml else OOOO0OO0000O0OOOO #line:503:return util.lower(prefix) if prefix is not None and not self.is_xml else prefix
+    def find_bidi (O00OOOOO00O0O000O ,O00O000OOO0OOO0OO ):#line:505:def find_bidi(self, el):
+        ""#line:506:"""Get directionality from element text."""
+        for OO000O0OOO00O0O0O in O00OOOOO00O0O000O .get_children (O00O000OOO0OOO0OO ,tags =False ):#line:508:for node in self.get_children(el, tags=False):
+            if O00OOOOO00O0O000O .is_tag (OO000O0OOO00O0O0O ):#line:511:if self.is_tag(node):
+                O0O0O00000O00OOO0 =DIR_MAP .get (util .lower (O00OOOOO00O0O000O .get_attribute_by_name (OO000O0OOO00O0O0O ,'dir','')),None )#line:514:direction = DIR_MAP.get(util.lower(self.get_attribute_by_name(node, 'dir', '')), None)
+                if (O00OOOOO00O0O000O .get_tag (OO000O0OOO00O0O0O )in ('bdi','script','style','textarea','iframe')or not O00OOOOO00O0O000O .is_html_tag (OO000O0OOO00O0O0O )or O0O0O00000O00OOO0 is not None ):#line:519:):
+                    continue #line:520:continue  # pragma: no cover
+                O0O00O00O00O0OOO0 =O00OOOOO00O0O000O .find_bidi (OO000O0OOO00O0O0O )#line:523:value = self.find_bidi(node)
+                if O0O00O00O00O0OOO0 is not None :#line:524:if value is not None:
+                    return O0O00O00O00O0OOO0 #line:525:return value
+                continue #line:528:continue  # pragma: no cover
+            if O00OOOOO00O0O000O .is_special_string (OO000O0OOO00O0O0O ):#line:531:if self.is_special_string(node):
+                continue #line:532:continue
+            for OOOOO0OO0O00000OO in OO000O0OOO00O0O0O :#line:535:for c in node:
+                OOOOOOOO00OOOOOOO =unicodedata .bidirectional (OOOOO0OO0O00000OO )#line:536:bidi = unicodedata.bidirectional(c)
+                if OOOOOOOO00OOOOOOO in ('AL','R','L'):#line:537:if bidi in ('AL', 'R', 'L'):
+                    return ct .SEL_DIR_LTR if OOOOOOOO00OOOOOOO =='L'else ct .SEL_DIR_RTL #line:538:return ct.SEL_DIR_LTR if bidi == 'L' else ct.SEL_DIR_RTL
+        return None #line:539:return None
+    def extended_language_filter (OOO0O00OO0OOO00OO ,O000OOOO0O00O0OOO ,OO00O00O000000000 ):#line:541:def extended_language_filter(self, lang_range, lang_tag):
+        ""#line:542:"""Filter the language tags."""
+        O0OOO0O0O0OO00000 =True #line:544:match = True
+        O000OOOO0O00O0OOO =RE_WILD_STRIP .sub ('-',O000OOOO0O00O0OOO ).lower ()#line:545:lang_range = RE_WILD_STRIP.sub('-', lang_range).lower()
+        OO0O00O00OOOOO0OO =O000OOOO0O00O0OOO .split ('-')#line:546:ranges = lang_range.split('-')
+        O0OOO00O000OO00OO =OO00O00O000000000 .lower ().split ('-')#line:547:subtags = lang_tag.lower().split('-')
+        OO0O0O00OOO0O00OO =len (OO0O00O00OOOOO0OO )#line:548:length = len(ranges)
+        OOOO0OOO0O0OO0OO0 =0 #line:549:rindex = 0
+        O0OOOO0O0000O0OOO =0 #line:550:sindex = 0
+        O0O0OOO0OOO000O00 =OO0O00O00OOOOO0OO [OOOO0OOO0O0OO0OO0 ]#line:551:r = ranges[rindex]
+        O00000O00O000000O =O0OOO00O000OO00OO [O0OOOO0O0000O0OOO ]#line:552:s = subtags[sindex]
+        if O0O0OOO0OOO000O00 !='*'and O0O0OOO0OOO000O00 !=O00000O00O000000O :#line:555:if r != '*' and r != s:
+            O0OOO0O0O0OO00000 =False #line:556:match = False
+        OOOO0OOO0O0OO0OO0 +=1 #line:558:rindex += 1
+        O0OOOO0O0000O0OOO +=1 #line:559:sindex += 1
+        while O0OOO0O0O0OO00000 and OOOO0OOO0O0OO0OO0 <OO0O0O00OOO0O00OO :#line:562:while match and rindex < length:
+            O0O0OOO0OOO000O00 =OO0O00O00OOOOO0OO [OOOO0OOO0O0OO0OO0 ]#line:563:r = ranges[rindex]
+            try :#line:564:try:
+                O00000O00O000000O =O0OOO00O000OO00OO [O0OOOO0O0000O0OOO ]#line:565:s = subtags[sindex]
+            except IndexError :#line:566:except IndexError:
+                O0OOO0O0O0OO00000 =False #line:569:match = False
+                continue #line:570:continue
+            if not O0O0OOO0OOO000O00 :#line:573:if not r:
+                O0OOO0O0O0OO00000 =False #line:574:match = False
+                continue #line:575:continue
+            elif O00000O00O000000O ==O0O0OOO0OOO000O00 :#line:578:elif s == r:
+                OOOO0OOO0O0OO0OO0 +=1 #line:579:rindex += 1
+            elif len (O00000O00O000000O )==1 :#line:583:elif len(s) == 1:
+                O0OOO0O0O0OO00000 =False #line:584:match = False
+                continue #line:585:continue
+            O0OOOO0O0000O0OOO +=1 #line:588:sindex += 1
+        return O0OOO0O0O0OO00000 #line:590:return match
+    def match_attribute_name (O00OO00OOOOO0OOOO ,O0O0O00OOO0OO0O0O ,OOO0OO0OO0OOOOO0O ,OO0OO0O0OO00OO00O ):#line:592:def match_attribute_name(self, el, attr, prefix):
+        ""#line:593:"""Match attribute name and return value if it exists."""
+        OOO0OO00O0000OO0O =None #line:595:value = None
+        if O00OO00OOOOO0OOOO .supports_namespaces ():#line:596:if self.supports_namespaces():
+            OOO0OO00O0000OO0O =None #line:597:value = None
+            if OO0OO0O0OO00OO00O :#line:599:if prefix:
+                O00OO0OOOOOO000O0 =O00OO00OOOOO0OOOO .namespaces .get (OO0OO0O0OO00OO00O )#line:600:ns = self.namespaces.get(prefix)
+                if O00OO0OOOOOO000O0 is None and OO0OO0O0OO00OO00O !='*':#line:601:if ns is None and prefix != '*':
+                    return None #line:602:return None
+            else :#line:603:else:
+                O00OO0OOOOOO000O0 =None #line:604:ns = None
+            for O00O00O0O0OOO0000 ,O0OO000000O0O0OO0 in O00OO00OOOOO0OOOO .iter_attributes (O0O0O00OOO0OO0O0O ):#line:606:for k, v in self.iter_attributes(el):
+                O0O0OO0O000OOO0O0 ,OOO0O0O00O0000OOO =O00OO00OOOOO0OOOO .split_namespace (O0O0O00OOO0OO0O0O ,O00O00O0O0OOO0000 )#line:609:namespace, name = self.split_namespace(el, k)
+                if O00OO0OOOOOO000O0 is None :#line:613:if ns is None:
+                    if (O00OO00OOOOO0OOOO .is_xml and OOO0OO0OO0OOOOO0O ==O00O00O0O0OOO0000 )or (not O00OO00OOOOO0OOOO .is_xml and util .lower (OOO0OO0OO0OOOOO0O )==util .lower (O00O00O0O0OOO0000 )):#line:614:if (self.is_xml and attr == k) or (not self.is_xml and util.lower(attr) == util.lower(k)):
+                        OOO0OO00O0000OO0O =O0OO000000O0O0OO0 #line:615:value = v
+                        break #line:616:break
+                    continue #line:620:continue  # pragma: no cover
+                if O0O0OO0O000OOO0O0 is None or O00OO0OOOOOO000O0 !=O0O0OO0O000OOO0O0 and OO0OO0O0OO00OO00O !='*':#line:623:if namespace is None or ns != namespace and prefix != '*':
+                    continue #line:624:continue
+                if (util .lower (OOO0OO0OO0OOOOO0O )!=util .lower (OOO0O0O00O0000OOO ))if not O00OO00OOOOO0OOOO .is_xml else (OOO0OO0OO0OOOOO0O !=OOO0O0O00O0000OOO ):#line:627:if (util.lower(attr) != util.lower(name)) if not self.is_xml else (attr != name):
+                    continue #line:628:continue
+                OOO0OO00O0000OO0O =O0OO000000O0O0OO0 #line:630:value = v
+                break #line:631:break
+        else :#line:632:else:
+            for O00O00O0O0OOO0000 ,O0OO000000O0O0OO0 in O00OO00OOOOO0OOOO .iter_attributes (O0O0O00OOO0OO0O0O ):#line:633:for k, v in self.iter_attributes(el):
+                if util .lower (OOO0OO0OO0OOOOO0O )!=util .lower (O00O00O0O0OOO0000 ):#line:634:if util.lower(attr) != util.lower(k):
+                    continue #line:635:continue
+                OOO0OO00O0000OO0O =O0OO000000O0O0OO0 #line:636:value = v
+                break #line:637:break
+        return OOO0OO00O0000OO0O #line:638:return value
+    def match_namespace (OO0000000O000OO00 ,O0O000O00000OO00O ,O0000OO00O0OO00O0 ):#line:640:def match_namespace(self, el, tag):
+        ""#line:641:"""Match the namespace of the element."""
+        OOO000O0O00O0OOO0 =True #line:643:match = True
+        OO0OOOO0000000OO0 =OO0000000O000OO00 .get_tag_ns (O0O000O00000OO00O )#line:644:namespace = self.get_tag_ns(el)
+        OOOO0O000O0OOOO00 =OO0000000O000OO00 .namespaces .get ('')#line:645:default_namespace = self.namespaces.get('')
+        O0O00O000O0O0OO00 =''if O0000OO00O0OO00O0 .prefix is None else OO0000000O000OO00 .namespaces .get (O0000OO00O0OO00O0 .prefix ,None )#line:646:tag_ns = '' if tag.prefix is None else self.namespaces.get(tag.prefix, None)
+        if O0000OO00O0OO00O0 .prefix is None and (OOOO0O000O0OOOO00 is not None and OO0OOOO0000000OO0 !=OOOO0O000O0OOOO00 ):#line:648:if tag.prefix is None and (default_namespace is not None and namespace != default_namespace):
+            OOO000O0O00O0OOO0 =False #line:649:match = False
+        elif (O0000OO00O0OO00O0 .prefix is not None and O0000OO00O0OO00O0 .prefix ==''and OO0OOOO0000000OO0 ):#line:651:elif (tag.prefix is not None and tag.prefix == '' and namespace):
+            OOO000O0O00O0OOO0 =False #line:652:match = False
+        elif (O0000OO00O0OO00O0 .prefix and O0000OO00O0OO00O0 .prefix !='*'and (O0O00O000O0O0OO00 is None or OO0OOOO0000000OO0 !=O0O00O000O0O0OO00 )):#line:657:):
+            OOO000O0O00O0OOO0 =False #line:658:match = False
+        return OOO000O0O00O0OOO0 #line:659:return match
+    def match_attributes (O0OO0O0O000OO0OO0 ,O000O0OOO0OOOOOOO ,OOO0OO0OO0OOO0O00 ):#line:661:def match_attributes(self, el, attributes):
+        ""#line:662:"""Match attributes."""
+        O0OOO0O0000O0O00O =True #line:664:match = True
+        if OOO0OO0OO0OOO0O00 :#line:665:if attributes:
+            for O0OOOO0OOOOO0000O in OOO0OO0OO0OOO0O00 :#line:666:for a in attributes:
+                O00O00OOO0O0OOO00 =O0OO0O0O000OO0OO0 .match_attribute_name (O000O0OOO0OOOOOOO ,O0OOOO0OOOOO0000O .attribute ,O0OOOO0OOOOO0000O .prefix )#line:667:value = self.match_attribute_name(el, a.attribute, a.prefix)
+                O0OOOO0O000OOOOO0 =O0OOOO0OOOOO0000O .xml_type_pattern if O0OO0O0O000OO0OO0 .is_xml and O0OOOO0OOOOO0000O .xml_type_pattern else O0OOOO0OOOOO0000O .pattern #line:668:pattern = a.xml_type_pattern if self.is_xml and a.xml_type_pattern else a.pattern
+                if isinstance (O00O00OOO0O0OOO00 ,list ):#line:669:if isinstance(value, list):
+                    O00O00OOO0O0OOO00 =' '.join (O00O00OOO0O0OOO00 )#line:670:value = ' '.join(value)
+                if O00O00OOO0O0OOO00 is None :#line:671:if value is None:
+                    O0OOO0O0000O0O00O =False #line:672:match = False
+                    break #line:673:break
+                elif O0OOOO0O000OOOOO0 is None :#line:674:elif pattern is None:
+                    continue #line:675:continue
+                elif O0OOOO0O000OOOOO0 .match (O00O00OOO0O0OOO00 )is None :#line:676:elif pattern.match(value) is None:
+                    O0OOO0O0000O0O00O =False #line:677:match = False
+                    break #line:678:break
+        return O0OOO0O0000O0O00O #line:679:return match
+    def match_tagname (OOOOOOO000OO00O00 ,OO00O00O00OOO0OOO ,O0OO0O00OOOO0O000 ):#line:681:def match_tagname(self, el, tag):
+        ""#line:682:"""Match tag name."""
+        O0O0O0O000O0OO0OO =(util .lower (O0OO0O00OOOO0O000 .name )if not OOOOOOO000OO00O00 .is_xml and O0OO0O00OOOO0O000 .name is not None else O0OO0O00OOOO0O000 .name )#line:684:name = (util.lower(tag.name) if not self.is_xml and tag.name is not None else tag.name)
+        return not (O0O0O0O000O0OO0OO is not None and O0O0O0O000O0OO0OO not in (OOOOOOO000OO00O00 .get_tag (OO00O00O00OOO0OOO ),'*'))#line:688:)
+    def match_tag (O0OO0000O000O000O ,OOOOO0O0000O00000 ,OO00O00OOOO00O00O ):#line:690:def match_tag(self, el, tag):
+        ""#line:691:"""Match the tag."""
+        OO0O000O00O00OO00 =True #line:693:match = True
+        if OO00O00OOOO00O00O is not None :#line:694:if tag is not None:
+            if not O0OO0000O000O000O .match_namespace (OOOOO0O0000O00000 ,OO00O00OOOO00O00O ):#line:696:if not self.match_namespace(el, tag):
+                OO0O000O00O00OO00 =False #line:697:match = False
+            if not O0OO0000O000O000O .match_tagname (OOOOO0O0000O00000 ,OO00O00OOOO00O00O ):#line:698:if not self.match_tagname(el, tag):
+                OO0O000O00O00OO00 =False #line:699:match = False
+        return OO0O000O00O00OO00 #line:700:return match
+    def match_past_relations (O00000O0000OOO00O ,O000OOO0O0OOOO0OO ,OO0O0O00OO0OOOOO0 ):#line:702:def match_past_relations(self, el, relation):
+        ""#line:703:"""Match past relationship."""
+        OO00OO000OO000OOO =False #line:705:found = False
+        if OO0O0O00OO0OOOOO0 [0 ].rel_type ==REL_PARENT :#line:706:if relation[0].rel_type == REL_PARENT:
+            OO0OO0O0OO000O0OO =O00000O0000OOO00O .get_parent (O000OOO0O0OOOO0OO ,no_iframe =O00000O0000OOO00O .iframe_restrict )#line:707:parent = self.get_parent(el, no_iframe=self.iframe_restrict)
+            while not OO00OO000OO000OOO and OO0OO0O0OO000O0OO :#line:708:while not found and parent:
+                OO00OO000OO000OOO =O00000O0000OOO00O .match_selectors (OO0OO0O0OO000O0OO ,OO0O0O00OO0OOOOO0 )#line:709:found = self.match_selectors(parent, relation)
+                OO0OO0O0OO000O0OO =O00000O0000OOO00O .get_parent (OO0OO0O0OO000O0OO ,no_iframe =O00000O0000OOO00O .iframe_restrict )#line:710:parent = self.get_parent(parent, no_iframe=self.iframe_restrict)
+        elif OO0O0O00OO0OOOOO0 [0 ].rel_type ==REL_CLOSE_PARENT :#line:711:elif relation[0].rel_type == REL_CLOSE_PARENT:
+            OO0OO0O0OO000O0OO =O00000O0000OOO00O .get_parent (O000OOO0O0OOOO0OO ,no_iframe =O00000O0000OOO00O .iframe_restrict )#line:712:parent = self.get_parent(el, no_iframe=self.iframe_restrict)
+            if OO0OO0O0OO000O0OO :#line:713:if parent:
+                OO00OO000OO000OOO =O00000O0000OOO00O .match_selectors (OO0OO0O0OO000O0OO ,OO0O0O00OO0OOOOO0 )#line:714:found = self.match_selectors(parent, relation)
+        elif OO0O0O00OO0OOOOO0 [0 ].rel_type ==REL_SIBLING :#line:715:elif relation[0].rel_type == REL_SIBLING:
+            O0O00O0O00O0OO00O =O00000O0000OOO00O .get_previous (O000OOO0O0OOOO0OO )#line:716:sibling = self.get_previous(el)
+            while not OO00OO000OO000OOO and O0O00O0O00O0OO00O :#line:717:while not found and sibling:
+                OO00OO000OO000OOO =O00000O0000OOO00O .match_selectors (O0O00O0O00O0OO00O ,OO0O0O00OO0OOOOO0 )#line:718:found = self.match_selectors(sibling, relation)
+                O0O00O0O00O0OO00O =O00000O0000OOO00O .get_previous (O0O00O0O00O0OO00O )#line:719:sibling = self.get_previous(sibling)
+        elif OO0O0O00OO0OOOOO0 [0 ].rel_type ==REL_CLOSE_SIBLING :#line:720:elif relation[0].rel_type == REL_CLOSE_SIBLING:
+            O0O00O0O00O0OO00O =O00000O0000OOO00O .get_previous (O000OOO0O0OOOO0OO )#line:721:sibling = self.get_previous(el)
+            if O0O00O0O00O0OO00O and O00000O0000OOO00O .is_tag (O0O00O0O00O0OO00O ):#line:722:if sibling and self.is_tag(sibling):
+                OO00OO000OO000OOO =O00000O0000OOO00O .match_selectors (O0O00O0O00O0OO00O ,OO0O0O00OO0OOOOO0 )#line:723:found = self.match_selectors(sibling, relation)
+        return OO00OO000OO000OOO #line:724:return found
+    def match_future_child (O0OO0O00000000O0O ,OO00O00O0O000OO0O ,OO0OO0O0O0OOO0OO0 ,recursive =False ):#line:726:def match_future_child(self, parent, relation, recursive=False):
+        ""#line:727:"""Match future child."""
+        OOOO0O00O0OOO0OO0 =False #line:729:match = False
+        O000000OOOO0O0OOO =O0OO0O00000000O0O .get_descendants if recursive else O0OO0O00000000O0O .get_children #line:730:children = self.get_descendants if recursive else self.get_children
+        for O00OO000OOO00OOOO in O000000OOOO0O0OOO (OO00O00O0O000OO0O ,no_iframe =O0OO0O00000000O0O .iframe_restrict ):#line:731:for child in children(parent, no_iframe=self.iframe_restrict):
+            OOOO0O00O0OOO0OO0 =O0OO0O00000000O0O .match_selectors (O00OO000OOO00OOOO ,OO0OO0O0O0OOO0OO0 )#line:732:match = self.match_selectors(child, relation)
+            if OOOO0O00O0OOO0OO0 :#line:733:if match:
+                break #line:734:break
+        return OOOO0O00O0OOO0OO0 #line:735:return match
+    def match_future_relations (O0O00O00OOO0OOO0O ,O00OO000000000O00 ,OOOOOOO00O0OOOO00 ):#line:737:def match_future_relations(self, el, relation):
+        ""#line:738:"""Match future relationship."""
+        OO00OOO00OO0OO0OO =False #line:740:found = False
+        if OOOOOOO00O0OOOO00 [0 ].rel_type ==REL_HAS_PARENT :#line:741:if relation[0].rel_type == REL_HAS_PARENT:
+            OO00OOO00OO0OO0OO =O0O00O00OOO0OOO0O .match_future_child (O00OO000000000O00 ,OOOOOOO00O0OOOO00 ,True )#line:742:found = self.match_future_child(el, relation, True)
+        elif OOOOOOO00O0OOOO00 [0 ].rel_type ==REL_HAS_CLOSE_PARENT :#line:743:elif relation[0].rel_type == REL_HAS_CLOSE_PARENT:
+            OO00OOO00OO0OO0OO =O0O00O00OOO0OOO0O .match_future_child (O00OO000000000O00 ,OOOOOOO00O0OOOO00 )#line:744:found = self.match_future_child(el, relation)
+        elif OOOOOOO00O0OOOO00 [0 ].rel_type ==REL_HAS_SIBLING :#line:745:elif relation[0].rel_type == REL_HAS_SIBLING:
+            OO0O000O0O0OOOO00 =O0O00O00OOO0OOO0O .get_next (O00OO000000000O00 )#line:746:sibling = self.get_next(el)
+            while not OO00OOO00OO0OO0OO and OO0O000O0O0OOOO00 :#line:747:while not found and sibling:
+                OO00OOO00OO0OO0OO =O0O00O00OOO0OOO0O .match_selectors (OO0O000O0O0OOOO00 ,OOOOOOO00O0OOOO00 )#line:748:found = self.match_selectors(sibling, relation)
+                OO0O000O0O0OOOO00 =O0O00O00OOO0OOO0O .get_next (OO0O000O0O0OOOO00 )#line:749:sibling = self.get_next(sibling)
+        elif OOOOOOO00O0OOOO00 [0 ].rel_type ==REL_HAS_CLOSE_SIBLING :#line:750:elif relation[0].rel_type == REL_HAS_CLOSE_SIBLING:
+            OO0O000O0O0OOOO00 =O0O00O00OOO0OOO0O .get_next (O00OO000000000O00 )#line:751:sibling = self.get_next(el)
+            if OO0O000O0O0OOOO00 and O0O00O00OOO0OOO0O .is_tag (OO0O000O0O0OOOO00 ):#line:752:if sibling and self.is_tag(sibling):
+                OO00OOO00OO0OO0OO =O0O00O00OOO0OOO0O .match_selectors (OO0O000O0O0OOOO00 ,OOOOOOO00O0OOOO00 )#line:753:found = self.match_selectors(sibling, relation)
+        return OO00OOO00OO0OO0OO #line:754:return found
+    def match_relations (OO0OO0O0000O0O00O ,OO0OOO0OO000OOOO0 ,OOO00O00000OOO00O ):#line:756:def match_relations(self, el, relation):
+        ""#line:757:"""Match relationship to other elements."""
+        OO0OO000OO00O0OOO =False #line:759:found = False
+        if OOO00O00000OOO00O [0 ].rel_type .startswith (':'):#line:761:if relation[0].rel_type.startswith(':'):
+            OO0OO000OO00O0OOO =OO0OO0O0000O0O00O .match_future_relations (OO0OOO0OO000OOOO0 ,OOO00O00000OOO00O )#line:762:found = self.match_future_relations(el, relation)
+        else :#line:763:else:
+            OO0OO000OO00O0OOO =OO0OO0O0000O0O00O .match_past_relations (OO0OOO0OO000OOOO0 ,OOO00O00000OOO00O )#line:764:found = self.match_past_relations(el, relation)
+        return OO0OO000OO00O0OOO #line:766:return found
+    def match_id (O0OOOOO00OOO0O00O ,OO0OO0O000000O0O0 ,O00O0O0000OOOOOOO ):#line:768:def match_id(self, el, ids):
+        ""#line:769:"""Match element's ID."""
+        OO00OOO000OOOOO00 =True #line:771:found = True
+        for O0O00OO0OO0000OOO in O00O0O0000OOOOOOO :#line:772:for i in ids:
+            if O0O00OO0OO0000OOO !=O0OOOOO00OOO0O00O .get_attribute_by_name (OO0OO0O000000O0O0 ,'id',''):#line:773:if i != self.get_attribute_by_name(el, 'id', ''):
+                OO00OOO000OOOOO00 =False #line:774:found = False
+                break #line:775:break
+        return OO00OOO000OOOOO00 #line:776:return found
+    def match_classes (OO0O0000O0OOOOOO0 ,OOO0OOOOOO0OOOO0O ,OOOO0O0OOOOOOO000 ):#line:778:def match_classes(self, el, classes):
+        ""#line:779:"""Match element's classes."""
+        O0O0OO0OO000OOO0O =OO0O0000O0OOOOOO0 .get_classes (OOO0OOOOOO0OOOO0O )#line:781:current_classes = self.get_classes(el)
+        O0O000O0OO0OO0000 =True #line:782:found = True
+        for OOO00OO00OOOOO0OO in OOOO0O0OOOOOOO000 :#line:783:for c in classes:
+            if OOO00OO00OOOOO0OO not in O0O0OO0OO000OOO0O :#line:784:if c not in current_classes:
+                O0O000O0OO0OO0000 =False #line:785:found = False
+                break #line:786:break
+        return O0O000O0OO0OO0000 #line:787:return found
+    def match_root (OO000O0OOO00000O0 ,OOOO0O0O0OO0O0O0O ):#line:789:def match_root(self, el):
+        ""#line:790:"""Match element as root."""
+        OOOOOOOO000O0OOOO =OO000O0OOO00000O0 .is_root (OOOO0O0O0OO0O0O0O )#line:792:is_root = self.is_root(el)
+        if OOOOOOOO000O0OOOO :#line:793:if is_root:
+            O00OO00O0OOOO00O0 =OO000O0OOO00000O0 .get_previous (OOOO0O0O0OO0O0O0O ,tags =False )#line:794:sibling = self.get_previous(el, tags=False)
+            while OOOOOOOO000O0OOOO and O00OO00O0OOOO00O0 is not None :#line:795:while is_root and sibling is not None:
+                if (OO000O0OOO00000O0 .is_tag (O00OO00O0OOOO00O0 )or (OO000O0OOO00000O0 .is_content_string (O00OO00O0OOOO00O0 )and O00OO00O0OOOO00O0 .strip ())or OO000O0OOO00000O0 .is_cdata (O00OO00O0OOOO00O0 )):#line:799:):
+                    OOOOOOOO000O0OOOO =False #line:800:is_root = False
+                else :#line:801:else:
+                    O00OO00O0OOOO00O0 =OO000O0OOO00000O0 .get_previous (O00OO00O0OOOO00O0 ,tags =False )#line:802:sibling = self.get_previous(sibling, tags=False)
+        if OOOOOOOO000O0OOOO :#line:803:if is_root:
+            O00OO00O0OOOO00O0 =OO000O0OOO00000O0 .get_next (OOOO0O0O0OO0O0O0O ,tags =False )#line:804:sibling = self.get_next(el, tags=False)
+            while OOOOOOOO000O0OOOO and O00OO00O0OOOO00O0 is not None :#line:805:while is_root and sibling is not None:
+                if (OO000O0OOO00000O0 .is_tag (O00OO00O0OOOO00O0 )or (OO000O0OOO00000O0 .is_content_string (O00OO00O0OOOO00O0 )and O00OO00O0OOOO00O0 .strip ())or OO000O0OOO00000O0 .is_cdata (O00OO00O0OOOO00O0 )):#line:809:):
+                    OOOOOOOO000O0OOOO =False #line:810:is_root = False
+                else :#line:811:else:
+                    O00OO00O0OOOO00O0 =OO000O0OOO00000O0 .get_next (O00OO00O0OOOO00O0 ,tags =False )#line:812:sibling = self.get_next(sibling, tags=False)
+        return OOOOOOOO000O0OOOO #line:813:return is_root
+    def match_scope (O000OOO00O0OOOO0O ,OO00O0O0O00OO0O00 ):#line:815:def match_scope(self, el):
+        ""#line:816:"""Match element as scope."""
+        return O000OOO00O0OOOO0O .scope is OO00O0O0O00OO0O00 #line:818:return self.scope is el
+    def match_nth_tag_type (OO0OO0O0OO00OO0O0 ,OO0000O0O00O00000 ,OO00O0O000OOOOOOO ):#line:820:def match_nth_tag_type(self, el, child):
+        ""#line:821:"""Match tag type for `nth` matches."""
+        return ((OO0OO0O0OO00OO0O0 .get_tag (OO00O0O000OOOOOOO )==OO0OO0O0OO00OO0O0 .get_tag (OO0000O0O00O00000 ))and (OO0OO0O0OO00OO0O0 .get_tag_ns (OO00O0O000OOOOOOO )==OO0OO0O0OO00OO0O0 .get_tag_ns (OO0000O0O00O00000 )))#line:826:)
+    def match_nth (O00OOO0OO0O0O000O ,OO00OO0000OOO000O ,O0OOOOO0OO0O0OOO0 ):#line:828:def match_nth(self, el, nth):
+        ""#line:829:"""Match `nth` elements."""
+        O00000OOO00O000OO =True #line:831:matched = True
+        for O0O000O0OO0000000 in O0OOOOO0OO0O0OOO0 :#line:833:for n in nth:
+            O00000OOO00O000OO =False #line:834:matched = False
+            if O0O000O0OO0000000 .selectors and not O00OOO0OO0O0O000O .match_selectors (OO00OO0000OOO000O ,O0O000O0OO0000000 .selectors ):#line:835:if n.selectors and not self.match_selectors(el, n.selectors):
+                break #line:836:break
+            OOOOO0O0O0OO00000 =O00OOO0OO0O0O000O .get_parent (OO00OO0000OOO000O )#line:837:parent = self.get_parent(el)
+            if OOOOO0O0O0OO00000 is None :#line:838:if parent is None:
+                OOOOO0O0O0OO00000 =O00OOO0OO0O0O000O .create_fake_parent (OO00OO0000OOO000O )#line:839:parent = self.create_fake_parent(el)
+            OO00O00OOOO0OOOOO =O0O000O0OO0000000 .last #line:840:last = n.last
+            OOO00000OOO0O00O0 =len (OOOOO0O0O0OO00000 )-1 #line:841:last_index = len(parent) - 1
+            O0OO00O0OO0OO00OO =OOO00000OOO0O00O0 if OO00O00OOOO0OOOOO else 0 #line:842:index = last_index if last else 0
+            O0000O0OOOO00O0OO =0 #line:843:relative_index = 0
+            OO0OOO0OO00O00O0O =O0O000O0OO0000000 .a #line:844:a = n.a
+            OOOO000O000O0O000 =O0O000O0OO0000000 .b #line:845:b = n.b
+            OO00OO0OO000O0O0O =O0O000O0OO0000000 .n #line:846:var = n.n
+            OOOO000OOO0OOOO00 =0 #line:847:count = 0
+            OOOOOO0OOO0O0OOOO =1 #line:848:count_incr = 1
+            OO00O00OO00OO0O0O =-1 if OO00O00OOOO0OOOOO else 1 #line:849:factor = -1 if last else 1
+            OOO0OOOOO00000000 =O000000000O0O0O0O =OO0OOO0OO00O00O0O *OOOO000OOO0OOOO00 +OOOO000O000O0O000 if OO00OO0OO000O0O0O else OO0OOO0OO00O00O0O #line:850:idx = last_idx = a * count + b if var else a
+            if OO00OO0OO000O0O0O :#line:853:if var:
+                OO0OO00O0OO0OOO0O =None #line:856:adjust = None
+                while OOO0OOOOO00000000 <1 or OOO0OOOOO00000000 >OOO00000OOO0O00O0 :#line:857:while idx < 1 or idx > last_index:
+                    if OOO0OOOOO00000000 <0 :#line:858:if idx < 0:
+                        O0OO00OOOO000OO00 =0 -OOO0OOOOO00000000 #line:859:diff_low = 0 - idx
+                        if OO0OO00O0OO0OOO0O is not None and OO0OO00O0OO0OOO0O ==1 :#line:860:if adjust is not None and adjust == 1:
+                            break #line:861:break
+                        OO0OO00O0OO0OOO0O =-1 #line:862:adjust = -1
+                        OOOO000OOO0OOOO00 +=OOOOOO0OOO0O0OOOO #line:863:count += count_incr
+                        OOO0OOOOO00000000 =O000000000O0O0O0O =OO0OOO0OO00O00O0O *OOOO000OOO0OOOO00 +OOOO000O000O0O000 if OO00OO0OO000O0O0O else OO0OOO0OO00O00O0O #line:864:idx = last_idx = a * count + b if var else a
+                        O0OOOO0OO0OO00OO0 =0 -OOO0OOOOO00000000 #line:865:diff = 0 - idx
+                        if O0OOOO0OO0OO00OO0 >=O0OO00OOOO000OO00 :#line:866:if diff >= diff_low:
+                            break #line:867:break
+                    else :#line:868:else:
+                        OO000000OO0O0O0OO =OOO0OOOOO00000000 -OOO00000OOO0O00O0 #line:869:diff_high = idx - last_index
+                        if OO0OO00O0OO0OOO0O is not None and OO0OO00O0OO0OOO0O ==-1 :#line:870:if adjust is not None and adjust == -1:
+                            break #line:871:break
+                        OO0OO00O0OO0OOO0O =1 #line:872:adjust = 1
+                        OOOO000OOO0OOOO00 +=OOOOOO0OOO0O0OOOO #line:873:count += count_incr
+                        OOO0OOOOO00000000 =O000000000O0O0O0O =OO0OOO0OO00O00O0O *OOOO000OOO0OOOO00 +OOOO000O000O0O000 if OO00OO0OO000O0O0O else OO0OOO0OO00O00O0O #line:874:idx = last_idx = a * count + b if var else a
+                        O0OOOO0OO0OO00OO0 =OOO0OOOOO00000000 -OOO00000OOO0O00O0 #line:875:diff = idx - last_index
+                        if O0OOOO0OO0OO00OO0 >=OO000000OO0O0O0OO :#line:876:if diff >= diff_high:
+                            break #line:877:break
+                        OO000000OO0O0O0OO =O0OOOO0OO0OO00OO0 #line:878:diff_high = diff
+                OOO0O0000O00OOOO0 =OOOO000OOO0OOOO00 #line:883:lowest = count
+                if OO0OOO0OO00O00O0O <0 :#line:884:if a < 0:
+                    while OOO0OOOOO00000000 >=1 :#line:885:while idx >= 1:
+                        OOO0O0000O00OOOO0 =OOOO000OOO0OOOO00 #line:886:lowest = count
+                        OOOO000OOO0OOOO00 +=OOOOOO0OOO0O0OOOO #line:887:count += count_incr
+                        OOO0OOOOO00000000 =O000000000O0O0O0O =OO0OOO0OO00O00O0O *OOOO000OOO0OOOO00 +OOOO000O000O0O000 if OO00OO0OO000O0O0O else OO0OOO0OO00O00O0O #line:888:idx = last_idx = a * count + b if var else a
+                    OOOOOO0OOO0O0OOOO =-1 #line:889:count_incr = -1
+                OOOO000OOO0OOOO00 =OOO0O0000O00OOOO0 #line:890:count = lowest
+                OOO0OOOOO00000000 =O000000000O0O0O0O =OO0OOO0OO00O00O0O *OOOO000OOO0OOOO00 +OOOO000O000O0O000 if OO00OO0OO000O0O0O else OO0OOO0OO00O00O0O #line:891:idx = last_idx = a * count + b if var else a
+            while 1 <=OOO0OOOOO00000000 <=OOO00000OOO0O00O0 +1 :#line:894:while 1 <= idx <= last_index + 1:
+                OO000000O00OO0OOO =None #line:895:child = None
+                for OO000000O00OO0OOO in O00OOO0OO0O0O000O .get_children (OOOOO0O0O0OO00000 ,start =O0OO00O0OO0OO00OO ,reverse =OO00O00OO00OO0O0O <0 ,tags =False ):#line:897:for child in self.get_children(parent, start=index, reverse=factor < 0, tags=False):
+                    O0OO00O0OO0OO00OO +=OO00O00OO00OO0O0O #line:898:index += factor
+                    if not O00OOO0OO0O0O000O .is_tag (OO000000O00OO0OOO ):#line:899:if not self.is_tag(child):
+                        continue #line:900:continue
+                    if O0O000O0OO0000000 .selectors and not O00OOO0OO0O0O000O .match_selectors (OO000000O00OO0OOO ,O0O000O0OO0000000 .selectors ):#line:902:if n.selectors and not self.match_selectors(child, n.selectors):
+                        continue #line:903:continue
+                    if O0O000O0OO0000000 .of_type and not O00OOO0OO0O0O000O .match_nth_tag_type (OO00OO0000OOO000O ,OO000000O00OO0OOO ):#line:905:if n.of_type and not self.match_nth_tag_type(el, child):
+                        continue #line:906:continue
+                    O0000O0OOOO00O0OO +=1 #line:907:relative_index += 1
+                    if O0000O0OOOO00O0OO ==OOO0OOOOO00000000 :#line:908:if relative_index == idx:
+                        if OO000000O00OO0OOO is OO00OO0000OOO000O :#line:909:if child is el:
+                            O00000OOO00O000OO =True #line:910:matched = True
+                        else :#line:911:else:
+                            break #line:912:break
+                    if OO000000O00OO0OOO is OO00OO0000OOO000O :#line:913:if child is el:
+                        break #line:914:break
+                if OO000000O00OO0OOO is OO00OO0000OOO000O :#line:915:if child is el:
+                    break #line:916:break
+                O000000000O0O0O0O =OOO0OOOOO00000000 #line:917:last_idx = idx
+                OOOO000OOO0OOOO00 +=OOOOOO0OOO0O0OOOO #line:918:count += count_incr
+                if OOOO000OOO0OOOO00 <0 :#line:919:if count < 0:
+                    break #line:921:break
+                OOO0OOOOO00000000 =OO0OOO0OO00O00O0O *OOOO000OOO0OOOO00 +OOOO000O000O0O000 if OO00OO0OO000O0O0O else OO0OOO0OO00O00O0O #line:922:idx = a * count + b if var else a
+                if O000000000O0O0O0O ==OOO0OOOOO00000000 :#line:923:if last_idx == idx:
+                    break #line:924:break
+            if not O00000OOO00O000OO :#line:925:if not matched:
+                break #line:926:break
+        return O00000OOO00O000OO #line:927:return matched
+    def match_empty (O0O0OOO00000000OO ,O0000O000O00OO0O0 ):#line:929:def match_empty(self, el):
+        ""#line:930:"""Check if element is empty (if requested)."""
+        OOOO0OOO0O0OOOO0O =True #line:932:is_empty = True
+        for OO0O0O0OO0OO00000 in O0O0OOO00000000OO .get_children (O0000O000O00OO0O0 ,tags =False ):#line:933:for child in self.get_children(el, tags=False):
+            if O0O0OOO00000000OO .is_tag (OO0O0O0OO0OO00000 ):#line:934:if self.is_tag(child):
+                OOOO0OOO0O0OOOO0O =False #line:935:is_empty = False
+                break #line:936:break
+            elif O0O0OOO00000000OO .is_content_string (OO0O0O0OO0OO00000 )and RE_NOT_EMPTY .search (OO0O0O0OO0OO00000 ):#line:937:elif self.is_content_string(child) and RE_NOT_EMPTY.search(child):
+                OOOO0OOO0O0OOOO0O =False #line:938:is_empty = False
+                break #line:939:break
+        return OOOO0OOO0O0OOOO0O #line:940:return is_empty
+    def match_subselectors (OOO0OOO000OO0O0OO ,OO0OO0OOO0O00OOOO ,OOOOO00O0OO0O0OO0 ):#line:942:def match_subselectors(self, el, selectors):
+        ""#line:943:"""Match selectors."""
+        O0OO00OO000O000OO =True #line:945:match = True
+        for O0000OO0OOO0O00O0 in OOOOO00O0OO0O0OO0 :#line:946:for sel in selectors:
+            if not OOO0OOO000OO0O0OO .match_selectors (OO0OO0OOO0O00OOOO ,O0000OO0OOO0O00O0 ):#line:947:if not self.match_selectors(el, sel):
+                O0OO00OO000O000OO =False #line:948:match = False
+        return O0OO00OO000O000OO #line:949:return match
+    def match_contains (O0000000O0OO00OO0 ,O0OO0O0O000OOOO0O ,OO0O00O0O0000OOOO ):#line:951:def match_contains(self, el, contains):
+        ""#line:952:"""Match element if it contains text."""
+        O0000O00O000O0000 =True #line:954:match = True
+        OO0O0O0O0O000OOOO =None #line:955:content = None
+        for OOOOOOOO0O000O0OO in OO0O00O0O0000OOOO :#line:956:for contain_list in contains:
+            if OO0O0O0O0O000OOOO is None :#line:957:if content is None:
+                OO0O0O0O0O000OOOO =O0000000O0OO00OO0 .get_text (O0OO0O0O000OOOO0O ,no_iframe =O0000000O0OO00OO0 .is_html )#line:958:content = self.get_text(el, no_iframe=self.is_html)
+            O0O0000OOO0OOO00O =False #line:959:found = False
+            for OO0OO0O0000OOO0O0 in OOOOOOOO0O000O0OO .text :#line:960:for text in contain_list.text:
+                if OO0OO0O0000OOO0O0 in OO0O0O0O0O000OOOO :#line:961:if text in content:
+                    O0O0000OOO0OOO00O =True #line:962:found = True
+                    break #line:963:break
+            if not O0O0000OOO0OOO00O :#line:964:if not found:
+                O0000O00O000O0000 =False #line:965:match = False
+        return O0000O00O000O0000 #line:966:return match
+    def match_default (OOOO0OOOOO0OOO00O ,O0O00OOOO0O0O0O00 ):#line:968:def match_default(self, el):
+        ""#line:969:"""Match default."""
+        OOO00O0O000O0OO0O =False #line:971:match = False
+        OO0O00OOOOOOOOOOO =None #line:974:form = None
+        O0000OOO0O0OOO00O =OOOO0OOOOO0OOO00O .get_parent (O0O00OOOO0O0O0O00 ,no_iframe =True )#line:975:parent = self.get_parent(el, no_iframe=True)
+        while O0000OOO0O0OOO00O and OO0O00OOOOOOOOOOO is None :#line:976:while parent and form is None:
+            if OOOO0OOOOO0OOO00O .get_tag (O0000OOO0O0OOO00O )=='form'and OOOO0OOOOO0OOO00O .is_html_tag (O0000OOO0O0OOO00O ):#line:977:if self.get_tag(parent) == 'form' and self.is_html_tag(parent):
+                OO0O00OOOOOOOOOOO =O0000OOO0O0OOO00O #line:978:form = parent
+            else :#line:979:else:
+                O0000OOO0O0OOO00O =OOOO0OOOOO0OOO00O .get_parent (O0000OOO0O0OOO00O ,no_iframe =True )#line:980:parent = self.get_parent(parent, no_iframe=True)
+        O0OO00OOOOOOOO0O0 =False #line:983:found_form = False
+        for OOOO000OOO0OOO0OO ,OO00O0000OOOO0000 in OOOO0OOOOO0OOO00O .cached_default_forms :#line:984:for f, t in self.cached_default_forms:
+            if OOOO000OOO0OOO0OO is OO0O00OOOOOOOOOOO :#line:985:if f is form:
+                O0OO00OOOOOOOO0O0 =True #line:986:found_form = True
+                if OO00O0000OOOO0000 is O0O00OOOO0O0O0O00 :#line:987:if t is el:
+                    OOO00O0O000O0OO0O =True #line:988:match = True
+                break #line:989:break
+        if not O0OO00OOOOOOOO0O0 :#line:992:if not found_form:
+            for OOOOOO0O0OOO00OO0 in OOOO0OOOOO0OOO00O .get_descendants (OO0O00OOOOOOOOOOO ,no_iframe =True ):#line:993:for child in self.get_descendants(form, no_iframe=True):
+                O0O00OOO00OO000O0 =OOOO0OOOOO0OOO00O .get_tag (OOOOOO0O0OOO00OO0 )#line:994:name = self.get_tag(child)
+                if O0O00OOO00OO000O0 =='form':#line:996:if name == 'form':  # pragma: no cover
+                    break #line:997:break
+                if O0O00OOO00OO000O0 in ('input','button'):#line:998:if name in ('input', 'button'):
+                    O00OOO0OOOOO00OO0 =OOOO0OOOOO0OOO00O .get_attribute_by_name (OOOOOO0O0OOO00OO0 ,'type','')#line:999:v = self.get_attribute_by_name(child, 'type', '')
+                    if O00OOO0OOOOO00OO0 and util .lower (O00OOO0OOOOO00OO0 )=='submit':#line:1000:if v and util.lower(v) == 'submit':
+                        OOOO0OOOOO0OOO00O .cached_default_forms .append ([OO0O00OOOOOOOOOOO ,OOOOOO0O0OOO00OO0 ])#line:1001:self.cached_default_forms.append([form, child])
+                        if O0O00OOOO0O0O0O00 is OOOOOO0O0OOO00OO0 :#line:1002:if el is child:
+                            OOO00O0O000O0OO0O =True #line:1003:match = True
+                        break #line:1004:break
+        return OOO00O0O000O0OO0O #line:1005:return match
+    def match_indeterminate (O00O00O0OO0O00OO0 ,OO00O00OO0OOOO0OO ):#line:1007:def match_indeterminate(self, el):
+        ""#line:1008:"""Match default."""
+        O00O0O00O000O0OO0 =False #line:1010:match = False
+        OO0O0O0O0OOO00OOO =O00O00O0OO0O00OO0 .get_attribute_by_name (OO00O00OO0OOOO0OO ,'name')#line:1011:name = self.get_attribute_by_name(el, 'name')
+        def O00O0000O0OO00OOO (O0OOOO00000O0000O ):#line:1013:def get_parent_form(el):
+            ""#line:1014:"""Find this input's form."""
+            OO0OO0O0OO0O0OOOO =None #line:1015:form = None
+            O0O00O0OO0OO00O00 =O00O00O0OO0O00OO0 .get_parent (O0OOOO00000O0000O ,no_iframe =True )#line:1016:parent = self.get_parent(el, no_iframe=True)
+            while OO0OO0O0OO0O0OOOO is None :#line:1017:while form is None:
+                if O00O00O0OO0O00OO0 .get_tag (O0O00O0OO0OO00O00 )=='form'and O00O00O0OO0O00OO0 .is_html_tag (O0O00O0OO0OO00O00 ):#line:1018:if self.get_tag(parent) == 'form' and self.is_html_tag(parent):
+                    OO0OO0O0OO0O0OOOO =O0O00O0OO0OO00O00 #line:1019:form = parent
+                    break #line:1020:break
+                OO00O0000OOO0OOO0 =O0O00O0OO0OO00O00 #line:1021:last_parent = parent
+                O0O00O0OO0OO00O00 =O00O00O0OO0O00OO0 .get_parent (O0O00O0OO0OO00O00 ,no_iframe =True )#line:1022:parent = self.get_parent(parent, no_iframe=True)
+                if O0O00O0OO0OO00O00 is None :#line:1023:if parent is None:
+                    OO0OO0O0OO0O0OOOO =OO00O0000OOO0OOO0 #line:1024:form = last_parent
+                    break #line:1025:break
+            return OO0OO0O0OO0O0OOOO #line:1026:return form
+        OOO0O00000OOO0OO0 =O00O0000O0OO00OOO (OO00O00OO0OOOO0OO )#line:1028:form = get_parent_form(el)
+        O000OOO000OOO0OO0 =False #line:1031:found_form = False
+        for O0O0OOO0OOOO00000 ,O0OOOOO00OOOOOOO0 ,O0OOO00O00O000OOO in O00O00O0OO0O00OO0 .cached_indeterminate_forms :#line:1032:for f, n, i in self.cached_indeterminate_forms:
+            if O0O0OOO0OOOO00000 is OOO0O00000OOO0OO0 and O0OOOOO00OOOOOOO0 ==OO0O0O0O0OOO00OOO :#line:1033:if f is form and n == name:
+                O000OOO000OOO0OO0 =True #line:1034:found_form = True
+                if O0OOO00O00O000OOO is True :#line:1035:if i is True:
+                    O00O0O00O000O0OO0 =True #line:1036:match = True
+                break #line:1037:break
+        if not O000OOO000OOO0OO0 :#line:1040:if not found_form:
+            OO0O0OO0O000OO0O0 =False #line:1041:checked = False
+            for O0O0O00OOOOO0O0O0 in O00O00O0OO0O00OO0 .get_descendants (OOO0O00000OOO0OO0 ,no_iframe =True ):#line:1042:for child in self.get_descendants(form, no_iframe=True):
+                if O0O0O00OOOOO0O0O0 is OO00O00OO0OOOO0OO :#line:1043:if child is el:
+                    continue #line:1044:continue
+                O000OOOO000OO0O00 =O00O00O0OO0O00OO0 .get_tag (O0O0O00OOOOO0O0O0 )#line:1045:tag_name = self.get_tag(child)
+                if O000OOOO000OO0O00 =='input':#line:1046:if tag_name == 'input':
+                    OO00OO0OOO00OO0O0 =False #line:1047:is_radio = False
+                    O0OOOO00OO00O0O00 =False #line:1048:check = False
+                    O00OOO0O0O00O0O00 =False #line:1049:has_name = False
+                    for O0OOOOO00O0O0000O ,O00O0OO0O0OO0O0OO in O00O00O0OO0O00OO0 .iter_attributes (O0O0O00OOOOO0O0O0 ):#line:1050:for k, v in self.iter_attributes(child):
+                        if util .lower (O0OOOOO00O0O0000O )=='type'and util .lower (O00O0OO0O0OO0O0OO )=='radio':#line:1051:if util.lower(k) == 'type' and util.lower(v) == 'radio':
+                            OO00OO0OOO00OO0O0 =True #line:1052:is_radio = True
+                        elif util .lower (O0OOOOO00O0O0000O )=='name'and O00O0OO0O0OO0O0OO ==OO0O0O0O0OOO00OOO :#line:1053:elif util.lower(k) == 'name' and v == name:
+                            O00OOO0O0O00O0O00 =True #line:1054:has_name = True
+                        elif util .lower (O0OOOOO00O0O0000O )=='checked':#line:1055:elif util.lower(k) == 'checked':
+                            O0OOOO00OO00O0O00 =True #line:1056:check = True
+                        if OO00OO0OOO00OO0O0 and O0OOOO00OO00O0O00 and O00OOO0O0O00O0O00 and O00O0000O0OO00OOO (O0O0O00OOOOO0O0O0 )is OOO0O00000OOO0OO0 :#line:1057:if is_radio and check and has_name and get_parent_form(child) is form:
+                            OO0O0OO0O000OO0O0 =True #line:1058:checked = True
+                            break #line:1059:break
+                if OO0O0OO0O000OO0O0 :#line:1060:if checked:
+                    break #line:1061:break
+            if not OO0O0OO0O000OO0O0 :#line:1062:if not checked:
+                O00O0O00O000O0OO0 =True #line:1063:match = True
+            O00O00O0OO0O00OO0 .cached_indeterminate_forms .append ([OOO0O00000OOO0OO0 ,OO0O0O0O0OOO00OOO ,O00O0O00O000O0OO0 ])#line:1064:self.cached_indeterminate_forms.append([form, name, match])
+        return O00O0O00O000O0OO0 #line:1066:return match
+    def match_lang (OO00OOOOOO00OO0O0 ,O00O0OOOO0OOO0O0O ,OOO000O000OO00O00 ):#line:1068:def match_lang(self, el, langs):
+        ""#line:1069:"""Match languages."""
+        O0OOOO0O0OOO0OOO0 =False #line:1071:match = False
+        O0O0000OOO0O0O0O0 =OO00OOOOOO00OO0O0 .supports_namespaces ()#line:1072:has_ns = self.supports_namespaces()
+        OO00O000OOO00OO00 =OO00OOOOOO00OO0O0 .root #line:1073:root = self.root
+        O00O0000OO0O000O0 =OO00OOOOOO00OO0O0 .has_html_namespace #line:1074:has_html_namespace = self.has_html_namespace
+        O0OO0OO0000OOOOO0 =O00O0OOOO0OOO0O0O #line:1077:parent = el
+        O000O0OOOO00O0O00 =None #line:1078:found_lang = None
+        O0O0O0000O0O000OO =None #line:1079:last = None
+        while not O000O0OOOO00O0O00 :#line:1080:while not found_lang:
+            OO0OOOOO0OOO0OOO0 =OO00OOOOOO00OO0O0 .has_html_ns (O0OO0OO0000OOOOO0 )#line:1081:has_html_ns = self.has_html_ns(parent)
+            for O0O000O00OO0000O0 ,O000OO0O00O0OO00O in OO00OOOOOO00OO0O0 .iter_attributes (O0OO0OO0000OOOOO0 ):#line:1082:for k, v in self.iter_attributes(parent):
+                OO00O0O0OOOOOO00O ,OOO0OOOOOOOO0OO00 =OO00OOOOOO00OO0O0 .split_namespace (O0OO0OO0000OOOOO0 ,O0O000O00OO0000O0 )#line:1083:attr_ns, attr = self.split_namespace(parent, k)
+                if (((not O0O0000OOO0O0O0O0 or OO0OOOOO0OOO0OOO0 )and (util .lower (O0O000O00OO0000O0 )if not OO00OOOOOO00OO0O0 .is_xml else O0O000O00OO0000O0 )=='lang')or (O0O0000OOO0O0O0O0 and not OO0OOOOO0OOO0OOO0 and OO00O0O0OOOOOO00O ==NS_XML and (util .lower (OOO0OOOOOOOO0OO00 )if not OO00OOOOOO00OO0O0 .is_xml and OOO0OOOOOOOO0OO00 is not None else OOO0OOOOOOOO0OO00 )=='lang')):#line:1090:):
+                    O000O0OOOO00O0O00 =O000OO0O00O0OO00O #line:1091:found_lang = v
+                    break #line:1092:break
+            O0O0O0000O0O000OO =O0OO0OO0000OOOOO0 #line:1093:last = parent
+            O0OO0OO0000OOOOO0 =OO00OOOOOO00OO0O0 .get_parent (O0OO0OO0000OOOOO0 ,no_iframe =OO00OOOOOO00OO0O0 .is_html )#line:1094:parent = self.get_parent(parent, no_iframe=self.is_html)
+            if O0OO0OO0000OOOOO0 is None :#line:1096:if parent is None:
+                OO00O000OOO00OO00 =O0O0O0000O0O000OO #line:1097:root = last
+                O00O0000OO0O000O0 =OO00OOOOOO00OO0O0 .has_html_ns (OO00O000OOO00OO00 )#line:1098:has_html_namespace = self.has_html_ns(root)
+                O0OO0OO0000OOOOO0 =O0O0O0000O0O000OO #line:1099:parent = last
+                break #line:1100:break
+        if not O000O0OOOO00O0O00 and OO00OOOOOO00OO0O0 .cached_meta_lang :#line:1103:if not found_lang and self.cached_meta_lang:
+            for OO00O000O00O0000O in OO00OOOOOO00OO0O0 .cached_meta_lang :#line:1104:for cache in self.cached_meta_lang:
+                if OO00O000OOO00OO00 is OO00O000O00O0000O [0 ]:#line:1105:if root is cache[0]:
+                    O000O0OOOO00O0O00 =OO00O000O00O0000O [1 ]#line:1106:found_lang = cache[1]
+        if O000O0OOOO00O0O00 is None and (not OO00OOOOOO00OO0O0 .is_xml or (O00O0000OO0O000O0 and OO00O000OOO00OO00 .name =='html')):#line:1109:if found_lang is None and (not self.is_xml or (has_html_namespace and root.name == 'html')):
+            OOOO000OO00OO000O =False #line:1111:found = False
+            for OOOOO000O000O00O0 in ('html','head'):#line:1112:for tag in ('html', 'head'):
+                OOOO000OO00OO000O =False #line:1113:found = False
+                for O00O000O0000OO00O in OO00OOOOOO00OO0O0 .get_children (O0OO0OO0000OOOOO0 ,no_iframe =OO00OOOOOO00OO0O0 .is_html ):#line:1114:for child in self.get_children(parent, no_iframe=self.is_html):
+                    if OO00OOOOOO00OO0O0 .get_tag (O00O000O0000OO00O )==OOOOO000O000O00O0 and OO00OOOOOO00OO0O0 .is_html_tag (O00O000O0000OO00O ):#line:1115:if self.get_tag(child) == tag and self.is_html_tag(child):
+                        OOOO000OO00OO000O =True #line:1116:found = True
+                        O0OO0OO0000OOOOO0 =O00O000O0000OO00O #line:1117:parent = child
+                        break #line:1118:break
+                if not OOOO000OO00OO000O :#line:1119:if not found:  # pragma: no cover
+                    break #line:1120:break
+            if OOOO000OO00OO000O :#line:1123:if found:
+                for O00O000O0000OO00O in O0OO0OO0000OOOOO0 :#line:1124:for child in parent:
+                    if OO00OOOOOO00OO0O0 .is_tag (O00O000O0000OO00O )and OO00OOOOOO00OO0O0 .get_tag (O00O000O0000OO00O )=='meta'and OO00OOOOOO00OO0O0 .is_html_tag (O0OO0OO0000OOOOO0 ):#line:1125:if self.is_tag(child) and self.get_tag(child) == 'meta' and self.is_html_tag(parent):
+                        O0OOO0OO0O00OOO0O =False #line:1126:c_lang = False
+                        O00OO0O00O0O00OOO =None #line:1127:content = None
+                        for O0O000O00OO0000O0 ,O000OO0O00O0OO00O in OO00OOOOOO00OO0O0 .iter_attributes (O00O000O0000OO00O ):#line:1128:for k, v in self.iter_attributes(child):
+                            if util .lower (O0O000O00OO0000O0 )=='http-equiv'and util .lower (O000OO0O00O0OO00O )=='content-language':#line:1129:if util.lower(k) == 'http-equiv' and util.lower(v) == 'content-language':
+                                O0OOO0OO0O00OOO0O =True #line:1130:c_lang = True
+                            if util .lower (O0O000O00OO0000O0 )=='content':#line:1131:if util.lower(k) == 'content':
+                                O00OO0O00O0O00OOO =O000OO0O00O0OO00O #line:1132:content = v
+                            if O0OOO0OO0O00OOO0O and O00OO0O00O0O00OOO :#line:1133:if c_lang and content:
+                                O000O0OOOO00O0O00 =O00OO0O00O0O00OOO #line:1134:found_lang = content
+                                OO00OOOOOO00OO0O0 .cached_meta_lang .append ((OO00O000OOO00OO00 ,O000O0OOOO00O0O00 ))#line:1135:self.cached_meta_lang.append((root, found_lang))
+                                break #line:1136:break
+                    if O000O0OOOO00O0O00 :#line:1137:if found_lang:
+                        break #line:1138:break
+                if not O000O0OOOO00O0O00 :#line:1139:if not found_lang:
+                    OO00OOOOOO00OO0O0 .cached_meta_lang .append ((OO00O000OOO00OO00 ,False ))#line:1140:self.cached_meta_lang.append((root, False))
+        if O000O0OOOO00O0O00 :#line:1143:if found_lang:
+            for O00OOOO0O000000OO in OOO000O000OO00O00 :#line:1144:for patterns in langs:
+                O0OOOO0O0OOO0OOO0 =False #line:1145:match = False
+                for OO000O0OO0OO0OO00 in O00OOOO0O000000OO :#line:1146:for pattern in patterns:
+                    if OO00OOOOOO00OO0O0 .extended_language_filter (OO000O0OO0OO0OO00 ,O000O0OOOO00O0O00 ):#line:1147:if self.extended_language_filter(pattern, found_lang):
+                        O0OOOO0O0OOO0OOO0 =True #line:1148:match = True
+                if not O0OOOO0O0OOO0OOO0 :#line:1149:if not match:
+                    break #line:1150:break
+        return O0OOOO0O0OOO0OOO0 #line:1152:return match
+    def match_dir (OOO0000O00O0O0000 ,OOOOOOO00000O0000 ,O00O00O0O000O0000 ):#line:1154:def match_dir(self, el, directionality):
+        ""#line:1155:"""Check directionality."""
+        if O00O00O0O000O0000 &ct .SEL_DIR_LTR and O00O00O0O000O0000 &ct .SEL_DIR_RTL :#line:1158:if directionality & ct.SEL_DIR_LTR and directionality & ct.SEL_DIR_RTL:
+            return False #line:1159:return False
+        if OOOOOOO00000O0000 is None or not OOO0000O00O0O0000 .is_html_tag (OOOOOOO00000O0000 ):#line:1161:if el is None or not self.is_html_tag(el):
+            return False #line:1162:return False
+        OO0OOOOO0O000OO0O =DIR_MAP .get (util .lower (OOO0000O00O0O0000 .get_attribute_by_name (OOOOOOO00000O0000 ,'dir','')),None )#line:1165:direction = DIR_MAP.get(util.lower(self.get_attribute_by_name(el, 'dir', '')), None)
+        if OO0OOOOO0O000OO0O not in (None ,0 ):#line:1166:if direction not in (None, 0):
+            return OO0OOOOO0O000OO0O ==O00O00O0O000O0000 #line:1167:return direction == directionality
+        OOOOOO0O00000O0OO =OOO0000O00O0O0000 .is_root (OOOOOOO00000O0000 )#line:1170:is_root = self.is_root(el)
+        if OOOOOO0O00000O0OO and OO0OOOOO0O000OO0O is None :#line:1171:if is_root and direction is None:
+            return ct .SEL_DIR_LTR ==O00O00O0O000O0000 #line:1172:return ct.SEL_DIR_LTR == directionality
+        O0O000O000OOOO000 =OOO0000O00O0O0000 .get_tag (OOOOOOO00000O0000 )#line:1175:name = self.get_tag(el)
+        OO00OO0OOOO00000O =O0O000O000OOOO000 =='input'#line:1176:is_input = name == 'input'
+        O00O00O0O0O000000 =O0O000O000OOOO000 =='textarea'#line:1177:is_textarea = name == 'textarea'
+        O00OOOOOO0O0O0O0O =O0O000O000OOOO000 =='bdi'#line:1178:is_bdi = name == 'bdi'
+        O0O000O0O00O00000 =util .lower (OOO0000O00O0O0000 .get_attribute_by_name (OOOOOOO00000O0000 ,'type',''))if OO00OO0OOOO00000O else ''#line:1179:itype = util.lower(self.get_attribute_by_name(el, 'type', '')) if is_input else ''
+        if OO00OO0OOOO00000O and O0O000O0O00O00000 =='tel'and OO0OOOOO0O000OO0O is None :#line:1180:if is_input and itype == 'tel' and direction is None:
+            return ct .SEL_DIR_LTR ==O00O00O0O000O0000 #line:1181:return ct.SEL_DIR_LTR == directionality
+        if ((OO00OO0OOOO00000O and O0O000O0O00O00000 in ('text','search','tel','url','email'))or O00O00O0O0O000000 )and OO0OOOOO0O000OO0O ==0 :#line:1184:if ((is_input and itype in ('text', 'search', 'tel', 'url', 'email')) or is_textarea) and direction == 0:
+            if O00O00O0O0O000000 :#line:1185:if is_textarea:
+                OOOO00O00O0O0OOOO =[]#line:1186:value = []
+                for O00OOO0O0O0O00OO0 in OOO0000O00O0O0000 .get_contents (OOOOOOO00000O0000 ,no_iframe =True ):#line:1187:for node in self.get_contents(el, no_iframe=True):
+                    if OOO0000O00O0O0000 .is_content_string (O00OOO0O0O0O00OO0 ):#line:1188:if self.is_content_string(node):
+                        OOOO00O00O0O0OOOO .append (O00OOO0O0O0O00OO0 )#line:1189:value.append(node)
+                OOOO00O00O0O0OOOO =''.join (OOOO00O00O0O0OOOO )#line:1190:value = ''.join(value)
+            else :#line:1191:else:
+                OOOO00O00O0O0OOOO =OOO0000O00O0O0000 .get_attribute_by_name (OOOOOOO00000O0000 ,'value','')#line:1192:value = self.get_attribute_by_name(el, 'value', '')
+            if OOOO00O00O0O0OOOO :#line:1193:if value:
+                for O0OO0O000O0OOO000 in OOOO00O00O0O0OOOO :#line:1194:for c in value:
+                    O0000OOO00O000000 =unicodedata .bidirectional (O0OO0O000O0OOO000 )#line:1195:bidi = unicodedata.bidirectional(c)
+                    if O0000OOO00O000000 in ('AL','R','L'):#line:1196:if bidi in ('AL', 'R', 'L'):
+                        OO0OOOOO0O000OO0O =ct .SEL_DIR_LTR if O0000OOO00O000000 =='L'else ct .SEL_DIR_RTL #line:1197:direction = ct.SEL_DIR_LTR if bidi == 'L' else ct.SEL_DIR_RTL
+                        return OO0OOOOO0O000OO0O ==O00O00O0O000O0000 #line:1198:return direction == directionality
+                return ct .SEL_DIR_LTR ==O00O00O0O000O0000 #line:1200:return ct.SEL_DIR_LTR == directionality
+            elif OOOOOO0O00000O0OO :#line:1201:elif is_root:
+                return ct .SEL_DIR_LTR ==O00O00O0O000O0000 #line:1202:return ct.SEL_DIR_LTR == directionality
+            return OOO0000O00O0O0000 .match_dir (OOO0000O00O0O0000 .get_parent (OOOOOOO00000O0000 ,no_iframe =True ),O00O00O0O000O0000 )#line:1203:return self.match_dir(self.get_parent(el, no_iframe=True), directionality)
+        if (O00OOOOOO0O0O0O0O and OO0OOOOO0O000OO0O is None )or OO0OOOOO0O000OO0O ==0 :#line:1206:if (is_bdi and direction is None) or direction == 0:
+            OO0OOOOO0O000OO0O =OOO0000O00O0O0000 .find_bidi (OOOOOOO00000O0000 )#line:1207:direction = self.find_bidi(el)
+            if OO0OOOOO0O000OO0O is not None :#line:1208:if direction is not None:
+                return OO0OOOOO0O000OO0O ==O00O00O0O000O0000 #line:1209:return direction == directionality
+            elif OOOOOO0O00000O0OO :#line:1210:elif is_root:
+                return ct .SEL_DIR_LTR ==O00O00O0O000O0000 #line:1211:return ct.SEL_DIR_LTR == directionality
+            return OOO0000O00O0O0000 .match_dir (OOO0000O00O0O0000 .get_parent (OOOOOOO00000O0000 ,no_iframe =True ),O00O00O0O000O0000 )#line:1212:return self.match_dir(self.get_parent(el, no_iframe=True), directionality)
+        return OOO0000O00O0O0000 .match_dir (OOO0000O00O0O0000 .get_parent (OOOOOOO00000O0000 ,no_iframe =True ),O00O00O0O000O0000 )#line:1215:return self.match_dir(self.get_parent(el, no_iframe=True), directionality)
+    def match_range (O000O000000OO000O ,OOO00O00OOOOOOOOO ,O00OOOO0OOO0OO0O0 ):#line:1217:def match_range(self, el, condition):
+        ""#line:1225:"""
+        O0OO00O000OOO0000 =False #line:1227:out_of_range = False
+        OO0O00O0OO0O000O0 =util .lower (O000O000000OO000O .get_attribute_by_name (OOO00O00OOOOOOOOO ,'type'))#line:1229:itype = util.lower(self.get_attribute_by_name(el, 'type'))
+        O0OOO00O0O0OO0OOO =O000O000000OO000O .get_attribute_by_name (OOO00O00OOOOOOOOO ,'min',None )#line:1230:mn = self.get_attribute_by_name(el, 'min', None)
+        if O0OOO00O0O0OO0OOO is not None :#line:1231:if mn is not None:
+            O0OOO00O0O0OO0OOO =Inputs .parse_value (OO0O00O0OO0O000O0 ,O0OOO00O0O0OO0OOO )#line:1232:mn = Inputs.parse_value(itype, mn)
+        OO0000OOO0000O0O0 =O000O000000OO000O .get_attribute_by_name (OOO00O00OOOOOOOOO ,'max',None )#line:1233:mx = self.get_attribute_by_name(el, 'max', None)
+        if OO0000OOO0000O0O0 is not None :#line:1234:if mx is not None:
+            OO0000OOO0000O0O0 =Inputs .parse_value (OO0O00O0OO0O000O0 ,OO0000OOO0000O0O0 )#line:1235:mx = Inputs.parse_value(itype, mx)
+        if O0OOO00O0O0OO0OOO is None and OO0000OOO0000O0O0 is None :#line:1238:if mn is None and mx is None:
+            return False #line:1239:return False
+        OOOO0000OO00O0OOO =O000O000000OO000O .get_attribute_by_name (OOO00O00OOOOOOOOO ,'value',None )#line:1241:value = self.get_attribute_by_name(el, 'value', None)
+        if OOOO0000OO00O0OOO is not None :#line:1242:if value is not None:
+            OOOO0000OO00O0OOO =Inputs .parse_value (OO0O00O0OO0O000O0 ,OOOO0000OO00O0OOO )#line:1243:value = Inputs.parse_value(itype, value)
+        if OOOO0000OO00O0OOO is not None :#line:1244:if value is not None:
+            if OO0O00O0OO0O000O0 in ("date","datetime-local","month","week","number","range"):#line:1245:if itype in ("date", "datetime-local", "month", "week", "number", "range"):
+                if O0OOO00O0O0OO0OOO is not None and OOOO0000OO00O0OOO <O0OOO00O0O0OO0OOO :#line:1246:if mn is not None and value < mn:
+                    O0OO00O000OOO0000 =True #line:1247:out_of_range = True
+                if not O0OO00O000OOO0000 and OO0000OOO0000O0O0 is not None and OOOO0000OO00O0OOO >OO0000OOO0000O0O0 :#line:1248:if not out_of_range and mx is not None and value > mx:
+                    O0OO00O000OOO0000 =True #line:1249:out_of_range = True
+            elif OO0O00O0OO0O000O0 =="time":#line:1250:elif itype == "time":
+                if O0OOO00O0O0OO0OOO is not None and OO0000OOO0000O0O0 is not None and O0OOO00O0O0OO0OOO >OO0000OOO0000O0O0 :#line:1251:if mn is not None and mx is not None and mn > mx:
+                    if OOOO0000OO00O0OOO <O0OOO00O0O0OO0OOO and OOOO0000OO00O0OOO >OO0000OOO0000O0O0 :#line:1253:if value < mn and value > mx:
+                        O0OO00O000OOO0000 =True #line:1254:out_of_range = True
+                else :#line:1255:else:
+                    if O0OOO00O0O0OO0OOO is not None and OOOO0000OO00O0OOO <O0OOO00O0O0OO0OOO :#line:1256:if mn is not None and value < mn:
+                        O0OO00O000OOO0000 =True #line:1257:out_of_range = True
+                    if not O0OO00O000OOO0000 and OO0000OOO0000O0O0 is not None and OOOO0000OO00O0OOO >OO0000OOO0000O0O0 :#line:1258:if not out_of_range and mx is not None and value > mx:
+                        O0OO00O000OOO0000 =True #line:1259:out_of_range = True
+        return not O0OO00O000OOO0000 if O00OOOO0OOO0OO0O0 &ct .SEL_IN_RANGE else O0OO00O000OOO0000 #line:1261:return not out_of_range if condition & ct.SEL_IN_RANGE else out_of_range
+    def match_defined (OOOOOOOO0O0OO0O00 ,O00O00000OOO0O0OO ):#line:1263:def match_defined(self, el):
+        ""#line:1275:"""
+        O00O0OO0O0OOOO0O0 =OOOOOOOO0O0OO0O00 .get_tag (O00O00000OOO0O0OO )#line:1277:name = self.get_tag(el)
+        return (O00O0OO0O0OOOO0O0 .find ('-')==-1 or O00O0OO0O0OOOO0O0 .find (':')!=-1 or OOOOOOOO0O0OO0O00 .get_prefix (O00O00000OOO0O0OO )is not None )#line:1282:)
+    def match_placeholder_shown (O0O00OO000OOO00O0 ,OOOOOO0O0O0OO0000 ):#line:1284:def match_placeholder_shown(self, el):
+        ""#line:1290:"""
+        OOO0OO0OO0OO0O00O =False #line:1292:match = False
+        O000O000O000O0OOO =O0O00OO000OOO00O0 .get_text (OOOOOO0O0O0OO0000 )#line:1293:content = self.get_text(el)
+        if O000O000O000O0OOO in ('','\n'):#line:1294:if content in ('', '\n'):
+            OOO0OO0OO0OO0O00O =True #line:1295:match = True
+        return OOO0OO0OO0OO0O00O #line:1297:return match
+    def match_selectors (OO0O000O0OOOOO0OO ,O00OOO0OO0OOOO0O0 ,OO0O0O00OO000000O ):#line:1299:def match_selectors(self, el, selectors):
+        ""#line:1300:"""Check if element matches one of the selectors."""
+        OO00OOOO0OOO00O0O =False #line:1302:match = False
+        OO0OO0O0O00O0O00O =OO0O0O00OO000000O .is_not #line:1303:is_not = selectors.is_not
+        O000OO0O0OO000000 =OO0O0O00OO000000O .is_html #line:1304:is_html = selectors.is_html
+        if O000OO0O0OO000000 :#line:1307:if is_html:
+            OO000OO0OOO00OO0O =OO0O000O0OOOOO0OO .namespaces #line:1308:namespaces = self.namespaces
+            OO0O0OOO0OOO0OO0O =OO0O000O0OOOOO0OO .iframe_restrict #line:1309:iframe_restrict = self.iframe_restrict
+            OO0O000O0OOOOO0OO .namespaces ={'html':NS_XHTML }#line:1310:self.namespaces = {'html': NS_XHTML}
+            OO0O000O0OOOOO0OO .iframe_restrict =True #line:1311:self.iframe_restrict = True
+        if not O000OO0O0OO000000 or OO0O000O0OOOOO0OO .is_html :#line:1313:if not is_html or self.is_html:
+            for OO0000O0O0000000O in OO0O0O00OO000000O :#line:1314:for selector in selectors:
+                OO00OOOO0OOO00O0O =OO0OO0O0O00O0O00O #line:1315:match = is_not
+                if isinstance (OO0000O0O0000000O ,ct .SelectorNull ):#line:1317:if isinstance(selector, ct.SelectorNull):
+                    continue #line:1318:continue
+                if not OO0O000O0OOOOO0OO .match_tag (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .tag ):#line:1320:if not self.match_tag(el, selector.tag):
+                    continue #line:1321:continue
+                if OO0000O0O0000000O .flags &ct .SEL_DEFINED and not OO0O000O0OOOOO0OO .match_defined (O00OOO0OO0OOOO0O0 ):#line:1323:if selector.flags & ct.SEL_DEFINED and not self.match_defined(el):
+                    continue #line:1324:continue
+                if OO0000O0O0000000O .flags &ct .SEL_ROOT and not OO0O000O0OOOOO0OO .match_root (O00OOO0OO0OOOO0O0 ):#line:1326:if selector.flags & ct.SEL_ROOT and not self.match_root(el):
+                    continue #line:1327:continue
+                if OO0000O0O0000000O .flags &ct .SEL_SCOPE and not OO0O000O0OOOOO0OO .match_scope (O00OOO0OO0OOOO0O0 ):#line:1329:if selector.flags & ct.SEL_SCOPE and not self.match_scope(el):
+                    continue #line:1330:continue
+                if OO0000O0O0000000O .flags &ct .SEL_PLACEHOLDER_SHOWN and not OO0O000O0OOOOO0OO .match_placeholder_shown (O00OOO0OO0OOOO0O0 ):#line:1332:if selector.flags & ct.SEL_PLACEHOLDER_SHOWN and not self.match_placeholder_shown(el):
+                    continue #line:1333:continue
+                if not OO0O000O0OOOOO0OO .match_nth (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .nth ):#line:1335:if not self.match_nth(el, selector.nth):
+                    continue #line:1336:continue
+                if OO0000O0O0000000O .flags &ct .SEL_EMPTY and not OO0O000O0OOOOO0OO .match_empty (O00OOO0OO0OOOO0O0 ):#line:1337:if selector.flags & ct.SEL_EMPTY and not self.match_empty(el):
+                    continue #line:1338:continue
+                if OO0000O0O0000000O .ids and not OO0O000O0OOOOO0OO .match_id (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .ids ):#line:1340:if selector.ids and not self.match_id(el, selector.ids):
+                    continue #line:1341:continue
+                if OO0000O0O0000000O .classes and not OO0O000O0OOOOO0OO .match_classes (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .classes ):#line:1343:if selector.classes and not self.match_classes(el, selector.classes):
+                    continue #line:1344:continue
+                if not OO0O000O0OOOOO0OO .match_attributes (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .attributes ):#line:1346:if not self.match_attributes(el, selector.attributes):
+                    continue #line:1347:continue
+                if OO0000O0O0000000O .flags &RANGES and not OO0O000O0OOOOO0OO .match_range (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .flags &RANGES ):#line:1349:if selector.flags & RANGES and not self.match_range(el, selector.flags & RANGES):
+                    continue #line:1350:continue
+                if OO0000O0O0000000O .lang and not OO0O000O0OOOOO0OO .match_lang (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .lang ):#line:1352:if selector.lang and not self.match_lang(el, selector.lang):
+                    continue #line:1353:continue
+                if OO0000O0O0000000O .selectors and not OO0O000O0OOOOO0OO .match_subselectors (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .selectors ):#line:1355:if selector.selectors and not self.match_subselectors(el, selector.selectors):
+                    continue #line:1356:continue
+                if OO0000O0O0000000O .relation and not OO0O000O0OOOOO0OO .match_relations (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .relation ):#line:1358:if selector.relation and not self.match_relations(el, selector.relation):
+                    continue #line:1359:continue
+                if OO0000O0O0000000O .flags &ct .SEL_DEFAULT and not OO0O000O0OOOOO0OO .match_default (O00OOO0OO0OOOO0O0 ):#line:1361:if selector.flags & ct.SEL_DEFAULT and not self.match_default(el):
+                    continue #line:1362:continue
+                if OO0000O0O0000000O .flags &ct .SEL_INDETERMINATE and not OO0O000O0OOOOO0OO .match_indeterminate (O00OOO0OO0OOOO0O0 ):#line:1365:if selector.flags & ct.SEL_INDETERMINATE and not self.match_indeterminate(el):
+                    continue #line:1366:continue
+                if OO0000O0O0000000O .flags &DIR_FLAGS and not OO0O000O0OOOOO0OO .match_dir (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .flags &DIR_FLAGS ):#line:1368:if selector.flags & DIR_FLAGS and not self.match_dir(el, selector.flags & DIR_FLAGS):
+                    continue #line:1369:continue
+                if not OO0O000O0OOOOO0OO .match_contains (O00OOO0OO0OOOO0O0 ,OO0000O0O0000000O .contains ):#line:1371:if not self.match_contains(el, selector.contains):
+                    continue #line:1372:continue
+                OO00OOOO0OOO00O0O =not OO0OO0O0O00O0O00O #line:1373:match = not is_not
+                break #line:1374:break
+        if O000OO0O0OO000000 :#line:1377:if is_html:
+            OO0O000O0OOOOO0OO .namespaces =OO000OO0OOO00OO0O #line:1378:self.namespaces = namespaces
+            OO0O000O0OOOOO0OO .iframe_restrict =OO0O0OOO0OOO0OO0O #line:1379:self.iframe_restrict = iframe_restrict
+        return OO00OOOO0OOO00O0O #line:1381:return match
+    def select (OO0OOO0O000O00O0O ,limit =0 ):#line:1383:def select(self, limit=0):
+        ""#line:1384:"""Match all tags under the targeted tag."""
+        if limit <1 :#line:1386:if limit < 1:
+            limit =None #line:1387:limit = None
+        for O0OO00000O0OO0O0O in OO0OOO0O000O00O0O .get_descendants (OO0OOO0O000O00O0O .tag ):#line:1389:for child in self.get_descendants(self.tag):
+            if OO0OOO0O000O00O0O .match (O0OO00000O0OO0O0O ):#line:1390:if self.match(child):
+                yield O0OO00000O0OO0O0O #line:1391:yield child
+                if limit is not None :#line:1392:if limit is not None:
+                    limit -=1 #line:1393:limit -= 1
+                    if limit <1 :#line:1394:if limit < 1:
+                        break #line:1395:break
+    def closest (O0OOOO0O0O0O0O00O ):#line:1397:def closest(self):
+        ""#line:1398:"""Match closest ancestor."""
+        OO0000O0OO0OO000O =O0OOOO0O0O0O0O00O .tag #line:1400:current = self.tag
+        OO00O0O00O0000000 =None #line:1401:closest = None
+        while OO00O0O00O0000000 is None and OO0000O0OO0OO000O is not None :#line:1402:while closest is None and current is not None:
+            if O0OOOO0O0O0O0O00O .match (OO0000O0OO0OO000O ):#line:1403:if self.match(current):
+                OO00O0O00O0000000 =OO0000O0OO0OO000O #line:1404:closest = current
+            else :#line:1405:else:
+                OO0000O0OO0OO000O =O0OOOO0O0O0O0O00O .get_parent (OO0000O0OO0OO000O )#line:1406:current = self.get_parent(current)
+        return OO00O0O00O0000000 #line:1407:return closest
+    def filter (OO0OOOO0O0OO0OOOO ):#line:1409:def filter(self):  # noqa A001
+        ""#line:1410:"""Filter tag's children."""
+        return [OOOOO0O0O0OOO0OO0 for OOOOO0O0O0OOO0OO0 in OO0OOOO0O0OO0OOOO .get_contents (OO0OOOO0O0OO0OOOO .tag )if not OO0OOOO0O0OO0OOOO .is_navigable_string (OOOOO0O0O0OOO0OO0 )and OO0OOOO0O0OO0OOOO .match (OOOOO0O0O0OOO0OO0 )]#line:1412:return [tag for tag in self.get_contents(self.tag) if not self.is_navigable_string(tag) and self.match(tag)]
+    def match (O0000OOO0OOO0000O ,OO0000O0OOOO0O0OO ):#line:1414:def match(self, el):
+        ""#line:1415:"""Match."""
+        return not O0000OOO0OOO0000O .is_doc (OO0000O0OOOO0O0OO )and O0000OOO0OOO0000O .is_tag (OO0000O0OOOO0O0OO )and O0000OOO0OOO0000O .match_selectors (OO0000O0OOOO0O0OO ,O0000OOO0OOO0000O .selectors )#line:1417:return not self.is_doc(el) and self.is_tag(el) and self.match_selectors(el, self.selectors)
+class CSSMatch (_O0OO0OOOOOOOO0O00 ,_O0O00O0OO00O0OOOO ):#line:1420:class CSSMatch(_DocumentNav, _Match):
+    ""#line:1421:"""The Beautiful Soup CSS match class."""
+class SoupSieve (ct .Immutable ):#line:1424:class SoupSieve(ct.Immutable):
+    ""#line:1425:"""Compiled Soup Sieve selector matching object."""
+    __slots__ =("pattern","selectors","namespaces","custom","flags","_hash")#line:1427:__slots__ = ("pattern", "selectors", "namespaces", "custom", "flags", "_hash")
+    def __init__ (O0O0000OO00O00O00 ,O0OOO00O0O000000O ,O0OOO000O00O0OOOO ,O0O00OOO00OO0O0OO ,O00O000OO00OOO000 ,OO0O0O0OOO000OOO0 ):#line:1429:def __init__(self, pattern, selectors, namespaces, custom, flags):
+        ""#line:1430:"""Initialize."""
+        super (SoupSieve ,O0O0000OO00O00O00 ).__init__ (pattern =O0OOO00O0O000000O ,selectors =O0OOO000O00O0OOOO ,namespaces =O0O00OOO00OO0O0OO ,custom =O00O000OO00OOO000 ,flags =OO0O0O0OOO000OOO0 )#line:1438:)
+    def match (O0OO00O0000OO0OOO ,OO00O00000000O0OO ):#line:1440:def match(self, tag):
+        ""#line:1441:"""Match."""
+        return CSSMatch (O0OO00O0000OO0OOO .selectors ,OO00O00000000O0OO ,O0OO00O0000OO0OOO .namespaces ,O0OO00O0000OO0OOO .flags ).match (OO00O00000000O0OO )#line:1443:return CSSMatch(self.selectors, tag, self.namespaces, self.flags).match(tag)
+    def closest (OOOOOO00OOOO0O000 ,OO0O00O0O0OO0O0OO ):#line:1445:def closest(self, tag):
+        ""#line:1446:"""Match closest ancestor."""
+        return CSSMatch (OOOOOO00OOOO0O000 .selectors ,OO0O00O0O0OO0O0OO ,OOOOOO00OOOO0O000 .namespaces ,OOOOOO00OOOO0O000 .flags ).closest ()#line:1448:return CSSMatch(self.selectors, tag, self.namespaces, self.flags).closest()
+    def filter (OOO000O00O0OOOO0O ,OOO00O0O00OO00OO0 ):#line:1450:def filter(self, iterable):  # noqa A001
+        ""#line:1460:"""
+        if CSSMatch .is_tag (OOO00O0O00OO00OO0 ):#line:1462:if CSSMatch.is_tag(iterable):
+            return CSSMatch (OOO000O00O0OOOO0O .selectors ,OOO00O0O00OO00OO0 ,OOO000O00O0OOOO0O .namespaces ,OOO000O00O0OOOO0O .flags ).filter ()#line:1463:return CSSMatch(self.selectors, iterable, self.namespaces, self.flags).filter()
+        else :#line:1464:else:
+            return [OOOO00OO0O000O00O for OOOO00OO0O000O00O in OOO00O0O00OO00OO0 if not CSSMatch .is_navigable_string (OOOO00OO0O000O00O )and OOO000O00O0OOOO0O .match (OOOO00OO0O000O00O )]#line:1465:return [node for node in iterable if not CSSMatch.is_navigable_string(node) and self.match(node)]
+    def select_one (O00O0OOO0O00OO0O0 ,O0OOOOOOOOO0O000O ):#line:1467:def select_one(self, tag):
+        ""#line:1468:"""Select a single tag."""
+        O0O000O000OO000OO =O00O0OOO0O00OO0O0 .select (O0OOOOOOOOO0O000O ,limit =1 )#line:1470:tags = self.select(tag, limit=1)
+        return O0O000O000OO000OO [0 ]if O0O000O000OO000OO else None #line:1471:return tags[0] if tags else None
+    def select (OO000OOO0OO0OOO0O ,OOO0O0O00O00000O0 ,limit =0 ):#line:1473:def select(self, tag, limit=0):
+        ""#line:1474:"""Select the specified tags."""
+        return list (OO000OOO0OO0OOO0O .iselect (OOO0O0O00O00000O0 ,limit ))#line:1476:return list(self.iselect(tag, limit))
+    def iselect (OOO0O00O0OOOOOOOO ,O0OOOO0OOO00O00O0 ,limit =0 ):#line:1478:def iselect(self, tag, limit=0):
+        ""#line:1479:"""Iterate the specified tags."""
+        for OOOO00O00O00OO00O in CSSMatch (OOO0O00O0OOOOOOOO .selectors ,O0OOOO0OOO00O00O0 ,OOO0O00O0OOOOOOOO .namespaces ,OOO0O00O0OOOOOOOO .flags ).select (limit ):#line:1481:for el in CSSMatch(self.selectors, tag, self.namespaces, self.flags).select(limit):
+            yield OOOO00O00O00OO00O #line:1482:yield el
+    def __repr__ (OO0OO00OO0O0O00O0 ):#line:1484:def __repr__(self):  # pragma: no cover
+        ""#line:1485:"""Representation."""
+        return "SoupSieve(pattern={!r}, namespaces={!r}, custom={!r}, flags={!r})".format (OO0OO00OO0O0O00O0 .pattern ,OO0OO00OO0O0O00O0 .namespaces ,OO0OO00OO0O0O00O0 .custom ,OO0OO00OO0O0O00O0 .flags )#line:1492:)
+    __str__ =__repr__ #line:1494:__str__ = __repr__
+ct .pickle_register (SoupSieve )#line:1497:ct.pickle_register(SoupSieve)

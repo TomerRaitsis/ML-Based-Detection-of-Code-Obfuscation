@@ -1,0 +1,152 @@
+""#line:9:"""
+from __future__ import absolute_import #line:10:from __future__ import absolute_import
+import textwrap #line:12:import textwrap
+import warnings #line:13:import warnings
+from distutils .util import strtobool #line:14:from distutils.util import strtobool
+from functools import partial #line:15:from functools import partial
+from optparse import SUPPRESS_HELP ,Option ,OptionGroup #line:16:from optparse import SUPPRESS_HELP, Option, OptionGroup
+from pip ._internal .exceptions import CommandError #line:18:from pip._internal.exceptions import CommandError
+from pip ._internal .locations import USER_CACHE_DIR ,src_prefix #line:19:from pip._internal.locations import USER_CACHE_DIR, src_prefix
+from pip ._internal .models .format_control import FormatControl #line:20:from pip._internal.models.format_control import FormatControl
+from pip ._internal .models .index import PyPI #line:21:from pip._internal.models.index import PyPI
+from pip ._internal .utils .hashes import STRONG_HASHES #line:22:from pip._internal.utils.hashes import STRONG_HASHES
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:23:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip ._internal .utils .ui import BAR_TYPES #line:24:from pip._internal.utils.ui import BAR_TYPES
+if MYPY_CHECK_RUNNING :#line:26:if MYPY_CHECK_RUNNING:
+    from typing import Any ,Callable ,Dict ,List ,Optional ,Union #line:27:from typing import Any, Callable, Dict, List, Optional, Union  # noqa: F401
+    from optparse import OptionParser ,Values #line:28:from optparse import OptionParser, Values  # noqa: F401
+    from pip ._internal .cli .parser import ConfigOptionParser #line:29:from pip._internal.cli.parser import ConfigOptionParser  # noqa: F401
+def raise_option_error (O0OO0O00OOO0O00OO ,O0OO0O0OO0OOO0O00 ,OO0OO00O0O0OOO0O0 ):#line:32:def raise_option_error(parser, option, msg):
+    ""#line:40:"""
+    OO0OO00O0O0OOO0O0 ='{} error: {}'.format (O0OO0O0OO0OOO0O00 ,OO0OO00O0O0OOO0O0 )#line:41:msg = '{} error: {}'.format(option, msg)
+    OO0OO00O0O0OOO0O0 =textwrap .fill (' '.join (OO0OO00O0O0OOO0O0 .split ()))#line:42:msg = textwrap.fill(' '.join(msg.split()))
+    O0OO0O00OOO0O00OO .error (OO0OO00O0O0OOO0O0 )#line:43:parser.error(msg)
+def make_option_group (O0OOOO0OO000OO00O ,O0O0OOOO0OOOOOO00 ):#line:46:def make_option_group(group, parser):
+    ""#line:52:"""
+    O00O0OO0OO00O000O =OptionGroup (O0O0OOOO0OOOOOO00 ,O0OOOO0OO000OO00O ['name'])#line:53:option_group = OptionGroup(parser, group['name'])
+    for O00OO0O0O00O0OO0O in O0OOOO0OO000OO00O ['options']:#line:54:for option in group['options']:
+        O00O0OO0OO00O000O .add_option (O00OO0O0O00O0OO0O ())#line:55:option_group.add_option(option())
+    return O00O0OO0OO00O000O #line:56:return option_group
+def check_install_build_global (OO0OO00O0O0OO0O0O ,check_options =None ):#line:59:def check_install_build_global(options, check_options=None):
+    ""#line:66:"""
+    if check_options is None :#line:67:if check_options is None:
+        check_options =OO0OO00O0O0OO0O0O #line:68:check_options = options
+    def O0O000OO0O00O00OO (O0000O0OO0O0O0OO0 ):#line:70:def getname(n):
+        return getattr (check_options ,O0000O0OO0O0O0OO0 ,None )#line:71:return getattr(check_options, n, None)
+    OOO00OO000OOOOO00 =["build_options","global_options","install_options"]#line:72:names = ["build_options", "global_options", "install_options"]
+    if any (map (O0O000OO0O00O00OO ,OOO00OO000OOOOO00 )):#line:73:if any(map(getname, names)):
+        OOO00OO0OO0OOOO0O =OO0OO00O0O0OO0O0O .format_control #line:74:control = options.format_control
+        OOO00OO0OO0OOOO0O .disallow_binaries ()#line:75:control.disallow_binaries()
+        warnings .warn ('Disabling all use of wheels due to the use of --build-options ' '/ --global-options / --install-options.',stacklevel =2 ,)#line:79:)
+def check_dist_restriction (OOOO00O000O0OOO0O ,check_target =False ):#line:82:def check_dist_restriction(options, check_target=False):
+    ""#line:88:"""
+    O000OOO000000O0O0 =any ([OOOO00O000O0OOO0O .python_version ,OOOO00O000O0OOO0O .platform ,OOOO00O000O0OOO0O .abi ,OOOO00O000O0OOO0O .implementation ,])#line:94:])
+    OOOOO00OO0OO0O00O =FormatControl (set (),{':all:'})#line:96:binary_only = FormatControl(set(), {':all:'})
+    O0000OOO0O0OOOO0O =(OOOO00O000O0OOO0O .format_control !=OOOOO00OO0OO0O00O and not OOOO00O000O0OOO0O .ignore_dependencies )#line:100:)
+    if O000OOO000000O0O0 and O0000OOO0O0OOOO0O :#line:105:if dist_restriction_set and sdist_dependencies_allowed:
+        raise CommandError ("When restricting platform and interpreter constraints using " "--python-version, --platform, --abi, or --implementation, " "either --no-deps must be set, or --only-binary=:all: must be " "set and --no-binary must not be set (or must be set to " ":none:).")#line:112:)
+    if check_target :#line:114:if check_target:
+        if O000OOO000000O0O0 and not OOOO00O000O0OOO0O .target_dir :#line:115:if dist_restriction_set and not options.target_dir:
+            raise CommandError ("Can not use any platform or abi specific options unless " "installing via '--target'")#line:119:)
+help_ =partial (Option ,'-h','--help',dest ='help',action ='help',help ='Show help.',)#line:132:)  # type: Callable[..., Option]
+isolated_mode =partial (Option ,"--isolated",dest ="isolated_mode",action ="store_true",default =False ,help =("Run pip in an isolated mode, ignoring environment variables and user " "configuration."),)#line:144:)  # type: Callable[..., Option]
+require_virtualenv =partial (Option ,'--require-virtualenv','--require-venv',dest ='require_venv',action ='store_true',default =False ,help =SUPPRESS_HELP )#line:154:)  # type: Callable[..., Option]
+verbose =partial (Option ,'-v','--verbose',dest ='verbose',action ='count',default =0 ,help ='Give more output. Option is additive, and can be used up to 3 times.')#line:163:)  # type: Callable[..., Option]
+no_color =partial (Option ,'--no-color',dest ='no_color',action ='store_true',default =False ,help ="Suppress colored output",)#line:172:)  # type: Callable[..., Option]
+version =partial (Option ,'-V','--version',dest ='version',action ='store_true',help ='Show version and exit.',)#line:180:)  # type: Callable[..., Option]
+quiet =partial (Option ,'-q','--quiet',dest ='quiet',action ='count',default =0 ,help =('Give less output. Option is additive, and can be used up to 3' ' times (corresponding to WARNING, ERROR, and CRITICAL logging' ' levels).'),)#line:193:)  # type: Callable[..., Option]
+progress_bar =partial (Option ,'--progress-bar',dest ='progress_bar',type ='choice',choices =list (BAR_TYPES .keys ()),default ='on',help =('Specify type of progress to be displayed ['+'|'.join (BAR_TYPES .keys ())+'] (default: %default)'),)#line:206:)  # type: Callable[..., Option]
+log =partial (Option ,"--log","--log-file","--local-log",dest ="log",metavar ="path",help ="Path to a verbose appending log.")#line:214:)  # type: Callable[..., Option]
+no_input =partial (Option ,'--no-input',dest ='no_input',action ='store_true',default =False ,help =SUPPRESS_HELP )#line:224:)  # type: Callable[..., Option]
+proxy =partial (Option ,'--proxy',dest ='proxy',type ='str',default ='',help ="Specify a proxy in the form [user:passwd@]proxy.server:port.")#line:233:)  # type: Callable[..., Option]
+retries =partial (Option ,'--retries',dest ='retries',type ='int',default =5 ,help ="Maximum number of retries each connection should attempt " "(default %default times).",)#line:243:)  # type: Callable[..., Option]
+timeout =partial (Option ,'--timeout','--default-timeout',metavar ='sec',dest ='timeout',type ='float',default =15 ,help ='Set the socket timeout (default %default seconds).',)#line:253:)  # type: Callable[..., Option]
+skip_requirements_regex =partial (Option ,'--skip-requirements-regex',dest ='skip_requirements_regex',type ='str',default ='',help =SUPPRESS_HELP ,)#line:263:)  # type: Callable[..., Option]
+def exists_action ():#line:266:def exists_action():
+    return Option ('--exists-action',dest ='exists_action',type ='choice',choices =['s','i','w','b','a'],default =[],action ='append',metavar ='action',help ="Default action when a path already exists: " "(s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort).",)#line:279:)
+cert =partial (Option ,'--cert',dest ='cert',type ='str',metavar ='path',help ="Path to alternate CA bundle.",)#line:289:)  # type: Callable[..., Option]
+client_cert =partial (Option ,'--client-cert',dest ='client_cert',type ='str',default =None ,metavar ='path',help ="Path to SSL client certificate, a single file containing the " "private key and the certificate in PEM format.",)#line:300:)  # type: Callable[..., Option]
+index_url =partial (Option ,'-i','--index-url','--pypi-url',dest ='index_url',metavar ='URL',default =PyPI .simple_url ,help ="Base URL of Python Package Index (default %default). " "This should point to a repository compliant with PEP 503 " "(the simple repository API) or a local directory laid out " "in the same format.",)#line:312:)  # type: Callable[..., Option]
+def extra_index_url ():#line:315:def extra_index_url():
+    return Option ('--extra-index-url',dest ='extra_index_urls',metavar ='URL',action ='append',default =[],help ="Extra URLs of package indexes to use in addition to " "--index-url. Should follow the same rules as " "--index-url.",)#line:325:)
+no_index =partial (Option ,'--no-index',dest ='no_index',action ='store_true',default =False ,help ='Ignore package index (only looking at --find-links URLs instead).',)#line:335:)  # type: Callable[..., Option]
+def find_links ():#line:338:def find_links():
+    return Option ('-f','--find-links',dest ='find_links',action ='append',default =[],metavar ='url',help ="If a url or path to an html file, then parse for links to " "archives. If a local path or file:// url that's a directory, " "then look for archives in the directory listing.",)#line:349:)
+def trusted_host ():#line:352:def trusted_host():
+    return Option ("--trusted-host",dest ="trusted_hosts",action ="append",metavar ="HOSTNAME",default =[],help ="Mark this host as trusted, even though it does not have valid " "or any HTTPS.",)#line:362:)
+def constraints ():#line:365:def constraints():
+    return Option ('-c','--constraint',dest ='constraints',action ='append',default =[],metavar ='file',help ='Constrain versions using the given constraints file. ' 'This option can be used multiple times.')#line:375:)
+def requirements ():#line:378:def requirements():
+    return Option ('-r','--requirement',dest ='requirements',action ='append',default =[],metavar ='file',help ='Install from the given requirements file. ' 'This option can be used multiple times.')#line:388:)
+def editable ():#line:391:def editable():
+    return Option ('-e','--editable',dest ='editables',action ='append',default =[],metavar ='path/url',help =('Install a project in editable mode (i.e. setuptools ' '"develop mode") from a local project path or a VCS url.'),)#line:401:)
+src =partial (Option ,'--src','--source','--source-dir','--source-directory',dest ='src_dir',metavar ='dir',default =src_prefix ,help ='Directory to check out editable projects into. ' 'The default in a virtualenv is "<venv path>/src". ' 'The default for global installs is "<current dir>/src".')#line:413:)  # type: Callable[..., Option]
+def _OOOO0O0O00OO0OOOO (OO0OO0O0OO0OOOOO0 ,O000OO0O0OO0O000O ):#line:416:def _get_format_control(values, option):
+    ""#line:418:"""Get a format_control object."""
+    return getattr (OO0OO0O0OO0OOOOO0 ,O000OO0O0OO0O000O .dest )#line:419:return getattr(values, option.dest)
+def _OO00OO00OO0O00O0O (OO00O00000O00OOOO ,OO0O0O0OOOO0OO000 ,OOOO0000OO0OO0OO0 ,OO0OOOO000O000OO0 ):#line:422:def _handle_no_binary(option, opt_str, value, parser):
+    OO0O000OOOOOO0O00 =_OOOO0O0O00OO0OOOO (OO0OOOO000O000OO0 .values ,OO00O00000O00OOOO )#line:424:existing = _get_format_control(parser.values, option)
+    FormatControl .handle_mutual_excludes (OOOO0000OO0OO0OO0 ,OO0O000OOOOOO0O00 .no_binary ,OO0O000OOOOOO0O00 .only_binary ,)#line:427:)
+def _O0000OOOO000O00O0 (OOO0OO0O00000OOOO ,O00O0OO0000O00O0O ,O00O00OOOO0OO0OOO ,OOO0OOO0O00O0O0O0 ):#line:430:def _handle_only_binary(option, opt_str, value, parser):
+    OO000O00OO0OO0000 =_OOOO0O0O00OO0OOOO (OOO0OOO0O00O0O0O0 .values ,OOO0OO0O00000OOOO )#line:432:existing = _get_format_control(parser.values, option)
+    FormatControl .handle_mutual_excludes (O00O00OOOO0OO0OOO ,OO000O00OO0OO0000 .only_binary ,OO000O00OO0OO0000 .no_binary ,)#line:435:)
+def no_binary ():#line:438:def no_binary():
+    OO0OO00000OOO000O =FormatControl (set (),set ())#line:440:format_control = FormatControl(set(), set())
+    return Option ("--no-binary",dest ="format_control",action ="callback",callback =_OO00OO00OO0O00O0O ,type ="str",default =OO0OO00000OOO000O ,help ="Do not use binary packages. Can be supplied multiple times, and " "each time adds to the existing value. Accepts either :all: to " "disable all binary packages, :none: to empty the set, or one or " "more package names with commas between them. Note that some " "packages are tricky to compile and may fail to install when " "this option is used on them.",)#line:451:)
+def only_binary ():#line:454:def only_binary():
+    O0O0OOO0OOO0OO0OO =FormatControl (set (),set ())#line:456:format_control = FormatControl(set(), set())
+    return Option ("--only-binary",dest ="format_control",action ="callback",callback =_O0000OOOO000O00O0 ,type ="str",default =O0O0OOO0OOO0OO0OO ,help ="Do not use source packages. Can be supplied multiple times, and " "each time adds to the existing value. Accepts either :all: to " "disable all source packages, :none: to empty the set, or one or " "more package names with commas between them. Packages without " "binary distributions will fail to install when this option is " "used on them.",)#line:467:)
+platform =partial (Option ,'--platform',dest ='platform',metavar ='platform',default =None ,help =("Only use wheels compatible with <platform>. " "Defaults to the platform of the running system."),)#line:478:)  # type: Callable[..., Option]
+python_version =partial (Option ,'--python-version',dest ='python_version',metavar ='python_version',default =None ,help =("Only use wheels compatible with Python " "interpreter version <version>. If not specified, then the " "current system interpreter minor version is used. A major " "version (e.g. '2') can be specified to match all " "minor revs of that major version.  A minor version " "(e.g. '34') can also be specified."),)#line:493:)  # type: Callable[..., Option]
+implementation =partial (Option ,'--implementation',dest ='implementation',metavar ='implementation',default =None ,help =("Only use wheels compatible with Python " "implementation <implementation>, e.g. 'pp', 'jy', 'cp', " " or 'ip'. If not specified, then the current " "interpreter implementation is used.  Use 'py' to force " "implementation-agnostic wheels."),)#line:507:)  # type: Callable[..., Option]
+abi =partial (Option ,'--abi',dest ='abi',metavar ='abi',default =None ,help =("Only use wheels compatible with Python " "abi <abi>, e.g. 'pypy_41'.  If not specified, then the " "current interpreter abi tag is used.  Generally " "you will need to specify --implementation, " "--platform, and --python-version when using " "this option."),)#line:522:)  # type: Callable[..., Option]
+def prefer_binary ():#line:525:def prefer_binary():
+    return Option ("--prefer-binary",dest ="prefer_binary",action ="store_true",default =False ,help ="Prefer older binary packages over newer source packages.")#line:533:)
+cache_dir =partial (Option ,"--cache-dir",dest ="cache_dir",default =USER_CACHE_DIR ,metavar ="dir",help ="Store the cache data in <dir>.")#line:543:)  # type: Callable[..., Option]
+def no_cache_dir_callback (OOOO0O0OOO0OOOO00 ,O00O00OOO0O0OO00O ,OO0O0OO00OO0OO000 ,O0O000O0O00000O00 ):#line:546:def no_cache_dir_callback(option, opt, value, parser):
+    ""#line:551:"""
+    if OO0O0OO00OO0OO000 is not None :#line:556:if value is not None:
+        try :#line:558:try:
+            strtobool (OO0O0OO00OO0OO000 )#line:559:strtobool(value)
+        except ValueError as O000O00O000OO00O0 :#line:560:except ValueError as exc:
+            raise_option_error (O0O000O0O00000O00 ,option =OOOO0O0OOO0OOOO00 ,msg =str (O000O00O000OO00O0 ))#line:561:raise_option_error(parser, option=option, msg=str(exc))
+    O0O000O0O00000O00 .values .cache_dir =False #line:570:parser.values.cache_dir = False
+no_cache =partial (Option ,"--no-cache-dir",dest ="cache_dir",action ="callback",callback =no_cache_dir_callback ,help ="Disable the cache.",)#line:580:)  # type: Callable[..., Option]
+no_deps =partial (Option ,'--no-deps','--no-dependencies',dest ='ignore_dependencies',action ='store_true',default =False ,help ="Don't install package dependencies.",)#line:589:)  # type: Callable[..., Option]
+build_dir =partial (Option ,'-b','--build','--build-dir','--build-directory',dest ='build_dir',metavar ='dir',help ='Directory to unpack packages into and build in. Note that ' 'an initial build still takes place in a temporary directory. ' 'The location of temporary directories can be controlled by setting ' 'the TMPDIR environment variable (TEMP on Windows) appropriately. ' 'When passed, build directories are not cleaned in case of failures.')#line:601:)  # type: Callable[..., Option]
+ignore_requires_python =partial (Option ,'--ignore-requires-python',dest ='ignore_requires_python',action ='store_true',help ='Ignore the Requires-Python information.')#line:609:)  # type: Callable[..., Option]
+no_build_isolation =partial (Option ,'--no-build-isolation',dest ='build_isolation',action ='store_false',default =True ,help ='Disable isolation when building a modern source distribution. ' 'Build dependencies specified by PEP 518 must be already installed ' 'if this option is used.')#line:620:)  # type: Callable[..., Option]
+def no_use_pep517_callback (OO0OOOOO0OO0O000O ,OOO00OO00000OOO00 ,OO0OOOOOO0O0O00OO ,OO0O00O00OO00O0O0 ):#line:623:def no_use_pep517_callback(option, opt, value, parser):
+    ""#line:628:"""
+    if OO0OOOOOO0O0O00OO is not None :#line:633:if value is not None:
+        O00OO000OO0000000 ="""A value was passed for --no-use-pep517,
+        probably using either the PIP_NO_USE_PEP517 environment variable
+        or the "no-use-pep517" config file option. Use an appropriate value
+        of the PIP_USE_PEP517 environment variable or the "use-pep517"
+        config file option instead.
+        """#line:639:"""
+        raise_option_error (OO0O00O00OO00O0O0 ,option =OO0OOOOO0OO0O000O ,msg =O00OO000OO0000000 )#line:640:raise_option_error(parser, option=option, msg=msg)
+    OO0O00O00OO00O0O0 .values .use_pep517 =False #line:643:parser.values.use_pep517 = False
+use_pep517 =partial (Option ,'--use-pep517',dest ='use_pep517',action ='store_true',default =None ,help ='Use PEP 517 for building source distributions ' '(use --no-use-pep517 to force legacy behaviour).')#line:654:)  # type: Any
+no_use_pep517 =partial (Option ,'--no-use-pep517',dest ='use_pep517',action ='callback',callback =no_use_pep517_callback ,default =None ,help =SUPPRESS_HELP )#line:664:)  # type: Any
+install_options =partial (Option ,'--install-option',dest ='install_options',action ='append',metavar ='options',help ="Extra arguments to be supplied to the setup.py install " "command (use like --install-option=\"--install-scripts=/usr/local/" "bin\"). Use multiple --install-option options to pass multiple " "options to setup.py install. If you are using an option with a " "directory path, be sure to use absolute path.",)#line:677:)  # type: Callable[..., Option]
+global_options =partial (Option ,'--global-option',dest ='global_options',action ='append',metavar ='options',help ="Extra global options to be supplied to the setup.py " "call before the install command.",)#line:687:)  # type: Callable[..., Option]
+no_clean =partial (Option ,'--no-clean',action ='store_true',default =False ,help ="Don't clean up build directories.")#line:695:)  # type: Callable[..., Option]
+pre =partial (Option ,'--pre',action ='store_true',default =False ,help ="Include pre-release and development versions. By default, " "pip only finds stable versions.",)#line:704:)  # type: Callable[..., Option]
+disable_pip_version_check =partial (Option ,"--disable-pip-version-check",dest ="disable_pip_version_check",action ="store_true",default =False ,help ="Don't periodically check PyPI to determine whether a new version " "of pip is available for download. Implied with --no-index.",)#line:714:)  # type: Callable[..., Option]
+always_unzip =partial (Option ,'-Z','--always-unzip',dest ='always_unzip',action ='store_true',help =SUPPRESS_HELP ,)#line:724:)  # type: Callable[..., Option]
+def _O00OOO0OOOO0O0O0O (O000OOO0O00O0OO0O ,OO00000O0O0OO0O0O ,O00O00O0O0OOOO000 ,OO00O0OOOO00O00OO ):#line:727:def _merge_hash(option, opt_str, value, parser):
+    ""#line:730:pointed to in a dict by the algo name."""
+    if not OO00O0OOOO00O00OO .values .hashes :#line:731:if not parser.values.hashes:
+        OO00O0OOOO00O00OO .values .hashes ={}#line:732:parser.values.hashes = {}  # type: ignore
+    try :#line:733:try:
+        O0O00OO0O000OOO00 ,OO0O000OO0O0OO00O =O00O00O0O0OOOO000 .split (':',1 )#line:734:algo, digest = value.split(':', 1)
+    except ValueError :#line:735:except ValueError:
+        OO00O0OOOO00O00OO .error ('Arguments to %s must be a hash name ' 'followed by a value, like --hash=sha256:abcde...'%OO00000O0O0OO0O0O )#line:738:opt_str)
+    if O0O00OO0O000OOO00 not in STRONG_HASHES :#line:739:if algo not in STRONG_HASHES:
+        OO00O0OOOO00O00OO .error ('Allowed hash algorithms for %s are %s.'%(OO00000O0O0OO0O0O ,', '.join (STRONG_HASHES )))#line:741:(opt_str, ', '.join(STRONG_HASHES)))
+    OO00O0OOOO00O00OO .values .hashes .setdefault (O0O00OO0O000OOO00 ,[]).append (OO0O000OO0O0OO00O )#line:742:parser.values.hashes.setdefault(algo, []).append(digest)
+hash =partial (Option ,'--hash',dest ='hashes',action ='callback',callback =_O00OOO0OOOO0O0O0O ,type ='string',help ="Verify that the package's archive matches this " 'hash before installing. Example: --hash=sha256:abcdef...',)#line:756:)  # type: Callable[..., Option]
+require_hashes =partial (Option ,'--require-hashes',dest ='require_hashes',action ='store_true',default =False ,help ='Require a hash to check each requirement against, for ' 'repeatable installs. This option is implied when any package in a ' 'requirements file has a --hash option.',)#line:768:)  # type: Callable[..., Option]
+general_group ={'name':'General Options','options':[help_ ,isolated_mode ,require_virtualenv ,verbose ,version ,quiet ,log ,no_input ,proxy ,retries ,timeout ,skip_requirements_regex ,exists_action ,trusted_host ,cert ,client_cert ,cache_dir ,no_cache ,disable_pip_version_check ,no_color ,]}#line:799:}  # type: Dict[str, Any]
+index_group ={'name':'Package Index Options','options':[index_url ,extra_index_url ,no_index ,find_links ,]}#line:809:}  # type: Dict[str, Any]

@@ -1,0 +1,423 @@
+from __future__ import absolute_import ,division ,print_function #line:4:from __future__ import absolute_import, division, print_function
+import abc #line:6:import abc
+import functools #line:7:import functools
+import itertools #line:8:import itertools
+import re #line:9:import re
+from ._compat import string_types ,with_metaclass #line:11:from ._compat import string_types, with_metaclass
+from .version import Version ,LegacyVersion ,parse #line:12:from .version import Version, LegacyVersion, parse
+class InvalidSpecifier (ValueError ):#line:15:class InvalidSpecifier(ValueError):
+    ""#line:18:"""
+class BaseSpecifier (with_metaclass (abc .ABCMeta ,object )):#line:21:class BaseSpecifier(with_metaclass(abc.ABCMeta, object)):
+    @abc .abstractmethod #line:22:@abc.abstractmethod
+    def __str__ (O0000O0OO0OOOOOOO ):#line:23:def __str__(self):
+        ""#line:27:"""
+    @abc .abstractmethod #line:29:@abc.abstractmethod
+    def __hash__ (OO0OOO00000O000O0 ):#line:30:def __hash__(self):
+        ""#line:33:"""
+    @abc .abstractmethod #line:35:@abc.abstractmethod
+    def __eq__ (OOOOO00O0OO00OO00 ,O00O00OOOO00O000O ):#line:36:def __eq__(self, other):
+        ""#line:40:"""
+    @abc .abstractmethod #line:42:@abc.abstractmethod
+    def __ne__ (O0O00OO0000OOO00O ,OOOOOO00OO00000OO ):#line:43:def __ne__(self, other):
+        ""#line:47:"""
+    @abc .abstractproperty #line:49:@abc.abstractproperty
+    def prereleases (O00OO0O0000OOOO00 ):#line:50:def prereleases(self):
+        ""#line:54:"""
+    @prereleases .setter #line:56:@prereleases.setter
+    def prereleases (OO00OO00O00O0O00O ,O0000OO00O0OO000O ):#line:57:def prereleases(self, value):
+        ""#line:61:"""
+    @abc .abstractmethod #line:63:@abc.abstractmethod
+    def contains (O0O0OOO0O0OO0OOOO ,O0OO0OOO0OO0000O0 ,prereleases =None ):#line:64:def contains(self, item, prereleases=None):
+        ""#line:67:"""
+    @abc .abstractmethod #line:69:@abc.abstractmethod
+    def filter (O00000O0000000OOO ,OO00O0O00OOOO0000 ,prereleases =None ):#line:70:def filter(self, iterable, prereleases=None):
+        ""#line:74:"""
+class _OO0O0O0OO0OOO0O00 (BaseSpecifier ):#line:77:class _IndividualSpecifier(BaseSpecifier):
+    _operators ={}#line:79:_operators = {}
+    def __init__ (O0O0OOO00OOOO000O ,spec ="",prereleases =None ):#line:81:def __init__(self, spec="", prereleases=None):
+        O0OOOO0O00OO0O0OO =O0O0OOO00OOOO000O ._regex .search (spec )#line:82:match = self._regex.search(spec)
+        if not O0OOOO0O00OO0O0OO :#line:83:if not match:
+            raise InvalidSpecifier ("Invalid specifier: '{0}'".format (spec ))#line:84:raise InvalidSpecifier("Invalid specifier: '{0}'".format(spec))
+        O0O0OOO00OOOO000O ._spec =(O0OOOO0O00OO0O0OO .group ("operator").strip (),O0OOOO0O00OO0O0OO .group ("version").strip ())#line:86:self._spec = (match.group("operator").strip(), match.group("version").strip())
+        O0O0OOO00OOOO000O ._prereleases =prereleases #line:89:self._prereleases = prereleases
+    def __repr__ (O000OO00OO0OO0OOO ):#line:91:def __repr__(self):
+        OOOOOOOOO0O0OOOO0 =(", prereleases={0!r}".format (O000OO00OO0OO0OOO .prereleases )if O000OO00OO0OO0OOO ._prereleases is not None else "")#line:96:)
+        return "<{0}({1!r}{2})>".format (O000OO00OO0OO0OOO .__class__ .__name__ ,str (O000OO00OO0OO0OOO ),OOOOOOOOO0O0OOOO0 )#line:98:return "<{0}({1!r}{2})>".format(self.__class__.__name__, str(self), pre)
+    def __str__ (O00OOO0OO0OOOO000 ):#line:100:def __str__(self):
+        return "{0}{1}".format (*O00OOO0OO0OOOO000 ._spec )#line:101:return "{0}{1}".format(*self._spec)
+    def __hash__ (O000OOO0O0OOOO0OO ):#line:103:def __hash__(self):
+        return hash (O000OOO0O0OOOO0OO ._spec )#line:104:return hash(self._spec)
+    def __eq__ (O00OOOOOOOOO0O0O0 ,OOOO0O0O0OO0O0OO0 ):#line:106:def __eq__(self, other):
+        if isinstance (OOOO0O0O0OO0O0OO0 ,string_types ):#line:107:if isinstance(other, string_types):
+            try :#line:108:try:
+                OOOO0O0O0OO0O0OO0 =O00OOOOOOOOO0O0O0 .__class__ (OOOO0O0O0OO0O0OO0 )#line:109:other = self.__class__(other)
+            except InvalidSpecifier :#line:110:except InvalidSpecifier:
+                return NotImplemented #line:111:return NotImplemented
+        elif not isinstance (OOOO0O0O0OO0O0OO0 ,O00OOOOOOOOO0O0O0 .__class__ ):#line:112:elif not isinstance(other, self.__class__):
+            return NotImplemented #line:113:return NotImplemented
+        return O00OOOOOOOOO0O0O0 ._spec ==OOOO0O0O0OO0O0OO0 ._spec #line:115:return self._spec == other._spec
+    def __ne__ (OOO0O0O0O00OO0OO0 ,O0OO00OOOOOOO0O0O ):#line:117:def __ne__(self, other):
+        if isinstance (O0OO00OOOOOOO0O0O ,string_types ):#line:118:if isinstance(other, string_types):
+            try :#line:119:try:
+                O0OO00OOOOOOO0O0O =OOO0O0O0O00OO0OO0 .__class__ (O0OO00OOOOOOO0O0O )#line:120:other = self.__class__(other)
+            except InvalidSpecifier :#line:121:except InvalidSpecifier:
+                return NotImplemented #line:122:return NotImplemented
+        elif not isinstance (O0OO00OOOOOOO0O0O ,OOO0O0O0O00OO0OO0 .__class__ ):#line:123:elif not isinstance(other, self.__class__):
+            return NotImplemented #line:124:return NotImplemented
+        return OOO0O0O0O00OO0OO0 ._spec !=O0OO00OOOOOOO0O0O ._spec #line:126:return self._spec != other._spec
+    def _get_operator (OO0000O00OOOO0O0O ,OO00OO00000OO0O00 ):#line:128:def _get_operator(self, op):
+        return getattr (OO0000O00OOOO0O0O ,"_compare_{0}".format (OO0000O00OOOO0O0O ._operators [OO00OO00000OO0O00 ]))#line:129:return getattr(self, "_compare_{0}".format(self._operators[op]))
+    def _coerce_version (O0OO0O00OO0O0OOO0 ,O0O0O00000O0O00O0 ):#line:131:def _coerce_version(self, version):
+        if not isinstance (O0O0O00000O0O00O0 ,(LegacyVersion ,Version )):#line:132:if not isinstance(version, (LegacyVersion, Version)):
+            O0O0O00000O0O00O0 =parse (O0O0O00000O0O00O0 )#line:133:version = parse(version)
+        return O0O0O00000O0O00O0 #line:134:return version
+    @property #line:136:@property
+    def operator (O0OO0O00O000OO0O0 ):#line:137:def operator(self):
+        return O0OO0O00O000OO0O0 ._spec [0 ]#line:138:return self._spec[0]
+    @property #line:140:@property
+    def version (OOO0O0000000000OO ):#line:141:def version(self):
+        return OOO0O0000000000OO ._spec [1 ]#line:142:return self._spec[1]
+    @property #line:144:@property
+    def prereleases (O00O0O0000OOO000O ):#line:145:def prereleases(self):
+        return O00O0O0000OOO000O ._prereleases #line:146:return self._prereleases
+    @prereleases .setter #line:148:@prereleases.setter
+    def prereleases (O00OO0OO000O000O0 ,O0OOO0OO00O0O0OOO ):#line:149:def prereleases(self, value):
+        O00OO0OO000O000O0 ._prereleases =O0OOO0OO00O0O0OOO #line:150:self._prereleases = value
+    def __contains__ (OOO0OOOOOOO0OOOOO ,O0OOO0OOOO0O0OOO0 ):#line:152:def __contains__(self, item):
+        return OOO0OOOOOOO0OOOOO .contains (O0OOO0OOOO0O0OOO0 )#line:153:return self.contains(item)
+    def contains (O00O00OOO000OOOOO ,O0O0O00OO0O0OO000 ,prereleases =None ):#line:155:def contains(self, item, prereleases=None):
+        if prereleases is None :#line:157:if prereleases is None:
+            prereleases =O00O00OOO000OOOOO .prereleases #line:158:prereleases = self.prereleases
+        O0O0O00OO0O0OO000 =O00O00OOO000OOOOO ._coerce_version (O0O0O00OO0O0OO000 )#line:162:item = self._coerce_version(item)
+        if O0O0O00OO0O0OO000 .is_prerelease and not prereleases :#line:167:if item.is_prerelease and not prereleases:
+            return False #line:168:return False
+        return O00O00OOO000OOOOO ._get_operator (O00O00OOO000OOOOO .operator )(O0O0O00OO0O0OO000 ,O00O00OOO000OOOOO .version )#line:172:return self._get_operator(self.operator)(item, self.version)
+    def filter (OOOOOO0OO0O0O0000 ,OO00O0O0O0OO000OO ,prereleases =None ):#line:174:def filter(self, iterable, prereleases=None):
+        OOO0OOOO00O0O00OO =False #line:175:yielded = False
+        OO00OOO0O0000OO00 =[]#line:176:found_prereleases = []
+        O00000OOOO00OO000 ={"prereleases":prereleases if prereleases is not None else True }#line:178:kw = {"prereleases": prereleases if prereleases is not None else True}
+        for OO00OO0O00OOO0OOO in OO00O0O0O0OO000OO :#line:182:for version in iterable:
+            O0000OO00OOO0OO0O =OOOOOO0OO0O0O0000 ._coerce_version (OO00OO0O00OOO0OOO )#line:183:parsed_version = self._coerce_version(version)
+            if OOOOOO0OO0O0O0000 .contains (O0000OO00OOO0OO0O ,**O00000OOOO00OO000 ):#line:185:if self.contains(parsed_version, **kw):
+                if O0000OO00OOO0OO0O .is_prerelease and not (prereleases or OOOOOO0OO0O0O0000 .prereleases ):#line:191:):
+                    OO00OOO0O0000OO00 .append (OO00OO0O00OOO0OOO )#line:192:found_prereleases.append(version)
+                else :#line:195:else:
+                    OOO0OOOO00O0O00OO =True #line:196:yielded = True
+                    yield OO00OO0O00OOO0OOO #line:197:yield version
+        if not OOO0OOOO00O0O00OO and OO00OOO0O0000OO00 :#line:202:if not yielded and found_prereleases:
+            for OO00OO0O00OOO0OOO in OO00OOO0O0000OO00 :#line:203:for version in found_prereleases:
+                yield OO00OO0O00OOO0OOO #line:204:yield version
+class LegacySpecifier (_OO0O0O0OO0OOO0O00 ):#line:207:class LegacySpecifier(_IndividualSpecifier):
+    _regex_str =r"""
+        (?P<operator>(==|!=|<=|>=|<|>))
+        \s*
+        (?P<version>
+            [^,;\s)]* # Since this is a "legacy" specifier, and the version
+                      # string can be just about anything, we match everything
+                      # except for whitespace, a semi-colon for marker support,
+                      # a closing paren since versions can be enclosed in
+                      # them, and a comma since it's a version separator.
+        )
+        """#line:219:"""
+    _regex =re .compile (r"^\s*"+_regex_str +r"\s*$",re .VERBOSE |re .IGNORECASE )#line:221:_regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
+    _operators ={"==":"equal","!=":"not_equal","<=":"less_than_equal",">=":"greater_than_equal","<":"less_than",">":"greater_than",}#line:230:}
+    def _coerce_version (O0O0OOO00O0O00OOO ,O00O000O00OO000OO ):#line:232:def _coerce_version(self, version):
+        if not isinstance (O00O000O00OO000OO ,LegacyVersion ):#line:233:if not isinstance(version, LegacyVersion):
+            O00O000O00OO000OO =LegacyVersion (str (O00O000O00OO000OO ))#line:234:version = LegacyVersion(str(version))
+        return O00O000O00OO000OO #line:235:return version
+    def _compare_equal (OOOO0O0000O000OO0 ,O000O00O0O0OO0OOO ,OO00000O00O0OOO0O ):#line:237:def _compare_equal(self, prospective, spec):
+        return O000O00O0O0OO0OOO ==OOOO0O0000O000OO0 ._coerce_version (OO00000O00O0OOO0O )#line:238:return prospective == self._coerce_version(spec)
+    def _compare_not_equal (O000000O0000OOOO0 ,OOO000O0OO0000OOO ,O0OOO000O000OO0OO ):#line:240:def _compare_not_equal(self, prospective, spec):
+        return OOO000O0OO0000OOO !=O000000O0000OOOO0 ._coerce_version (O0OOO000O000OO0OO )#line:241:return prospective != self._coerce_version(spec)
+    def _compare_less_than_equal (O0OO0OO0OOOOOO0O0 ,O00000O000O0000O0 ,O000O0OO000OOOO0O ):#line:243:def _compare_less_than_equal(self, prospective, spec):
+        return O00000O000O0000O0 <=O0OO0OO0OOOOOO0O0 ._coerce_version (O000O0OO000OOOO0O )#line:244:return prospective <= self._coerce_version(spec)
+    def _compare_greater_than_equal (OO0O000O000OOOOOO ,O0OOO00OO00O0OO0O ,O000O0O00O000000O ):#line:246:def _compare_greater_than_equal(self, prospective, spec):
+        return O0OOO00OO00O0OO0O >=OO0O000O000OOOOOO ._coerce_version (O000O0O00O000000O )#line:247:return prospective >= self._coerce_version(spec)
+    def _compare_less_than (O0OOO00000O000OO0 ,O00OOOOO00O0O0OO0 ,O00O00O00OOOOO00O ):#line:249:def _compare_less_than(self, prospective, spec):
+        return O00OOOOO00O0O0OO0 <O0OOO00000O000OO0 ._coerce_version (O00O00O00OOOOO00O )#line:250:return prospective < self._coerce_version(spec)
+    def _compare_greater_than (OO00OO0O000O00OO0 ,OOOOOO0O0O0OOO0O0 ,O0O00O0O00OOOO00O ):#line:252:def _compare_greater_than(self, prospective, spec):
+        return OOOOOO0O0O0OOO0O0 >OO00OO0O000O00OO0 ._coerce_version (O0O00O0O00OOOO00O )#line:253:return prospective > self._coerce_version(spec)
+def _OO0OO000O000OO00O (OO000O00OO0OOO0O0 ):#line:256:def _require_version_compare(fn):
+    @functools .wraps (OO000O00OO0OOO0O0 )#line:257:@functools.wraps(fn)
+    def OO0O0000OOO00O0O0 (O00OO00OOO0OOOO0O ,OOOO0O000OO00000O ,O00O0O000O00OO00O ):#line:258:def wrapped(self, prospective, spec):
+        if not isinstance (OOOO0O000OO00000O ,Version ):#line:259:if not isinstance(prospective, Version):
+            return False #line:260:return False
+        return OO000O00OO0OOO0O0 (O00OO00OOO0OOOO0O ,OOOO0O000OO00000O ,O00O0O000O00OO00O )#line:261:return fn(self, prospective, spec)
+    return OO0O0000OOO00O0O0 #line:263:return wrapped
+class Specifier (_OO0O0O0OO0OOO0O00 ):#line:266:class Specifier(_IndividualSpecifier):
+    _regex_str =r"""
+        (?P<operator>(~=|==|!=|<=|>=|<|>|===))
+        (?P<version>
+            (?:
+                # The identity operators allow for an escape hatch that will
+                # do an exact string match of the version you wish to install.
+                # This will not be parsed by PEP 440 and we cannot determine
+                # any semantic meaning from it. This operator is discouraged
+                # but included entirely as an escape hatch.
+                (?<====)  # Only match for the identity operator
+                \s*
+                [^\s]*    # We just match everything, except for whitespace
+                          # since we are only testing for strict identity.
+            )
+            |
+            (?:
+                # The (non)equality operators allow for wild card and local
+                # versions to be specified so we have to define these two
+                # operators separately to enable that.
+                (?<===|!=)            # Only match for equals and not equals
+
+                \s*
+                v?
+                (?:[0-9]+!)?          # epoch
+                [0-9]+(?:\.[0-9]+)*   # release
+                (?:                   # pre release
+                    [-_\.]?
+                    (a|b|c|rc|alpha|beta|pre|preview)
+                    [-_\.]?
+                    [0-9]*
+                )?
+                (?:                   # post release
+                    (?:-[0-9]+)|(?:[-_\.]?(post|rev|r)[-_\.]?[0-9]*)
+                )?
+
+                # You cannot use a wild card and a dev or local version
+                # together so group them with a | and make them optional.
+                (?:
+                    (?:[-_\.]?dev[-_\.]?[0-9]*)?         # dev release
+                    (?:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)? # local
+                    |
+                    \.\*  # Wild card syntax of .*
+                )?
+            )
+            |
+            (?:
+                # The compatible operator requires at least two digits in the
+                # release segment.
+                (?<=~=)               # Only match for the compatible operator
+
+                \s*
+                v?
+                (?:[0-9]+!)?          # epoch
+                [0-9]+(?:\.[0-9]+)+   # release  (We have a + instead of a *)
+                (?:                   # pre release
+                    [-_\.]?
+                    (a|b|c|rc|alpha|beta|pre|preview)
+                    [-_\.]?
+                    [0-9]*
+                )?
+                (?:                                   # post release
+                    (?:-[0-9]+)|(?:[-_\.]?(post|rev|r)[-_\.]?[0-9]*)
+                )?
+                (?:[-_\.]?dev[-_\.]?[0-9]*)?          # dev release
+            )
+            |
+            (?:
+                # All other operators only allow a sub set of what the
+                # (non)equality operators do. Specifically they do not allow
+                # local versions to be specified nor do they allow the prefix
+                # matching wild cards.
+                (?<!==|!=|~=)         # We have special cases for these
+                                      # operators so we want to make sure they
+                                      # don't match here.
+
+                \s*
+                v?
+                (?:[0-9]+!)?          # epoch
+                [0-9]+(?:\.[0-9]+)*   # release
+                (?:                   # pre release
+                    [-_\.]?
+                    (a|b|c|rc|alpha|beta|pre|preview)
+                    [-_\.]?
+                    [0-9]*
+                )?
+                (?:                                   # post release
+                    (?:-[0-9]+)|(?:[-_\.]?(post|rev|r)[-_\.]?[0-9]*)
+                )?
+                (?:[-_\.]?dev[-_\.]?[0-9]*)?          # dev release
+            )
+        )
+        """#line:359:"""
+    _regex =re .compile (r"^\s*"+_regex_str +r"\s*$",re .VERBOSE |re .IGNORECASE )#line:361:_regex = re.compile(r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
+    _operators ={"~=":"compatible","==":"equal","!=":"not_equal","<=":"less_than_equal",">=":"greater_than_equal","<":"less_than",">":"greater_than","===":"arbitrary",}#line:372:}
+    @_OO0OO000O000OO00O #line:374:@_require_version_compare
+    def _compare_compatible (O0000OO00O0OOOO0O ,O000OO00OOO0OOOOO ,O0OOOOOOOO000O0O0 ):#line:375:def _compare_compatible(self, prospective, spec):
+        OO000OO000000OO0O =".".join (list (itertools .takewhile (lambda O00OOOOOOO0OOO0OO :(not O00OOOOOOO0OOO0OO .startswith ("post")and not O00OOOOOOO0OOO0OO .startswith ("dev")),_OOO000O0OO0O0OOOO (O0OOOOOOOO000O0O0 ),))[:-1 ])#line:392:)
+        OO000OO000000OO0O +=".*"#line:395:prefix += ".*"
+        return O0000OO00O0OOOO0O ._get_operator (">=")(O000OO00OOO0OOOOO ,O0OOOOOOOO000O0O0 )and O0000OO00O0OOOO0O ._get_operator ("==")(O000OO00OOO0OOOOO ,OO000OO000000OO0O )#line:399:)
+    @_OO0OO000O000OO00O #line:401:@_require_version_compare
+    def _compare_equal (OOOOO00O0O0O0O000 ,OO0OOO0OOOO0O000O ,OOOOOOO0O00OOO000 ):#line:402:def _compare_equal(self, prospective, spec):
+        if OOOOOOO0O00OOO000 .endswith (".*"):#line:404:if spec.endswith(".*"):
+            OO0OOO0OOOO0O000O =Version (OO0OOO0OOOO0O000O .public )#line:406:prospective = Version(prospective.public)
+            OOOOOOO0O00OOO000 =_OOO000O0OO0O0OOOO (OOOOOOO0O00OOO000 [:-2 ])#line:409:spec = _version_split(spec[:-2])  # Remove the trailing .*
+            OO0OOO0OOOO0O000O =_OOO000O0OO0O0OOOO (str (OO0OOO0OOOO0O000O ))#line:414:prospective = _version_split(str(prospective))
+            OO0OOO0OOOO0O000O =OO0OOO0OOOO0O000O [:len (OOOOOOO0O00OOO000 )]#line:419:prospective = prospective[: len(spec)]
+            OOOOOOO0O00OOO000 ,OO0OOO0OOOO0O000O =_OO0OO000OOOOO0OOO (OOOOOOO0O00OOO000 ,OO0OOO0OOOO0O000O )#line:423:spec, prospective = _pad_version(spec, prospective)
+        else :#line:424:else:
+            OOOOOOO0O00OOO000 =Version (OOOOOOO0O00OOO000 )#line:426:spec = Version(spec)
+            if not OOOOOOO0O00OOO000 .local :#line:431:if not spec.local:
+                OO0OOO0OOOO0O000O =Version (OO0OOO0OOOO0O000O .public )#line:432:prospective = Version(prospective.public)
+        return OO0OOO0OOOO0O000O ==OOOOOOO0O00OOO000 #line:434:return prospective == spec
+    @_OO0OO000O000OO00O #line:436:@_require_version_compare
+    def _compare_not_equal (OOOOO0O0OOOO00OO0 ,O00000000O0000O0O ,OOO0OO0O0OOO00OO0 ):#line:437:def _compare_not_equal(self, prospective, spec):
+        return not OOOOO0O0OOOO00OO0 ._compare_equal (O00000000O0000O0O ,OOO0OO0O0OOO00OO0 )#line:438:return not self._compare_equal(prospective, spec)
+    @_OO0OO000O000OO00O #line:440:@_require_version_compare
+    def _compare_less_than_equal (OOOOO000O0O0OO00O ,O0OOO000000O0000O ,O0OOO0OOO0O00O00O ):#line:441:def _compare_less_than_equal(self, prospective, spec):
+        return O0OOO000000O0000O <=Version (O0OOO0OOO0O00O00O )#line:442:return prospective <= Version(spec)
+    @_OO0OO000O000OO00O #line:444:@_require_version_compare
+    def _compare_greater_than_equal (O0OO0O0OOOO00OO00 ,O0OOOO000000O00OO ,O0O00OO00OOO00O0O ):#line:445:def _compare_greater_than_equal(self, prospective, spec):
+        return O0OOOO000000O00OO >=Version (O0O00OO00OOO00O0O )#line:446:return prospective >= Version(spec)
+    @_OO0OO000O000OO00O #line:448:@_require_version_compare
+    def _compare_less_than (O00O00O0000OOOO0O ,O0OOOO0O0OOO00O0O ,O0OOOOOOOOOOOOOOO ):#line:449:def _compare_less_than(self, prospective, spec):
+        O0OOOOOOOOOOOOOOO =Version (O0OOOOOOOOOOOOOOO )#line:452:spec = Version(spec)
+        if not O0OOOO0O0OOO00O0O <O0OOOOOOOOOOOOOOO :#line:457:if not prospective < spec:
+            return False #line:458:return False
+        if not O0OOOOOOOOOOOOOOO .is_prerelease and O0OOOO0O0OOO00O0O .is_prerelease :#line:464:if not spec.is_prerelease and prospective.is_prerelease:
+            if Version (O0OOOO0O0OOO00O0O .base_version )==Version (O0OOOOOOOOOOOOOOO .base_version ):#line:465:if Version(prospective.base_version) == Version(spec.base_version):
+                return False #line:466:return False
+        return True #line:471:return True
+    @_OO0OO000O000OO00O #line:473:@_require_version_compare
+    def _compare_greater_than (OOOOOO00000000O0O ,O0O000OOOO0OO0O0O ,OOO0O00OO00OOO000 ):#line:474:def _compare_greater_than(self, prospective, spec):
+        OOO0O00OO00OOO000 =Version (OOO0O00OO00OOO000 )#line:477:spec = Version(spec)
+        if not O0O000OOOO0OO0O0O >OOO0O00OO00OOO000 :#line:482:if not prospective > spec:
+            return False #line:483:return False
+        if not OOO0O00OO00OOO000 .is_postrelease and O0O000OOOO0OO0O0O .is_postrelease :#line:489:if not spec.is_postrelease and prospective.is_postrelease:
+            if Version (O0O000OOOO0OO0O0O .base_version )==Version (OOO0O00OO00OOO000 .base_version ):#line:490:if Version(prospective.base_version) == Version(spec.base_version):
+                return False #line:491:return False
+        if O0O000OOOO0OO0O0O .local is not None :#line:495:if prospective.local is not None:
+            if Version (O0O000OOOO0OO0O0O .base_version )==Version (OOO0O00OO00OOO000 .base_version ):#line:496:if Version(prospective.base_version) == Version(spec.base_version):
+                return False #line:497:return False
+        return True #line:502:return True
+    def _compare_arbitrary (O0O0OO00000O0OOO0 ,OOO0OO0OO0OOOOOOO ,OO0000O000OO00OOO ):#line:504:def _compare_arbitrary(self, prospective, spec):
+        return str (OOO0OO0OO0OOOOOOO ).lower ()==str (OO0000O000OO00OOO ).lower ()#line:505:return str(prospective).lower() == str(spec).lower()
+    @property #line:507:@property
+    def prereleases (OO00O0000OOOOOOOO ):#line:508:def prereleases(self):
+        if OO00O0000OOOOOOOO ._prereleases is not None :#line:511:if self._prereleases is not None:
+            return OO00O0000OOOOOOOO ._prereleases #line:512:return self._prereleases
+        O0000OO00OO0000O0 ,O00OOO000OOO0OOO0 =OO00O0000OOOOOOOO ._spec #line:517:operator, version = self._spec
+        if O0000OO00OO0000O0 in ["==",">=","<=","~=","==="]:#line:518:if operator in ["==", ">=", "<=", "~=", "==="]:
+            if O0000OO00OO0000O0 =="=="and O00OOO000OOO0OOO0 .endswith (".*"):#line:521:if operator == "==" and version.endswith(".*"):
+                O00OOO000OOO0OOO0 =O00OOO000OOO0OOO0 [:-2 ]#line:522:version = version[:-2]
+            if parse (O00OOO000OOO0OOO0 ).is_prerelease :#line:526:if parse(version).is_prerelease:
+                return True #line:527:return True
+        return False #line:529:return False
+    @prereleases .setter #line:531:@prereleases.setter
+    def prereleases (OO0000O00O0O0O0OO ,OO0O000O0000O0000 ):#line:532:def prereleases(self, value):
+        OO0000O00O0O0O0OO ._prereleases =OO0O000O0000O0000 #line:533:self._prereleases = value
+_OOO0O00OO0OO0OOO0 =re .compile (r"^([0-9]+)((?:a|b|c|rc)[0-9]+)$")#line:536:_prefix_regex = re.compile(r"^([0-9]+)((?:a|b|c|rc)[0-9]+)$")
+def _OOO000O0OO0O0OOOO (OO000OOO0O0O000O0 ):#line:539:def _version_split(version):
+    OOO000O0O00O0O000 =[]#line:540:result = []
+    for OOO000OOOO0O0OO0O in OO000OOO0O0O000O0 .split ("."):#line:541:for item in version.split("."):
+        O0O0O0OO0OOOOOO00 =_OOO0O00OO0OO0OOO0 .search (OOO000OOOO0O0OO0O )#line:542:match = _prefix_regex.search(item)
+        if O0O0O0OO0OOOOOO00 :#line:543:if match:
+            OOO000O0O00O0O000 .extend (O0O0O0OO0OOOOOO00 .groups ())#line:544:result.extend(match.groups())
+        else :#line:545:else:
+            OOO000O0O00O0O000 .append (OOO000OOOO0O0OO0O )#line:546:result.append(item)
+    return OOO000O0O00O0O000 #line:547:return result
+def _OO0OO000OOOOO0OOO (OOO00OO0O00O00OOO ,OOO000OO00OOO0O0O ):#line:550:def _pad_version(left, right):
+    O00O0O00O00OOOOO0 ,O0OOOOO00OOOO0OOO =[],[]#line:551:left_split, right_split = [], []
+    O00O0O00O00OOOOO0 .append (list (itertools .takewhile (lambda O00OO00OO000OO000 :O00OO00OO000OO000 .isdigit (),OOO00OO0O00O00OOO )))#line:554:left_split.append(list(itertools.takewhile(lambda x: x.isdigit(), left)))
+    O0OOOOO00OOOO0OOO .append (list (itertools .takewhile (lambda O0OO0000OO000000O :O0OO0000OO000000O .isdigit (),OOO000OO00OOO0O0O )))#line:555:right_split.append(list(itertools.takewhile(lambda x: x.isdigit(), right)))
+    O00O0O00O00OOOOO0 .append (OOO00OO0O00O00OOO [len (O00O0O00O00OOOOO0 [0 ]):])#line:558:left_split.append(left[len(left_split[0]) :])
+    O0OOOOO00OOOO0OOO .append (OOO000OO00OOO0O0O [len (O0OOOOO00OOOO0OOO [0 ]):])#line:559:right_split.append(right[len(right_split[0]) :])
+    O00O0O00O00OOOOO0 .insert (1 ,["0"]*max (0 ,len (O0OOOOO00OOOO0OOO [0 ])-len (O00O0O00O00OOOOO0 [0 ])))#line:562:left_split.insert(1, ["0"] * max(0, len(right_split[0]) - len(left_split[0])))
+    O0OOOOO00OOOO0OOO .insert (1 ,["0"]*max (0 ,len (O00O0O00O00OOOOO0 [0 ])-len (O0OOOOO00OOOO0OOO [0 ])))#line:563:right_split.insert(1, ["0"] * max(0, len(left_split[0]) - len(right_split[0])))
+    return (list (itertools .chain (*O00O0O00O00OOOOO0 )),list (itertools .chain (*O0OOOOO00OOOO0OOO )))#line:565:return (list(itertools.chain(*left_split)), list(itertools.chain(*right_split)))
+class SpecifierSet (BaseSpecifier ):#line:568:class SpecifierSet(BaseSpecifier):
+    def __init__ (OOOOO0OOOOOO00O0O ,specifiers ="",prereleases =None ):#line:569:def __init__(self, specifiers="", prereleases=None):
+        specifiers =[O00OO000O0000000O .strip ()for O00OO000O0000000O in specifiers .split (",")if O00OO000O0000000O .strip ()]#line:572:specifiers = [s.strip() for s in specifiers.split(",") if s.strip()]
+        O00OOO00O00O0O0OO =set ()#line:576:parsed = set()
+        for OO0OO0O0O0O000O00 in specifiers :#line:577:for specifier in specifiers:
+            try :#line:578:try:
+                O00OOO00O00O0O0OO .add (Specifier (OO0OO0O0O0O000O00 ))#line:579:parsed.add(Specifier(specifier))
+            except InvalidSpecifier :#line:580:except InvalidSpecifier:
+                O00OOO00O00O0O0OO .add (LegacySpecifier (OO0OO0O0O0O000O00 ))#line:581:parsed.add(LegacySpecifier(specifier))
+        OOOOO0OOOOOO00O0O ._specs =frozenset (O00OOO00O00O0O0OO )#line:584:self._specs = frozenset(parsed)
+        OOOOO0OOOOOO00O0O ._prereleases =prereleases #line:588:self._prereleases = prereleases
+    def __repr__ (OOOO0OOO0OO00O000 ):#line:590:def __repr__(self):
+        OOO00OOOO000OO0O0 =(", prereleases={0!r}".format (OOOO0OOO0OO00O000 .prereleases )if OOOO0OOO0OO00O000 ._prereleases is not None else "")#line:595:)
+        return "<SpecifierSet({0!r}{1})>".format (str (OOOO0OOO0OO00O000 ),OOO00OOOO000OO0O0 )#line:597:return "<SpecifierSet({0!r}{1})>".format(str(self), pre)
+    def __str__ (O000O00O0OOO0O0OO ):#line:599:def __str__(self):
+        return ",".join (sorted (str (OOOOOOOOO000O0000 )for OOOOOOOOO000O0000 in O000O00O0OOO0O0OO ._specs ))#line:600:return ",".join(sorted(str(s) for s in self._specs))
+    def __hash__ (O0O0OO0000000O0OO ):#line:602:def __hash__(self):
+        return hash (O0O0OO0000000O0OO ._specs )#line:603:return hash(self._specs)
+    def __and__ (OO0O0OOOO000O0O0O ,OOO0OOO0O00OO000O ):#line:605:def __and__(self, other):
+        if isinstance (OOO0OOO0O00OO000O ,string_types ):#line:606:if isinstance(other, string_types):
+            OOO0OOO0O00OO000O =SpecifierSet (OOO0OOO0O00OO000O )#line:607:other = SpecifierSet(other)
+        elif not isinstance (OOO0OOO0O00OO000O ,SpecifierSet ):#line:608:elif not isinstance(other, SpecifierSet):
+            return NotImplemented #line:609:return NotImplemented
+        OOO00000000OO0O00 =SpecifierSet ()#line:611:specifier = SpecifierSet()
+        OOO00000000OO0O00 ._specs =frozenset (OO0O0OOOO000O0O0O ._specs |OOO0OOO0O00OO000O ._specs )#line:612:specifier._specs = frozenset(self._specs | other._specs)
+        if OO0O0OOOO000O0O0O ._prereleases is None and OOO0OOO0O00OO000O ._prereleases is not None :#line:614:if self._prereleases is None and other._prereleases is not None:
+            OOO00000000OO0O00 ._prereleases =OOO0OOO0O00OO000O ._prereleases #line:615:specifier._prereleases = other._prereleases
+        elif OO0O0OOOO000O0O0O ._prereleases is not None and OOO0OOO0O00OO000O ._prereleases is None :#line:616:elif self._prereleases is not None and other._prereleases is None:
+            OOO00000000OO0O00 ._prereleases =OO0O0OOOO000O0O0O ._prereleases #line:617:specifier._prereleases = self._prereleases
+        elif OO0O0OOOO000O0O0O ._prereleases ==OOO0OOO0O00OO000O ._prereleases :#line:618:elif self._prereleases == other._prereleases:
+            OOO00000000OO0O00 ._prereleases =OO0O0OOOO000O0O0O ._prereleases #line:619:specifier._prereleases = self._prereleases
+        else :#line:620:else:
+            raise ValueError ("Cannot combine SpecifierSets with True and False prerelease " "overrides.")#line:624:)
+        return OOO00000000OO0O00 #line:626:return specifier
+    def __eq__ (O0000O00OO00O0O00 ,O0OOO00O0O00OOO0O ):#line:628:def __eq__(self, other):
+        if isinstance (O0OOO00O0O00OOO0O ,string_types ):#line:629:if isinstance(other, string_types):
+            O0OOO00O0O00OOO0O =SpecifierSet (O0OOO00O0O00OOO0O )#line:630:other = SpecifierSet(other)
+        elif isinstance (O0OOO00O0O00OOO0O ,_OO0O0O0OO0OOO0O00 ):#line:631:elif isinstance(other, _IndividualSpecifier):
+            O0OOO00O0O00OOO0O =SpecifierSet (str (O0OOO00O0O00OOO0O ))#line:632:other = SpecifierSet(str(other))
+        elif not isinstance (O0OOO00O0O00OOO0O ,SpecifierSet ):#line:633:elif not isinstance(other, SpecifierSet):
+            return NotImplemented #line:634:return NotImplemented
+        return O0000O00OO00O0O00 ._specs ==O0OOO00O0O00OOO0O ._specs #line:636:return self._specs == other._specs
+    def __ne__ (O0O00OO00000O0OOO ,O0OOOOO000OO0OOO0 ):#line:638:def __ne__(self, other):
+        if isinstance (O0OOOOO000OO0OOO0 ,string_types ):#line:639:if isinstance(other, string_types):
+            O0OOOOO000OO0OOO0 =SpecifierSet (O0OOOOO000OO0OOO0 )#line:640:other = SpecifierSet(other)
+        elif isinstance (O0OOOOO000OO0OOO0 ,_OO0O0O0OO0OOO0O00 ):#line:641:elif isinstance(other, _IndividualSpecifier):
+            O0OOOOO000OO0OOO0 =SpecifierSet (str (O0OOOOO000OO0OOO0 ))#line:642:other = SpecifierSet(str(other))
+        elif not isinstance (O0OOOOO000OO0OOO0 ,SpecifierSet ):#line:643:elif not isinstance(other, SpecifierSet):
+            return NotImplemented #line:644:return NotImplemented
+        return O0O00OO00000O0OOO ._specs !=O0OOOOO000OO0OOO0 ._specs #line:646:return self._specs != other._specs
+    def __len__ (O0O00000OO00OOO0O ):#line:648:def __len__(self):
+        return len (O0O00000OO00OOO0O ._specs )#line:649:return len(self._specs)
+    def __iter__ (OO00OOO00OOOO00OO ):#line:651:def __iter__(self):
+        return iter (OO00OOO00OOOO00OO ._specs )#line:652:return iter(self._specs)
+    @property #line:654:@property
+    def prereleases (O0OOOOO0O00OOOO00 ):#line:655:def prereleases(self):
+        if O0OOOOO0O00OOOO00 ._prereleases is not None :#line:658:if self._prereleases is not None:
+            return O0OOOOO0O00OOOO00 ._prereleases #line:659:return self._prereleases
+        if not O0OOOOO0O00OOOO00 ._specs :#line:664:if not self._specs:
+            return None #line:665:return None
+        return any (O00O0O0OO00O0OO00 .prereleases for O00O0O0OO00O0OO00 in O0OOOOO0O00OOOO00 ._specs )#line:669:return any(s.prereleases for s in self._specs)
+    @prereleases .setter #line:671:@prereleases.setter
+    def prereleases (O00O00OO0O0OOOO0O ,OOOO0OO0O0OO0OOOO ):#line:672:def prereleases(self, value):
+        O00O00OO0O0OOOO0O ._prereleases =OOOO0OO0O0OO0OOOO #line:673:self._prereleases = value
+    def __contains__ (OO0000O00OO0OOOO0 ,OO0O00000OO00O0OO ):#line:675:def __contains__(self, item):
+        return OO0000O00OO0OOOO0 .contains (OO0O00000OO00O0OO )#line:676:return self.contains(item)
+    def contains (O0OOO00OO0O00O00O ,O0O0OOO0O0OOO000O ,prereleases =None ):#line:678:def contains(self, item, prereleases=None):
+        if not isinstance (O0O0OOO0O0OOO000O ,(LegacyVersion ,Version )):#line:680:if not isinstance(item, (LegacyVersion, Version)):
+            O0O0OOO0O0OOO000O =parse (O0O0OOO0O0OOO000O )#line:681:item = parse(item)
+        if prereleases is None :#line:686:if prereleases is None:
+            prereleases =O0OOO00OO0O00O00O .prereleases #line:687:prereleases = self.prereleases
+        if not prereleases and O0O0OOO0O0OOO000O .is_prerelease :#line:695:if not prereleases and item.is_prerelease:
+            return False #line:696:return False
+        return all (OOOOOO0O0O00O0OO0 .contains (O0O0OOO0O0OOO000O ,prereleases =prereleases )for OOOOOO0O0O00O0OO0 in O0OOO00OO0O00O00O ._specs )#line:702:return all(s.contains(item, prereleases=prereleases) for s in self._specs)
+    def filter (OOO00OO00OOOOOO00 ,OO000O0OO0OOOOOO0 ,prereleases =None ):#line:704:def filter(self, iterable, prereleases=None):
+        if prereleases is None :#line:708:if prereleases is None:
+            prereleases =OOO00OO00OOOOOO00 .prereleases #line:709:prereleases = self.prereleases
+        if OOO00OO00OOOOOO00 ._specs :#line:714:if self._specs:
+            for OOO0O00O000OO00O0 in OOO00OO00OOOOOO00 ._specs :#line:715:for spec in self._specs:
+                OO000O0OO0OOOOOO0 =OOO0O00O000OO00O0 .filter (OO000O0OO0OOOOOO0 ,prereleases =bool (prereleases ))#line:716:iterable = spec.filter(iterable, prereleases=bool(prereleases))
+            return OO000O0OO0OOOOOO0 #line:717:return iterable
+        else :#line:721:else:
+            O0O0OOOO00O00OO0O =[]#line:722:filtered = []
+            O0O0000O000OO000O =[]#line:723:found_prereleases = []
+            for OOO000O0O0O000OO0 in OO000O0OO0OOOOOO0 :#line:725:for item in iterable:
+                if not isinstance (OOO000O0O0O000OO0 ,(LegacyVersion ,Version )):#line:727:if not isinstance(item, (LegacyVersion, Version)):
+                    O0OO0000000OO00O0 =parse (OOO000O0O0O000OO0 )#line:728:parsed_version = parse(item)
+                else :#line:729:else:
+                    O0OO0000000OO00O0 =OOO000O0O0O000OO0 #line:730:parsed_version = item
+                if isinstance (O0OO0000000OO00O0 ,LegacyVersion ):#line:733:if isinstance(parsed_version, LegacyVersion):
+                    continue #line:734:continue
+                if O0OO0000000OO00O0 .is_prerelease and not prereleases :#line:738:if parsed_version.is_prerelease and not prereleases:
+                    if not O0O0OOOO00O00OO0O :#line:739:if not filtered:
+                        O0O0000O000OO000O .append (OOO000O0O0O000OO0 )#line:740:found_prereleases.append(item)
+                else :#line:741:else:
+                    O0O0OOOO00O00OO0O .append (OOO000O0O0O000OO0 )#line:742:filtered.append(item)
+            if not O0O0OOOO00O00OO0O and O0O0000O000OO000O and prereleases is None :#line:746:if not filtered and found_prereleases and prereleases is None:
+                return O0O0000O000OO000O #line:747:return found_prereleases
+            return O0O0OOOO00O00OO0O #line:749:return filtered

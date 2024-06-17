@@ -1,0 +1,136 @@
+from tkinter import *#line:1
+import math as m #line:2
+root =Tk ()#line:4
+root .title ("Scientific CalC")#line:5
+e =Entry (root ,width =50 ,borderwidth =5 ,relief =RIDGE ,fg ="Yellow",bg ="#1c1c3c")#line:7
+e .grid (row =0 ,column =0 ,columnspan =5 ,padx =10 ,pady =15 )#line:8
+def click (O00OOO00O0OOOO000 ):#line:11
+    O0OOO0000000000O0 =e .get ()#line:12
+    e .delete (0 ,END )#line:13
+    e .insert (0 ,O0OOO0000000000O0 +O00OOO00O0OOOO000 )#line:14
+    return #line:15
+def sc (O0O000OO00OOOO0O0 ):#line:18
+    OOOO00O00000O0O0O =O0O000OO00OOOO0O0 .widget #line:19
+    OO0OO0O0O0OO0OO00 =OOOO00O00000O0O0O ["text"]#line:20
+    OOO00OOOOO0OO000O =e .get ()#line:21
+    OO0O0000OO00O0OO0 =""#line:22
+    if OO0OO0O0O0OO0OO00 =="deg":#line:23
+        OO0O0000OO00O0OO0 =str (m .degrees (float (OOO00OOOOO0OO000O )))#line:24
+    if OO0OO0O0O0OO0OO00 =="sin":#line:25
+        OO0O0000OO00O0OO0 =str (m .sin (float (OOO00OOOOO0OO000O )))#line:26
+    if OO0OO0O0O0OO0OO00 =="cos":#line:27
+        OO0O0000OO00O0OO0 =str (m .cos (float (OOO00OOOOO0OO000O )))#line:28
+    if OO0OO0O0O0OO0OO00 =="tan":#line:29
+        OO0O0000OO00O0OO0 =str (m .tan (float (OOO00OOOOO0OO000O )))#line:30
+    if OO0OO0O0O0OO0OO00 =="lg":#line:31
+        OO0O0000OO00O0OO0 =str (m .log10 (float (OOO00OOOOO0OO000O )))#line:32
+    if OO0OO0O0O0OO0OO00 =="ln":#line:33
+        OO0O0000OO00O0OO0 =str (m .log (float (OOO00OOOOO0OO000O )))#line:34
+    if OO0OO0O0O0OO0OO00 =="Sqrt":#line:35
+        OO0O0000OO00O0OO0 =str (m .sqrt (float (OOO00OOOOO0OO000O )))#line:36
+    if OO0OO0O0O0OO0OO00 =="x!":#line:38
+        OO0O0000OO00O0OO0 =str (m .factorial (float (OOO00OOOOO0OO000O )))#line:39
+    if OO0OO0O0O0OO0OO00 =="1/x":#line:40
+        OO0O0000OO00O0OO0 =str (1 /(float (OOO00OOOOO0OO000O )))#line:41
+    if OO0OO0O0O0OO0OO00 =="pi":#line:42
+        if OOO00OOOOO0OO000O =="":#line:43
+            OO0O0000OO00O0OO0 =str (m .pi )#line:44
+        else :#line:45
+            OO0O0000OO00O0OO0 =str (float (OOO00OOOOO0OO000O )*m .pi )#line:46
+    if OO0OO0O0O0OO0OO00 =="e":#line:47
+        if OOO00OOOOO0OO000O =="":#line:48
+            OO0O0000OO00O0OO0 =str (m .e )#line:49
+        else :#line:50
+            OO0O0000OO00O0OO0 =str (m .e **float (OOO00OOOOO0OO000O ))#line:51
+    e .delete (0 ,END )#line:52
+    e .insert (0 ,OO0O0000OO00O0OO0 )#line:53
+def clear ():#line:56
+    e .delete (0 ,END )#line:57
+    return #line:58
+def bksps ():#line:61
+    O0O0O0OO0000OO00O =e .get ()#line:62
+    OOO000O0O0O0OOO00 =len (O0O0O0OO0000OO00O )-1 #line:63
+    e .delete (OOO000O0O0O0OOO00 ,END )#line:64
+def evaluate ():#line:67
+    O0O0OOOO0000O0O0O =e .get ()#line:68
+    O0O0OOOO0000O0O0O =eval (O0O0OOOO0000O0O0O )#line:69
+    e .delete (0 ,END )#line:70
+    e .insert (0 ,O0O0OOOO0000O0O0O )#line:71
+lg =Button (root ,text ="lg",padx =28 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:74
+lg .bind ("<Button-1>",sc )#line:75
+ln =Button (root ,text ="ln",padx =28 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:76
+ln .bind ("<Button-1>",sc )#line:77
+par1st =Button (root ,text ="(",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("("),)#line:87
+par2nd =Button (root ,text =")",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click (")"),)#line:97
+dot =Button (root ,text =".",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("."),)#line:107
+exp =Button (root ,text ="^",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("**"),)#line:117
+degb =Button (root ,text ="deg",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:120
+degb .bind ("<Button-1>",sc )#line:121
+sinb =Button (root ,text ="sin",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:125
+sinb .bind ("<Button-1>",sc )#line:126
+cosb =Button (root ,text ="cos",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:129
+cosb .bind ("<Button-1>",sc )#line:130
+tanb =Button (root ,text ="tan",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:133
+tanb .bind ("<Button-1>",sc )#line:134
+sqrtm =Button (root ,text ="Sqrt",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:138
+sqrtm .bind ("<Button-1>",sc )#line:139
+ac =Button (root ,text ="C",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#e08f5a",command =lambda :clear (),)#line:149
+bksp =Button (root ,text ="Bksp",padx =19 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#e08f5a",command =lambda :bksps (),)#line:159
+mod =Button (root ,text ="mod",padx =20 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("%"),)#line:169
+div =Button (root ,text ="/",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("/"),)#line:179
+fact =Button (root ,text ="x!",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:183
+fact .bind ("<Button-1>",sc )#line:184
+seven =Button (root ,text ="7",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("7"),)#line:194
+eight =Button (root ,text ="8",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("8"),)#line:204
+nine =Button (root ,text ="9",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("9"),)#line:214
+mult =Button (root ,text ="*",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("*"),)#line:224
+frac =Button (root ,text ="1/x",padx =25 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:228
+frac .bind ("<Button-1>",sc )#line:229
+four =Button (root ,text ="4",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("4"),)#line:239
+five =Button (root ,text ="5",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("5"),)#line:249
+six =Button (root ,text ="6",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("6"),)#line:259
+minus =Button (root ,text ="-",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("-"),)#line:269
+pib =Button (root ,text ="pi",padx =28 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:271
+pib .bind ("<Button-1>",sc )#line:272
+one =Button (root ,text ="1",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("1"),)#line:282
+two =Button (root ,text ="2",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("2"),)#line:292
+three =Button (root ,text ="3",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("3"),)#line:302
+plus =Button (root ,text ="+",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("+"),)#line:312
+e_b =Button (root ,text ="e",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:315
+e_b .bind ("<Button-1>",sc )#line:316
+zero =Button (root ,text ="0",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("0"),)#line:326
+equal =Button (root ,text ="=",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="Orange",command =lambda :evaluate (),)#line:336
+lg .grid (row =1 ,column =0 )#line:339
+ln .grid (row =1 ,column =1 )#line:340
+par1st .grid (row =1 ,column =2 )#line:341
+par2nd .grid (row =1 ,column =3 )#line:342
+dot .grid (row =1 ,column =4 )#line:343
+exp .grid (row =2 ,column =0 )#line:345
+degb .grid (row =2 ,column =1 )#line:346
+sinb .grid (row =2 ,column =2 )#line:347
+cosb .grid (row =2 ,column =3 )#line:348
+tanb .grid (row =2 ,column =4 )#line:349
+sqrtm .grid (row =3 ,column =0 )#line:351
+ac .grid (row =3 ,column =1 )#line:352
+bksp .grid (row =3 ,column =2 )#line:353
+mod .grid (row =3 ,column =3 )#line:354
+div .grid (row =3 ,column =4 )#line:355
+fact .grid (row =4 ,column =0 )#line:357
+seven .grid (row =4 ,column =1 )#line:358
+eight .grid (row =4 ,column =2 )#line:359
+nine .grid (row =4 ,column =3 )#line:360
+mult .grid (row =4 ,column =4 )#line:361
+frac .grid (row =5 ,column =0 )#line:363
+four .grid (row =5 ,column =1 )#line:364
+five .grid (row =5 ,column =2 )#line:365
+six .grid (row =5 ,column =3 )#line:366
+minus .grid (row =5 ,column =4 )#line:367
+pib .grid (row =6 ,column =0 )#line:369
+one .grid (row =6 ,column =1 )#line:370
+two .grid (row =6 ,column =2 )#line:371
+three .grid (row =6 ,column =3 )#line:372
+plus .grid (row =6 ,column =4 )#line:373
+e_b .grid (row =7 ,column =1 )#line:375
+zero .grid (row =7 ,column =2 )#line:376
+equal .grid (row =7 ,column =3 )#line:377
+root .mainloop ()#line:378

@@ -1,0 +1,260 @@
+""#line:43:"""
+from __future__ import absolute_import #line:44:from __future__ import absolute_import
+import OpenSSL .SSL #line:46:import OpenSSL.SSL
+from cryptography import x509 #line:47:from cryptography import x509
+from cryptography .hazmat .backends .openssl import backend as openssl_backend #line:48:from cryptography.hazmat.backends.openssl import backend as openssl_backend
+from cryptography .hazmat .backends .openssl .x509 import _Certificate #line:49:from cryptography.hazmat.backends.openssl.x509 import _Certificate
+try :#line:50:try:
+    from cryptography .x509 import UnsupportedExtension #line:51:from cryptography.x509 import UnsupportedExtension
+except ImportError :#line:52:except ImportError:
+    class UnsupportedExtension (Exception ):#line:54:class UnsupportedExtension(Exception):
+        pass #line:55:pass
+from socket import timeout ,error as SocketError #line:57:from socket import timeout, error as SocketError
+from io import BytesIO #line:58:from io import BytesIO
+try :#line:60:try:  # Platform-specific: Python 2
+    from socket import _fileobject #line:61:from socket import _fileobject
+except ImportError :#line:62:except ImportError:  # Platform-specific: Python 3
+    _fileobject =None #line:63:_fileobject = None
+    from ..packages .backports .makefile import backport_makefile #line:64:from ..packages.backports.makefile import backport_makefile
+import logging #line:66:import logging
+import ssl #line:67:import ssl
+from ..packages import six #line:68:from ..packages import six
+import sys #line:69:import sys
+from ..import util #line:71:from .. import util
+__all__ =['inject_into_urllib3','extract_from_urllib3']#line:73:__all__ = ['inject_into_urllib3', 'extract_from_urllib3']
+OO00000O0O0OOO000 =True #line:76:HAS_SNI = True
+_OOOOO00000O0OOOO0 ={ssl .PROTOCOL_SSLv23 :OpenSSL .SSL .SSLv23_METHOD ,ssl .PROTOCOL_TLSv1 :OpenSSL .SSL .TLSv1_METHOD ,}#line:82:}
+if hasattr (ssl ,'PROTOCOL_TLSv1_1')and hasattr (OpenSSL .SSL ,'TLSv1_1_METHOD'):#line:84:if hasattr(ssl, 'PROTOCOL_TLSv1_1') and hasattr(OpenSSL.SSL, 'TLSv1_1_METHOD'):
+    _OOOOO00000O0OOOO0 [ssl .PROTOCOL_TLSv1_1 ]=OpenSSL .SSL .TLSv1_1_METHOD #line:85:_openssl_versions[ssl.PROTOCOL_TLSv1_1] = OpenSSL.SSL.TLSv1_1_METHOD
+if hasattr (ssl ,'PROTOCOL_TLSv1_2')and hasattr (OpenSSL .SSL ,'TLSv1_2_METHOD'):#line:87:if hasattr(ssl, 'PROTOCOL_TLSv1_2') and hasattr(OpenSSL.SSL, 'TLSv1_2_METHOD'):
+    _OOOOO00000O0OOOO0 [ssl .PROTOCOL_TLSv1_2 ]=OpenSSL .SSL .TLSv1_2_METHOD #line:88:_openssl_versions[ssl.PROTOCOL_TLSv1_2] = OpenSSL.SSL.TLSv1_2_METHOD
+try :#line:90:try:
+    _OOOOO00000O0OOOO0 .update ({ssl .PROTOCOL_SSLv3 :OpenSSL .SSL .SSLv3_METHOD })#line:91:_openssl_versions.update({ssl.PROTOCOL_SSLv3: OpenSSL.SSL.SSLv3_METHOD})
+except AttributeError :#line:92:except AttributeError:
+    pass #line:93:pass
+_OOOOO0OO00000OO0O ={ssl .CERT_NONE :OpenSSL .SSL .VERIFY_NONE ,ssl .CERT_OPTIONAL :OpenSSL .SSL .VERIFY_PEER ,ssl .CERT_REQUIRED :OpenSSL .SSL .VERIFY_PEER +OpenSSL .SSL .VERIFY_FAIL_IF_NO_PEER_CERT ,}#line:100:}
+_OOOOO00O0O0O000OO =dict ((O00O00O00O0OO0OO0 ,O0O0OOOOO0O0O0O00 )for O0O0OOOOO0O0O0O00 ,O00O00O00O0OO0OO0 in _OOOOO0OO00000OO0O .items ())#line:103:)
+OO0OO0000000O0O0O =16384 #line:106:SSL_WRITE_BLOCKSIZE = 16384
+OO000OOO0OOOOOOOO =util .HAS_SNI #line:108:orig_util_HAS_SNI = util.HAS_SNI
+O0OO0O00OOOOOO00O =util .ssl_ .SSLContext #line:109:orig_util_SSLContext = util.ssl_.SSLContext
+O000000OOO0O0O000 =logging .getLogger (__name__ )#line:112:log = logging.getLogger(__name__)
+def inject_into_urllib3 ():#line:115:def inject_into_urllib3():
+    ""#line:116:'Monkey-patch urllib3 with PyOpenSSL-backed SSL-support.'
+    _O000OOOO0O00OO0O0 ()#line:118:_validate_dependencies_met()
+    util .ssl_ .SSLContext =OOO0O0O00OO00OO00 #line:120:util.ssl_.SSLContext = PyOpenSSLContext
+    util .HAS_SNI =OO00000O0O0OOO000 #line:121:util.HAS_SNI = HAS_SNI
+    util .ssl_ .HAS_SNI =OO00000O0O0OOO000 #line:122:util.ssl_.HAS_SNI = HAS_SNI
+    util .IS_PYOPENSSL =True #line:123:util.IS_PYOPENSSL = True
+    util .ssl_ .IS_PYOPENSSL =True #line:124:util.ssl_.IS_PYOPENSSL = True
+def extract_from_urllib3 ():#line:127:def extract_from_urllib3():
+    ""#line:128:'Undo monkey-patching by :func:`inject_into_urllib3`.'
+    util .ssl_ .SSLContext =O0OO0O00OOOOOO00O #line:130:util.ssl_.SSLContext = orig_util_SSLContext
+    util .HAS_SNI =OO000OOO0OOOOOOOO #line:131:util.HAS_SNI = orig_util_HAS_SNI
+    util .ssl_ .HAS_SNI =OO000OOO0OOOOOOOO #line:132:util.ssl_.HAS_SNI = orig_util_HAS_SNI
+    util .IS_PYOPENSSL =False #line:133:util.IS_PYOPENSSL = False
+    util .ssl_ .IS_PYOPENSSL =False #line:134:util.ssl_.IS_PYOPENSSL = False
+def _O000OOOO0O00OO0O0 ():#line:137:def _validate_dependencies_met():
+    ""#line:141:"""
+    from cryptography .x509 .extensions import Extensions #line:143:from cryptography.x509.extensions import Extensions
+    if getattr (Extensions ,"get_extension_for_class",None )is None :#line:144:if getattr(Extensions, "get_extension_for_class", None) is None:
+        raise ImportError ("'cryptography' module missing required functionality.  " "Try upgrading to v1.3.4 or newer.")#line:146:"Try upgrading to v1.3.4 or newer.")
+    from OpenSSL .crypto import X509 #line:150:from OpenSSL.crypto import X509
+    O0O0OO0000OOO0O0O =X509 ()#line:151:x509 = X509()
+    if getattr (O0O0OO0000OOO0O0O ,"_x509",None )is None :#line:152:if getattr(x509, "_x509", None) is None:
+        raise ImportError ("'pyOpenSSL' module missing required functionality. " "Try upgrading to v0.14 or newer.")#line:154:"Try upgrading to v0.14 or newer.")
+def _OOO0000O0O00OO000 (O000OO0O000O0O00O ):#line:157:def _dnsname_to_stdlib(name):
+    ""#line:169:"""
+    def O0O0O000OO0000OO0 (OOOO0O00OO00OOOO0 ):#line:170:def idna_encode(name):
+        ""#line:175:"""
+        from pip ._vendor import idna #line:176:from pip._vendor import idna
+        try :#line:178:try:
+            for O0OOOO0O000O00OO0 in [u'*.',u'.']:#line:179:for prefix in [u'*.', u'.']:
+                if OOOO0O00OO00OOOO0 .startswith (O0OOOO0O000O00OO0 ):#line:180:if name.startswith(prefix):
+                    OOOO0O00OO00OOOO0 =OOOO0O00OO00OOOO0 [len (O0OOOO0O000O00OO0 ):]#line:181:name = name[len(prefix):]
+                    return O0OOOO0O000O00OO0 .encode ('ascii')+idna .encode (OOOO0O00OO00OOOO0 )#line:182:return prefix.encode('ascii') + idna.encode(name)
+            return idna .encode (OOOO0O00OO00OOOO0 )#line:183:return idna.encode(name)
+        except idna .core .IDNAError :#line:184:except idna.core.IDNAError:
+            return None #line:185:return None
+    O000OO0O000O0O00O =O0O0O000OO0000OO0 (O000OO0O000O0O00O )#line:187:name = idna_encode(name)
+    if O000OO0O000O0O00O is None :#line:188:if name is None:
+        return None #line:189:return None
+    elif sys .version_info >=(3 ,0 ):#line:190:elif sys.version_info >= (3, 0):
+        O000OO0O000O0O00O =O000OO0O000O0O00O .decode ('utf-8')#line:191:name = name.decode('utf-8')
+    return O000OO0O000O0O00O #line:192:return name
+def OO00O00OOO000OO00 (O00OO000O00000OOO ):#line:195:def get_subj_alt_name(peer_cert):
+    ""#line:198:"""
+    if hasattr (O00OO000O00000OOO ,"to_cryptography"):#line:200:if hasattr(peer_cert, "to_cryptography"):
+        O00000OOOOOO0OO0O =O00OO000O00000OOO .to_cryptography ()#line:201:cert = peer_cert.to_cryptography()
+    else :#line:202:else:
+        O00000OOOOOO0OO0O =_Certificate (openssl_backend ,O00OO000O00000OOO ._x509 )#line:205:cert = _Certificate(openssl_backend, peer_cert._x509)
+    try :#line:209:try:
+        O00O0000O000O00O0 =O00000OOOOOO0OO0O .extensions .get_extension_for_class (x509 .SubjectAlternativeName ).value #line:212:).value
+    except x509 .ExtensionNotFound :#line:213:except x509.ExtensionNotFound:
+        return []#line:215:return []
+    except (x509 .DuplicateExtension ,UnsupportedExtension ,x509 .UnsupportedGeneralNameType ,UnicodeError )as OO00O0OOOO0000OO0 :#line:217:x509.UnsupportedGeneralNameType, UnicodeError) as e:
+        O000000OOO0O0O000 .warning ("A problem was encountered with the certificate that prevented " "urllib3 from finding the SubjectAlternativeName field. This can " "affect certificate validation. The error was %s",OO00O0OOOO0000OO0 ,)#line:225:)
+        return []#line:226:return []
+    OOOOOO0O0O0O0OOO0 =[('DNS',OOO0OOO0OOO0O00O0 )for OOO0OOO0OOO0O00O0 in map (_OOO0000O0O00OO000 ,O00O0000O000O00O0 .get_values_for_type (x509 .DNSName ))if OOO0OOO0OOO0O00O0 is not None ]#line:238:]
+    OOOOOO0O0O0O0OOO0 .extend (('IP Address',str (OOOOOOOO00000OOO0 ))for OOOOOOOO00000OOO0 in O00O0000O000O00O0 .get_values_for_type (x509 .IPAddress ))#line:242:)
+    return OOOOOO0O0O0O0OOO0 #line:244:return names
+class OOOO0O00OOOO0O00O (object ):#line:247:class WrappedSocket(object):
+    ""#line:252:'''
+    def __init__ (OOOOOOOOOO0OOO0O0 ,O000OO00O000OO00O ,OO00OO0OO0O0O0OO0 ,suppress_ragged_eofs =True ):#line:254:def __init__(self, connection, socket, suppress_ragged_eofs=True):
+        OOOOOOOOOO0OOO0O0 .connection =O000OO00O000OO00O #line:255:self.connection = connection
+        OOOOOOOOOO0OOO0O0 .socket =OO00OO0OO0O0O0OO0 #line:256:self.socket = socket
+        OOOOOOOOOO0OOO0O0 .suppress_ragged_eofs =suppress_ragged_eofs #line:257:self.suppress_ragged_eofs = suppress_ragged_eofs
+        OOOOOOOOOO0OOO0O0 ._makefile_refs =0 #line:258:self._makefile_refs = 0
+        OOOOOOOOOO0OOO0O0 ._closed =False #line:259:self._closed = False
+    def fileno (O00OOO00O0O0OOOOO ):#line:261:def fileno(self):
+        return O00OOO00O0O0OOOOO .socket .fileno ()#line:262:return self.socket.fileno()
+    def _decref_socketios (O0O0O0OOOOO0OOOOO ):#line:265:def _decref_socketios(self):
+        if O0O0O0OOOOO0OOOOO ._makefile_refs >0 :#line:266:if self._makefile_refs > 0:
+            O0O0O0OOOOO0OOOOO ._makefile_refs -=1 #line:267:self._makefile_refs -= 1
+        if O0O0O0OOOOO0OOOOO ._closed :#line:268:if self._closed:
+            O0O0O0OOOOO0OOOOO .close ()#line:269:self.close()
+    def recv (OO000O0O0O0OO00OO ,*O00OOO000OOO0O000 ,**OO00OOO00O00OOOO0 ):#line:271:def recv(self, *args, **kwargs):
+        try :#line:272:try:
+            O0OO00OOO0O000000 =OO000O0O0O0OO00OO .connection .recv (*O00OOO000OOO0O000 ,**OO00OOO00O00OOOO0 )#line:273:data = self.connection.recv(*args, **kwargs)
+        except OpenSSL .SSL .SysCallError as OOOOO000O000OO00O :#line:274:except OpenSSL.SSL.SysCallError as e:
+            if OO000O0O0O0OO00OO .suppress_ragged_eofs and OOOOO000O000OO00O .args ==(-1 ,'Unexpected EOF'):#line:275:if self.suppress_ragged_eofs and e.args == (-1, 'Unexpected EOF'):
+                return b''#line:276:return b''
+            else :#line:277:else:
+                raise SocketError (str (OOOOO000O000OO00O ))#line:278:raise SocketError(str(e))
+        except OpenSSL .SSL .ZeroReturnError as OOOOO000O000OO00O :#line:279:except OpenSSL.SSL.ZeroReturnError as e:
+            if OO000O0O0O0OO00OO .connection .get_shutdown ()==OpenSSL .SSL .RECEIVED_SHUTDOWN :#line:280:if self.connection.get_shutdown() == OpenSSL.SSL.RECEIVED_SHUTDOWN:
+                return b''#line:281:return b''
+            else :#line:282:else:
+                raise #line:283:raise
+        except OpenSSL .SSL .WantReadError :#line:284:except OpenSSL.SSL.WantReadError:
+            if not util .wait_for_read (OO000O0O0O0OO00OO .socket ,OO000O0O0O0OO00OO .socket .gettimeout ()):#line:285:if not util.wait_for_read(self.socket, self.socket.gettimeout()):
+                raise timeout ('The read operation timed out')#line:286:raise timeout('The read operation timed out')
+            else :#line:287:else:
+                return OO000O0O0O0OO00OO .recv (*O00OOO000OOO0O000 ,**OO00OOO00O00OOOO0 )#line:288:return self.recv(*args, **kwargs)
+        else :#line:289:else:
+            return O0OO00OOO0O000000 #line:290:return data
+    def recv_into (O00000O0O0O0OOO00 ,*O0O0OOO00O000O0OO ,**OOO0OO0OOO0O00O0O ):#line:292:def recv_into(self, *args, **kwargs):
+        try :#line:293:try:
+            return O00000O0O0O0OOO00 .connection .recv_into (*O0O0OOO00O000O0OO ,**OOO0OO0OOO0O00O0O )#line:294:return self.connection.recv_into(*args, **kwargs)
+        except OpenSSL .SSL .SysCallError as OO00O0O000O0OOO0O :#line:295:except OpenSSL.SSL.SysCallError as e:
+            if O00000O0O0O0OOO00 .suppress_ragged_eofs and OO00O0O000O0OOO0O .args ==(-1 ,'Unexpected EOF'):#line:296:if self.suppress_ragged_eofs and e.args == (-1, 'Unexpected EOF'):
+                return 0 #line:297:return 0
+            else :#line:298:else:
+                raise SocketError (str (OO00O0O000O0OOO0O ))#line:299:raise SocketError(str(e))
+        except OpenSSL .SSL .ZeroReturnError as OO00O0O000O0OOO0O :#line:300:except OpenSSL.SSL.ZeroReturnError as e:
+            if O00000O0O0O0OOO00 .connection .get_shutdown ()==OpenSSL .SSL .RECEIVED_SHUTDOWN :#line:301:if self.connection.get_shutdown() == OpenSSL.SSL.RECEIVED_SHUTDOWN:
+                return 0 #line:302:return 0
+            else :#line:303:else:
+                raise #line:304:raise
+        except OpenSSL .SSL .WantReadError :#line:305:except OpenSSL.SSL.WantReadError:
+            if not util .wait_for_read (O00000O0O0O0OOO00 .socket ,O00000O0O0O0OOO00 .socket .gettimeout ()):#line:306:if not util.wait_for_read(self.socket, self.socket.gettimeout()):
+                raise timeout ('The read operation timed out')#line:307:raise timeout('The read operation timed out')
+            else :#line:308:else:
+                return O00000O0O0O0OOO00 .recv_into (*O0O0OOO00O000O0OO ,**OOO0OO0OOO0O00O0O )#line:309:return self.recv_into(*args, **kwargs)
+    def settimeout (O000O00O0O0O0OO00 ,O0OOO000O00000O0O ):#line:311:def settimeout(self, timeout):
+        return O000O00O0O0O0OO00 .socket .settimeout (O0OOO000O00000O0O )#line:312:return self.socket.settimeout(timeout)
+    def _send_until_done (OO000OOOO0OO00000 ,OO0O000OOOOO0O0O0 ):#line:314:def _send_until_done(self, data):
+        while True :#line:315:while True:
+            try :#line:316:try:
+                return OO000OOOO0OO00000 .connection .send (OO0O000OOOOO0O0O0 )#line:317:return self.connection.send(data)
+            except OpenSSL .SSL .WantWriteError :#line:318:except OpenSSL.SSL.WantWriteError:
+                if not util .wait_for_write (OO000OOOO0OO00000 .socket ,OO000OOOO0OO00000 .socket .gettimeout ()):#line:319:if not util.wait_for_write(self.socket, self.socket.gettimeout()):
+                    raise timeout ()#line:320:raise timeout()
+                continue #line:321:continue
+            except OpenSSL .SSL .SysCallError as OO00000O00OOOO0O0 :#line:322:except OpenSSL.SSL.SysCallError as e:
+                raise SocketError (str (OO00000O00OOOO0O0 ))#line:323:raise SocketError(str(e))
+    def sendall (OOOO000O00OOOOOO0 ,O0O00OOO000OOO0OO ):#line:325:def sendall(self, data):
+        OO00OOO00O0000OO0 =0 #line:326:total_sent = 0
+        while OO00OOO00O0000OO0 <len (O0O00OOO000OOO0OO ):#line:327:while total_sent < len(data):
+            O0O0O0OO000OO000O =OOOO000O00OOOOOO0 ._send_until_done (O0O00OOO000OOO0OO [OO00OOO00O0000OO0 :OO00OOO00O0000OO0 +OO0OO0000000O0O0O ])#line:328:sent = self._send_until_done(data[total_sent:total_sent + SSL_WRITE_BLOCKSIZE])
+            OO00OOO00O0000OO0 +=O0O0O0OO000OO000O #line:329:total_sent += sent
+    def shutdown (OO00OOOOO0OO000OO ):#line:331:def shutdown(self):
+        OO00OOOOO0OO000OO .connection .shutdown ()#line:333:self.connection.shutdown()
+    def close (OOO0O000000000OO0 ):#line:335:def close(self):
+        if OOO0O000000000OO0 ._makefile_refs <1 :#line:336:if self._makefile_refs < 1:
+            try :#line:337:try:
+                OOO0O000000000OO0 ._closed =True #line:338:self._closed = True
+                return OOO0O000000000OO0 .connection .close ()#line:339:return self.connection.close()
+            except OpenSSL .SSL .Error :#line:340:except OpenSSL.SSL.Error:
+                return #line:341:return
+        else :#line:342:else:
+            OOO0O000000000OO0 ._makefile_refs -=1 #line:343:self._makefile_refs -= 1
+    def getpeercert (OOO00OO0OOO0OOO0O ,binary_form =False ):#line:345:def getpeercert(self, binary_form=False):
+        O00O0OO00O0OOO0O0 =OOO00OO0OOO0OOO0O .connection .get_peer_certificate ()#line:346:x509 = self.connection.get_peer_certificate()
+        if not O00O0OO00O0OOO0O0 :#line:348:if not x509:
+            return O00O0OO00O0OOO0O0 #line:349:return x509
+        if binary_form :#line:351:if binary_form:
+            return OpenSSL .crypto .dump_certificate (OpenSSL .crypto .FILETYPE_ASN1 ,O00O0OO00O0OOO0O0 )#line:354:x509)
+        return {'subject':((('commonName',O00O0OO00O0OOO0O0 .get_subject ().CN ),),),'subjectAltName':OO00O00OOO000OO00 (O00O0OO00O0OOO0O0 )}#line:361:}
+    def _reuse (OO0OOO000OO0O0OOO ):#line:363:def _reuse(self):
+        OO0OOO000OO0O0OOO ._makefile_refs +=1 #line:364:self._makefile_refs += 1
+    def _drop (OO0OO00OOO0000OOO ):#line:366:def _drop(self):
+        if OO0OO00OOO0000OOO ._makefile_refs <1 :#line:367:if self._makefile_refs < 1:
+            OO0OO00OOO0000OOO .close ()#line:368:self.close()
+        else :#line:369:else:
+            OO0OO00OOO0000OOO ._makefile_refs -=1 #line:370:self._makefile_refs -= 1
+if _fileobject :#line:373:if _fileobject:  # Platform-specific: Python 2
+    def O000OO0OOOOOOOOOO (O0OO0OO000O0OO000 ,O0O0O0O00OOO0O0OO ,bufsize =-1 ):#line:374:def makefile(self, mode, bufsize=-1):
+        O0OO0OO000O0OO000 ._makefile_refs +=1 #line:375:self._makefile_refs += 1
+        return _fileobject (O0OO0OO000O0OO000 ,O0O0O0O00OOO0O0OO ,bufsize ,close =True )#line:376:return _fileobject(self, mode, bufsize, close=True)
+else :#line:377:else:  # Platform-specific: Python 3
+    O000OO0OOOOOOOOOO =backport_makefile #line:378:makefile = backport_makefile
+OOOO0O00OOOO0O00O .makefile =O000OO0OOOOOOOOOO #line:380:WrappedSocket.makefile = makefile
+class OOO0O0O00OO00OO00 (object ):#line:383:class PyOpenSSLContext(object):
+    ""#line:388:"""
+    def __init__ (O00O000OOOOOO0OO0 ,OO00O0000O0O0OOO0 ):#line:389:def __init__(self, protocol):
+        O00O000OOOOOO0OO0 .protocol =_OOOOO00000O0OOOO0 [OO00O0000O0O0OOO0 ]#line:390:self.protocol = _openssl_versions[protocol]
+        O00O000OOOOOO0OO0 ._ctx =OpenSSL .SSL .Context (O00O000OOOOOO0OO0 .protocol )#line:391:self._ctx = OpenSSL.SSL.Context(self.protocol)
+        O00O000OOOOOO0OO0 ._options =0 #line:392:self._options = 0
+        O00O000OOOOOO0OO0 .check_hostname =False #line:393:self.check_hostname = False
+    @property #line:395:@property
+    def options (OOO00OO00OO0O0OO0 ):#line:396:def options(self):
+        return OOO00OO00OO0O0OO0 ._options #line:397:return self._options
+    @options .setter #line:399:@options.setter
+    def options (O00O0OO0OOO0O0O0O ,OO0OOOO00O0OO00OO ):#line:400:def options(self, value):
+        O00O0OO0OOO0O0O0O ._options =OO0OOOO00O0OO00OO #line:401:self._options = value
+        O00O0OO0OOO0O0O0O ._ctx .set_options (OO0OOOO00O0OO00OO )#line:402:self._ctx.set_options(value)
+    @property #line:404:@property
+    def verify_mode (OO0O0OOO0OO00OOO0 ):#line:405:def verify_mode(self):
+        return _OOOOO00O0O0O000OO [OO0O0OOO0OO00OOO0 ._ctx .get_verify_mode ()]#line:406:return _openssl_to_stdlib_verify[self._ctx.get_verify_mode()]
+    @verify_mode .setter #line:408:@verify_mode.setter
+    def verify_mode (OOO00O0OOO0000OO0 ,OOOO0OO000O0000O0 ):#line:409:def verify_mode(self, value):
+        OOO00O0OOO0000OO0 ._ctx .set_verify (_OOOOO0OO00000OO0O [OOOO0OO000O0000O0 ],_OOOOO0000O00O0O0O )#line:413:)
+    def set_default_verify_paths (OOOO000O0OO0O0OO0 ):#line:415:def set_default_verify_paths(self):
+        OOOO000O0OO0O0OO0 ._ctx .set_default_verify_paths ()#line:416:self._ctx.set_default_verify_paths()
+    def set_ciphers (OO0OO0O000O0OO0O0 ,O00OOO00000O0OOOO ):#line:418:def set_ciphers(self, ciphers):
+        if isinstance (O00OOO00000O0OOOO ,six .text_type ):#line:419:if isinstance(ciphers, six.text_type):
+            O00OOO00000O0OOOO =O00OOO00000O0OOOO .encode ('utf-8')#line:420:ciphers = ciphers.encode('utf-8')
+        OO0OO0O000O0OO0O0 ._ctx .set_cipher_list (O00OOO00000O0OOOO )#line:421:self._ctx.set_cipher_list(ciphers)
+    def load_verify_locations (O0O0O0OOOOO0OO00O ,cafile =None ,capath =None ,cadata =None ):#line:423:def load_verify_locations(self, cafile=None, capath=None, cadata=None):
+        if cafile is not None :#line:424:if cafile is not None:
+            cafile =cafile .encode ('utf-8')#line:425:cafile = cafile.encode('utf-8')
+        if capath is not None :#line:426:if capath is not None:
+            capath =capath .encode ('utf-8')#line:427:capath = capath.encode('utf-8')
+        O0O0O0OOOOO0OO00O ._ctx .load_verify_locations (cafile ,capath )#line:428:self._ctx.load_verify_locations(cafile, capath)
+        if cadata is not None :#line:429:if cadata is not None:
+            O0O0O0OOOOO0OO00O ._ctx .load_verify_locations (BytesIO (cadata ))#line:430:self._ctx.load_verify_locations(BytesIO(cadata))
+    def load_cert_chain (O0000O00O0000O000 ,O00OO0000O00O0000 ,keyfile =None ,password =None ):#line:432:def load_cert_chain(self, certfile, keyfile=None, password=None):
+        O0000O00O0000O000 ._ctx .use_certificate_chain_file (O00OO0000O00O0000 )#line:433:self._ctx.use_certificate_chain_file(certfile)
+        if password is not None :#line:434:if password is not None:
+            O0000O00O0000O000 ._ctx .set_passwd_cb (lambda O0OO0000000000OO0 ,O0OOOOO000OO0OOO0 ,O0O0OO0000O000OO0 :password )#line:435:self._ctx.set_passwd_cb(lambda max_length, prompt_twice, userdata: password)
+        O0000O00O0000O000 ._ctx .use_privatekey_file (keyfile or O00OO0000O00O0000 )#line:436:self._ctx.use_privatekey_file(keyfile or certfile)
+    def wrap_socket (O0OOO00O00OO0OOO0 ,OO000OOO0OOOOOO00 ,server_side =False ,do_handshake_on_connect =True ,suppress_ragged_eofs =True ,server_hostname =None ):#line:440:server_hostname=None):
+        O0O0O00OOO0OO0000 =OpenSSL .SSL .Connection (O0OOO00O00OO0OOO0 ._ctx ,OO000OOO0OOOOOO00 )#line:441:cnx = OpenSSL.SSL.Connection(self._ctx, sock)
+        if isinstance (server_hostname ,six .text_type ):#line:443:if isinstance(server_hostname, six.text_type):  # Platform-specific: Python 3
+            server_hostname =server_hostname .encode ('utf-8')#line:444:server_hostname = server_hostname.encode('utf-8')
+        if server_hostname is not None :#line:446:if server_hostname is not None:
+            O0O0O00OOO0OO0000 .set_tlsext_host_name (server_hostname )#line:447:cnx.set_tlsext_host_name(server_hostname)
+        O0O0O00OOO0OO0000 .set_connect_state ()#line:449:cnx.set_connect_state()
+        while True :#line:451:while True:
+            try :#line:452:try:
+                O0O0O00OOO0OO0000 .do_handshake ()#line:453:cnx.do_handshake()
+            except OpenSSL .SSL .WantReadError :#line:454:except OpenSSL.SSL.WantReadError:
+                if not util .wait_for_read (OO000OOO0OOOOOO00 ,OO000OOO0OOOOOO00 .gettimeout ()):#line:455:if not util.wait_for_read(sock, sock.gettimeout()):
+                    raise timeout ('select timed out')#line:456:raise timeout('select timed out')
+                continue #line:457:continue
+            except OpenSSL .SSL .Error as O0OOO00O0OO0O00OO :#line:458:except OpenSSL.SSL.Error as e:
+                raise ssl .SSLError ('bad handshake: %r'%O0OOO00O0OO0O00OO )#line:459:raise ssl.SSLError('bad handshake: %r' % e)
+            break #line:460:break
+        return OOOO0O00OOOO0O00O (O0O0O00OOO0OO0000 ,OO000OOO0OOOOOO00 )#line:462:return WrappedSocket(cnx, sock)
+def _OOOOO0000O00O0O0O (O00O0OO00OOOOO00O ,OO00000OO0000OO0O ,O0OOO0O0OO0OO0O0O ,O00O0000O00O0000O ,O0OO0O0O0O00OO00O ):#line:465:def _verify_callback(cnx, x509, err_no, err_depth, return_code):
+    return O0OOO0O0OO0OO0O0O ==0 #line:466:return err_no == 0

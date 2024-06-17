@@ -1,0 +1,156 @@
+import time #line:1:import time
+import sys #line:2:import sys
+print ('Welcome To fastrack USSD Banking Project...')#line:4:print('Welcome To fastrack USSD Banking Project...')
+time .sleep (8 )#line:5:time.sleep(8)
+bank_list ="""
+1. Access Bank
+2. Fidelity Bank
+3. Guarantee Trust Bank
+4. Heritage Bank
+5. Polaris Bank
+6. Stanbic IBTC
+7. Unity Bank
+8. Wema Bank
+"""#line:16:"""
+gen_bvn =" "#line:18:gen_bvn = " "
+def BVN_checker ():#line:20:def BVN_checker( ):
+    global gen_bvn #line:21:global gen_bvn
+    OO00O0OOOOOO0OO00 =[str (O0O00O00OOOOOO000 )for O0O00O00OOOOOO000 in range (5 )]#line:22:bvn = [str(i) for i in range (5)]
+    gen_bvn ="".join (OO00O0OOOOOO0OO00 )#line:23:gen_bvn= "".join(bvn)
+def open_acct ():#line:26:def open_acct( ):
+	global gen_bvn #line:27:global gen_bvn
+	print ("Welcome to our online Account opening services.")#line:28:print("Welcome to our online Account opening services.")
+	print ("loading...")#line:29:print("loading...")
+	O00OO0OO00OOOO0O0 =[]#line:31:temp_storage= [ ]
+	OOOOOO00OO00OO000 =input ("Enter your first name:")#line:32:f_name= input("Enter your first name:")
+	O00000000OO0000OO =input ("Enter your second name:")#line:33:s_name= input ("Enter your second name:")
+	O0000OOOO0O0O000O =input ("Enter sex [M/F]:")#line:34:sex = input("Enter sex [M/F]:")
+	BVN_checker ()#line:35:BVN_checker( )
+	O00OO0OO00OOOO0O0 .append (OOOOOO00OO00OO000 )#line:36:temp_storage.append(f_name)
+	O00OO0OO00OOOO0O0 .append (O00000000OO0000OO )#line:37:temp_storage.append(s_name)
+	O00OO0OO00OOOO0O0 .append (O0000OOOO0O0O000O )#line:38:temp_storage.append(sex)
+	O00OO0OO00OOOO0O0 .append (gen_bvn )#line:39:temp_storage.append(gen_bvn)
+	O00O0O0OO0OOOO0O0 =" ".join (O00OO0OO00OOOO0O0 )#line:40:details= " ".join(temp_storage)
+	OO0O00O0O00OOO0OO =O00O0O0OO0OOOO0O0 .split (" ")#line:41:split_details = details.split(" ")
+	print (OO0O00O0O00OOO0OO [0 ]+" "+OO0O00O0O00OOO0OO [1 ])#line:43:print(split_details[0]+" "+split_details[1])
+	print (OO0O00O0O00OOO0OO [2 ])#line:44:print(split_details[2])
+	print ("Your bvn is :"+OO0O00O0O00OOO0OO [3 ])#line:45:print("Your bvn is :"+split_details[3])
+	print ("1. Press # to go back to options menu\n2. Press * to exit")#line:46:print("1. Press # to go back to options menu\n2. Press * to exit")
+	OOOO0O0OO0OO000OO =input (":")#line:47:bck=input(":")
+	if OOOO0O0OO0OO000OO =='#':#line:48:if bck=='#':
+	    options_menu ()#line:49:options_menu( )
+	else :#line:50:else:
+	    sys .exit ()#line:51:sys.exit( )
+	exit ()#line:53:exit( )
+def upgrade_migrate ():#line:55:def upgrade_migrate( ):
+		print ("Welcome to our online Upgrade/Migration services.\n 1. Ugrade\n 2. Migrate")#line:56:print("Welcome to our online Upgrade/Migration services.\n 1. Ugrade\n 2. Migrate")
+		print ("press # is go back to the Main Menu.")#line:57:print("press # is go back to the Main Menu.")
+		OOOO0OOO0O0OO0OO0 =input ("Enter preferred Choice:")#line:58:prompt = input("Enter preferred Choice:")
+		if OOOO0OOO0O0OO0OO0 =="1":#line:59:if prompt=="1":
+			time .sleep (5 )#line:60:time.sleep(5)
+			print ("Upgrading...")#line:61:print("Upgrading...")
+			exit ()#line:62:exit( )
+		elif OOOO0OOO0O0OO0OO0 =="2":#line:63:elif prompt == "2":
+			time .sleep (5 )#line:64:time.sleep(5)
+			print ("Migrating...")#line:65:print("Migrating...")
+			exit ()#line:66:exit( )
+		elif OOOO0OOO0O0OO0OO0 =="#":#line:67:elif prompt == "#":
+			options_menu ()#line:68:options_menu( )
+		else :#line:69:else:
+			sys .exit ()#line:70:sys.exit( )
+def balance ():#line:72:def balance ( ):
+	print ("ACCOUNT\tBALANCE\n CHECKER")#line:73:print("ACCOUNT\tBALANCE\n CHECKER")
+	print ("press # is go back to the Main Menu.")#line:74:print("press # is go back to the Main Menu.")
+	O0OOO0000000O000O =input ("Enter your 4 digit pin:")#line:75:pin=input("Enter your 4 digit pin:")
+	if len (O0OOO0000000O000O )!=4 :#line:80:if len(pin)!=4:
+	   	print ("Make sure its a 4digit pin.")#line:81:print("Make sure its a 4digit pin.")
+	   	time .sleep (5 )#line:82:time.sleep(5)
+	   	balance ()#line:83:balance( )
+	else :#line:84:else:
+	   		    if O0OOO0000000O000O .isdigit ():#line:85:if pin.isdigit( ):
+	   		        time .sleep (5 )#line:86:time.sleep(5)
+	   		        print ("Loading...")#line:87:print("Loading...")
+	   		        exit ()#line:88:exit( )
+	   		    elif O0OOO0000000O000O =="#":#line:89:elif pin== "#":
+	   		        options_menu ()#line:90:options_menu( )
+	   		    else :#line:91:else:
+	   		        time .sleep (15 )#line:92:time.sleep(15)
+	   		        print ("wrong pin")#line:93:print("wrong pin")
+	   		        sys .exit ()#line:94:sys.exit( )
+def transf ():#line:96:def transf( ):
+	print ("1. Transfer self\n2. Transfer others")#line:97:print("1. Transfer self\n2. Transfer others")
+	print ("press # is go back to the Main Menu.")#line:98:print("press # is go back to the Main Menu.")
+	OO000O0OOO0O0OOOO =input (":")#line:99:trnsf=input(":")
+	if OO000O0OOO0O0OOOO =="#":#line:100:if trnsf == "#" :
+	    options_menu ()#line:101:options_menu( )
+	elif OO000O0OOO0O0OOOO =="1":#line:102:elif trnsf == "1":
+	    time .sleep (5 )#line:103:time.sleep(5)
+	    print ("Sending...")#line:104:print("Sending...")
+	    exit ()#line:105:exit( )
+	elif OO000O0OOO0O0OOOO =="2":#line:106:elif trnsf=="2":
+	    time .sleep (5 )#line:107:time.sleep(5)
+	    O0OOOOO0O0OO0OO0O =int (input ("Enter receivers mobile number:"))#line:108:num=int(input("Enter receivers mobile number:"))
+	    print ("Transferring to",O0OOOOO0O0OO0OO0O )#line:109:print("Transferring to",num)
+	    exit ()#line:110:exit( )
+	else :#line:111:else:
+	    if OO000O0OOO0O0OOOO .isdigit ()!=True :#line:112:if trnsf.isdigit( )!= True:
+	        time .sleep (5 )#line:113:time.sleep(5)
+	        print ("Not an option")#line:114:print("Not an option")
+	        sys .exit ()#line:115:sys.exit( )
+	    elif OO000O0OOO0O0OOOO .isdigit ()and len (OO000O0OOO0O0OOOO )>2 :#line:116:elif trnsf.isdigit( ) and len(trnsf)>2:
+	        time .sleep (5 )#line:117:time.sleep( 5)
+	        print ("wrong password.")#line:118:print("wrong password.")
+	        sys .exit ()#line:119:sys.exit( )
+	    else :#line:120:else:
+	        time .sleep (10 )#line:121:time.sleep(10)
+	        print ("An error has occurred")#line:122:print("An error has occurred")
+	        sys .exit ()#line:123:sys.exit( )
+def funds ():#line:125:def funds( ):
+	time .sleep (3 )#line:126:time.sleep(3)
+	print (bank_list )#line:127:print(bank_list)
+	O0O00O0O00OOO0000 =input ("Select receipients Bank:")#line:128:bnk = input("Select receipients Bank:")
+	O000OOOO00OOO00O0 =input ("Entet account number:")#line:129:acc_num= input("Entet account number:")
+	print ("Sending to",O000OOOO00OOO00O0 )#line:130:print("Sending to",acc_num)
+	OO0O0000O0O0OO000 =input ("1.Press # to go back to options menu\n2. Press * to go exit.")#line:131:hash= input("1.Press # to go back to options menu\n2. Press * to go exit.")
+	if OO0O0000O0O0OO000 =="#":#line:132:if hash == "#":
+	   options_menu ()#line:133:options_menu( )
+	elif OO0O0000O0O0OO000 =="*":#line:134:elif hash == "*":
+	    exit ()#line:135:exit( )
+	else :#line:136:else:
+														sys .exit ()#line:137:sys.exit( )
+def options_menu ():#line:142:def options_menu( ) :
+	print ("1. Open Account\n2. Upgrade/Migrate\n3. Balance\n4. Transfer\n5. Funds")#line:143:print("1. Open Account\n2. Upgrade/Migrate\n3. Balance\n4. Transfer\n5. Funds")
+	OOO00O0OO0OOOOO0O ={'1':open_acct ,'2':upgrade_migrate ,'3':balance ,'4':transf ,'5':funds }#line:149:'5':funds}
+	O00OO0O0000O0O0O0 =input ("Enter an option:")#line:150:choice=input("Enter an option:")
+	if OOO00O0OO0OOOOO0O .get (O00OO0O0000O0O0O0 ):#line:151:if select_options.get(choice):
+	   OOO00O0OO0OOOOO0O [O00OO0O0000O0O0O0 ]()#line:152:select_options[choice]()
+	else :#line:153:else:
+		sys .exit ()#line:154:sys.exit()
+def exit ():#line:157:def exit( ):
+	OO0OOOO0OO000O00O =input ("Do you wish to make another transaction [Y/N] :")#line:158:exit= input("Do you wish to make another transaction [Y/N] :")
+	if OO0OOOO0OO000O00O =="N":#line:159:if exit== "N":
+		sys .exit ()#line:160:sys.exit( )
+	elif OO0OOOO0OO000O00O =="#":#line:161:elif exit == "#":
+	    options_menu ()#line:162:options_menu( )
+	else :#line:163:else:
+		log_in ()#line:164:log_in( )
+def log_in ():#line:167:def log_in( ):
+    try :#line:168:try:
+        O0OOOO0OO0OO0O0OO =0 #line:169:a=0
+        while O0OOOO0OO0OO0O0OO <3 :#line:170:while a<3:
+            O0OOOO0OO0OO0O0OO +=1 #line:171:a+=1
+            OO0OO00O00OOO0000 =input ("ENTER USSD:")#line:172:USSD=input("ENTER USSD:")
+            if (OO0OO00O00OOO0000 !="*919#"):#line:173:if(USSD !="*919#"):
+            	 print ("please re-enter USSD ...")#line:174:print("please re-enter USSD ...")
+            else :#line:175:else:
+            	print ("Welcome to our online services how may we help you")#line:176:print("Welcome to our online services how may we help you")
+            	options_menu ()#line:177:options_menu( )
+            	exit ()#line:178:exit( )
+        else :#line:179:else:
+        	time .sleep (10 )#line:180:time.sleep(10)
+        	print ("checking discrepancies...")#line:181:print("checking discrepancies...")
+        	time .sleep (5 )#line:182:time.sleep(5)
+        	print ("An error has occured.")#line:183:print("An error has occured.")
+    except :#line:185:except:
+    		sys .exit ()#line:186:sys.exit( )
+log_in ()

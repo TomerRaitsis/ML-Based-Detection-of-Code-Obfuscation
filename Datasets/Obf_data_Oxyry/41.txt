@@ -1,0 +1,298 @@
+from io import BytesIO #line:7:from io import BytesIO
+import logging #line:8:import logging
+import os #line:9:import os
+import re #line:10:import re
+import struct #line:11:import struct
+import sys #line:12:import sys
+from .compat import sysconfig ,detect_encoding ,ZipFile #line:14:from .compat import sysconfig, detect_encoding, ZipFile
+from .resources import finder #line:15:from .resources import finder
+from .util import (FileOperator ,get_export_entry ,convert_path ,get_executable ,in_venv )#line:17:get_executable, in_venv)
+logger =logging .getLogger (__name__ )#line:19:logger = logging.getLogger(__name__)
+_OOOOOOOOO0OOO0000 ='''
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+ <assemblyIdentity version="1.0.0.0"
+ processorArchitecture="X86"
+ name="%s"
+ type="win32"/>
+
+ <!-- Identify the application security requirements. -->
+ <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+ <security>
+ <requestedPrivileges>
+ <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+ </requestedPrivileges>
+ </security>
+ </trustInfo>
+</assembly>'''.strip ()#line:37:</assembly>'''.strip()
+FIRST_LINE_RE =re .compile (b'^#!.*pythonw?[0-9.]*([ \t].*)?$')#line:40:FIRST_LINE_RE = re.compile(b'^#!.*pythonw?[0-9.]*([ \t].*)?$')
+SCRIPT_TEMPLATE =r'''# -*- coding: utf-8 -*-
+if __name__ == '__main__':
+    import sys, re
+
+    def _resolve(module, func):
+        __import__(module)
+        mod = sys.modules[module]
+        parts = func.split('.')
+        result = getattr(mod, parts.pop(0))
+        for p in parts:
+            result = getattr(result, p)
+        return result
+
+    try:
+        sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
+
+        func = _resolve('%(module)s', '%(func)s')
+        rc = func() # None interpreted as 0
+    except Exception as e:  # only supporting Python >= 2.6
+        sys.stderr.write('%%s\n' %% e)
+        rc = 1
+    sys.exit(rc)
+'''#line:63:'''
+def _O00000OO0O000OO0O (O0OOOO00OO00O00O0 ):#line:66:def _enquote_executable(executable):
+    if ' 'in O0OOOO00OO00O00O0 :#line:67:if ' ' in executable:
+        if O0OOOO00OO00O00O0 .startswith ('/usr/bin/env '):#line:72:if executable.startswith('/usr/bin/env '):
+            OOO000OO0OO0O0OO0 ,_O00OOOO000OOO0O00 =O0OOOO00OO00O00O0 .split (' ',1 )#line:73:env, _executable = executable.split(' ', 1)
+            if ' 'in _O00OOOO000OOO0O00 and not _O00OOOO000OOO0O00 .startswith ('"'):#line:74:if ' ' in _executable and not _executable.startswith('"'):
+                O0OOOO00OO00O00O0 ='%s "%s"'%(OOO000OO0OO0O0OO0 ,_O00OOOO000OOO0O00 )#line:75:executable = '%s "%s"' % (env, _executable)
+        else :#line:76:else:
+            if not O0OOOO00OO00O00O0 .startswith ('"'):#line:77:if not executable.startswith('"'):
+                O0OOOO00OO00O00O0 ='"%s"'%O0OOOO00OO00O00O0 #line:78:executable = '"%s"' % executable
+    return O0OOOO00OO00O00O0 #line:79:return executable
+class ScriptMaker (object ):#line:82:class ScriptMaker(object):
+    ""#line:86:"""
+    script_template =SCRIPT_TEMPLATE #line:87:script_template = SCRIPT_TEMPLATE
+    executable =None #line:89:executable = None  # for shebangs
+    def __init__ (OO00O00O000O00O0O ,OO000O00000O00OOO ,O000000OOO0000O0O ,add_launchers =True ,dry_run =False ,fileop =None ):#line:92:dry_run=False, fileop=None):
+        OO00O00O000O00O0O .source_dir =OO000O00000O00OOO #line:93:self.source_dir = source_dir
+        OO00O00O000O00O0O .target_dir =O000000OOO0000O0O #line:94:self.target_dir = target_dir
+        OO00O00O000O00O0O .add_launchers =add_launchers #line:95:self.add_launchers = add_launchers
+        OO00O00O000O00O0O .force =False #line:96:self.force = False
+        OO00O00O000O00O0O .clobber =False #line:97:self.clobber = False
+        OO00O00O000O00O0O .set_mode =(os .name =='posix')or (os .name =='java'and os ._name =='posix')#line:100:os._name == 'posix')
+        OO00O00O000O00O0O .variants =set (('','X.Y'))#line:101:self.variants = set(('', 'X.Y'))
+        OO00O00O000O00O0O ._fileop =fileop or FileOperator (dry_run )#line:102:self._fileop = fileop or FileOperator(dry_run)
+        OO00O00O000O00O0O ._is_nt =os .name =='nt'or (os .name =='java'and os ._name =='nt')#line:105:os.name == 'java' and os._name == 'nt')
+    def _get_alternate_executable (O00OO0OO000OO000O ,OO0O0O00OO0OOOO0O ,OO0OO00OOOOOOO000 ):#line:107:def _get_alternate_executable(self, executable, options):
+        if OO0OO00OOOOOOO000 .get ('gui',False )and O00OO0OO000OO000O ._is_nt :#line:108:if options.get('gui', False) and self._is_nt:  # pragma: no cover
+            O00OO0000O00O00OO ,OO00OO0OO0OO000O0 =os .path .split (OO0O0O00OO0OOOO0O )#line:109:dn, fn = os.path.split(executable)
+            OO00OO0OO0OO000O0 =OO00OO0OO0OO000O0 .replace ('python','pythonw')#line:110:fn = fn.replace('python', 'pythonw')
+            OO0O0O00OO0OOOO0O =os .path .join (O00OO0000O00O00OO ,OO00OO0OO0OO000O0 )#line:111:executable = os.path.join(dn, fn)
+        return OO0O0O00OO0OOOO0O #line:112:return executable
+    if sys .platform .startswith ('java'):#line:114:if sys.platform.startswith('java'):  # pragma: no cover
+        def _is_shell (O0OO000OOOOOOO000 ,O00O0O0O0OO0O000O ):#line:115:def _is_shell(self, executable):
+            ""#line:119:"""
+            try :#line:120:try:
+                with open (O00O0O0O0OO0O000O )as O00O0OOO00OO0O00O :#line:121:with open(executable) as fp:
+                    return O00O0OOO00OO0O00O .read (2 )=='#!'#line:122:return fp.read(2) == '#!'
+            except (OSError ,IOError ):#line:123:except (OSError, IOError):
+                logger .warning ('Failed to open %s',O00O0O0O0OO0O000O )#line:124:logger.warning('Failed to open %s', executable)
+                return False #line:125:return False
+        def _fix_jython_executable (O0OO00OO0O000OOO0 ,OOO000O00OO000O00 ):#line:127:def _fix_jython_executable(self, executable):
+            if O0OO00OO0O000OOO0 ._is_shell (OOO000O00OO000O00 ):#line:128:if self._is_shell(executable):
+                import java #line:130:import java
+                if java .lang .System .getProperty ('os.name')=='Linux':#line:132:if java.lang.System.getProperty('os.name') == 'Linux':
+                    return OOO000O00OO000O00 #line:133:return executable
+            elif OOO000O00OO000O00 .lower ().endswith ('jython.exe'):#line:134:elif executable.lower().endswith('jython.exe'):
+                return OOO000O00OO000O00 #line:136:return executable
+            return '/usr/bin/env %s'%OOO000O00OO000O00 #line:137:return '/usr/bin/env %s' % executable
+    def _build_shebang (OOOOO0OO0O00O00O0 ,O0OO000OOOOO0O00O ,OO00O0OOOOO0OO0OO ):#line:139:def _build_shebang(self, executable, post_interp):
+        ""#line:149:"""
+        if os .name !='posix':#line:150:if os.name != 'posix':
+            OO00O00OOOO00OOOO =True #line:151:simple_shebang = True
+        else :#line:152:else:
+            OO000O00O00OO00O0 =len (O0OO000OOOOO0O00O )+len (OO00O0OOOOO0OO0OO )+3 #line:154:shebang_length = len(executable) + len(post_interp) + 3
+            if sys .platform =='darwin':#line:155:if sys.platform == 'darwin':
+                O00OO0O0O00OOO000 =512 #line:156:max_shebang_length = 512
+            else :#line:157:else:
+                O00OO0O0O00OOO000 =127 #line:158:max_shebang_length = 127
+            OO00O00OOOO00OOOO =((b' 'not in O0OO000OOOOO0O00O )and (OO000O00O00OO00O0 <=O00OO0O0O00OOO000 ))#line:160:(shebang_length <= max_shebang_length))
+        if OO00O00OOOO00OOOO :#line:162:if simple_shebang:
+            O0O0OO00OO0O0000O =b'#!'+O0OO000OOOOO0O00O +OO00O0OOOOO0OO0OO +b'\n'#line:163:result = b'#!' + executable + post_interp + b'\n'
+        else :#line:164:else:
+            O0O0OO00OO0O0000O =b'#!/bin/sh\n'#line:165:result = b'#!/bin/sh\n'
+            O0O0OO00OO0O0000O +=b"'''exec' "+O0OO000OOOOO0O00O +OO00O0OOOOO0OO0OO +b' "$0" "$@"\n'#line:166:result += b"'''exec' " + executable + post_interp + b' "$0" "$@"\n'
+            O0O0OO00OO0O0000O +=b"' '''"#line:167:result += b"' '''"
+        return O0O0OO00OO0O0000O #line:168:return result
+    def _get_shebang (OO00OO0OOO0OO00O0 ,O0000OO0O00OO000O ,post_interp =b'',options =None ):#line:170:def _get_shebang(self, encoding, post_interp=b'', options=None):
+        OO0000O0OO0OO000O =True #line:171:enquote = True
+        if OO00OO0OOO0OO00O0 .executable :#line:172:if self.executable:
+            OO00O0OOO00OOOOO0 =OO00OO0OOO0OO00O0 .executable #line:173:executable = self.executable
+            OO0000O0OO0OO000O =False #line:174:enquote = False     # assume this will be taken care of
+        elif not sysconfig .is_python_build ():#line:175:elif not sysconfig.is_python_build():
+            OO00O0OOO00OOOOO0 =get_executable ()#line:176:executable = get_executable()
+        elif in_venv ():#line:177:elif in_venv():  # pragma: no cover
+            OO00O0OOO00OOOOO0 =os .path .join (sysconfig .get_path ('scripts'),'python%s'%sysconfig .get_config_var ('EXE'))#line:179:'python%s' % sysconfig.get_config_var('EXE'))
+        else :#line:180:else:  # pragma: no cover
+            OO00O0OOO00OOOOO0 =os .path .join (sysconfig .get_config_var ('BINDIR'),'python%s%s'%(sysconfig .get_config_var ('VERSION'),sysconfig .get_config_var ('EXE')))#line:184:sysconfig.get_config_var('EXE')))
+        if options :#line:185:if options:
+            OO00O0OOO00OOOOO0 =OO00OO0OOO0OO00O0 ._get_alternate_executable (OO00O0OOO00OOOOO0 ,options )#line:186:executable = self._get_alternate_executable(executable, options)
+        if sys .platform .startswith ('java'):#line:188:if sys.platform.startswith('java'):  # pragma: no cover
+            OO00O0OOO00OOOOO0 =OO00OO0OOO0OO00O0 ._fix_jython_executable (OO00O0OOO00OOOOO0 )#line:189:executable = self._fix_jython_executable(executable)
+        OO00O0OOO00OOOOO0 =os .path .normcase (OO00O0OOO00OOOOO0 )#line:191:executable = os.path.normcase(executable)
+        if OO0000O0OO0OO000O :#line:194:if enquote:
+            OO00O0OOO00OOOOO0 =_O00000OO0O000OO0O (OO00O0OOO00OOOOO0 )#line:195:executable = _enquote_executable(executable)
+        OO00O0OOO00OOOOO0 =OO00O0OOO00OOOOO0 .encode ('utf-8')#line:198:executable = executable.encode('utf-8')
+        if (sys .platform =='cli'and '-X:Frames'not in post_interp and '-X:FullFrames'not in post_interp ):#line:201:and '-X:FullFrames' not in post_interp):  # pragma: no cover
+            post_interp +=b' -X:Frames'#line:202:post_interp += b' -X:Frames'
+        O0OO0OOOO0000O000 =OO00OO0OOO0OO00O0 ._build_shebang (OO00O0OOO00OOOOO0 ,post_interp )#line:203:shebang = self._build_shebang(executable, post_interp)
+        try :#line:209:try:
+            O0OO0OOOO0000O000 .decode ('utf-8')#line:210:shebang.decode('utf-8')
+        except UnicodeDecodeError :#line:211:except UnicodeDecodeError:  # pragma: no cover
+            raise ValueError ('The shebang (%r) is not decodable from utf-8'%O0OO0OOOO0000O000 )#line:213:'The shebang (%r) is not decodable from utf-8' % shebang)
+        if O0000OO0O00OO000O !='utf-8':#line:217:if encoding != 'utf-8':
+            try :#line:218:try:
+                O0OO0OOOO0000O000 .decode (O0000OO0O00OO000O )#line:219:shebang.decode(encoding)
+            except UnicodeDecodeError :#line:220:except UnicodeDecodeError:  # pragma: no cover
+                raise ValueError ('The shebang (%r) is not decodable ' 'from the script encoding (%r)'%(O0OO0OOOO0000O000 ,O0000OO0O00OO000O ))#line:223:'from the script encoding (%r)' % (shebang, encoding))
+        return O0OO0OOOO0000O000 #line:224:return shebang
+    def _get_script_text (OOO00O0O0O00O0O00 ,O0OOO0O0O0000O0OO ):#line:226:def _get_script_text(self, entry):
+        return OOO00O0O0O00O0O00 .script_template %dict (module =O0OOO0O0O0000O0OO .prefix ,func =O0OOO0O0O0000O0OO .suffix )#line:228:func=entry.suffix)
+    manifest =_OOOOOOOOO0OOO0000 #line:230:manifest = _DEFAULT_MANIFEST
+    def get_manifest (O00O0O0000OO0OO00 ,O0O0O00000O0O0O00 ):#line:232:def get_manifest(self, exename):
+        OOOOO00OO0OOOOO00 =os .path .basename (O0O0O00000O0O0O00 )#line:233:base = os.path.basename(exename)
+        return O00O0O0000OO0OO00 .manifest %OOOOO00OO0OOOOO00 #line:234:return self.manifest % base
+    def _write_script (OO000O000OO0OO000 ,OO00OOOO0OOOO00OO ,O0OOO00OO00O0OO0O ,O0000000OO0O0O00O ,OO0OOOO0O000000O0 ,O0OO000O00O00O0OO ):#line:236:def _write_script(self, names, shebang, script_bytes, filenames, ext):
+        OO00O00000O0O0O00 =OO000O000OO0OO000 .add_launchers and OO000O000OO0OO000 ._is_nt #line:237:use_launcher = self.add_launchers and self._is_nt
+        OOOOOOOOO00OO00OO =os .linesep .encode ('utf-8')#line:238:linesep = os.linesep.encode('utf-8')
+        if not O0OOO00OO00O0OO0O .endswith (OOOOOOOOO00OO00OO ):#line:239:if not shebang.endswith(linesep):
+            O0OOO00OO00O0OO0O +=OOOOOOOOO00OO00OO #line:240:shebang += linesep
+        if not OO00O00000O0O0O00 :#line:241:if not use_launcher:
+            O0000000OO0O0O00O =O0OOO00OO00O0OO0O +O0000000OO0O0O00O #line:242:script_bytes = shebang + script_bytes
+        else :#line:243:else:  # pragma: no cover
+            if O0OO000O00O00O0OO =='py':#line:244:if ext == 'py':
+                O00O0OO0O0000O0O0 =OO000O000OO0OO000 ._get_launcher ('t')#line:245:launcher = self._get_launcher('t')
+            else :#line:246:else:
+                O00O0OO0O0000O0O0 =OO000O000OO0OO000 ._get_launcher ('w')#line:247:launcher = self._get_launcher('w')
+            OOO000000O00OOO00 =BytesIO ()#line:248:stream = BytesIO()
+            with ZipFile (OOO000000O00OOO00 ,'w')as O00O0OO00OOOOO0O0 :#line:249:with ZipFile(stream, 'w') as zf:
+                O00O0OO00OOOOO0O0 .writestr ('__main__.py',O0000000OO0O0O00O )#line:250:zf.writestr('__main__.py', script_bytes)
+            OOOOO000O000000O0 =OOO000000O00OOO00 .getvalue ()#line:251:zip_data = stream.getvalue()
+            O0000000OO0O0O00O =O00O0OO0O0000O0O0 +O0OOO00OO00O0OO0O +OOOOO000O000000O0 #line:252:script_bytes = launcher + shebang + zip_data
+        for O0OOO000O000OO0O0 in OO00OOOO0OOOO00OO :#line:253:for name in names:
+            OO0OOO000OOOO000O =os .path .join (OO000O000OO0OO000 .target_dir ,O0OOO000O000OO0O0 )#line:254:outname = os.path.join(self.target_dir, name)
+            if OO00O00000O0O0O00 :#line:255:if use_launcher:  # pragma: no cover
+                OOOO0O00O0OO000O0 ,O0000O0O000O0OO00 =os .path .splitext (OO0OOO000OOOO000O )#line:256:n, e = os.path.splitext(outname)
+                if O0000O0O000O0OO00 .startswith ('.py'):#line:257:if e.startswith('.py'):
+                    OO0OOO000OOOO000O =OOOO0O00O0OO000O0 #line:258:outname = n
+                OO0OOO000OOOO000O ='%s.exe'%OO0OOO000OOOO000O #line:259:outname = '%s.exe' % outname
+                try :#line:260:try:
+                    OO000O000OO0OO000 ._fileop .write_binary_file (OO0OOO000OOOO000O ,O0000000OO0O0O00O )#line:261:self._fileop.write_binary_file(outname, script_bytes)
+                except Exception :#line:262:except Exception:
+                    logger .warning ('Failed to write executable - trying to ' 'use .deleteme logic')#line:265:'use .deleteme logic')
+                    O00OO0000OO0000O0 ='%s.deleteme'%OO0OOO000OOOO000O #line:266:dfname = '%s.deleteme' % outname
+                    if os .path .exists (O00OO0000OO0000O0 ):#line:267:if os.path.exists(dfname):
+                        os .remove (O00OO0000OO0000O0 )#line:268:os.remove(dfname)       # Not allowed to fail here
+                    os .rename (OO0OOO000OOOO000O ,O00OO0000OO0000O0 )#line:269:os.rename(outname, dfname)  # nor here
+                    OO000O000OO0OO000 ._fileop .write_binary_file (OO0OOO000OOOO000O ,O0000000OO0O0O00O )#line:270:self._fileop.write_binary_file(outname, script_bytes)
+                    logger .debug ('Able to replace executable using ' '.deleteme logic')#line:272:'.deleteme logic')
+                    try :#line:273:try:
+                        os .remove (O00OO0000OO0000O0 )#line:274:os.remove(dfname)
+                    except Exception :#line:275:except Exception:
+                        pass #line:276:pass    # still in use - ignore error
+            else :#line:277:else:
+                if OO000O000OO0OO000 ._is_nt and not OO0OOO000OOOO000O .endswith ('.'+O0OO000O00O00O0OO ):#line:278:if self._is_nt and not outname.endswith('.' + ext):  # pragma: no cover
+                    OO0OOO000OOOO000O ='%s.%s'%(OO0OOO000OOOO000O ,O0OO000O00O00O0OO )#line:279:outname = '%s.%s' % (outname, ext)
+                if os .path .exists (OO0OOO000OOOO000O )and not OO000O000OO0OO000 .clobber :#line:280:if os.path.exists(outname) and not self.clobber:
+                    logger .warning ('Skipping existing file %s',OO0OOO000OOOO000O )#line:281:logger.warning('Skipping existing file %s', outname)
+                    continue #line:282:continue
+                OO000O000OO0OO000 ._fileop .write_binary_file (OO0OOO000OOOO000O ,O0000000OO0O0O00O )#line:283:self._fileop.write_binary_file(outname, script_bytes)
+                if OO000O000OO0OO000 .set_mode :#line:284:if self.set_mode:
+                    OO000O000OO0OO000 ._fileop .set_executable_mode ([OO0OOO000OOOO000O ])#line:285:self._fileop.set_executable_mode([outname])
+            OO0OOOO0O000000O0 .append (OO0OOO000OOOO000O )#line:286:filenames.append(outname)
+    def _make_script (O0OO0O0O0OO00O000 ,OOO0O0OOOOOOO0OO0 ,O0OOOO000OO00OO0O ,options =None ):#line:288:def _make_script(self, entry, filenames, options=None):
+        O0O0O00O00O0O00O0 =b''#line:289:post_interp = b''
+        if options :#line:290:if options:
+            OO00O000O0OO0O0OO =options .get ('interpreter_args',[])#line:291:args = options.get('interpreter_args', [])
+            if OO00O000O0OO0O0OO :#line:292:if args:
+                OO00O000O0OO0O0OO =' %s'%' '.join (OO00O000O0OO0O0OO )#line:293:args = ' %s' % ' '.join(args)
+                O0O0O00O00O0O00O0 =OO00O000O0OO0O0OO .encode ('utf-8')#line:294:post_interp = args.encode('utf-8')
+        O000O0OO0000O0O0O =O0OO0O0O0OO00O000 ._get_shebang ('utf-8',O0O0O00O00O0O00O0 ,options =options )#line:295:shebang = self._get_shebang('utf-8', post_interp, options=options)
+        O00000O0000000000 =O0OO0O0O0OO00O000 ._get_script_text (OOO0O0OOOOOOO0OO0 ).encode ('utf-8')#line:296:script = self._get_script_text(entry).encode('utf-8')
+        O0OO000O000O0000O =OOO0O0OOOOOOO0OO0 .name #line:297:name = entry.name
+        OOO00OO0O0O0O0OOO =set ()#line:298:scriptnames = set()
+        if ''in O0OO0O0O0OO00O000 .variants :#line:299:if '' in self.variants:
+            OOO00OO0O0O0O0OOO .add (O0OO000O000O0000O )#line:300:scriptnames.add(name)
+        if 'X'in O0OO0O0O0OO00O000 .variants :#line:301:if 'X' in self.variants:
+            OOO00OO0O0O0O0OOO .add ('%s%s'%(O0OO000O000O0000O ,sys .version [0 ]))#line:302:scriptnames.add('%s%s' % (name, sys.version[0]))
+        if 'X.Y'in O0OO0O0O0OO00O000 .variants :#line:303:if 'X.Y' in self.variants:
+            OOO00OO0O0O0O0OOO .add ('%s-%s'%(O0OO000O000O0000O ,sys .version [:3 ]))#line:304:scriptnames.add('%s-%s' % (name, sys.version[:3]))
+        if options and options .get ('gui',False ):#line:305:if options and options.get('gui', False):
+            O00OO0O0OOO0OO0OO ='pyw'#line:306:ext = 'pyw'
+        else :#line:307:else:
+            O00OO0O0OOO0OO0OO ='py'#line:308:ext = 'py'
+        O0OO0O0O0OO00O000 ._write_script (OOO00OO0O0O0O0OOO ,O000O0OO0000O0O0O ,O00000O0000000000 ,O0OOOO000OO00OO0O ,O00OO0O0OOO0OO0OO )#line:309:self._write_script(scriptnames, shebang, script, filenames, ext)
+    def _copy_script (O0OO000O0O00000O0 ,O000OOO00000O0O0O ,OO0000OO00OOO0O0O ):#line:311:def _copy_script(self, script, filenames):
+        O000OO0O0OO00OO00 =False #line:312:adjust = False
+        O000OOO00000O0O0O =os .path .join (O0OO000O0O00000O0 .source_dir ,convert_path (O000OOO00000O0O0O ))#line:313:script = os.path.join(self.source_dir, convert_path(script))
+        OOO00OOOOOOOO000O =os .path .join (O0OO000O0O00000O0 .target_dir ,os .path .basename (O000OOO00000O0O0O ))#line:314:outname = os.path.join(self.target_dir, os.path.basename(script))
+        if not O0OO000O0O00000O0 .force and not O0OO000O0O00000O0 ._fileop .newer (O000OOO00000O0O0O ,OOO00OOOOOOOO000O ):#line:315:if not self.force and not self._fileop.newer(script, outname):
+            logger .debug ('not copying %s (up-to-date)',O000OOO00000O0O0O )#line:316:logger.debug('not copying %s (up-to-date)', script)
+            return #line:317:return
+        try :#line:322:try:
+            O0O0O0OOOOOOOO000 =open (O000OOO00000O0O0O ,'rb')#line:323:f = open(script, 'rb')
+        except IOError :#line:324:except IOError:  # pragma: no cover
+            if not O0OO000O0O00000O0 .dry_run :#line:325:if not self.dry_run:
+                raise #line:326:raise
+            O0O0O0OOOOOOOO000 =None #line:327:f = None
+        else :#line:328:else:
+            OOOO000OO00OO000O =O0O0O0OOOOOOOO000 .readline ()#line:329:first_line = f.readline()
+            if not OOOO000OO00OO000O :#line:330:if not first_line:  # pragma: no cover
+                logger .warning ('%s: %s is an empty file (skipping)',O0OO000O0O00000O0 .get_command_name (),O000OOO00000O0O0O )#line:332:self.get_command_name(),  script)
+                return #line:333:return
+            OO000O0000O00O00O =FIRST_LINE_RE .match (OOOO000OO00OO000O .replace (b'\r\n',b'\n'))#line:335:match = FIRST_LINE_RE.match(first_line.replace(b'\r\n', b'\n'))
+            if OO000O0000O00O00O :#line:336:if match:
+                O000OO0O0OO00OO00 =True #line:337:adjust = True
+                OO0OOOO000O0000O0 =OO000O0000O00O00O .group (1 )or b''#line:338:post_interp = match.group(1) or b''
+        if not O000OO0O0OO00OO00 :#line:340:if not adjust:
+            if O0O0O0OOOOOOOO000 :#line:341:if f:
+                O0O0O0OOOOOOOO000 .close ()#line:342:f.close()
+            O0OO000O0O00000O0 ._fileop .copy_file (O000OOO00000O0O0O ,OOO00OOOOOOOO000O )#line:343:self._fileop.copy_file(script, outname)
+            if O0OO000O0O00000O0 .set_mode :#line:344:if self.set_mode:
+                O0OO000O0O00000O0 ._fileop .set_executable_mode ([OOO00OOOOOOOO000O ])#line:345:self._fileop.set_executable_mode([outname])
+            OO0000OO00OOO0O0O .append (OOO00OOOOOOOO000O )#line:346:filenames.append(outname)
+        else :#line:347:else:
+            logger .info ('copying and adjusting %s -> %s',O000OOO00000O0O0O ,O0OO000O0O00000O0 .target_dir )#line:349:self.target_dir)
+            if not O0OO000O0O00000O0 ._fileop .dry_run :#line:350:if not self._fileop.dry_run:
+                OOOO0O0O0O0OO00O0 ,OOOO000OO0O0O0O0O =detect_encoding (O0O0O0OOOOOOOO000 .readline )#line:351:encoding, lines = detect_encoding(f.readline)
+                O0O0O0OOOOOOOO000 .seek (0 )#line:352:f.seek(0)
+                O00OO0000O0000OOO =O0OO000O0O00000O0 ._get_shebang (OOOO0O0O0O0OO00O0 ,OO0OOOO000O0000O0 )#line:353:shebang = self._get_shebang(encoding, post_interp)
+                if b'pythonw'in OOOO000OO00OO000O :#line:354:if b'pythonw' in first_line:  # pragma: no cover
+                    O0OOO000OOO000O0O ='pyw'#line:355:ext = 'pyw'
+                else :#line:356:else:
+                    O0OOO000OOO000O0O ='py'#line:357:ext = 'py'
+                O00O0O0O0000OOOOO =os .path .basename (OOO00OOOOOOOO000O )#line:358:n = os.path.basename(outname)
+                O0OO000O0O00000O0 ._write_script ([O00O0O0O0000OOOOO ],O00OO0000O0000OOO ,O0O0O0OOOOOOOO000 .read (),OO0000OO00OOO0O0O ,O0OOO000OOO000O0O )#line:359:self._write_script([n], shebang, f.read(), filenames, ext)
+            if O0O0O0OOOOOOOO000 :#line:360:if f:
+                O0O0O0OOOOOOOO000 .close ()#line:361:f.close()
+    @property #line:363:@property
+    def dry_run (OO0O00OO00OOO0O0O ):#line:364:def dry_run(self):
+        return OO0O00OO00OOO0O0O ._fileop .dry_run #line:365:return self._fileop.dry_run
+    @dry_run .setter #line:367:@dry_run.setter
+    def dry_run (OOOO0OO0OOO0O0O0O ,O0OO00O0OOOOO0OOO ):#line:368:def dry_run(self, value):
+        OOOO0OO0OOO0O0O0O ._fileop .dry_run =O0OO00O0OOOOO0OOO #line:369:self._fileop.dry_run = value
+    if os .name =='nt'or (os .name =='java'and os ._name =='nt'):#line:371:if os.name == 'nt' or (os.name == 'java' and os._name == 'nt'):  # pragma: no cover
+        def _get_launcher (O0OO0OOO00O00O00O ,OO00O00O0O0OO00OO ):#line:375:def _get_launcher(self, kind):
+            if struct .calcsize ('P')==8 :#line:376:if struct.calcsize('P') == 8:   # 64-bit
+                O0000000O0O0OOOO0 ='64'#line:377:bits = '64'
+            else :#line:378:else:
+                O0000000O0O0OOOO0 ='32'#line:379:bits = '32'
+            O0OOO00OOO00OO0OO ='%s%s.exe'%(OO00O00O0O0OO00OO ,O0000000O0O0OOOO0 )#line:380:name = '%s%s.exe' % (kind, bits)
+            OOO0000O0000O0OOO =__name__ .rsplit ('.',1 )[0 ]#line:383:distlib_package = __name__.rsplit('.', 1)[0]
+            OOO00000O00000O0O =finder (OOO0000O0000O0OOO ).find (O0OOO00OOO00OO0OO ).bytes #line:384:result = finder(distlib_package).find(name).bytes
+            return OOO00000O00000O0O #line:385:return result
+    def make (OOO000O00O0000OO0 ,O000OO0O0O0OOOO0O ,options =None ):#line:389:def make(self, specification, options=None):
+        ""#line:399:"""
+        OOOOO00O0OO00OOOO =[]#line:400:filenames = []
+        OO0OO0O00O00O0OOO =get_export_entry (O000OO0O0O0OOOO0O )#line:401:entry = get_export_entry(specification)
+        if OO0OO0O00O00O0OOO is None :#line:402:if entry is None:
+            OOO000O00O0000OO0 ._copy_script (O000OO0O0O0OOOO0O ,OOOOO00O0OO00OOOO )#line:403:self._copy_script(specification, filenames)
+        else :#line:404:else:
+            OOO000O00O0000OO0 ._make_script (OO0OO0O00O00O0OOO ,OOOOO00O0OO00OOOO ,options =options )#line:405:self._make_script(entry, filenames, options=options)
+        return OOOOO00O0OO00OOOO #line:406:return filenames
+    def make_multiple (OOO0O00OO0000000O ,OOO0O00OO0OO0000O ,options =None ):#line:408:def make_multiple(self, specifications, options=None):
+        ""#line:413:"""
+        O0OO00OOO0O0OO0O0 =[]#line:414:filenames = []
+        for OO0000OOO00O0O000 in OOO0O00OO0OO0000O :#line:415:for specification in specifications:
+            O0OO00OOO0O0OO0O0 .extend (OOO0O00OO0000000O .make (OO0000OOO00O0O000 ,options ))#line:416:filenames.extend(self.make(specification, options))
+        return O0OO00OOO0O0OO0O0 #line:417:return filenames

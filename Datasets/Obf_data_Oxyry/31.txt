@@ -1,0 +1,265 @@
+import hashlib #line:7:import hashlib
+import logging #line:8:import logging
+import os #line:9:import os
+import shutil #line:10:import shutil
+import subprocess #line:11:import subprocess
+import tempfile #line:12:import tempfile
+try :#line:13:try:
+    from threading import Thread #line:14:from threading import Thread
+except ImportError :#line:15:except ImportError:
+    from dummy_threading import Thread #line:16:from dummy_threading import Thread
+from .import DistlibException #line:18:from . import DistlibException
+from .compat import (HTTPBasicAuthHandler ,Request ,HTTPPasswordMgr ,urlparse ,build_opener ,string_types )#line:20:urlparse, build_opener, string_types)
+from .util import cached_property ,zip_dir ,ServerProxy #line:21:from .util import cached_property, zip_dir, ServerProxy
+logger =logging .getLogger (__name__ )#line:23:logger = logging.getLogger(__name__)
+DEFAULT_INDEX ='https://pypi.python.org/pypi'#line:25:DEFAULT_INDEX = 'https://pypi.python.org/pypi'
+DEFAULT_REALM ='pypi'#line:26:DEFAULT_REALM = 'pypi'
+class PackageIndex (object ):#line:28:class PackageIndex(object):
+    ""#line:32:"""
+    boundary =b'----------ThIs_Is_tHe_distlib_index_bouNdaRY_$'#line:34:boundary = b'----------ThIs_Is_tHe_distlib_index_bouNdaRY_$'
+    def __init__ (O00O000O0OO0O00OO ,url =None ):#line:36:def __init__(self, url=None):
+        ""#line:42:"""
+        O00O000O0OO0O00OO .url =url or DEFAULT_INDEX #line:43:self.url = url or DEFAULT_INDEX
+        O00O000O0OO0O00OO .read_configuration ()#line:44:self.read_configuration()
+        OO0OOO0O0OOO000O0 ,OOOO0O000O0O0OO00 ,O000O000O0OO0OOOO ,O0OO00O0OO00OOO00 ,OO00O0OOOO0O00O0O ,OOOOOO0O0OO000O00 =urlparse (O00O000O0OO0O00OO .url )#line:45:scheme, netloc, path, params, query, frag = urlparse(self.url)
+        if O0OO00O0OO00OOO00 or OO00O0OOOO0O00O0O or OOOOOO0O0OO000O00 or OO0OOO0O0OOO000O0 not in ('http','https'):#line:46:if params or query or frag or scheme not in ('http', 'https'):
+            raise DistlibException ('invalid repository: %s'%O00O000O0OO0O00OO .url )#line:47:raise DistlibException('invalid repository: %s' % self.url)
+        O00O000O0OO0O00OO .password_handler =None #line:48:self.password_handler = None
+        O00O000O0OO0O00OO .ssl_verifier =None #line:49:self.ssl_verifier = None
+        O00O000O0OO0O00OO .gpg =None #line:50:self.gpg = None
+        O00O000O0OO0O00OO .gpg_home =None #line:51:self.gpg_home = None
+        with open (os .devnull ,'w')as O000OO00OOO0OOO0O :#line:52:with open(os.devnull, 'w') as sink:
+            for O0000O000000O00O0 in ('gpg','gpg2'):#line:55:for s in ('gpg', 'gpg2'):
+                try :#line:56:try:
+                    O000O00OOO000OO0O =subprocess .check_call ([O0000O000000O00O0 ,'--version'],stdout =O000OO00OOO0OOO0O ,stderr =O000OO00OOO0OOO0O )#line:58:stderr=sink)
+                    if O000O00OOO000OO0O ==0 :#line:59:if rc == 0:
+                        O00O000O0OO0O00OO .gpg =O0000O000000O00O0 #line:60:self.gpg = s
+                        break #line:61:break
+                except OSError :#line:62:except OSError:
+                    pass #line:63:pass
+    def _get_pypirc_command (OOOO00O00OO0O0OO0 ):#line:65:def _get_pypirc_command(self):
+        ""#line:69:"""
+        from distutils .core import Distribution #line:70:from distutils.core import Distribution
+        from distutils .config import PyPIRCCommand #line:71:from distutils.config import PyPIRCCommand
+        OOOO0000OO0OOO00O =Distribution ()#line:72:d = Distribution()
+        return PyPIRCCommand (OOOO0000OO0OOO00O )#line:73:return PyPIRCCommand(d)
+    def read_configuration (OOOOOOO0O0O00OO0O ):#line:75:def read_configuration(self):
+        ""#line:80:"""
+        O0OOO0O0O0O00OO0O =OOOOOOO0O0O00OO0O ._get_pypirc_command ()#line:82:c = self._get_pypirc_command()
+        O0OOO0O0O0O00OO0O .repository =OOOOOOO0O0O00OO0O .url #line:83:c.repository = self.url
+        OOOOO000OO000O0O0 =O0OOO0O0O0O00OO0O ._read_pypirc ()#line:84:cfg = c._read_pypirc()
+        OOOOOOO0O0O00OO0O .username =OOOOO000OO000O0O0 .get ('username')#line:85:self.username = cfg.get('username')
+        OOOOOOO0O0O00OO0O .password =OOOOO000OO000O0O0 .get ('password')#line:86:self.password = cfg.get('password')
+        OOOOOOO0O0O00OO0O .realm =OOOOO000OO000O0O0 .get ('realm','pypi')#line:87:self.realm = cfg.get('realm', 'pypi')
+        OOOOOOO0O0O00OO0O .url =OOOOO000OO000O0O0 .get ('repository',OOOOOOO0O0O00OO0O .url )#line:88:self.url = cfg.get('repository', self.url)
+    def save_configuration (OO000000OO00OOO0O ):#line:90:def save_configuration(self):
+        ""#line:96:"""
+        OO000000OO00OOO0O .check_credentials ()#line:97:self.check_credentials()
+        O00000OO0OO0O00O0 =OO000000OO00OOO0O ._get_pypirc_command ()#line:99:c = self._get_pypirc_command()
+        O00000OO0OO0O00O0 ._store_pypirc (OO000000OO00OOO0O .username ,OO000000OO00OOO0O .password )#line:100:c._store_pypirc(self.username, self.password)
+    def check_credentials (O0OOO0O0O0O0OOO0O ):#line:102:def check_credentials(self):
+        ""#line:106:"""
+        if O0OOO0O0O0O0OOO0O .username is None or O0OOO0O0O0O0OOO0O .password is None :#line:107:if self.username is None or self.password is None:
+            raise DistlibException ('username and password must be set')#line:108:raise DistlibException('username and password must be set')
+        O0O0OO00O0OO0O000 =HTTPPasswordMgr ()#line:109:pm = HTTPPasswordMgr()
+        _O0O00O0OOOOOOO000 ,O0O00000OOO00OOOO ,_O0O00O0OOOOOOO000 ,_O0O00O0OOOOOOO000 ,_O0O00O0OOOOOOO000 ,_O0O00O0OOOOOOO000 =urlparse (O0OOO0O0O0O0OOO0O .url )#line:110:_, netloc, _, _, _, _ = urlparse(self.url)
+        O0O0OO00O0OO0O000 .add_password (O0OOO0O0O0O0OOO0O .realm ,O0O00000OOO00OOOO ,O0OOO0O0O0O0OOO0O .username ,O0OOO0O0O0O0OOO0O .password )#line:111:pm.add_password(self.realm, netloc, self.username, self.password)
+        O0OOO0O0O0O0OOO0O .password_handler =HTTPBasicAuthHandler (O0O0OO00O0OO0O000 )#line:112:self.password_handler = HTTPBasicAuthHandler(pm)
+    def register (O0000O0O0OOO0O000 ,O00OO0O0O0000OO00 ):#line:114:def register(self, metadata):
+        ""#line:123:"""
+        O0000O0O0OOO0O000 .check_credentials ()#line:124:self.check_credentials()
+        O00OO0O0O0000OO00 .validate ()#line:125:metadata.validate()
+        O0O0000O0000O0O00 =O00OO0O0O0000OO00 .todict ()#line:126:d = metadata.todict()
+        O0O0000O0000O0O00 [':action']='verify'#line:127:d[':action'] = 'verify'
+        OO00O000OO0000OO0 =O0000O0O0OOO0O000 .encode_request (O0O0000O0000O0O00 .items (),[])#line:128:request = self.encode_request(d.items(), [])
+        O00000OO000O0O00O =O0000O0O0OOO0O000 .send_request (OO00O000OO0000OO0 )#line:129:response = self.send_request(request)
+        O0O0000O0000O0O00 [':action']='submit'#line:130:d[':action'] = 'submit'
+        OO00O000OO0000OO0 =O0000O0O0OOO0O000 .encode_request (O0O0000O0000O0O00 .items (),[])#line:131:request = self.encode_request(d.items(), [])
+        return O0000O0O0OOO0O000 .send_request (OO00O000OO0000OO0 )#line:132:return self.send_request(request)
+    def _reader (O0OOO0OO0000000O0 ,O0OOOO0000000OOO0 ,OO0OO00OO000O0O0O ,OO0OOO0O0O00OO0OO ):#line:134:def _reader(self, name, stream, outbuf):
+        ""#line:142:"""
+        while True :#line:143:while True:
+            O0OO0OO0000OOOOO0 =OO0OO00OO000O0O0O .readline ()#line:144:s = stream.readline()
+            if not O0OO0OO0000OOOOO0 :#line:145:if not s:
+                break #line:146:break
+            O0OO0OO0000OOOOO0 =O0OO0OO0000OOOOO0 .decode ('utf-8').rstrip ()#line:147:s = s.decode('utf-8').rstrip()
+            OO0OOO0O0O00OO0OO .append (O0OO0OO0000OOOOO0 )#line:148:outbuf.append(s)
+            logger .debug ('%s: %s'%(O0OOOO0000000OOO0 ,O0OO0OO0000OOOOO0 ))#line:149:logger.debug('%s: %s' % (name, s))
+        OO0OO00OO000O0O0O .close ()#line:150:stream.close()
+    def get_sign_command (OO000OO00000OOOO0 ,O0OOO0O0O000O00OO ,O0OO00O0000O0O00O ,OO0O000000OO0OOOO ,keystore =None ):#line:153:keystore=None):
+        ""#line:166:"""
+        O0OO0OO000OO0OOO0 =[OO000OO00000OOOO0 .gpg ,'--status-fd','2','--no-tty']#line:167:cmd = [self.gpg, '--status-fd', '2', '--no-tty']
+        if keystore is None :#line:168:if keystore is None:
+            keystore =OO000OO00000OOOO0 .gpg_home #line:169:keystore = self.gpg_home
+        if keystore :#line:170:if keystore:
+            O0OO0OO000OO0OOO0 .extend (['--homedir',keystore ])#line:171:cmd.extend(['--homedir', keystore])
+        if OO0O000000OO0OOOO is not None :#line:172:if sign_password is not None:
+            O0OO0OO000OO0OOO0 .extend (['--batch','--passphrase-fd','0'])#line:173:cmd.extend(['--batch', '--passphrase-fd', '0'])
+        OO0OO0OOOO00OO00O =tempfile .mkdtemp ()#line:174:td = tempfile.mkdtemp()
+        OOO000OOO0OO000OO =os .path .join (OO0OO0OOOO00OO00O ,os .path .basename (O0OOO0O0O000O00OO )+'.asc')#line:175:sf = os.path.join(td, os.path.basename(filename) + '.asc')
+        O0OO0OO000OO0OOO0 .extend (['--detach-sign','--armor','--local-user',O0OO00O0000O0O00O ,'--output',OOO000OOO0OO000OO ,O0OOO0O0O000O00OO ])#line:177:signer, '--output', sf, filename])
+        logger .debug ('invoking: %s',' '.join (O0OO0OO000OO0OOO0 ))#line:178:logger.debug('invoking: %s', ' '.join(cmd))
+        return O0OO0OO000OO0OOO0 ,OOO000OOO0OO000OO #line:179:return cmd, sf
+    def run_command (O0O0OOOOO0OO0OOOO ,OOO00O00OOO00OOOO ,input_data =None ):#line:181:def run_command(self, cmd, input_data=None):
+        ""#line:191:"""
+        OO0O0O00O0OO000OO ={'stdout':subprocess .PIPE ,'stderr':subprocess .PIPE ,}#line:195:}
+        if input_data is not None :#line:196:if input_data is not None:
+            OO0O0O00O0OO000OO ['stdin']=subprocess .PIPE #line:197:kwargs['stdin'] = subprocess.PIPE
+        O0OOOO00O0O0000O0 =[]#line:198:stdout = []
+        O0O0O000OOOO0OO0O =[]#line:199:stderr = []
+        O0O0OO00O00O000O0 =subprocess .Popen (OOO00O00OOO00OOOO ,**OO0O0O00O0OO000OO )#line:200:p = subprocess.Popen(cmd, **kwargs)
+        O0O0O000O0O000OOO =Thread (target =O0O0OOOOO0OO0OOOO ._reader ,args =('stdout',O0O0OO00O00O000O0 .stdout ,O0OOOO00O0O0000O0 ))#line:203:t1 = Thread(target=self._reader, args=('stdout', p.stdout, stdout))
+        O0O0O000O0O000OOO .start ()#line:204:t1.start()
+        O0O00OO0OO0OOOO00 =Thread (target =O0O0OOOOO0OO0OOOO ._reader ,args =('stderr',O0O0OO00O00O000O0 .stderr ,O0O0O000OOOO0OO0O ))#line:205:t2 = Thread(target=self._reader, args=('stderr', p.stderr, stderr))
+        O0O00OO0OO0OOOO00 .start ()#line:206:t2.start()
+        if input_data is not None :#line:207:if input_data is not None:
+            O0O0OO00O00O000O0 .stdin .write (input_data )#line:208:p.stdin.write(input_data)
+            O0O0OO00O00O000O0 .stdin .close ()#line:209:p.stdin.close()
+        O0O0OO00O00O000O0 .wait ()#line:211:p.wait()
+        O0O0O000O0O000OOO .join ()#line:212:t1.join()
+        O0O00OO0OO0OOOO00 .join ()#line:213:t2.join()
+        return O0O0OO00O00O000O0 .returncode ,O0OOOO00O0O0000O0 ,O0O0O000OOOO0OO0O #line:214:return p.returncode, stdout, stderr
+    def sign_file (O00OOOO0O0OOO0000 ,O0000OO00O0OO000O ,O0OOOO00OOO0OOOOO ,O00O0OO00OO0O0O0O ,keystore =None ):#line:216:def sign_file(self, filename, signer, sign_password, keystore=None):
+        ""#line:229:"""
+        OO0O0OO000OO0O0O0 ,O0000OO0OO0OOO00O =O00OOOO0O0OOO0000 .get_sign_command (O0000OO00O0OO000O ,O0OOOO00OOO0OOOOO ,O00O0OO00OO0O0O0O ,keystore )#line:231:keystore)
+        OOOO000OOOOO00000 ,OO0OOOOOO00O0OOO0 ,OOOOOO000000O000O =O00OOOO0O0OOO0000 .run_command (OO0O0OO000OO0O0O0 ,O00O0OO00OO0O0O0O .encode ('utf-8'))#line:233:sign_password.encode('utf-8'))
+        if OOOO000OOOOO00000 !=0 :#line:234:if rc != 0:
+            raise DistlibException ('sign command failed with error ' 'code %s'%OOOO000OOOOO00000 )#line:236:'code %s' % rc)
+        return O0000OO0OO0OOO00O #line:237:return sig_file
+    def upload_file (OO0O0OO000OO0OOO0 ,OO0O0OOOO000O0OO0 ,OOO00OOO0OO00OOO0 ,signer =None ,sign_password =None ,filetype ='sdist',pyversion ='source',keystore =None ):#line:240:filetype='sdist', pyversion='source', keystore=None):
+        ""#line:261:"""
+        OO0O0OO000OO0OOO0 .check_credentials ()#line:262:self.check_credentials()
+        if not os .path .exists (OOO00OOO0OO00OOO0 ):#line:263:if not os.path.exists(filename):
+            raise DistlibException ('not found: %s'%OOO00OOO0OO00OOO0 )#line:264:raise DistlibException('not found: %s' % filename)
+        OO0O0OOOO000O0OO0 .validate ()#line:265:metadata.validate()
+        OO0O0OOOOOOO0O000 =OO0O0OOOO000O0OO0 .todict ()#line:266:d = metadata.todict()
+        OO00OO00O0O000OOO =None #line:267:sig_file = None
+        if signer :#line:268:if signer:
+            if not OO0O0OO000OO0OOO0 .gpg :#line:269:if not self.gpg:
+                logger .warning ('no signing program available - not signed')#line:270:logger.warning('no signing program available - not signed')
+            else :#line:271:else:
+                OO00OO00O0O000OOO =OO0O0OO000OO0OOO0 .sign_file (OOO00OOO0OO00OOO0 ,signer ,sign_password ,keystore )#line:273:keystore)
+        with open (OOO00OOO0OO00OOO0 ,'rb')as OOO000OOO0OOOOO00 :#line:274:with open(filename, 'rb') as f:
+            OO000O00OOOO000OO =OOO000OOO0OOOOO00 .read ()#line:275:file_data = f.read()
+        O00OOOOO0O0000OO0 =hashlib .md5 (OO000O00OOOO000OO ).hexdigest ()#line:276:md5_digest = hashlib.md5(file_data).hexdigest()
+        OOOO0OOOO0OOOOOOO =hashlib .sha256 (OO000O00OOOO000OO ).hexdigest ()#line:277:sha256_digest = hashlib.sha256(file_data).hexdigest()
+        OO0O0OOOOOOO0O000 .update ({':action':'file_upload','protocol_version':'1','filetype':filetype ,'pyversion':pyversion ,'md5_digest':O00OOOOO0O0000OO0 ,'sha256_digest':OOOO0OOOO0OOOOOOO ,})#line:285:})
+        O00000000OO0O00OO =[('content',os .path .basename (OOO00OOO0OO00OOO0 ),OO000O00OOOO000OO )]#line:286:files = [('content', os.path.basename(filename), file_data)]
+        if OO00OO00O0O000OOO :#line:287:if sig_file:
+            with open (OO00OO00O0O000OOO ,'rb')as OOO000OOO0OOOOO00 :#line:288:with open(sig_file, 'rb') as f:
+                OOOO0OO0OOOOOO0O0 =OOO000OOO0OOOOO00 .read ()#line:289:sig_data = f.read()
+            O00000000OO0O00OO .append (('gpg_signature',os .path .basename (OO00OO00O0O000OOO ),OOOO0OO0OOOOOO0O0 ))#line:291:sig_data))
+            shutil .rmtree (os .path .dirname (OO00OO00O0O000OOO ))#line:292:shutil.rmtree(os.path.dirname(sig_file))
+        O00OO0O0O00OOO000 =OO0O0OO000OO0OOO0 .encode_request (OO0O0OOOOOOO0O000 .items (),O00000000OO0O00OO )#line:293:request = self.encode_request(d.items(), files)
+        return OO0O0OO000OO0OOO0 .send_request (O00OO0O0O00OOO000 )#line:294:return self.send_request(request)
+    def upload_documentation (O0OO00OOOOO00O000 ,OOO0OOO000O0OO00O ,OO0O0000O00O0O0OO ):#line:296:def upload_documentation(self, metadata, doc_dir):
+        ""#line:308:"""
+        O0OO00OOOOO00O000 .check_credentials ()#line:309:self.check_credentials()
+        if not os .path .isdir (OO0O0000O00O0O0OO ):#line:310:if not os.path.isdir(doc_dir):
+            raise DistlibException ('not a directory: %r'%OO0O0000O00O0O0OO )#line:311:raise DistlibException('not a directory: %r' % doc_dir)
+        O0OO00OOO0O0O0OO0 =os .path .join (OO0O0000O00O0O0OO ,'index.html')#line:312:fn = os.path.join(doc_dir, 'index.html')
+        if not os .path .exists (O0OO00OOO0O0O0OO0 ):#line:313:if not os.path.exists(fn):
+            raise DistlibException ('not found: %r'%O0OO00OOO0O0O0OO0 )#line:314:raise DistlibException('not found: %r' % fn)
+        OOO0OOO000O0OO00O .validate ()#line:315:metadata.validate()
+        OOO0O0O0O0000OO0O ,O0OO0OO0OO00OO0O0 =OOO0OOO000O0OO00O .name ,OOO0OOO000O0OO00O .version #line:316:name, version = metadata.name, metadata.version
+        OO000OOO00OOOO000 =zip_dir (OO0O0000O00O0O0OO ).getvalue ()#line:317:zip_data = zip_dir(doc_dir).getvalue()
+        OO0O0O00O000OO000 =[(':action','doc_upload'),('name',OOO0O0O0O0000OO0O ),('version',O0OO0OO0OO00OO0O0 )]#line:319:('name', name), ('version', version)]
+        OOOO0000OOO0000O0 =[('content',OOO0O0O0O0000OO0O ,OO000OOO00OOOO000 )]#line:320:files = [('content', name, zip_data)]
+        O0O0OOOO0OOOO0O00 =O0OO00OOOOO00O000 .encode_request (OO0O0O00O000OO000 ,OOOO0000OOO0000O0 )#line:321:request = self.encode_request(fields, files)
+        return O0OO00OOOOO00O000 .send_request (O0O0OOOO0OOOO0O00 )#line:322:return self.send_request(request)
+    def get_verify_command (O0000000O0OO000O0 ,O00OOO0OO0OO0O00O ,OO00000OOO00OO00O ,keystore =None ):#line:325:keystore=None):
+        ""#line:338:"""
+        O00OO0O00OOO0OOOO =[O0000000O0OO000O0 .gpg ,'--status-fd','2','--no-tty']#line:339:cmd = [self.gpg, '--status-fd', '2', '--no-tty']
+        if keystore is None :#line:340:if keystore is None:
+            keystore =O0000000O0OO000O0 .gpg_home #line:341:keystore = self.gpg_home
+        if keystore :#line:342:if keystore:
+            O00OO0O00OOO0OOOO .extend (['--homedir',keystore ])#line:343:cmd.extend(['--homedir', keystore])
+        O00OO0O00OOO0OOOO .extend (['--verify',O00OOO0OO0OO0O00O ,OO00000OOO00OO00O ])#line:344:cmd.extend(['--verify', signature_filename, data_filename])
+        logger .debug ('invoking: %s',' '.join (O00OO0O00OOO0OOOO ))#line:345:logger.debug('invoking: %s', ' '.join(cmd))
+        return O00OO0O00OOO0OOOO #line:346:return cmd
+    def verify_signature (OO0O0OO0O000OO00O ,OO0OO000OOO0OOO0O ,OOOOOO00OO000O0OO ,keystore =None ):#line:349:keystore=None):
+        ""#line:361:"""
+        if not OO0O0OO0O000OO00O .gpg :#line:362:if not self.gpg:
+            raise DistlibException ('verification unavailable because gpg ' 'unavailable')#line:364:'unavailable')
+        O0OOO000OOOOO0000 =OO0O0OO0O000OO00O .get_verify_command (OO0OO000OOO0OOO0O ,OOOOOO00OO000O0OO ,keystore )#line:366:keystore)
+        OO000OOO0O0O00O0O ,O0O000OO00O0OO00O ,O0O0OOOO0OOOOOOOO =OO0O0OO0O000OO00O .run_command (O0OOO000OOOOO0000 )#line:367:rc, stdout, stderr = self.run_command(cmd)
+        if OO000OOO0O0O00O0O not in (0 ,1 ):#line:368:if rc not in (0, 1):
+            raise DistlibException ('verify command failed with error ' 'code %s'%OO000OOO0O0O00O0O )#line:370:'code %s' % rc)
+        return OO000OOO0O0O00O0O ==0 #line:371:return rc == 0
+    def download_file (OOOOOO00OOO0O00O0 ,OO00O0OOOO00000OO ,OOOOO0O00OOO0O0OO ,digest =None ,reporthook =None ):#line:373:def download_file(self, url, destfile, digest=None, reporthook=None):
+        ""#line:394:"""
+        if digest is None :#line:395:if digest is None:
+            O00O00O00O0OOO000 =None #line:396:digester = None
+            logger .debug ('No digest specified')#line:397:logger.debug('No digest specified')
+        else :#line:398:else:
+            if isinstance (digest ,(list ,tuple )):#line:399:if isinstance(digest, (list, tuple)):
+                O0O00O00O00000OOO ,digest =digest #line:400:hasher, digest = digest
+            else :#line:401:else:
+                O0O00O00O00000OOO ='md5'#line:402:hasher = 'md5'
+            O00O00O00O0OOO000 =getattr (hashlib ,O0O00O00O00000OOO )()#line:403:digester = getattr(hashlib, hasher)()
+            logger .debug ('Digest specified: %s'%digest )#line:404:logger.debug('Digest specified: %s' % digest)
+        with open (OOOOO0O00OOO0O0OO ,'wb')as O00OO000O0OO0O0OO :#line:408:with open(destfile, 'wb') as dfp:
+            O0O000OOOOO0OOO00 =OOOOOO00OOO0O00O0 .send_request (Request (OO00O0OOOO00000OO ))#line:411:sfp = self.send_request(Request(url))
+            try :#line:412:try:
+                OO00OO00OO000OO00 =O0O000OOOOO0OOO00 .info ()#line:413:headers = sfp.info()
+                O0OOOOO00OO000OOO =8192 #line:414:blocksize = 8192
+                O0O0OO0O0OO00O0OO =-1 #line:415:size = -1
+                OO00O00O0000O0OO0 =0 #line:416:read = 0
+                OO0OOO0000OO0000O =0 #line:417:blocknum = 0
+                if "content-length"in OO00OO00OO000OO00 :#line:418:if "content-length" in headers:
+                    O0O0OO0O0OO00O0OO =int (OO00OO00OO000OO00 ["Content-Length"])#line:419:size = int(headers["Content-Length"])
+                if reporthook :#line:420:if reporthook:
+                    reporthook (OO0OOO0000OO0000O ,O0OOOOO00OO000OOO ,O0O0OO0O0OO00O0OO )#line:421:reporthook(blocknum, blocksize, size)
+                while True :#line:422:while True:
+                    OOO00O00O00OOOOO0 =O0O000OOOOO0OOO00 .read (O0OOOOO00OO000OOO )#line:423:block = sfp.read(blocksize)
+                    if not OOO00O00O00OOOOO0 :#line:424:if not block:
+                        break #line:425:break
+                    OO00O00O0000O0OO0 +=len (OOO00O00O00OOOOO0 )#line:426:read += len(block)
+                    O00OO000O0OO0O0OO .write (OOO00O00O00OOOOO0 )#line:427:dfp.write(block)
+                    if O00O00O00O0OOO000 :#line:428:if digester:
+                        O00O00O00O0OOO000 .update (OOO00O00O00OOOOO0 )#line:429:digester.update(block)
+                    OO0OOO0000OO0000O +=1 #line:430:blocknum += 1
+                    if reporthook :#line:431:if reporthook:
+                        reporthook (OO0OOO0000OO0000O ,O0OOOOO00OO000OOO ,O0O0OO0O0OO00O0OO )#line:432:reporthook(blocknum, blocksize, size)
+            finally :#line:433:finally:
+                O0O000OOOOO0OOO00 .close ()#line:434:sfp.close()
+        if O0O0OO0O0OO00O0OO >=0 and OO00O00O0000O0OO0 <O0O0OO0O0OO00O0OO :#line:437:if size >= 0 and read < size:
+            raise DistlibException ('retrieval incomplete: got only %d out of %d bytes'%(OO00O00O0000O0OO0 ,O0O0OO0O0OO00O0OO ))#line:440:% (read, size))
+        if O00O00O00O0OOO000 :#line:442:if digester:
+            O000OOO0OO0OO0000 =O00O00O00O0OOO000 .hexdigest ()#line:443:actual = digester.hexdigest()
+            if digest !=O000OOO0OO0OO0000 :#line:444:if digest != actual:
+                raise DistlibException ('%s digest mismatch for %s: expected ' '%s, got %s'%(O0O00O00O00000OOO ,OOOOO0O00OOO0O0OO ,digest ,O000OOO0OO0OO0000 ))#line:447:digest, actual))
+            logger .debug ('Digest verified: %s',digest )#line:448:logger.debug('Digest verified: %s', digest)
+    def send_request (OOOO0000OO000OO0O ,O0O000O0OOOOOO0O0 ):#line:450:def send_request(self, req):
+        ""#line:457:"""
+        O0O00O0O0O00OOO00 =[]#line:458:handlers = []
+        if OOOO0000OO000OO0O .password_handler :#line:459:if self.password_handler:
+            O0O00O0O0O00OOO00 .append (OOOO0000OO000OO0O .password_handler )#line:460:handlers.append(self.password_handler)
+        if OOOO0000OO000OO0O .ssl_verifier :#line:461:if self.ssl_verifier:
+            O0O00O0O0O00OOO00 .append (OOOO0000OO000OO0O .ssl_verifier )#line:462:handlers.append(self.ssl_verifier)
+        OO00OO0O0O0O000O0 =build_opener (*O0O00O0O0O00OOO00 )#line:463:opener = build_opener(*handlers)
+        return OO00OO0O0O0O000O0 .open (O0O000O0OOOOOO0O0 )#line:464:return opener.open(req)
+    def encode_request (OO0OOO000OO00000O ,O00000O0O00O00O0O ,OOOO00OO0O00O0OOO ):#line:466:def encode_request(self, fields, files):
+        ""#line:474:"""
+        O00O0OO0OO0000000 =[]#line:478:parts = []
+        OOO0O000000OO0O0O =OO0OOO000OO00000O .boundary #line:479:boundary = self.boundary
+        for O0O000O000O000OO0 ,OO0O0OOOOOO0OOO0O in O00000O0O00O00O0O :#line:480:for k, values in fields:
+            if not isinstance (OO0O0OOOOOO0OOO0O ,(list ,tuple )):#line:481:if not isinstance(values, (list, tuple)):
+                OO0O0OOOOOO0OOO0O =[OO0O0OOOOOO0OOO0O ]#line:482:values = [values]
+            for O00O00O0O00000O00 in OO0O0OOOOOO0OOO0O :#line:484:for v in values:
+                O00O0OO0OO0000000 .extend ((b'--'+OOO0O000000OO0O0O ,('Content-Disposition: form-data; name="%s"'%O0O000O000O000OO0 ).encode ('utf-8'),b'',O00O00O0O00000O00 .encode ('utf-8')))#line:490:v.encode('utf-8')))
+        for OOO0OOOOO0OO0O0O0 ,O000OOO0O0OO00000 ,OO00O0O0OO0OOO0OO in OOOO00OO0O00O0OOO :#line:491:for key, filename, value in files:
+            O00O0OO0OO0000000 .extend ((b'--'+OOO0O000000OO0O0O ,('Content-Disposition: form-data; name="%s"; filename="%s"'%(OOO0OOOOO0OO0O0O0 ,O000OOO0O0OO00000 )).encode ('utf-8'),b'',OO00O0O0OO0OOO0OO ))#line:497:value))
+        O00O0OO0OO0000000 .extend ((b'--'+OOO0O000000OO0O0O +b'--',b''))#line:499:parts.extend((b'--' + boundary + b'--', b''))
+        O0O000OOOO0O0O0O0 =b'\r\n'.join (O00O0OO0OO0000000 )#line:501:body = b'\r\n'.join(parts)
+        O00O0O0O00000O0OO =b'multipart/form-data; boundary='+OOO0O000000OO0O0O #line:502:ct = b'multipart/form-data; boundary=' + boundary
+        OO0O00OOO0O000O0O ={'Content-type':O00O0O0O00000O0OO ,'Content-length':str (len (O0O000OOOO0O0O0O0 ))}#line:506:}
+        return Request (OO0OOO000OO00000O .url ,O0O000OOOO0O0O0O0 ,OO0O00OOO0O000O0O )#line:507:return Request(self.url, body, headers)
+    def search (O0O00O0O000OO0OOO ,O000OOOO0OOOO0OO0 ,operator =None ):#line:509:def search(self, terms, operator=None):
+        if isinstance (O000OOOO0OOOO0OO0 ,string_types ):#line:510:if isinstance(terms, string_types):
+            O000OOOO0OOOO0OO0 ={'name':O000OOOO0OOOO0OO0 }#line:511:terms = {'name': terms}
+        O0OOOO00OO00OOOO0 =ServerProxy (O0O00O0O000OO0OOO .url ,timeout =3.0 )#line:512:rpc_proxy = ServerProxy(self.url, timeout=3.0)
+        try :#line:513:try:
+            return O0OOOO00OO00OOOO0 .search (O000OOOO0OOOO0OO0 ,operator or 'and')#line:514:return rpc_proxy.search(terms, operator or 'and')
+        finally :#line:515:finally:
+            O0OOOO00OO00OOOO0 ('close')()#line:516:rpc_proxy('close')()

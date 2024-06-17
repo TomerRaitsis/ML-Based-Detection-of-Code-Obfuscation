@@ -1,0 +1,170 @@
+""#line:1
+__license__ ="MIT"#line:4
+import cProfile #line:6
+from io import StringIO #line:7
+from html .parser import HTMLParser #line:8
+import bs4 #line:9
+from bs4 import BeautifulSoup ,__version__ #line:10
+from bs4 .builder import builder_registry #line:11
+import os #line:13
+import pstats #line:14
+import random #line:15
+import tempfile #line:16
+import time #line:17
+import traceback #line:18
+import sys #line:19
+import cProfile #line:20
+def diagnose (OO00O00OOOOOOO00O ):#line:22
+    ""#line:27
+    print (("Diagnostic running on Beautiful Soup %s"%__version__ ))#line:28
+    print (("Python version %s"%sys .version ))#line:29
+    O0OOO0OO000O0O00O =["html.parser","html5lib","lxml"]#line:31
+    for O0O0O0O000000OO0O in O0OOO0OO000O0O00O :#line:32
+        for O0O0OOOO0OOOOO000 in builder_registry .builders :#line:33
+            if O0O0O0O000000OO0O in O0O0OOOO0OOOOO000 .features :#line:34
+                break #line:35
+        else :#line:36
+            O0OOO0OO000O0O00O .remove (O0O0O0O000000OO0O )#line:37
+            print (("I noticed that %s is not installed. Installing it may help."%O0O0O0O000000OO0O ))#line:40
+    if 'lxml'in O0OOO0OO000O0O00O :#line:42
+        O0OOO0OO000O0O00O .append ("lxml-xml")#line:43
+        try :#line:44
+            from lxml import etree #line:45
+            print (("Found lxml version %s"%".".join (map (str ,etree .LXML_VERSION ))))#line:46
+        except ImportError as O0OOOO000O000O0OO :#line:47
+            print ("lxml is not installed or couldn't be imported.")#line:49
+    if 'html5lib'in O0OOO0OO000O0O00O :#line:52
+        try :#line:53
+            import html5lib #line:54
+            print (("Found html5lib version %s"%html5lib .__version__ ))#line:55
+        except ImportError as O0OOOO000O000O0OO :#line:56
+            print ("html5lib is not installed or couldn't be imported.")#line:58
+    if hasattr (OO00O00OOOOOOO00O ,'read'):#line:60
+        OO00O00OOOOOOO00O =OO00O00OOOOOOO00O .read ()#line:61
+    elif OO00O00OOOOOOO00O .startswith ("http:")or OO00O00OOOOOOO00O .startswith ("https:"):#line:62
+        print (('"%s" looks like a URL. Beautiful Soup is not an HTTP client.'%OO00O00OOOOOOO00O ))#line:63
+        print ("You need to use some other library to get the document behind the URL, and feed that document to Beautiful Soup.")#line:64
+        return #line:65
+    else :#line:66
+        try :#line:67
+            if os .path .exists (OO00O00OOOOOOO00O ):#line:68
+                print (('"%s" looks like a filename. Reading data from the file.'%OO00O00OOOOOOO00O ))#line:69
+                with open (OO00O00OOOOOOO00O )as O0OOO00O00O0O00O0 :#line:70
+                    OO00O00OOOOOOO00O =O0OOO00O00O0O00O0 .read ()#line:71
+        except ValueError :#line:72
+            pass #line:75
+        print ("")#line:76
+    for O0OOOO0OOOOO0OO00 in O0OOO0OO000O0O00O :#line:78
+        print (("Trying to parse your markup with %s"%O0OOOO0OOOOO0OO00 ))#line:79
+        OOOO0OO0OOO0O0O00 =False #line:80
+        try :#line:81
+            O0OOOO000000OOOO0 =BeautifulSoup (OO00O00OOOOOOO00O ,features =O0OOOO0OOOOO0OO00 )#line:82
+            OOOO0OO0OOO0O0O00 =True #line:83
+        except Exception as O0OOOO000O000O0OO :#line:84
+            print (("%s could not parse the markup."%O0OOOO0OOOOO0OO00 ))#line:85
+            traceback .print_exc ()#line:86
+        if OOOO0OO0OOO0O0O00 :#line:87
+            print (("Here's what %s did with the markup:"%O0OOOO0OOOOO0OO00 ))#line:88
+            print ((O0OOOO000000OOOO0 .prettify ()))#line:89
+        print (("-"*80 ))#line:91
+def lxml_trace (O0OOO00O0O00O0O00 ,html =True ,**O0O0OOOO0OOOO00OO ):#line:93
+    ""#line:104
+    from lxml import etree #line:105
+    for OO0O00O00O0O00O00 ,OO0O00OOOO00OO00O in etree .iterparse (StringIO (O0OOO00O0O00O0O00 ),html =html ,**O0O0OOOO0OOOO00OO ):#line:106
+        print (("%s, %4s, %s"%(OO0O00O00O0O00O00 ,OO0O00OOOO00OO00O .tag ,OO0O00OOOO00OO00O .text )))#line:107
+class AnnouncingParser (HTMLParser ):#line:109
+    ""#line:115
+    def _p (O0000O0O0000000OO ,O0O00000OO0OOOO0O ):#line:117
+        print (O0O00000OO0OOOO0O )#line:118
+    def handle_starttag (OO0OOOO0OOOOO000O ,OOOO00O00O00OO0OO ,OO0000OO00000OOOO ):#line:120
+        OO0OOOO0OOOOO000O ._p ("%s START"%OOOO00O00O00OO0OO )#line:121
+    def handle_endtag (O0OOOOO0O00O00O0O ,O00O00O0O000O0000 ):#line:123
+        O0OOOOO0O00O00O0O ._p ("%s END"%O00O00O0O000O0000 )#line:124
+    def handle_data (OO000O0O0OOO0OOOO ,O00O000OOOO0O0OO0 ):#line:126
+        OO000O0O0OOO0OOOO ._p ("%s DATA"%O00O000OOOO0O0OO0 )#line:127
+    def handle_charref (O0O0OO0OO0O00OO0O ,OO00O0OO00OO00000 ):#line:129
+        O0O0OO0OO0O00OO0O ._p ("%s CHARREF"%OO00O0OO00OO00000 )#line:130
+    def handle_entityref (OO0OOOO0O00O00000 ,O00000O00000000O0 ):#line:132
+        OO0OOOO0O00O00000 ._p ("%s ENTITYREF"%O00000O00000000O0 )#line:133
+    def handle_comment (O00OOO000O00OOO0O ,OOOO00OO00OOOO000 ):#line:135
+        O00OOO000O00OOO0O ._p ("%s COMMENT"%OOOO00OO00OOOO000 )#line:136
+    def handle_decl (O00O000OOO00O00O0 ,OOO00OO0000O0000O ):#line:138
+        O00O000OOO00O00O0 ._p ("%s DECL"%OOO00OO0000O0000O )#line:139
+    def unknown_decl (O0OOO0O000OOOO0OO ,OO0OO00OOO00O0OO0 ):#line:141
+        O0OOO0O000OOOO0OO ._p ("%s UNKNOWN-DECL"%OO0OO00OOO00O0OO0 )#line:142
+    def handle_pi (OOO000OOOOO000OOO ,O0000O0O0O0O00000 ):#line:144
+        OOO000OOOOO000OOO ._p ("%s PI"%O0000O0O0O0O00000 )#line:145
+def htmlparser_trace (OO0OOOO00O0O00O0O ):#line:147
+    ""#line:154
+    OO00OO0O000OO0O0O =AnnouncingParser ()#line:155
+    OO00OO0O000OO0O0O .feed (OO0OOOO00O0O00O0O )#line:156
+_O0000000O0O0000OO ="aeiou"#line:158
+_O0O0O00O000OO00O0 ="bcdfghjklmnpqrstvwxyz"#line:159
+def rword (length =5 ):#line:161
+    ""#line:162
+    OOOOOO0OO0O000O00 =''#line:163
+    for OO000OO0OOOO000OO in range (length ):#line:164
+        if OO000OO0OOOO000OO %2 ==0 :#line:165
+            OO0O000O0OO0OO0O0 =_O0O0O00O000OO00O0 #line:166
+        else :#line:167
+            OO0O000O0OO0OO0O0 =_O0000000O0O0000OO #line:168
+        OOOOOO0OO0O000O00 +=random .choice (OO0O000O0OO0OO0O0 )#line:169
+    return OOOOOO0OO0O000O00 #line:170
+def rsentence (length =4 ):#line:172
+    ""#line:173
+    return " ".join (rword (random .randint (4 ,9 ))for OO0O0O0000O0O0OO0 in list (range (length )))#line:174
+def rdoc (num_elements =1000 ):#line:176
+    ""#line:177
+    O0OO0OO000O0000O0 =['p','div','span','i','b','script','table']#line:178
+    OOO0O00OO0OOOO0OO =[]#line:179
+    for O0O00O00OOOOOO000 in range (num_elements ):#line:180
+        O0OOO0O0O000OO0OO =random .randint (0 ,3 )#line:181
+        if O0OOO0O0O000OO0OO ==0 :#line:182
+            OO0O0O0O00OO0000O =random .choice (O0OO0OO000O0000O0 )#line:184
+            OOO0O00OO0OOOO0OO .append ("<%s>"%OO0O0O0O00OO0000O )#line:185
+        elif O0OOO0O0O000OO0OO ==1 :#line:186
+            OOO0O00OO0OOOO0OO .append (rsentence (random .randint (1 ,4 )))#line:187
+        elif O0OOO0O0O000OO0OO ==2 :#line:188
+            OO0O0O0O00OO0000O =random .choice (O0OO0OO000O0000O0 )#line:190
+            OOO0O00OO0OOOO0OO .append ("</%s>"%OO0O0O0O00OO0000O )#line:191
+    return "<html>"+"\n".join (OOO0O00OO0OOOO0OO )+"</html>"#line:192
+def benchmark_parsers (num_elements =100000 ):#line:194
+    ""#line:195
+    print (("Comparative parser benchmark on Beautiful Soup %s"%__version__ ))#line:196
+    O00OO00OOOO0000O0 =rdoc (num_elements )#line:197
+    print (("Generated a large invalid HTML document (%d bytes)."%len (O00OO00OOOO0000O0 )))#line:198
+    for OOOO00O0OO000O00O in ["lxml",["lxml","html"],"html5lib","html.parser"]:#line:200
+        O00O00OO00000O0O0 =False #line:201
+        try :#line:202
+            OOO0O00000OOOOOO0 =time .time ()#line:203
+            O0O0OO00OO00OO0OO =BeautifulSoup (O00OO00OOOO0000O0 ,OOOO00O0OO000O00O )#line:204
+            O00O00O000O000OO0 =time .time ()#line:205
+            O00O00OO00000O0O0 =True #line:206
+        except Exception as O0OOO000OO0O0000O :#line:207
+            print (("%s could not parse the markup."%OOOO00O0OO000O00O ))#line:208
+            traceback .print_exc ()#line:209
+        if O00O00OO00000O0O0 :#line:210
+            print (("BS4+%s parsed the markup in %.2fs."%(OOOO00O0OO000O00O ,O00O00O000O000OO0 -OOO0O00000OOOOOO0 )))#line:211
+    from lxml import etree #line:213
+    OOO0O00000OOOOOO0 =time .time ()#line:214
+    etree .HTML (O00OO00OOOO0000O0 )#line:215
+    O00O00O000O000OO0 =time .time ()#line:216
+    print (("Raw lxml parsed the markup in %.2fs."%(O00O00O000O000OO0 -OOO0O00000OOOOOO0 )))#line:217
+    import html5lib #line:219
+    OOOO00O0OO000O00O =html5lib .HTMLParser ()#line:220
+    OOO0O00000OOOOOO0 =time .time ()#line:221
+    OOOO00O0OO000O00O .parse (O00OO00OOOO0000O0 )#line:222
+    O00O00O000O000OO0 =time .time ()#line:223
+    print (("Raw html5lib parsed the markup in %.2fs."%(O00O00O000O000OO0 -OOO0O00000OOOOOO0 )))#line:224
+def profile (num_elements =100000 ,parser ="lxml"):#line:226
+    ""#line:227
+    O0O000O0OOOOO0O0O =tempfile .NamedTemporaryFile ()#line:228
+    OOOOOO0OOO0O00O00 =O0O000O0OOOOO0O0O .name #line:229
+    O0OOO0000OOO00OO0 =rdoc (num_elements )#line:231
+    O00OOO0OO0OOO000O =dict (bs4 =bs4 ,data =O0OOO0000OOO00OO0 ,parser =parser )#line:232
+    cProfile .runctx ('bs4.BeautifulSoup(data, parser)',O00OOO0OO0OOO000O ,O00OOO0OO0OOO000O ,OOOOOO0OOO0O00O00 )#line:233
+    O00O000O0OO00O000 =pstats .Stats (OOOOOO0OOO0O00O00 )#line:235
+    O00O000O0OO00O000 .sort_stats ("cumulative")#line:237
+    O00O000O0OO00O000 .print_stats ('_html5lib|bs4',50 )#line:238
+if __name__ =='__main__':#line:241
+    diagnose (sys .stdin .read ())#line:242

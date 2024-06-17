@@ -1,0 +1,1442 @@
+""#line:10:"""
+from pdb import set_trace #line:12:from pdb import set_trace
+import copy #line:13:import copy
+import pickle #line:14:import pickle
+import re #line:15:import re
+import warnings #line:16:import warnings
+from bs4 import BeautifulSoup #line:17:from bs4 import BeautifulSoup
+from bs4 .builder import (builder_registry ,HTMLParserTreeBuilder ,)#line:21:)
+from bs4 .element import (PY3K ,CData ,Comment ,Declaration ,Doctype ,Formatter ,NavigableString ,Script ,SoupStrainer ,Stylesheet ,Tag ,TemplateString ,)#line:35:)
+from bs4 .testing import (SoupTest ,skipIf ,)#line:39:)
+from soupsieve import SelectorSyntaxError #line:40:from soupsieve import SelectorSyntaxError
+XML_BUILDER_PRESENT =(builder_registry .lookup ("xml")is not None )#line:42:XML_BUILDER_PRESENT = (builder_registry.lookup("xml") is not None)
+LXML_PRESENT =(builder_registry .lookup ("lxml")is not None )#line:43:LXML_PRESENT = (builder_registry.lookup("lxml") is not None)
+class TreeTest (SoupTest ):#line:45:class TreeTest(SoupTest):
+    def assertSelects (O000O00000OOOO00O ,O0O00OO00OOO0OOO0 ,OO0O0000OOOO0O0OO ):#line:47:def assertSelects(self, tags, should_match):
+        ""#line:53:"""
+        O000O00000OOOO00O .assertEqual ([O0O00O0O0000O0000 .string for O0O00O0O0000O0000 in O0O00OO00OOO0OOO0 ],OO0O0000OOOO0O0OO )#line:54:self.assertEqual([tag.string for tag in tags], should_match)
+    def assertSelectsIDs (O0OO00OO00O0O0OOO ,OO000O00OO000OOOO ,O0O0O0000O0OO000O ):#line:56:def assertSelectsIDs(self, tags, should_match):
+        ""#line:62:"""
+        O0OO00OO00O0O0OOO .assertEqual ([O000O0OOOO000O0OO ['id']for O000O0OOOO000O0OO in OO000O00OO000OOOO ],O0O0O0000O0OO000O )#line:63:self.assertEqual([tag['id'] for tag in tags], should_match)
+class TestFind (TreeTest ):#line:66:class TestFind(TreeTest):
+    ""#line:71:"""
+    def test_find_tag (OO0OO0OOO0000O000 ):#line:73:def test_find_tag(self):
+        O0OOO00OOO00O0O0O =OO0OO0OOO0000O000 .soup ("<a>1</a><b>2</b><a>3</a><b>4</b>")#line:74:soup = self.soup("<a>1</a><b>2</b><a>3</a><b>4</b>")
+        OO0OO0OOO0000O000 .assertEqual (O0OOO00OOO00O0O0O .find ("b").string ,"2")#line:75:self.assertEqual(soup.find("b").string, "2")
+    def test_unicode_text_find (O0O0OO0OO0OO000O0 ):#line:77:def test_unicode_text_find(self):
+        OO00OO0000O0OOOO0 =O0O0OO0OO0OO000O0 .soup ('<h1>Räksmörgås</h1>')#line:78:soup = self.soup('<h1>Räksmörgås</h1>')
+        O0O0OO0OO0OO000O0 .assertEqual (OO00OO0000O0OOOO0 .find (string ='Räksmörgås'),'Räksmörgås')#line:79:self.assertEqual(soup.find(string='Räksmörgås'), 'Räksmörgås')
+    def test_unicode_attribute_find (OOO00O0OO00000O0O ):#line:81:def test_unicode_attribute_find(self):
+        O0000OOO0OOOOO0OO =OOO00O0OO00000O0O .soup ('<h1 id="Räksmörgås">here it is</h1>')#line:82:soup = self.soup('<h1 id="Räksmörgås">here it is</h1>')
+        str (O0000OOO0OOOOO0OO )#line:83:str(soup)
+        OOO00O0OO00000O0O .assertEqual ("here it is",O0000OOO0OOOOO0OO .find (id ='Räksmörgås').text )#line:84:self.assertEqual("here it is", soup.find(id='Räksmörgås').text)
+    def test_find_everything (O0OO0OOOOOOO0O0O0 ):#line:87:def test_find_everything(self):
+        ""#line:88:"""Test an optimization that finds all tags."""
+        O0OOOOO00OOO0O00O =O0OO0OOOOOOO0O0O0 .soup ("<a>foo</a><b>bar</b>")#line:89:soup = self.soup("<a>foo</a><b>bar</b>")
+        O0OO0OOOOOOO0O0O0 .assertEqual (2 ,len (O0OOOOO00OOO0O00O .find_all ()))#line:90:self.assertEqual(2, len(soup.find_all()))
+    def test_find_everything_with_name (OO0O00O00000OOO0O ):#line:92:def test_find_everything_with_name(self):
+        ""#line:93:"""Test an optimization that finds all tags with a given name."""
+        O000O000OO0O0OO0O =OO0O00O00000OOO0O .soup ("<a>foo</a><b>bar</b><a>baz</a>")#line:94:soup = self.soup("<a>foo</a><b>bar</b><a>baz</a>")
+        OO0O00O00000OOO0O .assertEqual (2 ,len (O000O000OO0O0OO0O .find_all ('a')))#line:95:self.assertEqual(2, len(soup.find_all('a')))
+class TestFindAll (TreeTest ):#line:97:class TestFindAll(TreeTest):
+    ""#line:98:"""Basic tests of the find_all() method."""
+    def test_find_all_text_nodes (O00O0OOOO00O0OO00 ):#line:100:def test_find_all_text_nodes(self):
+        ""#line:101:"""You can search the tree for text nodes."""
+        OOOO000O00O000OO0 =O00O0OOOO00O0OO00 .soup ("<html>Foo<b>bar</b>\xbb</html>")#line:102:soup = self.soup("<html>Foo<b>bar</b>\xbb</html>")
+        O00O0OOOO00O0OO00 .assertEqual (OOOO000O00O000OO0 .find_all (string ="bar"),["bar"])#line:104:self.assertEqual(soup.find_all(string="bar"), ["bar"])
+        O00O0OOOO00O0OO00 .assertEqual (OOOO000O00O000OO0 .find_all (text ="bar"),["bar"])#line:105:self.assertEqual(soup.find_all(text="bar"), ["bar"])
+        O00O0OOOO00O0OO00 .assertEqual (OOOO000O00O000OO0 .find_all (text =["Foo","bar"]),["Foo","bar"])#line:108:soup.find_all(text=["Foo", "bar"]), ["Foo", "bar"])
+        O00O0OOOO00O0OO00 .assertEqual (OOOO000O00O000OO0 .find_all (text =re .compile ('.*')),["Foo","bar",'\xbb'])#line:111:["Foo", "bar", '\xbb'])
+        O00O0OOOO00O0OO00 .assertEqual (OOOO000O00O000OO0 .find_all (text =True ),["Foo","bar",'\xbb'])#line:114:["Foo", "bar", '\xbb'])
+    def test_find_all_limit (O000O0OO0O0O0O000 ):#line:116:def test_find_all_limit(self):
+        ""#line:117:"""You can limit the number of items returned by find_all."""
+        OO0OOO0O0OOO0O000 =O000O0OO0O0O0O000 .soup ("<a>1</a><a>2</a><a>3</a><a>4</a><a>5</a>")#line:118:soup = self.soup("<a>1</a><a>2</a><a>3</a><a>4</a><a>5</a>")
+        O000O0OO0O0O0O000 .assertSelects (OO0OOO0O0OOO0O000 .find_all ('a',limit =3 ),["1","2","3"])#line:119:self.assertSelects(soup.find_all('a', limit=3), ["1", "2", "3"])
+        O000O0OO0O0O0O000 .assertSelects (OO0OOO0O0OOO0O000 .find_all ('a',limit =1 ),["1"])#line:120:self.assertSelects(soup.find_all('a', limit=1), ["1"])
+        O000O0OO0O0O0O000 .assertSelects (OO0OOO0O0OOO0O000 .find_all ('a',limit =10 ),["1","2","3","4","5"])#line:122:soup.find_all('a', limit=10), ["1", "2", "3", "4", "5"])
+        O000O0OO0O0O0O000 .assertSelects (OO0OOO0O0OOO0O000 .find_all ('a',limit =0 ),["1","2","3","4","5"])#line:126:soup.find_all('a', limit=0), ["1", "2", "3", "4", "5"])
+    def test_calling_a_tag_is_calling_findall (OOOOOOO0O00OOOO0O ):#line:128:def test_calling_a_tag_is_calling_findall(self):
+        O0O00O00O00OO0O00 =OOOOOOO0O00OOOO0O .soup ("<a>1</a><b>2<a id='foo'>3</a></b>")#line:129:soup = self.soup("<a>1</a><b>2<a id='foo'>3</a></b>")
+        OOOOOOO0O00OOOO0O .assertSelects (O0O00O00O00OO0O00 ('a',limit =1 ),["1"])#line:130:self.assertSelects(soup('a', limit=1), ["1"])
+        OOOOOOO0O00OOOO0O .assertSelects (O0O00O00O00OO0O00 .b (id ="foo"),["3"])#line:131:self.assertSelects(soup.b(id="foo"), ["3"])
+    def test_find_all_with_self_referential_data_structure_does_not_cause_infinite_recursion (O0O0O0O00O00O00O0 ):#line:133:def test_find_all_with_self_referential_data_structure_does_not_cause_infinite_recursion(self):
+        OO00O000O000O0O0O =O0O0O0O00O00O00O0 .soup ("<a></a>")#line:134:soup = self.soup("<a></a>")
+        O0OOO00000O0OOOOO =[]#line:136:l = []
+        O0OOO00000O0OOOOO .append (O0OOO00000O0OOOOO )#line:137:l.append(l)
+        O0O0O0O00O00O00O0 .assertEqual ([],OO00O000O000O0O0O .find_all (O0OOO00000O0OOOOO ))#line:141:self.assertEqual([], soup.find_all(l))
+    def test_find_all_resultset (OO0000O00O0O000OO ):#line:143:def test_find_all_resultset(self):
+        ""#line:144:"""All find_all calls return a ResultSet"""
+        O00OO0O00O0O000OO =OO0000O00O0O000OO .soup ("<a></a>")#line:145:soup = self.soup("<a></a>")
+        O0OOO000O00000O0O =O00OO0O00O0O000OO .find_all ("a")#line:146:result = soup.find_all("a")
+        OO0000O00O0O000OO .assertTrue (hasattr (O0OOO000O00000O0O ,"source"))#line:147:self.assertTrue(hasattr(result, "source"))
+        O0OOO000O00000O0O =O00OO0O00O0O000OO .find_all (True )#line:149:result = soup.find_all(True)
+        OO0000O00O0O000OO .assertTrue (hasattr (O0OOO000O00000O0O ,"source"))#line:150:self.assertTrue(hasattr(result, "source"))
+        O0OOO000O00000O0O =O00OO0O00O0O000OO .find_all (text ="foo")#line:152:result = soup.find_all(text="foo")
+        OO0000O00O0O000OO .assertTrue (hasattr (O0OOO000O00000O0O ,"source"))#line:153:self.assertTrue(hasattr(result, "source"))
+class TestFindAllBasicNamespaces (TreeTest ):#line:156:class TestFindAllBasicNamespaces(TreeTest):
+    def test_find_by_namespaced_name (OOO00O0000OOO0O0O ):#line:158:def test_find_by_namespaced_name(self):
+        OOOO00O0OO00O0000 =OOO00O0000OOO0O0O .soup ('<mathml:msqrt>4</mathml:msqrt><a svg:fill="red">')#line:159:soup = self.soup('<mathml:msqrt>4</mathml:msqrt><a svg:fill="red">')
+        OOO00O0000OOO0O0O .assertEqual ("4",OOOO00O0OO00O0000 .find ("mathml:msqrt").string )#line:160:self.assertEqual("4", soup.find("mathml:msqrt").string)
+        OOO00O0000OOO0O0O .assertEqual ("a",OOOO00O0OO00O0000 .find (attrs ={"svg:fill":"red"}).name )#line:161:self.assertEqual("a", soup.find(attrs= { "svg:fill" : "red" }).name)
+class TestFindAllByName (TreeTest ):#line:164:class TestFindAllByName(TreeTest):
+    ""#line:165:"""Test ways of finding tags by tag name."""
+    def setUp (OO00O0O0OOOOO00OO ):#line:167:def setUp(self):
+        super (TreeTest ,OO00O0O0OOOOO00OO ).setUp ()#line:168:super(TreeTest, self).setUp()
+        OO00O0O0OOOOO00OO .tree =OO00O0O0OOOOO00OO .soup ("""<a>First tag.</a>
+                                  <b>Second tag.</b>
+                                  <c>Third <a>Nested tag.</a> tag.</c>""")#line:171:<c>Third <a>Nested tag.</a> tag.</c>""")
+    def test_find_all_by_tag_name (OOOO0O0O00O0O000O ):#line:173:def test_find_all_by_tag_name(self):
+        OOOO0O0O00O0O000O .assertSelects (OOOO0O0O00O0O000O .tree .find_all ('a'),['First tag.','Nested tag.'])#line:176:self.tree.find_all('a'), ['First tag.', 'Nested tag.'])
+    def test_find_all_by_name_and_text (O0O000O0OO000O000 ):#line:178:def test_find_all_by_name_and_text(self):
+        O0O000O0OO000O000 .assertSelects (O0O000O0OO000O000 .tree .find_all ('a',text ='First tag.'),['First tag.'])#line:180:self.tree.find_all('a', text='First tag.'), ['First tag.'])
+        O0O000O0OO000O000 .assertSelects (O0O000O0OO000O000 .tree .find_all ('a',text =True ),['First tag.','Nested tag.'])#line:183:self.tree.find_all('a', text=True), ['First tag.', 'Nested tag.'])
+        O0O000O0OO000O000 .assertSelects (O0O000O0OO000O000 .tree .find_all ('a',text =re .compile ("tag")),['First tag.','Nested tag.'])#line:187:['First tag.', 'Nested tag.'])
+    def test_find_all_on_non_root_element (O00O0OO00000OO0O0 ):#line:190:def test_find_all_on_non_root_element(self):
+        O00O0OO00000OO0O0 .assertSelects (O00O0OO00000OO0O0 .tree .c .find_all ('a'),['Nested tag.'])#line:192:self.assertSelects(self.tree.c.find_all('a'), ['Nested tag.'])
+    def test_calling_element_invokes_find_all (OO000O0O0OOO0OO00 ):#line:194:def test_calling_element_invokes_find_all(self):
+        OO000O0O0OOO0OO00 .assertSelects (OO000O0O0OOO0OO00 .tree ('a'),['First tag.','Nested tag.'])#line:195:self.assertSelects(self.tree('a'), ['First tag.', 'Nested tag.'])
+    def test_find_all_by_tag_strainer (O0OOOO0OOO0O00O00 ):#line:197:def test_find_all_by_tag_strainer(self):
+        O0OOOO0OOO0O00O00 .assertSelects (O0OOOO0OOO0O00O00 .tree .find_all (SoupStrainer ('a')),['First tag.','Nested tag.'])#line:200:['First tag.', 'Nested tag.'])
+    def test_find_all_by_tag_names (O0OO0OOO00O00OOOO ):#line:202:def test_find_all_by_tag_names(self):
+        O0OO0OOO00O00OOOO .assertSelects (O0OO0OOO00O00OOOO .tree .find_all (['a','b']),['First tag.','Second tag.','Nested tag.'])#line:205:['First tag.', 'Second tag.', 'Nested tag.'])
+    def test_find_all_by_tag_dict (O0O0O00OO0O000O0O ):#line:207:def test_find_all_by_tag_dict(self):
+        O0O0O00OO0O000O0O .assertSelects (O0O0O00OO0O000O0O .tree .find_all ({'a':True ,'b':True }),['First tag.','Second tag.','Nested tag.'])#line:210:['First tag.', 'Second tag.', 'Nested tag.'])
+    def test_find_all_by_tag_re (OOO0OOOOOO0OO00OO ):#line:212:def test_find_all_by_tag_re(self):
+        OOO0OOOOOO0OO00OO .assertSelects (OOO0OOOOOO0OO00OO .tree .find_all (re .compile ('^[ab]$')),['First tag.','Second tag.','Nested tag.'])#line:215:['First tag.', 'Second tag.', 'Nested tag.'])
+    def test_find_all_with_tags_matching_method (O0O00O0000O00OO0O ):#line:217:def test_find_all_with_tags_matching_method(self):
+        def O000OOO00O00O0O0O (O0O0O00O0O0O000OO ):#line:220:def id_matches_name(tag):
+            return O0O0O00O0O0O000OO .name ==O0O0O00O0O0O000OO .get ('id')#line:221:return tag.name == tag.get('id')
+        OOO00O000OO0OO00O =O0O00O0000O00OO0O .soup ("""<a id="a">Match 1.</a>
+                            <a id="1">Does not match.</a>
+                            <b id="b">Match 2.</a>""")#line:225:<b id="b">Match 2.</a>""")
+        O0O00O0000O00OO0O .assertSelects (OOO00O000OO0OO00O .find_all (O000OOO00O00O0O0O ),["Match 1.","Match 2."])#line:228:tree.find_all(id_matches_name), ["Match 1.", "Match 2."])
+    def test_find_with_multi_valued_attribute (O00O00OOOO0000OO0 ):#line:230:def test_find_with_multi_valued_attribute(self):
+        OOO0OOO0OOO0OO000 =O00O00OOOO0000OO0 .soup ("<div class='a b'>1</div><div class='a c'>2</div><div class='a d'>3</div>")#line:233:)
+        O000OOOO0O0O00000 =OOO0OOO0OOO0OO000 .find ('div','a d');#line:234:r1 = soup.find('div', 'a d');
+        O000O00OOO00O0OO0 =OOO0OOO0OOO0OO000 .find ('div',re .compile (r'a d'));#line:235:r2 = soup.find('div', re.compile(r'a d'));
+        O0OOOOOOO00OO0OO0 ,O000OOO00OOOO0OO0 =OOO0OOO0OOO0OO000 .find_all ('div',['a b','a d']);#line:236:r3, r4 = soup.find_all('div', ['a b', 'a d']);
+        O00O00OOOO0000OO0 .assertEqual ('3',O000OOOO0O0O00000 .string )#line:237:self.assertEqual('3', r1.string)
+        O00O00OOOO0000OO0 .assertEqual ('3',O000O00OOO00O0OO0 .string )#line:238:self.assertEqual('3', r2.string)
+        O00O00OOOO0000OO0 .assertEqual ('1',O0OOOOOOO00OO0OO0 .string )#line:239:self.assertEqual('1', r3.string)
+        O00O00OOOO0000OO0 .assertEqual ('3',O000OOO00OOOO0OO0 .string )#line:240:self.assertEqual('3', r4.string)
+class TestFindAllByAttribute (TreeTest ):#line:243:class TestFindAllByAttribute(TreeTest):
+    def test_find_all_by_attribute_name (O0O0OOOO00O0000OO ):#line:245:def test_find_all_by_attribute_name(self):
+        OOOO00OOO0O0O000O =O0O0OOOO00O0000OO .soup ("""
+                         <a id="first">Matching a.</a>
+                         <a id="second">
+                          Non-matching <b id="first">Matching b.</b>a.
+                         </a>""")#line:252:</a>""")
+        O0O0OOOO00O0000OO .assertSelects (OOOO00OOO0O0O000O .find_all (id ='first'),["Matching a.","Matching b."])#line:254:["Matching a.", "Matching b."])
+    def test_find_all_by_utf8_attribute_value (O00O00O0OO0OO00O0 ):#line:256:def test_find_all_by_utf8_attribute_value(self):
+        O0O0000000O0OO0O0 ="םולש".encode ("utf8")#line:257:peace = "םולש".encode("utf8")
+        OO000O0000O000O0O ='<a title="םולש"></a>'.encode ("utf8")#line:258:data = '<a title="םולש"></a>'.encode("utf8")
+        O0OOO0O0000O00OO0 =O00O00O0OO0OO00O0 .soup (OO000O0000O000O0O )#line:259:soup = self.soup(data)
+        O00O00O0OO0OO00O0 .assertEqual ([O0OOO0O0000O00OO0 .a ],O0OOO0O0000O00OO0 .find_all (title =O0O0000000O0OO0O0 ))#line:260:self.assertEqual([soup.a], soup.find_all(title=peace))
+        O00O00O0OO0OO00O0 .assertEqual ([O0OOO0O0000O00OO0 .a ],O0OOO0O0000O00OO0 .find_all (title =O0O0000000O0OO0O0 .decode ("utf8")))#line:261:self.assertEqual([soup.a], soup.find_all(title=peace.decode("utf8")))
+        O00O00O0OO0OO00O0 .assertEqual ([O0OOO0O0000O00OO0 .a ],O0OOO0O0000O00OO0 .find_all (title =[O0O0000000O0OO0O0 ,"something else"]))#line:262:self.assertEqual([soup.a], soup.find_all(title=[peace, "something else"]))
+    def test_find_all_by_attribute_dict (OO0O0000000OO000O ):#line:264:def test_find_all_by_attribute_dict(self):
+        OO00OO00OO00OO0OO =OO0O0000000OO000O .soup ("""
+                         <a name="name1" class="class1">Name match.</a>
+                         <a name="name2" class="class2">Class match.</a>
+                         <a name="name3" class="class3">Non-match.</a>
+                         <name1>A tag called 'name1'.</name1>
+                         """)#line:273:""")
+        OO0O0000000OO000O .assertSelects (OO00OO00OO00OO0OO .find_all (name ='name1'),["A tag called 'name1'."])#line:277:["A tag called 'name1'."])
+        OO0O0000000OO000O .assertSelects (OO00OO00OO00OO0OO .find_all (attrs ={'name':'name1'}),["Name match."])#line:280:["Name match."])
+        OO0O0000000OO000O .assertSelects (OO00OO00OO00OO0OO .find_all (attrs ={'class':'class2'}),["Class match."])#line:283:["Class match."])
+    def test_find_all_by_class (O0OO0O0000O000O00 ):#line:285:def test_find_all_by_class(self):
+        O00OOO0O00O0OOO00 =O0OO0O0000O000O00 .soup ("""
+                         <a class="1">Class 1.</a>
+                         <a class="2">Class 2.</a>
+                         <b class="1">Class 1.</b>
+                         <c class="3 4">Class 3 and 4.</c>
+                         """)#line:291:""")
+        O0OO0O0000O000O00 .assertSelects (O00OOO0O00O0OOO00 .find_all ('a',class_ ='1'),['Class 1.'])#line:295:self.assertSelects(tree.find_all('a', class_='1'), ['Class 1.'])
+        O0OO0O0000O000O00 .assertSelects (O00OOO0O00O0OOO00 .find_all ('c',class_ ='3'),['Class 3 and 4.'])#line:296:self.assertSelects(tree.find_all('c', class_='3'), ['Class 3 and 4.'])
+        O0OO0O0000O000O00 .assertSelects (O00OOO0O00O0OOO00 .find_all ('c',class_ ='4'),['Class 3 and 4.'])#line:297:self.assertSelects(tree.find_all('c', class_='4'), ['Class 3 and 4.'])
+        O0OO0O0000O000O00 .assertSelects (O00OOO0O00O0OOO00 .find_all ('a','1'),['Class 1.'])#line:300:self.assertSelects(tree.find_all('a', '1'), ['Class 1.'])
+        O0OO0O0000O000O00 .assertSelects (O00OOO0O00O0OOO00 .find_all (attrs ='1'),['Class 1.','Class 1.'])#line:301:self.assertSelects(tree.find_all(attrs='1'), ['Class 1.', 'Class 1.'])
+        O0OO0O0000O000O00 .assertSelects (O00OOO0O00O0OOO00 .find_all ('c','3'),['Class 3 and 4.'])#line:302:self.assertSelects(tree.find_all('c', '3'), ['Class 3 and 4.'])
+        O0OO0O0000O000O00 .assertSelects (O00OOO0O00O0OOO00 .find_all ('c','4'),['Class 3 and 4.'])#line:303:self.assertSelects(tree.find_all('c', '4'), ['Class 3 and 4.'])
+    def test_find_by_class_when_multiple_classes_present (OO00O0OO00OO0OOO0 ):#line:305:def test_find_by_class_when_multiple_classes_present(self):
+        O000O0OOO00O00OO0 =OO00O0OO00OO0OOO0 .soup ("<gar class='foo bar'>Found it</gar>")#line:306:tree = self.soup("<gar class='foo bar'>Found it</gar>")
+        OO0OO0OO0O0OO0000 =O000O0OOO00O00OO0 .find_all ("gar",class_ =re .compile ("o"))#line:308:f = tree.find_all("gar", class_=re.compile("o"))
+        OO00O0OO00OO0OOO0 .assertSelects (OO0OO0OO0O0OO0000 ,["Found it"])#line:309:self.assertSelects(f, ["Found it"])
+        OO0OO0OO0O0OO0000 =O000O0OOO00O00OO0 .find_all ("gar",class_ =re .compile ("a"))#line:311:f = tree.find_all("gar", class_=re.compile("a"))
+        OO00O0OO00OO0OOO0 .assertSelects (OO0OO0OO0O0OO0000 ,["Found it"])#line:312:self.assertSelects(f, ["Found it"])
+        OO0OO0OO0O0OO0000 =O000O0OOO00O00OO0 .find_all ("gar",class_ =re .compile ("o b"))#line:316:f = tree.find_all("gar", class_=re.compile("o b"))
+        OO00O0OO00OO0OOO0 .assertSelects (OO0OO0OO0O0OO0000 ,["Found it"])#line:317:self.assertSelects(f, ["Found it"])
+    def test_find_all_with_non_dictionary_for_attrs_finds_by_class (O0O0OOOO00OO0000O ):#line:319:def test_find_all_with_non_dictionary_for_attrs_finds_by_class(self):
+        OO0O0O0O0OO000O00 =O0O0OOOO00OO0000O .soup ("<a class='bar'>Found it</a>")#line:320:soup = self.soup("<a class='bar'>Found it</a>")
+        O0O0OOOO00OO0000O .assertSelects (OO0O0O0O0OO000O00 .find_all ("a",re .compile ("ba")),["Found it"])#line:322:self.assertSelects(soup.find_all("a", re.compile("ba")), ["Found it"])
+        def OOO0O00O00OO000O0 (OOO00O0OOOO000O00 ):#line:324:def big_attribute_value(value):
+            return len (OOO00O0OOOO000O00 )>3 #line:325:return len(value) > 3
+        O0O0OOOO00OO0000O .assertSelects (OO0O0O0O0OO000O00 .find_all ("a",OOO0O00O00OO000O0 ),[])#line:327:self.assertSelects(soup.find_all("a", big_attribute_value), [])
+        def O000O000O0O0000OO (O0O0OOO000O00O0O0 ):#line:329:def small_attribute_value(value):
+            return len (O0O0OOO000O00O0O0 )<=3 #line:330:return len(value) <= 3
+        O0O0OOOO00OO0000O .assertSelects (OO0O0O0O0OO000O00 .find_all ("a",O000O000O0O0000OO ),["Found it"])#line:333:soup.find_all("a", small_attribute_value), ["Found it"])
+    def test_find_all_with_string_for_attrs_finds_multiple_classes (OOO00OOO0OOO00000 ):#line:335:def test_find_all_with_string_for_attrs_finds_multiple_classes(self):
+        OO0OO00OO0OOO0O0O =OOO00OOO0OOO00000 .soup ('<a class="foo bar"></a><a class="foo"></a>')#line:336:soup = self.soup('<a class="foo bar"></a><a class="foo"></a>')
+        O0O00000O0OOOOOOO ,OOOOOO0OO0OOOOOOO =OO0OO00OO0OOO0O0O .find_all ("a")#line:337:a, a2 = soup.find_all("a")
+        OOO00OOO0OOO00000 .assertEqual ([O0O00000O0OOOOOOO ,OOOOOO0OO0OOOOOOO ],OO0OO00OO0OOO0O0O .find_all ("a","foo"))#line:338:self.assertEqual([a, a2], soup.find_all("a", "foo"))
+        OOO00OOO0OOO00000 .assertEqual ([O0O00000O0OOOOOOO ],OO0OO00OO0OOO0O0O .find_all ("a","bar"))#line:339:self.assertEqual([a], soup.find_all("a", "bar"))
+        OOO00OOO0OOO00000 .assertEqual ([O0O00000O0OOOOOOO ],OO0OO00OO0OOO0O0O .find_all ("a",class_ ="foo bar"))#line:343:self.assertEqual([a], soup.find_all("a", class_="foo bar"))
+        OOO00OOO0OOO00000 .assertEqual ([O0O00000O0OOOOOOO ],OO0OO00OO0OOO0O0O .find_all ("a","foo bar"))#line:344:self.assertEqual([a], soup.find_all("a", "foo bar"))
+        OOO00OOO0OOO00000 .assertEqual ([],OO0OO00OO0OOO0O0O .find_all ("a","bar foo"))#line:345:self.assertEqual([], soup.find_all("a", "bar foo"))
+    def test_find_all_by_attribute_soupstrainer (OO00OOO0OOOO0O00O ):#line:347:def test_find_all_by_attribute_soupstrainer(self):
+        O00OOOO0O00OOOOOO =OO00OOO0OOOO0O00O .soup ("""
+                         <a id="first">Match.</a>
+                         <a id="second">Non-match.</a>""")#line:350:<a id="second">Non-match.</a>""")
+        O0OO0O00OO0OOO00O =SoupStrainer (attrs ={'id':'first'})#line:352:strainer = SoupStrainer(attrs={'id' : 'first'})
+        OO00OOO0OOOO0O00O .assertSelects (O00OOOO0O00OOOOOO .find_all (O0OO0O00OO0OOO00O ),['Match.'])#line:353:self.assertSelects(tree.find_all(strainer), ['Match.'])
+    def test_find_all_with_missing_attribute (O0OOOO0O00OO0OO0O ):#line:355:def test_find_all_with_missing_attribute(self):
+        O00O00OOOOO00OO00 =O0OOOO0O00OO0OO0O .soup ("""<a id="1">ID present.</a>
+                            <a>No ID present.</a>
+                            <a id="">ID is empty.</a>""")#line:360:<a id="">ID is empty.</a>""")
+        O0OOOO0O00OO0OO0O .assertSelects (O00O00OOOOO00OO00 .find_all ('a',id =None ),["No ID present."])#line:361:self.assertSelects(tree.find_all('a', id=None), ["No ID present."])
+    def test_find_all_with_defined_attribute (O000OO0O00OO0O000 ):#line:363:def test_find_all_with_defined_attribute(self):
+        O00OOOOOOO000O00O =O000OO0O00OO0O000 .soup ("""<a id="1">ID present.</a>
+                            <a>No ID present.</a>
+                            <a id="">ID is empty.</a>""")#line:368:<a id="">ID is empty.</a>""")
+        O000OO0O00OO0O000 .assertSelects (O00OOOOOOO000O00O .find_all (id =True ),["ID present.","ID is empty."])#line:370:tree.find_all(id=True), ["ID present.", "ID is empty."])
+    def test_find_all_with_numeric_attribute (O0O0OO000O00O0O00 ):#line:372:def test_find_all_with_numeric_attribute(self):
+        O0000O00O000000O0 =O0O0OO000O00O0O00 .soup ("""<a id=1>Unquoted attribute.</a>
+                            <a id="1">Quoted attribute.</a>""")#line:375:<a id="1">Quoted attribute.</a>""")
+        OOOOOO0O00O0O0000 =["Unquoted attribute.","Quoted attribute."]#line:377:expected = ["Unquoted attribute.", "Quoted attribute."]
+        O0O0OO000O00O0O00 .assertSelects (O0000O00O000000O0 .find_all (id =1 ),OOOOOO0O00O0O0000 )#line:378:self.assertSelects(tree.find_all(id=1), expected)
+        O0O0OO000O00O0O00 .assertSelects (O0000O00O000000O0 .find_all (id ="1"),OOOOOO0O00O0O0000 )#line:379:self.assertSelects(tree.find_all(id="1"), expected)
+    def test_find_all_with_list_attribute_values (O00OO00OOOO00OOO0 ):#line:381:def test_find_all_with_list_attribute_values(self):
+        O0O0OOO0OO00O0O0O =O00OO00OOOO00OOO0 .soup ("""<a id="1">1</a>
+                            <a id="2">2</a>
+                            <a id="3">3</a>
+                            <a>No ID.</a>""")#line:387:<a>No ID.</a>""")
+        O00OO00OOOO00OOO0 .assertSelects (O0O0OOO0OO00O0O0O .find_all (id =["1","3","4"]),["1","3"])#line:389:["1", "3"])
+    def test_find_all_with_regular_expression_attribute_value (OOOO0000OOOOOOOOO ):#line:391:def test_find_all_with_regular_expression_attribute_value(self):
+        O0OOO0O0OO0O00OOO =OOOO0000OOOOOOOOO .soup ("""<a id="a">One a.</a>
+                            <a id="aa">Two as.</a>
+                            <a id="ab">Mixed as and bs.</a>
+                            <a id="b">One b.</a>
+                            <a>No ID.</a>""")#line:399:<a>No ID.</a>""")
+        OOOO0000OOOOOOOOO .assertSelects (O0OOO0O0OO0O00OOO .find_all (id =re .compile ("^a+$")),["One a.","Two as."])#line:402:["One a.", "Two as."])
+    def test_find_by_name_and_containing_string (OO000O0OOO00O0000 ):#line:404:def test_find_by_name_and_containing_string(self):
+        O0O0OO0OO00OO00O0 =OO000O0OOO00O0000 .soup ("<b>foo</b><b>bar</b><a>foo</a>")#line:405:soup = self.soup("<b>foo</b><b>bar</b><a>foo</a>")
+        OO00O0O0OOO0O00OO =O0O0OO0OO00OO00O0 .a #line:406:a = soup.a
+        OO000O0OOO00O0000 .assertEqual ([OO00O0O0OOO0O00OO ],O0O0OO0OO00OO00O0 .find_all ("a",text ="foo"))#line:408:self.assertEqual([a], soup.find_all("a", text="foo"))
+        OO000O0OOO00O0000 .assertEqual ([],O0O0OO0OO00OO00O0 .find_all ("a",text ="bar"))#line:409:self.assertEqual([], soup.find_all("a", text="bar"))
+        OO000O0OOO00O0000 .assertEqual ([],O0O0OO0OO00OO00O0 .find_all ("a",text ="bar"))#line:410:self.assertEqual([], soup.find_all("a", text="bar"))
+    def test_find_by_name_and_containing_string_when_string_is_buried (O00O000O00OO0OOO0 ):#line:412:def test_find_by_name_and_containing_string_when_string_is_buried(self):
+        O0OOO00O000OO0O0O =O00O000O00OO0OOO0 .soup ("<a>foo</a><a><b><c>foo</c></b></a>")#line:413:soup = self.soup("<a>foo</a><a><b><c>foo</c></b></a>")
+        O00O000O00OO0OOO0 .assertEqual (O0OOO00O000OO0O0O .find_all ("a"),O0OOO00O000OO0O0O .find_all ("a",text ="foo"))#line:414:self.assertEqual(soup.find_all("a"), soup.find_all("a", text="foo"))
+    def test_find_by_attribute_and_containing_string (O0000OO0OO0O0OOOO ):#line:416:def test_find_by_attribute_and_containing_string(self):
+        OOO0O0O00O00O0000 =O0000OO0OO0O0OOOO .soup ('<b id="1">foo</b><a id="2">foo</a>')#line:417:soup = self.soup('<b id="1">foo</b><a id="2">foo</a>')
+        O0OOO0OO00OO00OOO =OOO0O0O00O00O0000 .a #line:418:a = soup.a
+        O0000OO0OO0O0OOOO .assertEqual ([O0OOO0OO00OO00OOO ],OOO0O0O00O00O0000 .find_all (id =2 ,text ="foo"))#line:420:self.assertEqual([a], soup.find_all(id=2, text="foo"))
+        O0000OO0OO0O0OOOO .assertEqual ([],OOO0O0O00O00O0000 .find_all (id =1 ,text ="bar"))#line:421:self.assertEqual([], soup.find_all(id=1, text="bar"))
+class TestSmooth (TreeTest ):#line:424:class TestSmooth(TreeTest):
+    ""#line:425:"""Test Tag.smooth."""
+    def test_smooth (O0O000OO000OO0OOO ):#line:427:def test_smooth(self):
+        OOO000OOOO0OOOO0O =O0O000OO000OO0OOO .soup ("<div>a</div>")#line:428:soup = self.soup("<div>a</div>")
+        OO000OO00OO0OO00O =OOO000OOOO0OOOO0O .div #line:429:div = soup.div
+        OO000OO00OO0OO00O .append ("b")#line:430:div.append("b")
+        OO000OO00OO0OO00O .append ("c")#line:431:div.append("c")
+        OO000OO00OO0OO00O .append (Comment ("Comment 1"))#line:432:div.append(Comment("Comment 1"))
+        OO000OO00OO0OO00O .append (Comment ("Comment 2"))#line:433:div.append(Comment("Comment 2"))
+        OO000OO00OO0OO00O .append ("d")#line:434:div.append("d")
+        OO00OOOO000OO00O0 =O0O000OO000OO0OOO .default_builder ()#line:435:builder = self.default_builder()
+        O0OOOO00000O0OOOO =Tag (OOO000OOOO0OOOO0O ,OO00OOOO000OO00O0 ,'span')#line:436:span = Tag(soup, builder, 'span')
+        O0OOOO00000O0OOOO .append ('1')#line:437:span.append('1')
+        O0OOOO00000O0OOOO .append ('2')#line:438:span.append('2')
+        OO000OO00OO0OO00O .append (O0OOOO00000O0OOOO )#line:439:div.append(span)
+        O0O000OO000OO0OOO .assertEqual (None ,OO000OO00OO0OO00O .span .string )#line:447:self.assertEqual(None, div.span.string)
+        O0O000OO000OO0OOO .assertEqual (7 ,len (OO000OO00OO0OO00O .contents ))#line:449:self.assertEqual(7, len(div.contents))
+        OO000OO00OO0OO00O .smooth ()#line:450:div.smooth()
+        O0O000OO000OO0OOO .assertEqual (5 ,len (OO000OO00OO0OO00O .contents ))#line:451:self.assertEqual(5, len(div.contents))
+        O0O000OO000OO0OOO .assertEqual ('abc',OO000OO00OO0OO00O .contents [0 ])#line:456:self.assertEqual('abc', div.contents[0])
+        O0O000OO000OO0OOO .assertEqual ('12',OO000OO00OO0OO00O .span .string )#line:459:self.assertEqual('12', div.span.string)
+        O0O000OO000OO0OOO .assertEqual ('Comment 1',OO000OO00OO0OO00O .contents [1 ])#line:464:self.assertEqual('Comment 1', div.contents[1])
+        O0O000OO000OO0OOO .assertEqual ('Comment 2',OO000OO00OO0OO00O .contents [2 ])#line:465:self.assertEqual('Comment 2', div.contents[2])
+class TestIndex (TreeTest ):#line:468:class TestIndex(TreeTest):
+    ""#line:469:"""Test Tag.index"""
+    def test_index (OOO000OO00000O00O ):#line:470:def test_index(self):
+        OO0000000O00O00OO =OOO000OO00000O00O .soup ("""<div>
+                            <a>Identical</a>
+                            <b>Not identical</b>
+                            <a>Identical</a>
+
+                            <c><d>Identical with child</d></c>
+                            <b>Also not identical</b>
+                            <c><d>Identical with child</d></c>
+                            </div>""")#line:479:</div>""")
+        OOOOOOOOOOOO0O0O0 =OO0000000O00O00OO .div #line:480:div = tree.div
+        for OOO0OOOO0OOO0O000 ,OO0000O0000OOO0O0 in enumerate (OOOOOOOOOOOO0O0O0 .contents ):#line:481:for i, element in enumerate(div.contents):
+            OOO000OO00000O00O .assertEqual (OOO0OOOO0OOO0O000 ,OOOOOOOOOOOO0O0O0 .index (OO0000O0000OOO0O0 ))#line:482:self.assertEqual(i, div.index(element))
+        OOO000OO00000O00O .assertRaises (ValueError ,OO0000000O00O00OO .index ,1 )#line:483:self.assertRaises(ValueError, tree.index, 1)
+class TestParentOperations (TreeTest ):#line:486:class TestParentOperations(TreeTest):
+    ""#line:487:"""Test navigation and searching through an element's parents."""
+    def setUp (O000O00O000O0O0O0 ):#line:489:def setUp(self):
+        super (TestParentOperations ,O000O00O000O0O0O0 ).setUp ()#line:490:super(TestParentOperations, self).setUp()
+        O000O00O000O0O0O0 .tree =O000O00O000O0O0O0 .soup ('''<ul id="empty"></ul>
+                                 <ul id="top">
+                                  <ul id="middle">
+                                   <ul id="bottom">
+                                    <b>Start here</b>
+                                   </ul>
+                                  </ul>''')#line:497:</ul>''')
+        O000O00O000O0O0O0 .start =O000O00O000O0O0O0 .tree .b #line:498:self.start = self.tree.b
+    def test_parent (O0OO0OOOO00000O0O ):#line:501:def test_parent(self):
+        O0OO0OOOO00000O0O .assertEqual (O0OO0OOOO00000O0O .start .parent ['id'],'bottom')#line:502:self.assertEqual(self.start.parent['id'], 'bottom')
+        O0OO0OOOO00000O0O .assertEqual (O0OO0OOOO00000O0O .start .parent .parent ['id'],'middle')#line:503:self.assertEqual(self.start.parent.parent['id'], 'middle')
+        O0OO0OOOO00000O0O .assertEqual (O0OO0OOOO00000O0O .start .parent .parent .parent ['id'],'top')#line:504:self.assertEqual(self.start.parent.parent.parent['id'], 'top')
+    def test_parent_of_top_tag_is_soup_object (OO00000O00OO0O000 ):#line:506:def test_parent_of_top_tag_is_soup_object(self):
+        OOOO00OOO00000OOO =OO00000O00OO0O000 .tree .contents [0 ]#line:507:top_tag = self.tree.contents[0]
+        OO00000O00OO0O000 .assertEqual (OOOO00OOO00000OOO .parent ,OO00000O00OO0O000 .tree )#line:508:self.assertEqual(top_tag.parent, self.tree)
+    def test_soup_object_has_no_parent (O0OO0O0OO0OOOO0OO ):#line:510:def test_soup_object_has_no_parent(self):
+        O0OO0O0OO0OOOO0OO .assertEqual (None ,O0OO0O0OO0OOOO0OO .tree .parent )#line:511:self.assertEqual(None, self.tree.parent)
+    def test_find_parents (O000OOOOOO0000OO0 ):#line:513:def test_find_parents(self):
+        O000OOOOOO0000OO0 .assertSelectsIDs (O000OOOOOO0000OO0 .start .find_parents ('ul'),['bottom','middle','top'])#line:515:self.start.find_parents('ul'), ['bottom', 'middle', 'top'])
+        O000OOOOOO0000OO0 .assertSelectsIDs (O000OOOOOO0000OO0 .start .find_parents ('ul',id ="middle"),['middle'])#line:517:self.start.find_parents('ul', id="middle"), ['middle'])
+    def test_find_parent (OO0O0000O00O0O000 ):#line:519:def test_find_parent(self):
+        OO0O0000O00O0O000 .assertEqual (OO0O0000O00O0O000 .start .find_parent ('ul')['id'],'bottom')#line:520:self.assertEqual(self.start.find_parent('ul')['id'], 'bottom')
+        OO0O0000O00O0O000 .assertEqual (OO0O0000O00O0O000 .start .find_parent ('ul',id ='top')['id'],'top')#line:521:self.assertEqual(self.start.find_parent('ul', id='top')['id'], 'top')
+    def test_parent_of_text_element (O0OOO0O0O0O00O000 ):#line:523:def test_parent_of_text_element(self):
+        O0O0OO0O000OO0OOO =O0OOO0O0O0O00O000 .tree .find (text ="Start here")#line:524:text = self.tree.find(text="Start here")
+        O0OOO0O0O0O00O000 .assertEqual (O0O0OO0O000OO0OOO .parent .name ,'b')#line:525:self.assertEqual(text.parent.name, 'b')
+    def test_text_element_find_parent (OO00O0OOOOOOOO0O0 ):#line:527:def test_text_element_find_parent(self):
+        OOO0O00OO00O0OOO0 =OO00O0OOOOOOOO0O0 .tree .find (text ="Start here")#line:528:text = self.tree.find(text="Start here")
+        OO00O0OOOOOOOO0O0 .assertEqual (OOO0O00OO00O0OOO0 .find_parent ('ul')['id'],'bottom')#line:529:self.assertEqual(text.find_parent('ul')['id'], 'bottom')
+    def test_parent_generator (O00O0OO0000O0OOO0 ):#line:531:def test_parent_generator(self):
+        O00OO0OOOOO0OOOO0 =[OOO0OO000OO00OOOO ['id']for OOO0OO000OO00OOOO in O00O0OO0000O0OOO0 .start .parents if OOO0OO000OO00OOOO is not None and 'id'in OOO0OO000OO00OOOO .attrs ]#line:533:if parent is not None and 'id' in parent.attrs]
+        O00O0OO0000O0OOO0 .assertEqual (O00OO0OOOOO0OOOO0 ,['bottom','middle','top'])#line:534:self.assertEqual(parents, ['bottom', 'middle', 'top'])
+class ProximityTest (TreeTest ):#line:537:class ProximityTest(TreeTest):
+    def setUp (OO0OOOOOOO000O0OO ):#line:539:def setUp(self):
+        super (TreeTest ,OO0OOOOOOO000O0OO ).setUp ()#line:540:super(TreeTest, self).setUp()
+        OO0OOOOOOO000O0OO .tree =OO0OOOOOOO000O0OO .soup ('<html id="start"><head></head><body><b id="1">One</b><b id="2">Two</b><b id="3">Three</b></body></html>')#line:542:'<html id="start"><head></head><body><b id="1">One</b><b id="2">Two</b><b id="3">Three</b></body></html>')
+class TestNextOperations (ProximityTest ):#line:545:class TestNextOperations(ProximityTest):
+    def setUp (O0OO00O0O0OOOO0OO ):#line:547:def setUp(self):
+        super (TestNextOperations ,O0OO00O0O0OOOO0OO ).setUp ()#line:548:super(TestNextOperations, self).setUp()
+        O0OO00O0O0OOOO0OO .start =O0OO00O0O0OOOO0OO .tree .b #line:549:self.start = self.tree.b
+    def test_next (OO0O000OOO0OOOO0O ):#line:551:def test_next(self):
+        OO0O000OOO0OOOO0O .assertEqual (OO0O000OOO0OOOO0O .start .next_element ,"One")#line:552:self.assertEqual(self.start.next_element, "One")
+        OO0O000OOO0OOOO0O .assertEqual (OO0O000OOO0OOOO0O .start .next_element .next_element ['id'],"2")#line:553:self.assertEqual(self.start.next_element.next_element['id'], "2")
+    def test_next_of_last_item_is_none (OO0O0OO0O0OO000OO ):#line:555:def test_next_of_last_item_is_none(self):
+        OOO00O0OOOO00O0OO =OO0O0OO0O0OO000OO .tree .find (text ="Three")#line:556:last = self.tree.find(text="Three")
+        OO0O0OO0O0OO000OO .assertEqual (OOO00O0OOOO00O0OO .next_element ,None )#line:557:self.assertEqual(last.next_element, None)
+    def test_next_of_root_is_none (OO0O00O00000OOO00 ):#line:559:def test_next_of_root_is_none(self):
+        OO0O00O00000OOO00 .assertEqual (OO0O00O00000OOO00 .tree .next_element ,None )#line:561:self.assertEqual(self.tree.next_element, None)
+    def test_find_all_next (OOOOOOOOO00OO00O0 ):#line:563:def test_find_all_next(self):
+        OOOOOOOOO00OO00O0 .assertSelects (OOOOOOOOO00OO00O0 .start .find_all_next ('b'),["Two","Three"])#line:564:self.assertSelects(self.start.find_all_next('b'), ["Two", "Three"])
+        OOOOOOOOO00OO00O0 .start .find_all_next (id =3 )#line:565:self.start.find_all_next(id=3)
+        OOOOOOOOO00OO00O0 .assertSelects (OOOOOOOOO00OO00O0 .start .find_all_next (id =3 ),["Three"])#line:566:self.assertSelects(self.start.find_all_next(id=3), ["Three"])
+    def test_find_next (O0O0OOOOO00O00O0O ):#line:568:def test_find_next(self):
+        O0O0OOOOO00O00O0O .assertEqual (O0O0OOOOO00O00O0O .start .find_next ('b')['id'],'2')#line:569:self.assertEqual(self.start.find_next('b')['id'], '2')
+        O0O0OOOOO00O00O0O .assertEqual (O0O0OOOOO00O00O0O .start .find_next (text ="Three"),"Three")#line:570:self.assertEqual(self.start.find_next(text="Three"), "Three")
+    def test_find_next_for_text_element (OOOO000O0OOOO000O ):#line:572:def test_find_next_for_text_element(self):
+        O0OO00OOOO0O0O0O0 =OOOO000O0OOOO000O .tree .find (text ="One")#line:573:text = self.tree.find(text="One")
+        OOOO000O0OOOO000O .assertEqual (O0OO00OOOO0O0O0O0 .find_next ("b").string ,"Two")#line:574:self.assertEqual(text.find_next("b").string, "Two")
+        OOOO000O0OOOO000O .assertSelects (O0OO00OOOO0O0O0O0 .find_all_next ("b"),["Two","Three"])#line:575:self.assertSelects(text.find_all_next("b"), ["Two", "Three"])
+    def test_next_generator (O0OOOOOOOO00OO0OO ):#line:577:def test_next_generator(self):
+        O00O000O0OOOOO0OO =O0OOOOOOOO00OO0OO .tree .find (text ="Two")#line:578:start = self.tree.find(text="Two")
+        OO0O0OOOO0OO00OOO =[OO00OO000O0O000O0 for OO00OO000O0O000O0 in O00O000O0OOOOO0OO .next_elements ]#line:579:successors = [node for node in start.next_elements]
+        OO00OO0O0O0O0O000 ,OO0OO0O0O0000OOOO =OO0O0OOOO0OO00OOO #line:581:tag, contents = successors
+        O0OOOOOOOO00OO0OO .assertEqual (OO00OO0O0O0O0O000 ['id'],'3')#line:582:self.assertEqual(tag['id'], '3')
+        O0OOOOOOOO00OO0OO .assertEqual (OO0OO0O0O0000OOOO ,"Three")#line:583:self.assertEqual(contents, "Three")
+class TestPreviousOperations (ProximityTest ):#line:585:class TestPreviousOperations(ProximityTest):
+    def setUp (OOOOO0O0OO0OO00OO ):#line:587:def setUp(self):
+        super (TestPreviousOperations ,OOOOO0O0OO0OO00OO ).setUp ()#line:588:super(TestPreviousOperations, self).setUp()
+        OOOOO0O0OO0OO00OO .end =OOOOO0O0OO0OO00OO .tree .find (text ="Three")#line:589:self.end = self.tree.find(text="Three")
+    def test_previous (OOO00O0O00OOO00OO ):#line:591:def test_previous(self):
+        OOO00O0O00OOO00OO .assertEqual (OOO00O0O00OOO00OO .end .previous_element ['id'],"3")#line:592:self.assertEqual(self.end.previous_element['id'], "3")
+        OOO00O0O00OOO00OO .assertEqual (OOO00O0O00OOO00OO .end .previous_element .previous_element ,"Two")#line:593:self.assertEqual(self.end.previous_element.previous_element, "Two")
+    def test_previous_of_first_item_is_none (O000OOO00O0OOO000 ):#line:595:def test_previous_of_first_item_is_none(self):
+        O00OO0O0O0OOO0OOO =O000OOO00O0OOO000 .tree .find ('html')#line:596:first = self.tree.find('html')
+        O000OOO00O0OOO000 .assertEqual (O00OO0O0O0OOO0OOO .previous_element ,None )#line:597:self.assertEqual(first.previous_element, None)
+    def test_previous_of_root_is_none (OO0OO00O0O000O0O0 ):#line:599:def test_previous_of_root_is_none(self):
+        pass #line:603:pass
+    def test_find_all_previous (OOO0O0O0OOO00O000 ):#line:605:def test_find_all_previous(self):
+        OOO0O0O0OOO00O000 .assertSelects (OOO0O0O0OOO00O000 .end .find_all_previous ('b'),["Three","Two","One"])#line:610:self.end.find_all_previous('b'), ["Three", "Two", "One"])
+        OOO0O0O0OOO00O000 .assertSelects (OOO0O0O0OOO00O000 .end .find_all_previous (id =1 ),["One"])#line:611:self.assertSelects(self.end.find_all_previous(id=1), ["One"])
+    def test_find_previous (O00OO00OO0OOOO000 ):#line:613:def test_find_previous(self):
+        O00OO00OO0OOOO000 .assertEqual (O00OO00OO0OOOO000 .end .find_previous ('b')['id'],'3')#line:614:self.assertEqual(self.end.find_previous('b')['id'], '3')
+        O00OO00OO0OOOO000 .assertEqual (O00OO00OO0OOOO000 .end .find_previous (text ="One"),"One")#line:615:self.assertEqual(self.end.find_previous(text="One"), "One")
+    def test_find_previous_for_text_element (OOO0OOOO000O00O00 ):#line:617:def test_find_previous_for_text_element(self):
+        O00O0O000O00O00OO =OOO0OOOO000O00O00 .tree .find (text ="Three")#line:618:text = self.tree.find(text="Three")
+        OOO0OOOO000O00O00 .assertEqual (O00O0O000O00O00OO .find_previous ("b").string ,"Three")#line:619:self.assertEqual(text.find_previous("b").string, "Three")
+        OOO0OOOO000O00O00 .assertSelects (O00O0O000O00O00OO .find_all_previous ("b"),["Three","Two","One"])#line:621:text.find_all_previous("b"), ["Three", "Two", "One"])
+    def test_previous_generator (O0O0O0O0O000OOOO0 ):#line:623:def test_previous_generator(self):
+        OOOO00OOOOOO00OOO =O0O0O0O0O000OOOO0 .tree .find (text ="One")#line:624:start = self.tree.find(text="One")
+        OOO0O0O0O0O0OOOOO =[O00OO00O0O0OO0OO0 for O00OO00O0O0OO0OO0 in OOOO00OOOOOO00OOO .previous_elements ]#line:625:predecessors = [node for node in start.previous_elements]
+        OOO000O0OO000OO00 ,OOOO0OOO000O0O0O0 ,O0O0O0OOOO0000OOO ,OOO0O00O0O00O0O00 =OOO0O0O0O0O0OOOOO #line:629:b, body, head, html = predecessors
+        O0O0O0O0O000OOOO0 .assertEqual (OOO000O0OO000OO00 ['id'],'1')#line:630:self.assertEqual(b['id'], '1')
+        O0O0O0O0O000OOOO0 .assertEqual (OOOO0OOO000O0O0O0 .name ,"body")#line:631:self.assertEqual(body.name, "body")
+        O0O0O0O0O000OOOO0 .assertEqual (O0O0O0OOOO0000OOO .name ,"head")#line:632:self.assertEqual(head.name, "head")
+        O0O0O0O0O000OOOO0 .assertEqual (OOO0O00O0O00O0O00 .name ,"html")#line:633:self.assertEqual(html.name, "html")
+class SiblingTest (TreeTest ):#line:636:class SiblingTest(TreeTest):
+    def setUp (OO0O00O00OO0OO0O0 ):#line:638:def setUp(self):
+        super (SiblingTest ,OO0O00O00OO0OO0O0 ).setUp ()#line:639:super(SiblingTest, self).setUp()
+        O00O0O0O0O0OO0000 ='''<html>
+                    <span id="1">
+                     <span id="1.1"></span>
+                    </span>
+                    <span id="2">
+                     <span id="2.1"></span>
+                    </span>
+                    <span id="3">
+                     <span id="3.1"></span>
+                    </span>
+                    <span id="4"></span>
+                    </html>'''#line:651:</html>'''
+        O00O0O0O0O0OO0000 =re .compile (r"\n\s*").sub ("",O00O0O0O0O0OO0000 )#line:654:markup = re.compile(r"\n\s*").sub("", markup)
+        OO0O00O00OO0OO0O0 .tree =OO0O00O00OO0OO0O0 .soup (O00O0O0O0O0OO0000 )#line:655:self.tree = self.soup(markup)
+class TestNextSibling (SiblingTest ):#line:658:class TestNextSibling(SiblingTest):
+    def setUp (O00O00OO0000OOOO0 ):#line:660:def setUp(self):
+        super (TestNextSibling ,O00O00OO0000OOOO0 ).setUp ()#line:661:super(TestNextSibling, self).setUp()
+        O00O00OO0000OOOO0 .start =O00O00OO0000OOOO0 .tree .find (id ="1")#line:662:self.start = self.tree.find(id="1")
+    def test_next_sibling_of_root_is_none (OOO00OO000OOOO0OO ):#line:664:def test_next_sibling_of_root_is_none(self):
+        OOO00OO000OOOO0OO .assertEqual (OOO00OO000OOOO0OO .tree .next_sibling ,None )#line:665:self.assertEqual(self.tree.next_sibling, None)
+    def test_next_sibling (O000O0000000OOO00 ):#line:667:def test_next_sibling(self):
+        O000O0000000OOO00 .assertEqual (O000O0000000OOO00 .start .next_sibling ['id'],'2')#line:668:self.assertEqual(self.start.next_sibling['id'], '2')
+        O000O0000000OOO00 .assertEqual (O000O0000000OOO00 .start .next_sibling .next_sibling ['id'],'3')#line:669:self.assertEqual(self.start.next_sibling.next_sibling['id'], '3')
+        O000O0000000OOO00 .assertEqual (O000O0000000OOO00 .start .next_element ['id'],'1.1')#line:672:self.assertEqual(self.start.next_element['id'], '1.1')
+    def test_next_sibling_may_not_exist (O00O00000OOOOOO0O ):#line:674:def test_next_sibling_may_not_exist(self):
+        O00O00000OOOOOO0O .assertEqual (O00O00000OOOOOO0O .tree .html .next_sibling ,None )#line:675:self.assertEqual(self.tree.html.next_sibling, None)
+        OOO00O000000000OO =O00O00000OOOOOO0O .tree .find (id ="1.1")#line:677:nested_span = self.tree.find(id="1.1")
+        O00O00000OOOOOO0O .assertEqual (OOO00O000000000OO .next_sibling ,None )#line:678:self.assertEqual(nested_span.next_sibling, None)
+        OOO00000O00OOOOOO =O00O00000OOOOOO0O .tree .find (id ="4")#line:680:last_span = self.tree.find(id="4")
+        O00O00000OOOOOO0O .assertEqual (OOO00000O00OOOOOO .next_sibling ,None )#line:681:self.assertEqual(last_span.next_sibling, None)
+    def test_find_next_sibling (O0OOO0000000OO0OO ):#line:683:def test_find_next_sibling(self):
+        O0OOO0000000OO0OO .assertEqual (O0OOO0000000OO0OO .start .find_next_sibling ('span')['id'],'2')#line:684:self.assertEqual(self.start.find_next_sibling('span')['id'], '2')
+    def test_next_siblings (OO000OO0O000OO0OO ):#line:686:def test_next_siblings(self):
+        OO000OO0O000OO0OO .assertSelectsIDs (OO000OO0O000OO0OO .start .find_next_siblings ("span"),['2','3','4'])#line:688:['2', '3', '4'])
+        OO000OO0O000OO0OO .assertSelectsIDs (OO000OO0O000OO0OO .start .find_next_siblings (id ='3'),['3'])#line:690:self.assertSelectsIDs(self.start.find_next_siblings(id='3'), ['3'])
+    def test_next_sibling_for_text_element (O0OO0OOO00OO00OO0 ):#line:692:def test_next_sibling_for_text_element(self):
+        OOOOOOO0OOO000O0O =O0OO0OOO00OO00OO0 .soup ("Foo<b>bar</b>baz")#line:693:soup = self.soup("Foo<b>bar</b>baz")
+        O000O0O0O0OOO0O0O =OOOOOOO0OOO000O0O .find (text ="Foo")#line:694:start = soup.find(text="Foo")
+        O0OO0OOO00OO00OO0 .assertEqual (O000O0O0O0OOO0O0O .next_sibling .name ,'b')#line:695:self.assertEqual(start.next_sibling.name, 'b')
+        O0OO0OOO00OO00OO0 .assertEqual (O000O0O0O0OOO0O0O .next_sibling .next_sibling ,'baz')#line:696:self.assertEqual(start.next_sibling.next_sibling, 'baz')
+        O0OO0OOO00OO00OO0 .assertSelects (O000O0O0O0OOO0O0O .find_next_siblings ('b'),['bar'])#line:698:self.assertSelects(start.find_next_siblings('b'), ['bar'])
+        O0OO0OOO00OO00OO0 .assertEqual (O000O0O0O0OOO0O0O .find_next_sibling (text ="baz"),"baz")#line:699:self.assertEqual(start.find_next_sibling(text="baz"), "baz")
+        O0OO0OOO00OO00OO0 .assertEqual (O000O0O0O0OOO0O0O .find_next_sibling (text ="nonesuch"),None )#line:700:self.assertEqual(start.find_next_sibling(text="nonesuch"), None)
+class TestPreviousSibling (SiblingTest ):#line:703:class TestPreviousSibling(SiblingTest):
+    def setUp (O0O0OO00O0OOO0O0O ):#line:705:def setUp(self):
+        super (TestPreviousSibling ,O0O0OO00O0OOO0O0O ).setUp ()#line:706:super(TestPreviousSibling, self).setUp()
+        O0O0OO00O0OOO0O0O .end =O0O0OO00O0OOO0O0O .tree .find (id ="4")#line:707:self.end = self.tree.find(id="4")
+    def test_previous_sibling_of_root_is_none (O0O000O0OOOOO00O0 ):#line:709:def test_previous_sibling_of_root_is_none(self):
+        O0O000O0OOOOO00O0 .assertEqual (O0O000O0OOOOO00O0 .tree .previous_sibling ,None )#line:710:self.assertEqual(self.tree.previous_sibling, None)
+    def test_previous_sibling (O0O0O000OOO0OO000 ):#line:712:def test_previous_sibling(self):
+        O0O0O000OOO0OO000 .assertEqual (O0O0O000OOO0OO000 .end .previous_sibling ['id'],'3')#line:713:self.assertEqual(self.end.previous_sibling['id'], '3')
+        O0O0O000OOO0OO000 .assertEqual (O0O0O000OOO0OO000 .end .previous_sibling .previous_sibling ['id'],'2')#line:714:self.assertEqual(self.end.previous_sibling.previous_sibling['id'], '2')
+        O0O0O000OOO0OO000 .assertEqual (O0O0O000OOO0OO000 .end .previous_element ['id'],'3.1')#line:717:self.assertEqual(self.end.previous_element['id'], '3.1')
+    def test_previous_sibling_may_not_exist (OOOO000O000O0O0OO ):#line:719:def test_previous_sibling_may_not_exist(self):
+        OOOO000O000O0O0OO .assertEqual (OOOO000O000O0O0OO .tree .html .previous_sibling ,None )#line:720:self.assertEqual(self.tree.html.previous_sibling, None)
+        OOOO0O0000O000O00 =OOOO000O000O0O0OO .tree .find (id ="1.1")#line:722:nested_span = self.tree.find(id="1.1")
+        OOOO000O000O0O0OO .assertEqual (OOOO0O0000O000O00 .previous_sibling ,None )#line:723:self.assertEqual(nested_span.previous_sibling, None)
+        OOOOOOO0OO000O0OO =OOOO000O000O0O0OO .tree .find (id ="1")#line:725:first_span = self.tree.find(id="1")
+        OOOO000O000O0O0OO .assertEqual (OOOOOOO0OO000O0OO .previous_sibling ,None )#line:726:self.assertEqual(first_span.previous_sibling, None)
+    def test_find_previous_sibling (O0OO00O0O0O00O000 ):#line:728:def test_find_previous_sibling(self):
+        O0OO00O0O0O00O000 .assertEqual (O0OO00O0O0O00O000 .end .find_previous_sibling ('span')['id'],'3')#line:729:self.assertEqual(self.end.find_previous_sibling('span')['id'], '3')
+    def test_previous_siblings (O0000O000O0O00OOO ):#line:731:def test_previous_siblings(self):
+        O0000O000O0O00OOO .assertSelectsIDs (O0000O000O0O00OOO .end .find_previous_siblings ("span"),['3','2','1'])#line:733:['3', '2', '1'])
+        O0000O000O0O00OOO .assertSelectsIDs (O0000O000O0O00OOO .end .find_previous_siblings (id ='1'),['1'])#line:735:self.assertSelectsIDs(self.end.find_previous_siblings(id='1'), ['1'])
+    def test_previous_sibling_for_text_element (O0O00OOO0O0OO0OO0 ):#line:737:def test_previous_sibling_for_text_element(self):
+        OO0000OO0OOOO00OO =O0O00OOO0O0OO0OO0 .soup ("Foo<b>bar</b>baz")#line:738:soup = self.soup("Foo<b>bar</b>baz")
+        OOOO00O0OOOOOO0OO =OO0000OO0OOOO00OO .find (text ="baz")#line:739:start = soup.find(text="baz")
+        O0O00OOO0O0OO0OO0 .assertEqual (OOOO00O0OOOOOO0OO .previous_sibling .name ,'b')#line:740:self.assertEqual(start.previous_sibling.name, 'b')
+        O0O00OOO0O0OO0OO0 .assertEqual (OOOO00O0OOOOOO0OO .previous_sibling .previous_sibling ,'Foo')#line:741:self.assertEqual(start.previous_sibling.previous_sibling, 'Foo')
+        O0O00OOO0O0OO0OO0 .assertSelects (OOOO00O0OOOOOO0OO .find_previous_siblings ('b'),['bar'])#line:743:self.assertSelects(start.find_previous_siblings('b'), ['bar'])
+        O0O00OOO0O0OO0OO0 .assertEqual (OOOO00O0OOOOOO0OO .find_previous_sibling (text ="Foo"),"Foo")#line:744:self.assertEqual(start.find_previous_sibling(text="Foo"), "Foo")
+        O0O00OOO0O0OO0OO0 .assertEqual (OOOO00O0OOOOOO0OO .find_previous_sibling (text ="nonesuch"),None )#line:745:self.assertEqual(start.find_previous_sibling(text="nonesuch"), None)
+class TestTag (SoupTest ):#line:748:class TestTag(SoupTest):
+    def test__should_pretty_print (O000O00OO000000OO ):#line:752:def test__should_pretty_print(self):
+        OO0O0O0OOO00O0OOO =O000O00OO000000OO .soup ("").new_tag ("a_tag")#line:754:tag = self.soup("").new_tag("a_tag")
+        OO0O0O0OOO00O0OOO ._preserve_whitespace_tags =None #line:757:tag._preserve_whitespace_tags = None
+        O000O00OO000000OO .assertEqual (True ,OO0O0O0OOO00O0OOO ._should_pretty_print (0 ))#line:758:self.assertEqual(True, tag._should_pretty_print(0))
+        OO0O0O0OOO00O0OOO .preserve_whitespace_tags =["some_other_tag"]#line:761:tag.preserve_whitespace_tags = ["some_other_tag"]
+        O000O00OO000000OO .assertEqual (True ,OO0O0O0OOO00O0OOO ._should_pretty_print (1 ))#line:762:self.assertEqual(True, tag._should_pretty_print(1))
+        O000O00OO000000OO .assertEqual (False ,OO0O0O0OOO00O0OOO ._should_pretty_print (None ))#line:765:self.assertEqual(False, tag._should_pretty_print(None))
+        OO0O0O0OOO00O0OOO .preserve_whitespace_tags =["some_other_tag","a_tag"]#line:768:tag.preserve_whitespace_tags = ["some_other_tag", "a_tag"]
+        O000O00OO000000OO .assertEqual (False ,OO0O0O0OOO00O0OOO ._should_pretty_print (1 ))#line:769:self.assertEqual(False, tag._should_pretty_print(1))
+class TestTagCreation (SoupTest ):#line:772:class TestTagCreation(SoupTest):
+    ""#line:773:"""Test the ability to create new tags."""
+    def test_new_tag (OOOO00OOOOO000000 ):#line:774:def test_new_tag(self):
+        OO000OOOOO0O00OO0 =OOOO00OOOOO000000 .soup ("")#line:775:soup = self.soup("")
+        OO00OOOOOO00O0O0O =OO000OOOOO0O00OO0 .new_tag ("foo",bar ="baz",attrs ={"name":"a name"})#line:776:new_tag = soup.new_tag("foo", bar="baz", attrs={"name": "a name"})
+        OOOO00OOOOO000000 .assertTrue (isinstance (OO00OOOOOO00O0O0O ,Tag ))#line:777:self.assertTrue(isinstance(new_tag, Tag))
+        OOOO00OOOOO000000 .assertEqual ("foo",OO00OOOOOO00O0O0O .name )#line:778:self.assertEqual("foo", new_tag.name)
+        OOOO00OOOOO000000 .assertEqual (dict (bar ="baz",name ="a name"),OO00OOOOOO00O0O0O .attrs )#line:779:self.assertEqual(dict(bar="baz", name="a name"), new_tag.attrs)
+        OOOO00OOOOO000000 .assertEqual (None ,OO00OOOOOO00O0O0O .parent )#line:780:self.assertEqual(None, new_tag.parent)
+    def test_tag_inherits_self_closing_rules_from_builder (O00OOO0O00O000O00 ):#line:782:def test_tag_inherits_self_closing_rules_from_builder(self):
+        if XML_BUILDER_PRESENT :#line:783:if XML_BUILDER_PRESENT:
+            O00O00OO0OOO00O0O =BeautifulSoup ("","lxml-xml")#line:784:xml_soup = BeautifulSoup("", "lxml-xml")
+            O0O0OOO000OOO0000 =O00O00OO0OOO00O0O .new_tag ("br")#line:785:xml_br = xml_soup.new_tag("br")
+            OOOO000O00OO0OO00 =O00O00OO0OOO00O0O .new_tag ("p")#line:786:xml_p = xml_soup.new_tag("p")
+            O00OOO0O00O000O00 .assertEqual (b"<br/>",O0O0OOO000OOO0000 .encode ())#line:790:self.assertEqual(b"<br/>", xml_br.encode())
+            O00OOO0O00O000O00 .assertEqual (b"<p/>",OOOO000O00OO0OO00 .encode ())#line:791:self.assertEqual(b"<p/>", xml_p.encode())
+        O0O0O00000OOO0O00 =BeautifulSoup ("","html.parser")#line:793:html_soup = BeautifulSoup("", "html.parser")
+        O000O0OOO00000OOO =O0O0O00000OOO0O00 .new_tag ("br")#line:794:html_br = html_soup.new_tag("br")
+        O0OO0O0OO0OOO0O00 =O0O0O00000OOO0O00 .new_tag ("p")#line:795:html_p = html_soup.new_tag("p")
+        O00OOO0O00O000O00 .assertEqual (b"<br/>",O000O0OOO00000OOO .encode ())#line:799:self.assertEqual(b"<br/>", html_br.encode())
+        O00OOO0O00O000O00 .assertEqual (b"<p></p>",O0OO0O0OO0OOO0O00 .encode ())#line:800:self.assertEqual(b"<p></p>", html_p.encode())
+    def test_new_string_creates_navigablestring (OO00OO00000O0O0OO ):#line:802:def test_new_string_creates_navigablestring(self):
+        OOO0O00000000O0O0 =OO00OO00000O0O0OO .soup ("")#line:803:soup = self.soup("")
+        O0OO0OO00OO0000O0 =OOO0O00000000O0O0 .new_string ("foo")#line:804:s = soup.new_string("foo")
+        OO00OO00000O0O0OO .assertEqual ("foo",O0OO0OO00OO0000O0 )#line:805:self.assertEqual("foo", s)
+        OO00OO00000O0O0OO .assertTrue (isinstance (O0OO0OO00OO0000O0 ,NavigableString ))#line:806:self.assertTrue(isinstance(s, NavigableString))
+    def test_new_string_can_create_navigablestring_subclass (OOO0OOO0O0000OOO0 ):#line:808:def test_new_string_can_create_navigablestring_subclass(self):
+        O00O000O00000O0OO =OOO0OOO0O0000OOO0 .soup ("")#line:809:soup = self.soup("")
+        OOOOO00OO00000000 =O00O000O00000O0OO .new_string ("foo",Comment )#line:810:s = soup.new_string("foo", Comment)
+        OOO0OOO0O0000OOO0 .assertEqual ("foo",OOOOO00OO00000000 )#line:811:self.assertEqual("foo", s)
+        OOO0OOO0O0000OOO0 .assertTrue (isinstance (OOOOO00OO00000000 ,Comment ))#line:812:self.assertTrue(isinstance(s, Comment))
+class TestTreeModification (SoupTest ):#line:814:class TestTreeModification(SoupTest):
+    def test_attribute_modification (O0O0OO00O0000O0OO ):#line:816:def test_attribute_modification(self):
+        O0O0OOOOO0O0O0O0O =O0O0OO00O0000O0OO .soup ('<a id="1"></a>')#line:817:soup = self.soup('<a id="1"></a>')
+        O0O0OOOOO0O0O0O0O .a ['id']=2 #line:818:soup.a['id'] = 2
+        O0O0OO00O0000O0OO .assertEqual (O0O0OOOOO0O0O0O0O .decode (),O0O0OO00O0000O0OO .document_for ('<a id="2"></a>'))#line:819:self.assertEqual(soup.decode(), self.document_for('<a id="2"></a>'))
+        del (O0O0OOOOO0O0O0O0O .a ['id'])#line:820:del(soup.a['id'])
+        O0O0OO00O0000O0OO .assertEqual (O0O0OOOOO0O0O0O0O .decode (),O0O0OO00O0000O0OO .document_for ('<a></a>'))#line:821:self.assertEqual(soup.decode(), self.document_for('<a></a>'))
+        O0O0OOOOO0O0O0O0O .a ['id2']='foo'#line:822:soup.a['id2'] = 'foo'
+        O0O0OO00O0000O0OO .assertEqual (O0O0OOOOO0O0O0O0O .decode (),O0O0OO00O0000O0OO .document_for ('<a id2="foo"></a>'))#line:823:self.assertEqual(soup.decode(), self.document_for('<a id2="foo"></a>'))
+    def test_new_tag_creation (O000O00OO00OOO00O ):#line:825:def test_new_tag_creation(self):
+        OOOOOOO000O00OO00 =builder_registry .lookup ('html')()#line:826:builder = builder_registry.lookup('html')()
+        O0OOO000OOO0O0O0O =O000O00OO00OOO00O .soup ("<body></body>",builder =OOOOOOO000O00OO00 )#line:827:soup = self.soup("<body></body>", builder=builder)
+        O0O0000OO0OO0O000 =Tag (O0OOO000OOO0O0O0O ,OOOOOOO000O00OO00 ,'a')#line:828:a = Tag(soup, builder, 'a')
+        OO00OO000000000O0 =Tag (O0OOO000OOO0O0O0O ,OOOOOOO000O00OO00 ,'ol')#line:829:ol = Tag(soup, builder, 'ol')
+        O0O0000OO0OO0O000 ['href']='http://foo.com/'#line:830:a['href'] = 'http://foo.com/'
+        O0OOO000OOO0O0O0O .body .insert (0 ,O0O0000OO0OO0O000 )#line:831:soup.body.insert(0, a)
+        O0OOO000OOO0O0O0O .body .insert (1 ,OO00OO000000000O0 )#line:832:soup.body.insert(1, ol)
+        O000O00OO00OOO00O .assertEqual (O0OOO000OOO0O0O0O .body .encode (),b'<body><a href="http://foo.com/"></a><ol></ol></body>')#line:835:b'<body><a href="http://foo.com/"></a><ol></ol></body>')
+    def test_append_to_contents_moves_tag (O0OO00O0O0O0O0O00 ):#line:837:def test_append_to_contents_moves_tag(self):
+        OOO0O0OO0OOOOO0OO ="""<p id="1">Don't leave me <b>here</b>.</p>
+                <p id="2">Don\'t leave!</p>"""#line:839:<p id="2">Don\'t leave!</p>"""
+        OO0000000O00OO000 =O0OO00O0O0O0O0O00 .soup (OOO0O0OO0OOOOO0OO )#line:840:soup = self.soup(doc)
+        O00OO00OO00O00OO0 =OO0000000O00OO000 .find (id ='2')#line:841:second_para = soup.find(id='2')
+        O00O00O000OOOOO0O =OO0000000O00OO000 .b #line:842:bold = soup.b
+        OO0000000O00OO000 .find (id ='2').append (OO0000000O00OO000 .b )#line:845:soup.find(id='2').append(soup.b)
+        O0OO00O0O0O0O0O00 .assertEqual (O00O00O000OOOOO0O .parent ,O00OO00OO00O00OO0 )#line:848:self.assertEqual(bold.parent, second_para)
+        O0OO00O0O0O0O0O00 .assertEqual (OO0000000O00OO000 .decode (),O0OO00O0O0O0O0O00 .document_for ('<p id="1">Don\'t leave me .</p>\n' '<p id="2">Don\'t leave!<b>here</b></p>'))#line:853:'<p id="2">Don\'t leave!<b>here</b></p>'))
+    def test_replace_with_returns_thing_that_was_replaced (O0OO000OO0O0O0OOO ):#line:855:def test_replace_with_returns_thing_that_was_replaced(self):
+        OO00O00OOO0O00O0O ="<a></a><b><c></c></b>"#line:856:text = "<a></a><b><c></c></b>"
+        O0O000OO00000000O =O0OO000OO0O0O0OOO .soup (OO00O00OOO0O00O0O )#line:857:soup = self.soup(text)
+        OO0OOO000OOO0O0O0 =O0O000OO00000000O .a #line:858:a = soup.a
+        O000O0000000O00O0 =OO0OOO000OOO0O0O0 .replace_with (O0O000OO00000000O .c )#line:859:new_a = a.replace_with(soup.c)
+        O0OO000OO0O0O0OOO .assertEqual (OO0OOO000OOO0O0O0 ,O000O0000000O00O0 )#line:860:self.assertEqual(a, new_a)
+    def test_unwrap_returns_thing_that_was_replaced (O000000O0O00O0O0O ):#line:862:def test_unwrap_returns_thing_that_was_replaced(self):
+        OO0OO000OO0OOO0OO ="<a><b></b><c></c></a>"#line:863:text = "<a><b></b><c></c></a>"
+        O000O0OOO0OO0O0O0 =O000000O0O00O0O0O .soup (OO0OO000OO0OOO0OO )#line:864:soup = self.soup(text)
+        O0OO0O0OO0OOO0O0O =O000O0OOO0OO0O0O0 .a #line:865:a = soup.a
+        O0O000O0O0O00O00O =O0OO0O0OO0OOO0O0O .unwrap ()#line:866:new_a = a.unwrap()
+        O000000O0O00O0O0O .assertEqual (O0OO0O0OO0OOO0O0O ,O0O000O0O0O00O00O )#line:867:self.assertEqual(a, new_a)
+    def test_replace_with_and_unwrap_give_useful_exception_when_tag_has_no_parent (OOOOO000000OOO000 ):#line:869:def test_replace_with_and_unwrap_give_useful_exception_when_tag_has_no_parent(self):
+        OO0O0OO00000O00OO =OOOOO000000OOO000 .soup ("<a><b>Foo</b></a><c>Bar</c>")#line:870:soup = self.soup("<a><b>Foo</b></a><c>Bar</c>")
+        O0OOO0000OO000OOO =OO0O0OO00000O00OO .a #line:871:a = soup.a
+        O0OOO0000OO000OOO .extract ()#line:872:a.extract()
+        OOOOO000000OOO000 .assertEqual (None ,O0OOO0000OO000OOO .parent )#line:873:self.assertEqual(None, a.parent)
+        OOOOO000000OOO000 .assertRaises (ValueError ,O0OOO0000OO000OOO .unwrap )#line:874:self.assertRaises(ValueError, a.unwrap)
+        OOOOO000000OOO000 .assertRaises (ValueError ,O0OOO0000OO000OOO .replace_with ,OO0O0OO00000O00OO .c )#line:875:self.assertRaises(ValueError, a.replace_with, soup.c)
+    def test_replace_tag_with_itself (O00000OO00000O0OO ):#line:877:def test_replace_tag_with_itself(self):
+        O00O000O0O0O0O0OO ="<a><b></b><c>Foo<d></d></c></a><a><e></e></a>"#line:878:text = "<a><b></b><c>Foo<d></d></c></a><a><e></e></a>"
+        OO0OO00O0O0O0OOO0 =O00000OO00000O0OO .soup (O00O000O0O0O0O0OO )#line:879:soup = self.soup(text)
+        OOO00OOOOOO0O000O =OO0OO00O0O0O0OOO0 .c #line:880:c = soup.c
+        OO0OO00O0O0O0OOO0 .c .replace_with (OOO00OOOOOO0O000O )#line:881:soup.c.replace_with(c)
+        O00000OO00000O0OO .assertEqual (OO0OO00O0O0O0OOO0 .decode (),O00000OO00000O0OO .document_for (O00O000O0O0O0O0OO ))#line:882:self.assertEqual(soup.decode(), self.document_for(text))
+    def test_replace_tag_with_its_parent_raises_exception (OO0O0O00O00OO0O0O ):#line:884:def test_replace_tag_with_its_parent_raises_exception(self):
+        OOOOO00OOO0OO0OOO ="<a><b></b></a>"#line:885:text = "<a><b></b></a>"
+        O000O0O0OOO0000OO =OO0O0O00O00OO0O0O .soup (OOOOO00OOO0OO0OOO )#line:886:soup = self.soup(text)
+        OO0O0O00O00OO0O0O .assertRaises (ValueError ,O000O0O0OOO0000OO .b .replace_with ,O000O0O0OOO0000OO .a )#line:887:self.assertRaises(ValueError, soup.b.replace_with, soup.a)
+    def test_insert_tag_into_itself_raises_exception (OOO00O0OO0O0O0O0O ):#line:889:def test_insert_tag_into_itself_raises_exception(self):
+        O00OOOOO0O0000O00 ="<a><b></b></a>"#line:890:text = "<a><b></b></a>"
+        O000O00O0000O00O0 =OOO00O0OO0O0O0O0O .soup (O00OOOOO0O0000O00 )#line:891:soup = self.soup(text)
+        OOO00O0OO0O0O0O0O .assertRaises (ValueError ,O000O00O0000O00O0 .a .insert ,0 ,O000O00O0000O00O0 .a )#line:892:self.assertRaises(ValueError, soup.a.insert, 0, soup.a)
+    def test_insert_beautifulsoup_object_inserts_children (OO00000O0OO0OO000 ):#line:894:def test_insert_beautifulsoup_object_inserts_children(self):
+        ""#line:897:"""
+        O000OOO00000OO0O0 =OO00000O0OO0OO000 .soup ("<p>And now, a word:</p><p>And we're back.</p>")#line:898:soup = self.soup("<p>And now, a word:</p><p>And we're back.</p>")
+        OO0OO0OOOOOO0O0O0 ="<p>p2</p><p>p3</p>"#line:900:text = "<p>p2</p><p>p3</p>"
+        OO000OO000O00O0O0 =OO00000O0OO0OO000 .soup (OO0OO0OOOOOO0O0O0 )#line:901:to_insert = self.soup(text)
+        O000OOO00000OO0O0 .insert (1 ,OO000OO000O00O0O0 )#line:902:soup.insert(1, to_insert)
+        for O00OOO000O0OO00O0 in O000OOO00000OO0O0 .descendants :#line:904:for i in soup.descendants:
+            assert not isinstance (O00OOO000O0OO00O0 ,BeautifulSoup )#line:905:assert not isinstance(i, BeautifulSoup)
+        O00O00OO0OOO00000 ,O00000O00OO000O0O ,O0000000O00OOO000 ,O0OOOO0OO0OOO0OOO =list (O000OOO00000OO0O0 .children )#line:907:p1, p2, p3, p4 = list(soup.children)
+        OO00000O0OO0OO000 .assertEqual ("And now, a word:",O00O00OO0OOO00000 .string )#line:908:self.assertEqual("And now, a word:", p1.string)
+        OO00000O0OO0OO000 .assertEqual ("p2",O00000O00OO000O0O .string )#line:909:self.assertEqual("p2", p2.string)
+        OO00000O0OO0OO000 .assertEqual ("p3",O0000000O00OOO000 .string )#line:910:self.assertEqual("p3", p3.string)
+        OO00000O0OO0OO000 .assertEqual ("And we're back.",O0OOOO0OO0OOO0OOO .string )#line:911:self.assertEqual("And we're back.", p4.string)
+    def test_replace_with_maintains_next_element_throughout (OO00000O0O0O0O00O ):#line:914:def test_replace_with_maintains_next_element_throughout(self):
+        O0O000OOOO0OOOO00 =OO00000O0O0O0O00O .soup ('<p><a>one</a><b>three</b></p>')#line:915:soup = self.soup('<p><a>one</a><b>three</b></p>')
+        O00O0OO00OO0O00OO =O0O000OOOO0OOOO00 .a #line:916:a = soup.a
+        OOOOO000000OO00O0 =O00O0OO00OO0O00OO .contents [0 ]#line:917:b = a.contents[0]
+        O00O0OO00OO0O00OO .insert (1 ,"two")#line:919:a.insert(1, "two")
+        O0O0OO0000O000OO0 ,OOO000O0000OO00OO =O00O0OO00OO0O00OO .contents #line:922:left, right = a.contents
+        O0O0OO0000O000OO0 .replaceWith ('')#line:923:left.replaceWith('')
+        OOO000O0000OO00OO .replaceWith ('')#line:924:right.replaceWith('')
+        OO00000O0O0O0O00O .assertEqual ("three",O0O000OOOO0OOOO00 .b .string )#line:927:self.assertEqual("three", soup.b.string)
+    def test_replace_final_node (OOO000OO000O0O00O ):#line:929:def test_replace_final_node(self):
+        O00O0OOOOO000O00O =OOO000OO000O0O00O .soup ("<b>Argh!</b>")#line:930:soup = self.soup("<b>Argh!</b>")
+        O00O0OOOOO000O00O .find (text ="Argh!").replace_with ("Hooray!")#line:931:soup.find(text="Argh!").replace_with("Hooray!")
+        OOOO00O0OOO0000OO =O00O0OOOOO000O00O .find (text ="Hooray!")#line:932:new_text = soup.find(text="Hooray!")
+        OOO0O00O0OO000000 =O00O0OOOOO000O00O .b #line:933:b = soup.b
+        OOO000OO000O0O00O .assertEqual (OOOO00O0OOO0000OO .previous_element ,OOO0O00O0OO000000 )#line:934:self.assertEqual(new_text.previous_element, b)
+        OOO000OO000O0O00O .assertEqual (OOOO00O0OOO0000OO .parent ,OOO0O00O0OO000000 )#line:935:self.assertEqual(new_text.parent, b)
+        OOO000OO000O0O00O .assertEqual (OOOO00O0OOO0000OO .previous_element .next_element ,OOOO00O0OOO0000OO )#line:936:self.assertEqual(new_text.previous_element.next_element, new_text)
+        OOO000OO000O0O00O .assertEqual (OOOO00O0OOO0000OO .next_element ,None )#line:937:self.assertEqual(new_text.next_element, None)
+    def test_consecutive_text_nodes (OOO0000OOO0O0OOO0 ):#line:939:def test_consecutive_text_nodes(self):
+        O00000OOOO000O0O0 =OOO0000OOO0O0OOO0 .soup ("<a><b>Argh!</b><c></c></a>")#line:943:soup = self.soup("<a><b>Argh!</b><c></c></a>")
+        O00000OOOO000O0O0 .b .insert (1 ,"Hooray!")#line:944:soup.b.insert(1, "Hooray!")
+        OOO0000OOO0O0OOO0 .assertEqual (O00000OOOO000O0O0 .decode (),OOO0000OOO0O0OOO0 .document_for ("<a><b>Argh!Hooray!</b><c></c></a>"))#line:948:"<a><b>Argh!Hooray!</b><c></c></a>"))
+        O000O0OO0OO00O0O0 =O00000OOOO000O0O0 .find (text ="Hooray!")#line:950:new_text = soup.find(text="Hooray!")
+        OOO0000OOO0O0OOO0 .assertEqual (O000O0OO0OO00O0O0 .previous_element ,"Argh!")#line:951:self.assertEqual(new_text.previous_element, "Argh!")
+        OOO0000OOO0O0OOO0 .assertEqual (O000O0OO0OO00O0O0 .previous_element .next_element ,O000O0OO0OO00O0O0 )#line:952:self.assertEqual(new_text.previous_element.next_element, new_text)
+        OOO0000OOO0O0OOO0 .assertEqual (O000O0OO0OO00O0O0 .previous_sibling ,"Argh!")#line:954:self.assertEqual(new_text.previous_sibling, "Argh!")
+        OOO0000OOO0O0OOO0 .assertEqual (O000O0OO0OO00O0O0 .previous_sibling .next_sibling ,O000O0OO0OO00O0O0 )#line:955:self.assertEqual(new_text.previous_sibling.next_sibling, new_text)
+        OOO0000OOO0O0OOO0 .assertEqual (O000O0OO0OO00O0O0 .next_sibling ,None )#line:957:self.assertEqual(new_text.next_sibling, None)
+        OOO0000OOO0O0OOO0 .assertEqual (O000O0OO0OO00O0O0 .next_element ,O00000OOOO000O0O0 .c )#line:958:self.assertEqual(new_text.next_element, soup.c)
+    def test_insert_string (OO00OOO0OOOO00OO0 ):#line:960:def test_insert_string(self):
+        OO0OOO0O00O0OOOO0 =OO00OOO0OOOO00OO0 .soup ("<a></a>")#line:961:soup = self.soup("<a></a>")
+        OO0OOO0O00O0OOOO0 .a .insert (0 ,"bar")#line:962:soup.a.insert(0, "bar")
+        OO0OOO0O00O0OOOO0 .a .insert (0 ,"foo")#line:963:soup.a.insert(0, "foo")
+        OO00OOO0OOOO00OO0 .assertEqual (["foo","bar"],OO0OOO0O00O0OOOO0 .a .contents )#line:965:self.assertEqual(["foo", "bar"], soup.a.contents)
+        OO00OOO0OOOO00OO0 .assertEqual (OO0OOO0O00O0OOOO0 .a .contents [0 ].next_element ,"bar")#line:967:self.assertEqual(soup.a.contents[0].next_element, "bar")
+    def test_insert_tag (OO0OO00OO00OOO000 ):#line:969:def test_insert_tag(self):
+        O0O0OOOOO00O000OO =OO0OO00OO00OOO000 .default_builder ()#line:970:builder = self.default_builder()
+        O00OO00O0O0OOOOO0 =OO0OO00OO00OOO000 .soup ("<a><b>Find</b><c>lady!</c><d></d></a>",builder =O0O0OOOOO00O000OO )#line:972:"<a><b>Find</b><c>lady!</c><d></d></a>", builder=builder)
+        O0O00O0OO000OOOO0 =Tag (O00OO00O0O0OOOOO0 ,O0O0OOOOO00O000OO ,'magictag')#line:973:magic_tag = Tag(soup, builder, 'magictag')
+        O0O00O0OO000OOOO0 .insert (0 ,"the")#line:974:magic_tag.insert(0, "the")
+        O00OO00O0O0OOOOO0 .a .insert (1 ,O0O00O0OO000OOOO0 )#line:975:soup.a.insert(1, magic_tag)
+        OO0OO00OO00OOO000 .assertEqual (O00OO00O0O0OOOOO0 .decode (),OO0OO00OO00OOO000 .document_for ("<a><b>Find</b><magictag>the</magictag><c>lady!</c><d></d></a>"))#line:979:"<a><b>Find</b><magictag>the</magictag><c>lady!</c><d></d></a>"))
+        OOO000OOO0O0OO0O0 =O00OO00O0O0OOOOO0 .b #line:982:b_tag = soup.b
+        OO0OO00OO00OOO000 .assertEqual (OOO000OOO0O0OO0O0 .next_sibling ,O0O00O0OO000OOOO0 )#line:983:self.assertEqual(b_tag.next_sibling, magic_tag)
+        OO0OO00OO00OOO000 .assertEqual (O0O00O0OO000OOOO0 .previous_sibling ,OOO000OOO0O0OO0O0 )#line:984:self.assertEqual(magic_tag.previous_sibling, b_tag)
+        O00OOOO00OOOO0O00 =OOO000OOO0O0OO0O0 .find (text ="Find")#line:986:find = b_tag.find(text="Find")
+        OO0OO00OO00OOO000 .assertEqual (O00OOOO00OOOO0O00 .next_element ,O0O00O0OO000OOOO0 )#line:987:self.assertEqual(find.next_element, magic_tag)
+        OO0OO00OO00OOO000 .assertEqual (O0O00O0OO000OOOO0 .previous_element ,O00OOOO00OOOO0O00 )#line:988:self.assertEqual(magic_tag.previous_element, find)
+        O00OOOO0OOOOO000O =O00OO00O0O0OOOOO0 .c #line:990:c_tag = soup.c
+        OO0OO00OO00OOO000 .assertEqual (O0O00O0OO000OOOO0 .next_sibling ,O00OOOO0OOOOO000O )#line:991:self.assertEqual(magic_tag.next_sibling, c_tag)
+        OO0OO00OO00OOO000 .assertEqual (O00OOOO0OOOOO000O .previous_sibling ,O0O00O0OO000OOOO0 )#line:992:self.assertEqual(c_tag.previous_sibling, magic_tag)
+        OOOOOO000OOO0OOO0 =O0O00O0OO000OOOO0 .find (text ="the")#line:994:the = magic_tag.find(text="the")
+        OO0OO00OO00OOO000 .assertEqual (OOOOOO000OOO0OOO0 .parent ,O0O00O0OO000OOOO0 )#line:995:self.assertEqual(the.parent, magic_tag)
+        OO0OO00OO00OOO000 .assertEqual (OOOOOO000OOO0OOO0 .next_element ,O00OOOO0OOOOO000O )#line:996:self.assertEqual(the.next_element, c_tag)
+        OO0OO00OO00OOO000 .assertEqual (O00OOOO0OOOOO000O .previous_element ,OOOOOO000OOO0OOO0 )#line:997:self.assertEqual(c_tag.previous_element, the)
+    def test_append_child_thats_already_at_the_end (OOOO000OOO0O0O0O0 ):#line:999:def test_append_child_thats_already_at_the_end(self):
+        O0OO0OOOOO000OOO0 ="<a><b></b></a>"#line:1000:data = "<a><b></b></a>"
+        OO0O000O0OO00OO0O =OOOO000OOO0O0O0O0 .soup (O0OO0OOOOO000OOO0 )#line:1001:soup = self.soup(data)
+        OO0O000O0OO00OO0O .a .append (OO0O000O0OO00OO0O .b )#line:1002:soup.a.append(soup.b)
+        OOOO000OOO0O0O0O0 .assertEqual (O0OO0OOOOO000OOO0 ,OO0O000O0OO00OO0O .decode ())#line:1003:self.assertEqual(data, soup.decode())
+    def test_extend (O0O00000000OO0OO0 ):#line:1005:def test_extend(self):
+        OO0O00000000OO000 ="<a><b><c><d><e><f><g></g></f></e></d></c></b></a>"#line:1006:data = "<a><b><c><d><e><f><g></g></f></e></d></c></b></a>"
+        OOOO00O000O00000O =O0O00000000OO0OO0 .soup (OO0O00000000OO000 )#line:1007:soup = self.soup(data)
+        OOO0000OO00OOOOOO =[OOOO00O000O00000O .g ,OOOO00O000O00000O .f ,OOOO00O000O00000O .e ,OOOO00O000O00000O .d ,OOOO00O000O00000O .c ,OOOO00O000O00000O .b ]#line:1008:l = [soup.g, soup.f, soup.e, soup.d, soup.c, soup.b]
+        OOOO00O000O00000O .a .extend (OOO0000OO00OOOOOO )#line:1009:soup.a.extend(l)
+        O0O00000000OO0OO0 .assertEqual ("<a><g></g><f></f><e></e><d></d><c></c><b></b></a>",OOOO00O000O00000O .decode ())#line:1010:self.assertEqual("<a><g></g><f></f><e></e><d></d><c></c><b></b></a>", soup.decode())
+    def test_move_tag_to_beginning_of_parent (O00OOO000O000OOO0 ):#line:1012:def test_move_tag_to_beginning_of_parent(self):
+        OOOOO00OO0OO0OO0O ="<a><b></b><c></c><d></d></a>"#line:1013:data = "<a><b></b><c></c><d></d></a>"
+        OO0O0OO000O00OO0O =O00OOO000O000OOO0 .soup (OOOOO00OO0OO0OO0O )#line:1014:soup = self.soup(data)
+        OO0O0OO000O00OO0O .a .insert (0 ,OO0O0OO000O00OO0O .d )#line:1015:soup.a.insert(0, soup.d)
+        O00OOO000O000OOO0 .assertEqual ("<a><d></d><b></b><c></c></a>",OO0O0OO000O00OO0O .decode ())#line:1016:self.assertEqual("<a><d></d><b></b><c></c></a>", soup.decode())
+    def test_insert_works_on_empty_element_tag (OO0OO00OO0O00OO00 ):#line:1018:def test_insert_works_on_empty_element_tag(self):
+        OOO0OOO00OOO00OO0 =OO0OO00OO0O00OO00 .soup ("<br/>")#line:1023:soup = self.soup("<br/>")
+        OOO0OOO00OOO00OO0 .br .insert (1 ,"Contents")#line:1024:soup.br.insert(1, "Contents")
+        OO0OO00OO0O00OO00 .assertEqual (str (OOO0OOO00OOO00OO0 .br ),"<br>Contents</br>")#line:1025:self.assertEqual(str(soup.br), "<br>Contents</br>")
+    def test_insert_before (O0000OOOO0OO0OOO0 ):#line:1027:def test_insert_before(self):
+        O0OO00OOOOO000OO0 =O0000OOOO0OO0OOO0 .soup ("<a>foo</a><b>bar</b>")#line:1028:soup = self.soup("<a>foo</a><b>bar</b>")
+        O0OO00OOOOO000OO0 .b .insert_before ("BAZ")#line:1029:soup.b.insert_before("BAZ")
+        O0OO00OOOOO000OO0 .a .insert_before ("QUUX")#line:1030:soup.a.insert_before("QUUX")
+        O0000OOOO0OO0OOO0 .assertEqual (O0OO00OOOOO000OO0 .decode (),O0000OOOO0OO0OOO0 .document_for ("QUUX<a>foo</a>BAZ<b>bar</b>"))#line:1032:soup.decode(), self.document_for("QUUX<a>foo</a>BAZ<b>bar</b>"))
+        O0OO00OOOOO000OO0 .a .insert_before (O0OO00OOOOO000OO0 .b )#line:1034:soup.a.insert_before(soup.b)
+        O0000OOOO0OO0OOO0 .assertEqual (O0OO00OOOOO000OO0 .decode (),O0000OOOO0OO0OOO0 .document_for ("QUUX<b>bar</b><a>foo</a>BAZ"))#line:1036:soup.decode(), self.document_for("QUUX<b>bar</b><a>foo</a>BAZ"))
+        OOO000O0OO00OO000 =O0OO00OOOOO000OO0 .b #line:1039:b = soup.b
+        O0000OOOO0OO0OOO0 .assertRaises (ValueError ,OOO000O0OO00OO000 .insert_before ,OOO000O0OO00OO000 )#line:1040:self.assertRaises(ValueError, b.insert_before, b)
+        OOO000O0OO00OO000 .extract ()#line:1043:b.extract()
+        O0000OOOO0OO0OOO0 .assertRaises (ValueError ,OOO000O0OO00OO000 .insert_before ,"nope")#line:1044:self.assertRaises(ValueError, b.insert_before, "nope")
+        O0OO00OOOOO000OO0 =O0000OOOO0OO0OOO0 .soup ("<a>")#line:1047:soup = self.soup("<a>")
+        O0OO00OOOOO000OO0 .a .insert_before (O0OO00OOOOO000OO0 .new_tag ("a"))#line:1048:soup.a.insert_before(soup.new_tag("a"))
+    def test_insert_multiple_before (OO0OO00OOOOOO0OO0 ):#line:1050:def test_insert_multiple_before(self):
+        O0O00O0OO0OOOO00O =OO0OO00OOOOOO0OO0 .soup ("<a>foo</a><b>bar</b>")#line:1051:soup = self.soup("<a>foo</a><b>bar</b>")
+        O0O00O0OO0OOOO00O .b .insert_before ("BAZ"," ","QUUX")#line:1052:soup.b.insert_before("BAZ", " ", "QUUX")
+        O0O00O0OO0OOOO00O .a .insert_before ("QUUX"," ","BAZ")#line:1053:soup.a.insert_before("QUUX", " ", "BAZ")
+        OO0OO00OOOOOO0OO0 .assertEqual (O0O00O0OO0OOOO00O .decode (),OO0OO00OOOOOO0OO0 .document_for ("QUUX BAZ<a>foo</a>BAZ QUUX<b>bar</b>"))#line:1055:soup.decode(), self.document_for("QUUX BAZ<a>foo</a>BAZ QUUX<b>bar</b>"))
+        O0O00O0OO0OOOO00O .a .insert_before (O0O00O0OO0OOOO00O .b ,"FOO")#line:1057:soup.a.insert_before(soup.b, "FOO")
+        OO0OO00OOOOOO0OO0 .assertEqual (O0O00O0OO0OOOO00O .decode (),OO0OO00OOOOOO0OO0 .document_for ("QUUX BAZ<b>bar</b>FOO<a>foo</a>BAZ QUUX"))#line:1059:soup.decode(), self.document_for("QUUX BAZ<b>bar</b>FOO<a>foo</a>BAZ QUUX"))
+    def test_insert_after (O000OOO0OOOO0000O ):#line:1061:def test_insert_after(self):
+        OOO00000000O0O0OO =O000OOO0OOOO0000O .soup ("<a>foo</a><b>bar</b>")#line:1062:soup = self.soup("<a>foo</a><b>bar</b>")
+        OOO00000000O0O0OO .b .insert_after ("BAZ")#line:1063:soup.b.insert_after("BAZ")
+        OOO00000000O0O0OO .a .insert_after ("QUUX")#line:1064:soup.a.insert_after("QUUX")
+        O000OOO0OOOO0000O .assertEqual (OOO00000000O0O0OO .decode (),O000OOO0OOOO0000O .document_for ("<a>foo</a>QUUX<b>bar</b>BAZ"))#line:1066:soup.decode(), self.document_for("<a>foo</a>QUUX<b>bar</b>BAZ"))
+        OOO00000000O0O0OO .b .insert_after (OOO00000000O0O0OO .a )#line:1067:soup.b.insert_after(soup.a)
+        O000OOO0OOOO0000O .assertEqual (OOO00000000O0O0OO .decode (),O000OOO0OOOO0000O .document_for ("QUUX<b>bar</b><a>foo</a>BAZ"))#line:1069:soup.decode(), self.document_for("QUUX<b>bar</b><a>foo</a>BAZ"))
+        OO0O0O0OOO0OOO00O =OOO00000000O0O0OO .b #line:1072:b = soup.b
+        O000OOO0OOOO0000O .assertRaises (ValueError ,OO0O0O0OOO0OOO00O .insert_after ,OO0O0O0OOO0OOO00O )#line:1073:self.assertRaises(ValueError, b.insert_after, b)
+        OO0O0O0OOO0OOO00O .extract ()#line:1076:b.extract()
+        O000OOO0OOOO0000O .assertRaises (ValueError ,OO0O0O0OOO0OOO00O .insert_after ,"nope")#line:1077:self.assertRaises(ValueError, b.insert_after, "nope")
+        OOO00000000O0O0OO =O000OOO0OOOO0000O .soup ("<a>")#line:1080:soup = self.soup("<a>")
+        OOO00000000O0O0OO .a .insert_before (OOO00000000O0O0OO .new_tag ("a"))#line:1081:soup.a.insert_before(soup.new_tag("a"))
+    def test_insert_multiple_after (OO0000O00OOOO0000 ):#line:1083:def test_insert_multiple_after(self):
+        O0O0O0000OOOO0O0O =OO0000O00OOOO0000 .soup ("<a>foo</a><b>bar</b>")#line:1084:soup = self.soup("<a>foo</a><b>bar</b>")
+        O0O0O0000OOOO0O0O .b .insert_after ("BAZ"," ","QUUX")#line:1085:soup.b.insert_after("BAZ", " ", "QUUX")
+        O0O0O0000OOOO0O0O .a .insert_after ("QUUX"," ","BAZ")#line:1086:soup.a.insert_after("QUUX", " ", "BAZ")
+        OO0000O00OOOO0000 .assertEqual (O0O0O0000OOOO0O0O .decode (),OO0000O00OOOO0000 .document_for ("<a>foo</a>QUUX BAZ<b>bar</b>BAZ QUUX"))#line:1088:soup.decode(), self.document_for("<a>foo</a>QUUX BAZ<b>bar</b>BAZ QUUX"))
+        O0O0O0000OOOO0O0O .b .insert_after (O0O0O0000OOOO0O0O .a ,"FOO ")#line:1089:soup.b.insert_after(soup.a, "FOO ")
+        OO0000O00OOOO0000 .assertEqual (O0O0O0000OOOO0O0O .decode (),OO0000O00OOOO0000 .document_for ("QUUX BAZ<b>bar</b><a>foo</a>FOO BAZ QUUX"))#line:1091:soup.decode(), self.document_for("QUUX BAZ<b>bar</b><a>foo</a>FOO BAZ QUUX"))
+    def test_insert_after_raises_exception_if_after_has_no_meaning (O00OO0OO0O0OO0000 ):#line:1093:def test_insert_after_raises_exception_if_after_has_no_meaning(self):
+        O0O000O0O0000000O =O00OO0OO0O0OO0000 .soup ("")#line:1094:soup = self.soup("")
+        OOOO0OOO0OOOO0O00 =O0O000O0O0000000O .new_tag ("a")#line:1095:tag = soup.new_tag("a")
+        OOOO00OO0OO00O0O0 =O0O000O0O0000000O .new_string ("")#line:1096:string = soup.new_string("")
+        O00OO0OO0O0OO0000 .assertRaises (ValueError ,OOOO00OO0OO00O0O0 .insert_after ,OOOO0OOO0OOOO0O00 )#line:1097:self.assertRaises(ValueError, string.insert_after, tag)
+        O00OO0OO0O0OO0000 .assertRaises (NotImplementedError ,O0O000O0O0000000O .insert_after ,OOOO0OOO0OOOO0O00 )#line:1098:self.assertRaises(NotImplementedError, soup.insert_after, tag)
+        O00OO0OO0O0OO0000 .assertRaises (ValueError ,OOOO0OOO0OOOO0O00 .insert_after ,OOOO0OOO0OOOO0O00 )#line:1099:self.assertRaises(ValueError, tag.insert_after, tag)
+    def test_insert_before_raises_notimplementederror_if_before_has_no_meaning (O0O0O00O00O0OOOO0 ):#line:1101:def test_insert_before_raises_notimplementederror_if_before_has_no_meaning(self):
+        OOOOO00OO0000O0OO =O0O0O00O00O0OOOO0 .soup ("")#line:1102:soup = self.soup("")
+        O0OOO00O0OO0O00OO =OOOOO00OO0000O0OO .new_tag ("a")#line:1103:tag = soup.new_tag("a")
+        O00OOOO0O00O0000O =OOOOO00OO0000O0OO .new_string ("")#line:1104:string = soup.new_string("")
+        O0O0O00O00O0OOOO0 .assertRaises (ValueError ,O00OOOO0O00O0000O .insert_before ,O0OOO00O0OO0O00OO )#line:1105:self.assertRaises(ValueError, string.insert_before, tag)
+        O0O0O00O00O0OOOO0 .assertRaises (NotImplementedError ,OOOOO00OO0000O0OO .insert_before ,O0OOO00O0OO0O00OO )#line:1106:self.assertRaises(NotImplementedError, soup.insert_before, tag)
+        O0O0O00O00O0OOOO0 .assertRaises (ValueError ,O0OOO00O0OO0O00OO .insert_before ,O0OOO00O0OO0O00OO )#line:1107:self.assertRaises(ValueError, tag.insert_before, tag)
+    def test_replace_with (OOOO0OO00OOO0O0OO ):#line:1109:def test_replace_with(self):
+        O00O0O0O0000OO00O =OOOO0OO00OOO0O0OO .soup ("<p>There's <b>no</b> business like <b>show</b> business</p>")#line:1111:"<p>There's <b>no</b> business like <b>show</b> business</p>")
+        O00O00000OO00000O ,OOO00OO00OO0OO0O0 =O00O0O0O0000OO00O .find_all ('b')#line:1112:no, show = soup.find_all('b')
+        OOO00OO00OO0OO0O0 .replace_with (O00O00000OO00000O )#line:1113:show.replace_with(no)
+        OOOO0OO00OOO0O0OO .assertEqual (O00O0O0O0000OO00O .decode (),OOOO0OO00OOO0O0OO .document_for ("<p>There's  business like <b>no</b> business</p>"))#line:1117:"<p>There's  business like <b>no</b> business</p>"))
+        OOOO0OO00OOO0O0OO .assertEqual (OOO00OO00OO0OO0O0 .parent ,None )#line:1119:self.assertEqual(show.parent, None)
+        OOOO0OO00OOO0O0OO .assertEqual (O00O00000OO00000O .parent ,O00O0O0O0000OO00O .p )#line:1120:self.assertEqual(no.parent, soup.p)
+        OOOO0OO00OOO0O0OO .assertEqual (O00O00000OO00000O .next_element ,"no")#line:1121:self.assertEqual(no.next_element, "no")
+        OOOO0OO00OOO0O0OO .assertEqual (O00O00000OO00000O .next_sibling ," business")#line:1122:self.assertEqual(no.next_sibling, " business")
+    def test_replace_first_child (O00OOO00000O0O000 ):#line:1124:def test_replace_first_child(self):
+        OO00O00OO0O0OOOOO ="<a><b></b><c></c></a>"#line:1125:data = "<a><b></b><c></c></a>"
+        O0000O0OOO0OOOO0O =O00OOO00000O0O000 .soup (OO00O00OO0O0OOOOO )#line:1126:soup = self.soup(data)
+        O0000O0OOO0OOOO0O .b .replace_with (O0000O0OOO0OOOO0O .c )#line:1127:soup.b.replace_with(soup.c)
+        O00OOO00000O0O000 .assertEqual ("<a><c></c></a>",O0000O0OOO0OOOO0O .decode ())#line:1128:self.assertEqual("<a><c></c></a>", soup.decode())
+    def test_replace_last_child (OOOO000O0OO00OO0O ):#line:1130:def test_replace_last_child(self):
+        O00OO000OOOOOOO0O ="<a><b></b><c></c></a>"#line:1131:data = "<a><b></b><c></c></a>"
+        OOOO0OOO0O0OO00OO =OOOO000O0OO00OO0O .soup (O00OO000OOOOOOO0O )#line:1132:soup = self.soup(data)
+        OOOO0OOO0O0OO00OO .c .replace_with (OOOO0OOO0O0OO00OO .b )#line:1133:soup.c.replace_with(soup.b)
+        OOOO000O0OO00OO0O .assertEqual ("<a><b></b></a>",OOOO0OOO0O0OO00OO .decode ())#line:1134:self.assertEqual("<a><b></b></a>", soup.decode())
+    def test_nested_tag_replace_with (O0OO0OOOOO00O0OO0 ):#line:1136:def test_nested_tag_replace_with(self):
+        O0OOOO0OO0OOOOO0O =O0OO0OOOOO00O0OO0 .soup ("""<a>We<b>reserve<c>the</c><d>right</d></b></a><e>to<f>refuse</f><g>service</g></e>""")#line:1138:"""<a>We<b>reserve<c>the</c><d>right</d></b></a><e>to<f>refuse</f><g>service</g></e>""")
+        OOOO0O0O0OOO0OO00 =O0OOOO0OO0OOOOO0O .b #line:1142:remove_tag = soup.b
+        O00000OO00O0OO00O =O0OOOO0OO0OOOOO0O .f #line:1143:move_tag = soup.f
+        OOOO0O0O0OOO0OO00 .replace_with (O00000OO00O0OO00O )#line:1144:remove_tag.replace_with(move_tag)
+        O0OO0OOOOO00O0OO0 .assertEqual (O0OOOO0OO0OOOOO0O .decode (),O0OO0OOOOO00O0OO0 .document_for ("<a>We<f>refuse</f></a><e>to<g>service</g></e>"))#line:1148:"<a>We<f>refuse</f></a><e>to<g>service</g></e>"))
+        O0OO0OOOOO00O0OO0 .assertEqual (OOOO0O0O0OOO0OO00 .parent ,None )#line:1151:self.assertEqual(remove_tag.parent, None)
+        O0OO0OOOOO00O0OO0 .assertEqual (OOOO0O0O0OOO0OO00 .find (text ="right").next_element ,None )#line:1152:self.assertEqual(remove_tag.find(text="right").next_element, None)
+        O0OO0OOOOO00O0OO0 .assertEqual (OOOO0O0O0OOO0OO00 .previous_element ,None )#line:1153:self.assertEqual(remove_tag.previous_element, None)
+        O0OO0OOOOO00O0OO0 .assertEqual (OOOO0O0O0OOO0OO00 .next_sibling ,None )#line:1154:self.assertEqual(remove_tag.next_sibling, None)
+        O0OO0OOOOO00O0OO0 .assertEqual (OOOO0O0O0OOO0OO00 .previous_sibling ,None )#line:1155:self.assertEqual(remove_tag.previous_sibling, None)
+        O0OO0OOOOO00O0OO0 .assertEqual (O00000OO00O0OO00O .parent ,O0OOOO0OO0OOOOO0O .a )#line:1158:self.assertEqual(move_tag.parent, soup.a)
+        O0OO0OOOOO00O0OO0 .assertEqual (O00000OO00O0OO00O .previous_element ,"We")#line:1159:self.assertEqual(move_tag.previous_element, "We")
+        O0OO0OOOOO00O0OO0 .assertEqual (O00000OO00O0OO00O .next_element .next_element ,O0OOOO0OO0OOOOO0O .e )#line:1160:self.assertEqual(move_tag.next_element.next_element, soup.e)
+        O0OO0OOOOO00O0OO0 .assertEqual (O00000OO00O0OO00O .next_sibling ,None )#line:1161:self.assertEqual(move_tag.next_sibling, None)
+        O0OOOO0OOO0OO0O0O =O0OOOO0OO0OOOOO0O .find (text ="to")#line:1165:to_text = soup.find(text="to")
+        OO0OOO000000O0O0O =O0OOOO0OO0OOOOO0O .g #line:1166:g_tag = soup.g
+        O0OO0OOOOO00O0OO0 .assertEqual (O0OOOO0OOO0OO0O0O .next_element ,OO0OOO000000O0O0O )#line:1167:self.assertEqual(to_text.next_element, g_tag)
+        O0OO0OOOOO00O0OO0 .assertEqual (O0OOOO0OOO0OO0O0O .next_sibling ,OO0OOO000000O0O0O )#line:1168:self.assertEqual(to_text.next_sibling, g_tag)
+        O0OO0OOOOO00O0OO0 .assertEqual (OO0OOO000000O0O0O .previous_element ,O0OOOO0OOO0OO0O0O )#line:1169:self.assertEqual(g_tag.previous_element, to_text)
+        O0OO0OOOOO00O0OO0 .assertEqual (OO0OOO000000O0O0O .previous_sibling ,O0OOOO0OOO0OO0O0O )#line:1170:self.assertEqual(g_tag.previous_sibling, to_text)
+    def test_unwrap (OO0O0O0000OOOO00O ):#line:1172:def test_unwrap(self):
+        O0O000O0OOOO0OO0O =OO0O0O0000OOOO00O .soup ("""
+            <p>Unneeded <em>formatting</em> is unneeded</p>
+            """)#line:1175:""")
+        O0O000O0OOOO0OO0O .em .unwrap ()#line:1176:tree.em.unwrap()
+        OO0O0O0000OOOO00O .assertEqual (O0O000O0OOOO0OO0O .em ,None )#line:1177:self.assertEqual(tree.em, None)
+        OO0O0O0000OOOO00O .assertEqual (O0O000O0OOOO0OO0O .p .text ,"Unneeded formatting is unneeded")#line:1178:self.assertEqual(tree.p.text, "Unneeded formatting is unneeded")
+    def test_wrap (O0O0O0OOO000OOOO0 ):#line:1180:def test_wrap(self):
+        OO00O0000O0000OO0 =O0O0O0OOO000OOOO0 .soup ("I wish I was bold.")#line:1181:soup = self.soup("I wish I was bold.")
+        O00O0000000O00OO0 =OO00O0000O0000OO0 .string .wrap (OO00O0000O0000OO0 .new_tag ("b"))#line:1182:value = soup.string.wrap(soup.new_tag("b"))
+        O0O0O0OOO000OOOO0 .assertEqual (O00O0000000O00OO0 .decode (),"<b>I wish I was bold.</b>")#line:1183:self.assertEqual(value.decode(), "<b>I wish I was bold.</b>")
+        O0O0O0OOO000OOOO0 .assertEqual (OO00O0000O0000OO0 .decode (),O0O0O0OOO000OOOO0 .document_for ("<b>I wish I was bold.</b>"))#line:1185:soup.decode(), self.document_for("<b>I wish I was bold.</b>"))
+    def test_wrap_extracts_tag_from_elsewhere (OO0OO00O0OOO00O00 ):#line:1187:def test_wrap_extracts_tag_from_elsewhere(self):
+        OO0O00000O000OO00 =OO0OO00O0OOO00O00 .soup ("<b></b>I wish I was bold.")#line:1188:soup = self.soup("<b></b>I wish I was bold.")
+        OO0O00000O000OO00 .b .next_sibling .wrap (OO0O00000O000OO00 .b )#line:1189:soup.b.next_sibling.wrap(soup.b)
+        OO0OO00O0OOO00O00 .assertEqual (OO0O00000O000OO00 .decode (),OO0OO00O0OOO00O00 .document_for ("<b>I wish I was bold.</b>"))#line:1191:soup.decode(), self.document_for("<b>I wish I was bold.</b>"))
+    def test_wrap_puts_new_contents_at_the_end (O0O0O00OO0O0O00O0 ):#line:1193:def test_wrap_puts_new_contents_at_the_end(self):
+        OO00O00OOO000O0O0 =O0O0O00OO0O0O00O0 .soup ("<b>I like being bold.</b>I wish I was bold.")#line:1194:soup = self.soup("<b>I like being bold.</b>I wish I was bold.")
+        OO00O00OOO000O0O0 .b .next_sibling .wrap (OO00O00OOO000O0O0 .b )#line:1195:soup.b.next_sibling.wrap(soup.b)
+        O0O0O00OO0O0O00O0 .assertEqual (2 ,len (OO00O00OOO000O0O0 .b .contents ))#line:1196:self.assertEqual(2, len(soup.b.contents))
+        O0O0O00OO0O0O00O0 .assertEqual (OO00O00OOO000O0O0 .decode (),O0O0O00OO0O0O00O0 .document_for ("<b>I like being bold.I wish I was bold.</b>"))#line:1199:"<b>I like being bold.I wish I was bold.</b>"))
+    def test_extract (OOOOOO00O0O0OO0O0 ):#line:1201:def test_extract(self):
+        O00O00OO00O000000 =OOOOOO00O0O0OO0O0 .soup ('<html><body>Some content. <div id="nav">Nav crap</div> More content.</body></html>')#line:1203:'<html><body>Some content. <div id="nav">Nav crap</div> More content.</body></html>')
+        OOOOOO00O0O0OO0O0 .assertEqual (len (O00O00OO00O000000 .body .contents ),3 )#line:1205:self.assertEqual(len(soup.body.contents), 3)
+        OOO00OOO0000O0O00 =O00O00OO00O000000 .find (id ="nav").extract ()#line:1206:extracted = soup.find(id="nav").extract()
+        OOOOOO00O0O0OO0O0 .assertEqual (O00O00OO00O000000 .decode (),"<html><body>Some content.  More content.</body></html>")#line:1209:soup.decode(), "<html><body>Some content.  More content.</body></html>")
+        OOOOOO00O0O0OO0O0 .assertEqual (OOO00OOO0000O0O00 .decode (),'<div id="nav">Nav crap</div>')#line:1210:self.assertEqual(extracted.decode(), '<div id="nav">Nav crap</div>')
+        OOOOOO00O0O0OO0O0 .assertEqual (len (O00O00OO00O000000 .body .contents ),2 )#line:1213:self.assertEqual(len(soup.body.contents), 2)
+        OOOOOO00O0O0OO0O0 .assertEqual (OOO00OOO0000O0O00 .parent ,None )#line:1214:self.assertEqual(extracted.parent, None)
+        OOOOOO00O0O0OO0O0 .assertEqual (OOO00OOO0000O0O00 .previous_element ,None )#line:1215:self.assertEqual(extracted.previous_element, None)
+        OOOOOO00O0O0OO0O0 .assertEqual (OOO00OOO0000O0O00 .next_element .next_element ,None )#line:1216:self.assertEqual(extracted.next_element.next_element, None)
+        O000000OO0OOOO0OO =O00O00OO00O000000 .find (text ="Some content. ")#line:1219:content_1 = soup.find(text="Some content. ")
+        O00OO00O0O0OOO0OO =O00O00OO00O000000 .find (text =" More content.")#line:1220:content_2 = soup.find(text=" More content.")
+        OOOOOO00O0O0OO0O0 .assertEqual (O000000OO0OOOO0OO .next_element ,O00OO00O0O0OOO0OO )#line:1221:self.assertEqual(content_1.next_element, content_2)
+        OOOOOO00O0O0OO0O0 .assertEqual (O000000OO0OOOO0OO .next_sibling ,O00OO00O0O0OOO0OO )#line:1222:self.assertEqual(content_1.next_sibling, content_2)
+        OOOOOO00O0O0OO0O0 .assertEqual (O00OO00O0O0OOO0OO .previous_element ,O000000OO0OOOO0OO )#line:1223:self.assertEqual(content_2.previous_element, content_1)
+        OOOOOO00O0O0OO0O0 .assertEqual (O00OO00O0O0OOO0OO .previous_sibling ,O000000OO0OOOO0OO )#line:1224:self.assertEqual(content_2.previous_sibling, content_1)
+    def test_extract_distinguishes_between_identical_strings (OOO0O0OOO0O0OO000 ):#line:1226:def test_extract_distinguishes_between_identical_strings(self):
+        O0O0O0O00O000OO0O =OOO0O0OOO0O0OO000 .soup ("<a>foo</a><b>bar</b>")#line:1227:soup = self.soup("<a>foo</a><b>bar</b>")
+        O0O0OO000OOO0OOOO =O0O0O0O00O000OO0O .a .string #line:1228:foo_1 = soup.a.string
+        OO00OO00O0OO0OOO0 =O0O0O0O00O000OO0O .b .string #line:1229:bar_1 = soup.b.string
+        O0000O0OOO00OO0O0 =O0O0O0O00O000OO0O .new_string ("foo")#line:1230:foo_2 = soup.new_string("foo")
+        O0OOO00000O00O000 =O0O0O0O00O000OO0O .new_string ("bar")#line:1231:bar_2 = soup.new_string("bar")
+        O0O0O0O00O000OO0O .a .append (O0000O0OOO00OO0O0 )#line:1232:soup.a.append(foo_2)
+        O0O0O0O00O000OO0O .b .append (O0OOO00000O00O000 )#line:1233:soup.b.append(bar_2)
+        O0O0OO000OOO0OOOO .extract ()#line:1238:foo_1.extract()
+        O0OOO00000O00O000 .extract ()#line:1239:bar_2.extract()
+        OOO0O0OOO0O0OO000 .assertEqual (O0000O0OOO00OO0O0 ,O0O0O0O00O000OO0O .a .string )#line:1240:self.assertEqual(foo_2, soup.a.string)
+        OOO0O0OOO0O0OO000 .assertEqual (O0OOO00000O00O000 ,O0O0O0O00O000OO0O .b .string )#line:1241:self.assertEqual(bar_2, soup.b.string)
+    def test_extract_multiples_of_same_tag (OOO0OO0O0O0O0O0OO ):#line:1243:def test_extract_multiples_of_same_tag(self):
+        OO0O0OO0000OOOO00 =OOO0OO0O0O0O0O0OO .soup ("""
+<html>
+<head>
+<script>foo</script>
+</head>
+<body>
+ <script>bar</script>
+ <a></a>
+</body>
+<script>baz</script>
+</html>""")#line:1254:</html>""")
+        [OO0O0OO0000OOOO00 .script .extract ()for O0O00O0000OO00OOO in OO0O0OO0000OOOO00 .find_all ("script")]#line:1255:[soup.script.extract() for i in soup.find_all("script")]
+        OOO0OO0O0O0O0O0OO .assertEqual ("<body>\n\n<a></a>\n</body>",str (OO0O0OO0000OOOO00 .body ))#line:1256:self.assertEqual("<body>\n\n<a></a>\n</body>", str(soup.body))
+    def test_extract_works_when_element_is_surrounded_by_identical_strings (O00000O0OOOOO00OO ):#line:1259:def test_extract_works_when_element_is_surrounded_by_identical_strings(self):
+        OO0O0000OOO0000O0 =O00000O0OOOOO00OO .soup ('<html>\n' '<body>hi</body>\n' '</html>')#line:1263:'</html>')
+        OO0O0000OOO0000O0 .find ('body').extract ()#line:1264:soup.find('body').extract()
+        O00000O0OOOOO00OO .assertEqual (None ,OO0O0000OOO0000O0 .find ('body'))#line:1265:self.assertEqual(None, soup.find('body'))
+    def test_clear (O00O0O000000OO0OO ):#line:1268:def test_clear(self):
+        ""#line:1269:"""Tag.clear()"""
+        O0OOO0OOOO000OO00 =O00O0O000000OO0OO .soup ("<p><a>String <em>Italicized</em></a> and another</p>")#line:1270:soup = self.soup("<p><a>String <em>Italicized</em></a> and another</p>")
+        O0OOO0O000O000OOO =O0OOO0OOOO000OO00 .a #line:1272:a = soup.a
+        O0OOO0OOOO000OO00 .p .clear ()#line:1273:soup.p.clear()
+        O00O0O000000OO0OO .assertEqual (len (O0OOO0OOOO000OO00 .p .contents ),0 )#line:1274:self.assertEqual(len(soup.p.contents), 0)
+        O00O0O000000OO0OO .assertTrue (hasattr (O0OOO0O000O000OOO ,"contents"))#line:1275:self.assertTrue(hasattr(a, "contents"))
+        OO0O0000O00OOOOO0 =O0OOO0O000O000OOO .em #line:1278:em = a.em
+        O0OOO0O000O000OOO .clear (decompose =True )#line:1279:a.clear(decompose=True)
+        O00O0O000000OO0OO .assertEqual (0 ,len (OO0O0000O00OOOOO0 .contents ))#line:1280:self.assertEqual(0, len(em.contents))
+    def test_decompose (O0000OOOOO0000O0O ):#line:1283:def test_decompose(self):
+        O000OOOO0OO0O0OO0 =O0000OOOOO0000O0O .soup ("<p><a>String <em>Italicized</em></a></p><p>Another para</p>")#line:1285:soup = self.soup("<p><a>String <em>Italicized</em></a></p><p>Another para</p>")
+        O0000O0000000O000 ,OOOOO0OO00O0OOO00 =O000OOOO0OO0O0OO0 .find_all ('p')#line:1286:p1, p2 = soup.find_all('p')
+        OO0OO00OOO0OO0000 =O0000O0000000O000 .a #line:1287:a = p1.a
+        O0O0OOOO000000OO0 =O0000O0000000O000 .em .string #line:1288:text = p1.em.string
+        for OO00O0000O0O00O00 in [O0000O0000000O000 ,OOOOO0OO00O0OOO00 ,OO0OO00OOO0OO0000 ,O0O0OOOO000000OO0 ]:#line:1289:for i in [p1, p2, a, text]:
+            O0000OOOOO0000O0O .assertEqual (False ,OO00O0000O0O00O00 .decomposed )#line:1290:self.assertEqual(False, i.decomposed)
+        O0000O0000000O000 .decompose ()#line:1293:p1.decompose()
+        for OO00O0000O0O00O00 in [O0000O0000000O000 ,OO0OO00OOO0OO0000 ,O0O0OOOO000000OO0 ]:#line:1294:for i in [p1, a, text]:
+            O0000OOOOO0000O0O .assertEqual (True ,OO00O0000O0O00O00 .decomposed )#line:1295:self.assertEqual(True, i.decomposed)
+        O0000OOOOO0000O0O .assertEqual (False ,OOOOO0OO00O0OOO00 .decomposed )#line:1297:self.assertEqual(False, p2.decomposed)
+    def test_string_set (OOO0O0OO0O0O00O0O ):#line:1299:def test_string_set(self):
+        ""#line:1300:"""Tag.string = 'string'"""
+        OO0OO000O0OO0O000 =OOO0O0OO0O0O00O0O .soup ("<a></a> <b><c></c></b>")#line:1301:soup = self.soup("<a></a> <b><c></c></b>")
+        OO0OO000O0OO0O000 .a .string ="foo"#line:1302:soup.a.string = "foo"
+        OOO0O0OO0O0O00O0O .assertEqual (OO0OO000O0OO0O000 .a .contents ,["foo"])#line:1303:self.assertEqual(soup.a.contents, ["foo"])
+        OO0OO000O0OO0O000 .b .string ="bar"#line:1304:soup.b.string = "bar"
+        OOO0O0OO0O0O00O0O .assertEqual (OO0OO000O0OO0O000 .b .contents ,["bar"])#line:1305:self.assertEqual(soup.b.contents, ["bar"])
+    def test_string_set_does_not_affect_original_string (O00O0OOO0OOOO0OOO ):#line:1307:def test_string_set_does_not_affect_original_string(self):
+        OOOO0000OO00O00OO =O00O0OOO0OOOO0OOO .soup ("<a><b>foo</b><c>bar</c>")#line:1308:soup = self.soup("<a><b>foo</b><c>bar</c>")
+        OOOO0000OO00O00OO .b .string =OOOO0000OO00O00OO .c .string #line:1309:soup.b.string = soup.c.string
+        O00O0OOO0OOOO0OOO .assertEqual (OOOO0000OO00O00OO .a .encode (),b"<a><b>bar</b><c>bar</c></a>")#line:1310:self.assertEqual(soup.a.encode(), b"<a><b>bar</b><c>bar</c></a>")
+    def test_set_string_preserves_class_of_string (OO0OO0O0O000O0O0O ):#line:1312:def test_set_string_preserves_class_of_string(self):
+        OO0O0O0OO000O0OO0 =OO0OO0O0O000O0O0O .soup ("<a></a>")#line:1313:soup = self.soup("<a></a>")
+        OO000OOO0000OO0OO =CData ("foo")#line:1314:cdata = CData("foo")
+        OO0O0O0OO000O0OO0 .a .string =OO000OOO0000OO0OO #line:1315:soup.a.string = cdata
+        OO0OO0O0O000O0O0O .assertTrue (isinstance (OO0O0O0OO000O0OO0 .a .string ,CData ))#line:1316:self.assertTrue(isinstance(soup.a.string, CData))
+class TestElementObjects (SoupTest ):#line:1318:class TestElementObjects(SoupTest):
+    ""#line:1319:"""Test various features of element objects."""
+    def test_len (OOO0OOOO0O0OO00OO ):#line:1321:def test_len(self):
+        ""#line:1322:"""The length of an element is its number of children."""
+        OO0O00OOOOOOO0OOO =OOO0OOOO0O0OO00OO .soup ("<top>1<b>2</b>3</top>")#line:1323:soup = self.soup("<top>1<b>2</b>3</top>")
+        OOO0OOOO0O0OO00OO .assertEqual (len (OO0O00OOOOOOO0OOO .contents ),1 )#line:1327:self.assertEqual(len(soup.contents), 1)
+        OOO0OOOO0O0OO00OO .assertEqual (len (OO0O00OOOOOOO0OOO ),1 )#line:1328:self.assertEqual(len(soup), 1)
+        OOO0OOOO0O0OO00OO .assertEqual (len (OO0O00OOOOOOO0OOO .top ),3 )#line:1332:self.assertEqual(len(soup.top), 3)
+        OOO0OOOO0O0OO00OO .assertEqual (len (OO0O00OOOOOOO0OOO .top .contents ),3 )#line:1333:self.assertEqual(len(soup.top.contents), 3)
+    def test_member_access_invokes_find (OO0OOO0O0O0000O00 ):#line:1335:def test_member_access_invokes_find(self):
+        ""#line:1336:"""Accessing a Python member .foo invokes find('foo')"""
+        OOO0O0O0OO0OO0000 =OO0OOO0O0O0000O00 .soup ('<b><i></i></b>')#line:1337:soup = self.soup('<b><i></i></b>')
+        OO0OOO0O0O0000O00 .assertEqual (OOO0O0O0OO0OO0000 .b ,OOO0O0O0OO0OO0000 .find ('b'))#line:1338:self.assertEqual(soup.b, soup.find('b'))
+        OO0OOO0O0O0000O00 .assertEqual (OOO0O0O0OO0OO0000 .b .i ,OOO0O0O0OO0OO0000 .find ('b').find ('i'))#line:1339:self.assertEqual(soup.b.i, soup.find('b').find('i'))
+        OO0OOO0O0O0000O00 .assertEqual (OOO0O0O0OO0OO0000 .a ,None )#line:1340:self.assertEqual(soup.a, None)
+    def test_deprecated_member_access (O00000O0000000OOO ):#line:1342:def test_deprecated_member_access(self):
+        OOO0000O0O0OO0OO0 =O00000O0000000OOO .soup ('<b><i></i></b>')#line:1343:soup = self.soup('<b><i></i></b>')
+        with warnings .catch_warnings (record =True )as OOOO0000OO0OOOO0O :#line:1344:with warnings.catch_warnings(record=True) as w:
+            O0O0OOO0OOO0OO00O =OOO0000O0O0OO0OO0 .bTag #line:1345:tag = soup.bTag
+        O00000O0000000OOO .assertEqual (OOO0000O0O0OO0OO0 .b ,O0O0OOO0OOO0OO00O )#line:1346:self.assertEqual(soup.b, tag)
+        O00000O0000000OOO .assertEqual ('.bTag is deprecated, use .find("b") instead. If you really were looking for a tag called bTag, use .find("bTag")',str (OOOO0000OO0OOOO0O [0 ].message ))#line:1349:str(w[0].message))
+    def test_has_attr (OOO0000O0O0O0OO00 ):#line:1351:def test_has_attr(self):
+        ""#line:1357:"""
+        OOO00OO0000OO0OOO =OOO0000O0O0O0OO00 .soup ("<foo attr='bar'>")#line:1358:soup = self.soup("<foo attr='bar'>")
+        OOO0000O0O0O0OO00 .assertTrue (OOO00OO0000OO0OOO .foo .has_attr ('attr'))#line:1359:self.assertTrue(soup.foo.has_attr('attr'))
+        OOO0000O0O0O0OO00 .assertFalse (OOO00OO0000OO0OOO .foo .has_attr ('attr2'))#line:1360:self.assertFalse(soup.foo.has_attr('attr2'))
+    def test_attributes_come_out_in_alphabetical_order (O0OO000O00O00OOOO ):#line:1363:def test_attributes_come_out_in_alphabetical_order(self):
+        OO0O0OO0OOO0OOO00 ='<b a="1" z="5" m="3" f="2" y="4"></b>'#line:1364:markup = '<b a="1" z="5" m="3" f="2" y="4"></b>'
+        O0OO000O00O00OOOO .assertSoupEquals (OO0O0OO0OOO0OOO00 ,'<b a="1" f="2" m="3" y="4" z="5"></b>')#line:1365:self.assertSoupEquals(markup, '<b a="1" f="2" m="3" y="4" z="5"></b>')
+    def test_string (O000O0OO0O0O0O0OO ):#line:1367:def test_string(self):
+        O00OO000O000OOO0O =O000O0OO0O0O0O0OO .soup ("<b>foo</b>")#line:1370:soup = self.soup("<b>foo</b>")
+        O000O0OO0O0O0O0OO .assertEqual (O00OO000O000OOO0O .b .string ,'foo')#line:1371:self.assertEqual(soup.b.string, 'foo')
+    def test_empty_tag_has_no_string (OO000000000O00OOO ):#line:1373:def test_empty_tag_has_no_string(self):
+        O0000OOO0OOO00OO0 =OO000000000O00OOO .soup ("<b></b>")#line:1375:soup = self.soup("<b></b>")
+        OO000000000O00OOO .assertEqual (O0000OOO0OOO00OO0 .b .string ,None )#line:1376:self.assertEqual(soup.b.string, None)
+    def test_tag_with_multiple_children_has_no_string (OOOOO0OO0000OOOOO ):#line:1378:def test_tag_with_multiple_children_has_no_string(self):
+        O0O0O00O00OOO000O =OOOOO0OO0000OOOOO .soup ("<a>foo<b></b><b></b></b>")#line:1380:soup = self.soup("<a>foo<b></b><b></b></b>")
+        OOOOO0OO0000OOOOO .assertEqual (O0O0O00O00OOO000O .b .string ,None )#line:1381:self.assertEqual(soup.b.string, None)
+        O0O0O00O00OOO000O =OOOOO0OO0000OOOOO .soup ("<a>foo<b></b>bar</b>")#line:1383:soup = self.soup("<a>foo<b></b>bar</b>")
+        OOOOO0OO0000OOOOO .assertEqual (O0O0O00O00OOO000O .b .string ,None )#line:1384:self.assertEqual(soup.b.string, None)
+        O0O0O00O00OOO000O =OOOOO0OO0000OOOOO .soup ("<a>foo</b>")#line:1388:soup = self.soup("<a>foo</b>")
+        O0O0O00O00OOO000O .a .insert (1 ,"bar")#line:1389:soup.a.insert(1, "bar")
+        OOOOO0OO0000OOOOO .assertEqual (O0O0O00O00OOO000O .a .string ,None )#line:1390:self.assertEqual(soup.a.string, None)
+    def test_tag_with_recursive_string_has_string (O00000OOO0O0O00OO ):#line:1392:def test_tag_with_recursive_string_has_string(self):
+        O0OO00O0000OO00O0 =O00000OOO0O0O00OO .soup ("<a><b>foo</b></a>")#line:1395:soup = self.soup("<a><b>foo</b></a>")
+        O00000OOO0O0O00OO .assertEqual (O0OO00O0000OO00O0 .a .string ,"foo")#line:1396:self.assertEqual(soup.a.string, "foo")
+        O00000OOO0O0O00OO .assertEqual (O0OO00O0000OO00O0 .string ,"foo")#line:1397:self.assertEqual(soup.string, "foo")
+    def test_lack_of_string (OO000OOO0O0O0OO0O ):#line:1399:def test_lack_of_string(self):
+        ""#line:1400:"""Only a tag containing a single text node has a .string."""
+        O0OOO00000O00OO0O =OO000OOO0O0O0OO0O .soup ("<b>f<i>e</i>o</b>")#line:1401:soup = self.soup("<b>f<i>e</i>o</b>")
+        OO000OOO0O0O0OO0O .assertFalse (O0OOO00000O00OO0O .b .string )#line:1402:self.assertFalse(soup.b.string)
+        O0OOO00000O00OO0O =OO000OOO0O0O0OO0O .soup ("<b></b>")#line:1404:soup = self.soup("<b></b>")
+        OO000OOO0O0O0OO0O .assertFalse (O0OOO00000O00OO0O .b .string )#line:1405:self.assertFalse(soup.b.string)
+    def test_all_text (OO0O0000O0O0OO0O0 ):#line:1407:def test_all_text(self):
+        ""#line:1408:"""Tag.text and Tag.get_text(sep=u"") -> all child text, concatenated"""
+        OO000O00O00OOO00O =OO0O0000O0O0OO0O0 .soup ("<a>a<b>r</b>   <r> t </r></a>")#line:1409:soup = self.soup("<a>a<b>r</b>   <r> t </r></a>")
+        OO0O0000O0O0OO0O0 .assertEqual (OO000O00O00OOO00O .a .text ,"ar  t ")#line:1410:self.assertEqual(soup.a.text, "ar  t ")
+        OO0O0000O0O0OO0O0 .assertEqual (OO000O00O00OOO00O .a .get_text (strip =True ),"art")#line:1411:self.assertEqual(soup.a.get_text(strip=True), "art")
+        OO0O0000O0O0OO0O0 .assertEqual (OO000O00O00OOO00O .a .get_text (","),"a,r, , t ")#line:1412:self.assertEqual(soup.a.get_text(","), "a,r, , t ")
+        OO0O0000O0O0OO0O0 .assertEqual (OO000O00O00OOO00O .a .get_text (",",strip =True ),"a,r,t")#line:1413:self.assertEqual(soup.a.get_text(",", strip=True), "a,r,t")
+    def test_get_text_ignores_special_string_containers (O0OOOO0O0OO00000O ):#line:1415:def test_get_text_ignores_special_string_containers(self):
+        OOOO0O0O00O0OOOOO =O0OOOO0O0OO00000O .soup ("foo<!--IGNORE-->bar")#line:1416:soup = self.soup("foo<!--IGNORE-->bar")
+        O0OOOO0O0OO00000O .assertEqual (OOOO0O0O00O0OOOOO .get_text (),"foobar")#line:1417:self.assertEqual(soup.get_text(), "foobar")
+        O0OOOO0O0OO00000O .assertEqual (OOOO0O0O00O0OOOOO .get_text (types =(NavigableString ,Comment )),"fooIGNOREbar")#line:1420:soup.get_text(types=(NavigableString, Comment)), "fooIGNOREbar")
+        O0OOOO0O0OO00000O .assertEqual (OOOO0O0O00O0OOOOO .get_text (types =None ),"fooIGNOREbar")#line:1422:soup.get_text(types=None), "fooIGNOREbar")
+        OOOO0O0O00O0OOOOO =O0OOOO0O0OO00000O .soup ("foo<style>CSS</style><script>Javascript</script>bar")#line:1424:soup = self.soup("foo<style>CSS</style><script>Javascript</script>bar")
+        O0OOOO0O0OO00000O .assertEqual (OOOO0O0O00O0OOOOO .get_text (),"foobar")#line:1425:self.assertEqual(soup.get_text(), "foobar")
+    def test_all_strings_ignores_special_string_containers (O0000OO00O00O0O0O ):#line:1427:def test_all_strings_ignores_special_string_containers(self):
+        OO0OOO00OO0O000O0 =O0000OO00O00O0O0O .soup ("foo<!--IGNORE-->bar")#line:1428:soup = self.soup("foo<!--IGNORE-->bar")
+        O0000OO00O00O0O0O .assertEqual (['foo','bar'],list (OO0OOO00OO0O000O0 .strings ))#line:1429:self.assertEqual(['foo', 'bar'], list(soup.strings))
+        OO0OOO00OO0O000O0 =O0000OO00O00O0O0O .soup ("foo<style>CSS</style><script>Javascript</script>bar")#line:1431:soup = self.soup("foo<style>CSS</style><script>Javascript</script>bar")
+        O0000OO00O00O0O0O .assertEqual (['foo','bar'],list (OO0OOO00OO0O000O0 .strings ))#line:1432:self.assertEqual(['foo', 'bar'], list(soup.strings))
+class TestCDAtaListAttributes (SoupTest ):#line:1435:class TestCDAtaListAttributes(SoupTest):
+    ""#line:1438:"""
+    def test_single_value_becomes_list (OO0OO000O00OO0O00 ):#line:1439:def test_single_value_becomes_list(self):
+        O0OOO0O0O0OO00000 =OO0OO000O00OO0O00 .soup ("<a class='foo'>")#line:1440:soup = self.soup("<a class='foo'>")
+        OO0OO000O00OO0O00 .assertEqual (["foo"],O0OOO0O0O0OO00000 .a ['class'])#line:1441:self.assertEqual(["foo"],soup.a['class'])
+    def test_multiple_values_becomes_list (OOO00OOO0O0000O00 ):#line:1443:def test_multiple_values_becomes_list(self):
+        O00000000OO0O0OO0 =OOO00OOO0O0000O00 .soup ("<a class='foo bar'>")#line:1444:soup = self.soup("<a class='foo bar'>")
+        OOO00OOO0O0000O00 .assertEqual (["foo","bar"],O00000000OO0O0OO0 .a ['class'])#line:1445:self.assertEqual(["foo", "bar"], soup.a['class'])
+    def test_multiple_values_separated_by_weird_whitespace (O00O0O00000000OO0 ):#line:1447:def test_multiple_values_separated_by_weird_whitespace(self):
+        O00O000OO0OO0O0OO =O00O0O00000000OO0 .soup ("<a class='foo\tbar\nbaz'>")#line:1448:soup = self.soup("<a class='foo\tbar\nbaz'>")
+        O00O0O00000000OO0 .assertEqual (["foo","bar","baz"],O00O000OO0OO0O0OO .a ['class'])#line:1449:self.assertEqual(["foo", "bar", "baz"],soup.a['class'])
+    def test_attributes_joined_into_string_on_output (OO00OOO0O00OOOO00 ):#line:1451:def test_attributes_joined_into_string_on_output(self):
+        O0OOOOOOOO00OOOO0 =OO00OOO0O00OOOO00 .soup ("<a class='foo\tbar'>")#line:1452:soup = self.soup("<a class='foo\tbar'>")
+        OO00OOO0O00OOOO00 .assertEqual (b'<a class="foo bar"></a>',O0OOOOOOOO00OOOO0 .a .encode ())#line:1453:self.assertEqual(b'<a class="foo bar"></a>', soup.a.encode())
+    def test_get_attribute_list (O000O0OOO000000OO ):#line:1455:def test_get_attribute_list(self):
+        O0OO0000OO00O0OOO =O000O0OOO000000OO .soup ("<a id='abc def'>")#line:1456:soup = self.soup("<a id='abc def'>")
+        O000O0OOO000000OO .assertEqual (['abc def'],O0OO0000OO00O0OOO .a .get_attribute_list ('id'))#line:1457:self.assertEqual(['abc def'], soup.a.get_attribute_list('id'))
+    def test_accept_charset (O0OO000OOOOO00OOO ):#line:1459:def test_accept_charset(self):
+        O0OO0OO000000OO0O =O0OO000OOOOO00OOO .soup ('<form accept-charset="ISO-8859-1 UTF-8">')#line:1460:soup = self.soup('<form accept-charset="ISO-8859-1 UTF-8">')
+        O0OO000OOOOO00OOO .assertEqual (['ISO-8859-1','UTF-8'],O0OO0OO000000OO0O .form ['accept-charset'])#line:1461:self.assertEqual(['ISO-8859-1', 'UTF-8'], soup.form['accept-charset'])
+    def test_cdata_attribute_applying_only_to_one_tag (OOO00OO0O0OOO00OO ):#line:1463:def test_cdata_attribute_applying_only_to_one_tag(self):
+        O0O0O00OOOOO0OO00 ='<a accept-charset="ISO-8859-1 UTF-8"></a>'#line:1464:data = '<a accept-charset="ISO-8859-1 UTF-8"></a>'
+        O00O000OO0O0O0O00 =OOO00OO0O0OOO00OO .soup (O0O0O00OOOOO0OO00 )#line:1465:soup = self.soup(data)
+        OOO00OO0O0OOO00OO .assertEqual ('ISO-8859-1 UTF-8',O00O000OO0O0O0O00 .a ['accept-charset'])#line:1469:self.assertEqual('ISO-8859-1 UTF-8', soup.a['accept-charset'])
+    def test_string_has_immutable_name_property (OO0000O0O00OO0O00 ):#line:1471:def test_string_has_immutable_name_property(self):
+        O0OO00OO00O000O0O =OO0000O0O00OO0O00 .soup ("s").string #line:1472:string = self.soup("s").string
+        OO0000O0O00OO0O00 .assertEqual (None ,O0OO00OO00O000O0O .name )#line:1473:self.assertEqual(None, string.name)
+        def OO0OO00OO0000000O ():#line:1474:def t():
+            O0OO00OO00O000O0O .name ='foo'#line:1475:string.name = 'foo'
+        OO0000O0O00OO0O00 .assertRaises (AttributeError ,OO0OO00OO0000000O )#line:1476:self.assertRaises(AttributeError, t)
+class TestPersistence (SoupTest ):#line:1478:class TestPersistence(SoupTest):
+    ""#line:1479:"Testing features like pickle and deepcopy."
+    def setUp (O0O0OO00OOOOOOOOO ):#line:1481:def setUp(self):
+        super (TestPersistence ,O0O0OO00OOOOOOOOO ).setUp ()#line:1482:super(TestPersistence, self).setUp()
+        O0O0OO00OOOOOOOOO .page ="""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+"http://www.w3.org/TR/REC-html40/transitional.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Beautiful Soup: We called him Tortoise because he taught us.</title>
+<link rev="made" href="mailto:leonardr@segfault.org">
+<meta name="Description" content="Beautiful Soup: an HTML parser optimized for screen-scraping.">
+<meta name="generator" content="Markov Approximation 1.4 (module: leonardr)">
+<meta name="author" content="Leonard Richardson">
+</head>
+<body>
+<a href="foo">foo</a>
+<a href="foo"><b>bar</b></a>
+</body>
+</html>"""#line:1498:</html>"""
+        O0O0OO00OOOOOOOOO .tree =O0O0OO00OOOOOOOOO .soup (O0O0OO00OOOOOOOOO .page )#line:1499:self.tree = self.soup(self.page)
+    def test_pickle_and_unpickle_identity (OO0O0O0OOOO0O0O0O ):#line:1501:def test_pickle_and_unpickle_identity(self):
+        O000O0OO000OOOOO0 =pickle .dumps (OO0O0O0OOOO0O0O0O .tree ,2 )#line:1504:dumped = pickle.dumps(self.tree, 2)
+        OOO0OOO0OO0O0OO0O =pickle .loads (O000O0OO000OOOOO0 )#line:1505:loaded = pickle.loads(dumped)
+        OO0O0O0OOOO0O0O0O .assertEqual (OOO0OOO0OO0O0OO0O .__class__ ,BeautifulSoup )#line:1506:self.assertEqual(loaded.__class__, BeautifulSoup)
+        OO0O0O0OOOO0O0O0O .assertEqual (OOO0OOO0OO0O0OO0O .decode (),OO0O0O0OOOO0O0O0O .tree .decode ())#line:1507:self.assertEqual(loaded.decode(), self.tree.decode())
+    def test_deepcopy_identity (OO00OO0O00O0O000O ):#line:1509:def test_deepcopy_identity(self):
+        O0O0O000O0OOOO000 =copy .deepcopy (OO00OO0O00O0O000O .tree )#line:1511:copied = copy.deepcopy(self.tree)
+        OO00OO0O00O0O000O .assertEqual (O0O0O000O0OOOO000 .decode (),OO00OO0O00O0O000O .tree .decode ())#line:1512:self.assertEqual(copied.decode(), self.tree.decode())
+    def test_copy_preserves_encoding (O0O0OO00OO0O0OO0O ):#line:1514:def test_copy_preserves_encoding(self):
+        OOOOO0O000OOO00O0 =BeautifulSoup (b'<p>&nbsp;</p>','html.parser')#line:1515:soup = BeautifulSoup(b'<p>&nbsp;</p>', 'html.parser')
+        OOOOOOOOOO0OOOO00 =OOOOO0O000OOO00O0 .original_encoding #line:1516:encoding = soup.original_encoding
+        O0OOOO000OOO0OOO0 =OOOOO0O000OOO00O0 .__copy__ ()#line:1517:copy = soup.__copy__()
+        O0O0OO00OO0O0OO0O .assertEqual ("<p> </p>",str (O0OOOO000OOO0OOO0 ))#line:1518:self.assertEqual("<p> </p>", str(copy))
+        O0O0OO00OO0O0OO0O .assertEqual (OOOOOOOOOO0OOOO00 ,O0OOOO000OOO0OOO0 .original_encoding )#line:1519:self.assertEqual(encoding, copy.original_encoding)
+    def test_copy_preserves_builder_information (OOOOOO00O00OO0O0O ):#line:1521:def test_copy_preserves_builder_information(self):
+        OOO0O0000OO0OOOO0 =OOOOOO00O00OO0O0O .soup ('<p></p>').p #line:1523:tag = self.soup('<p></p>').p
+        OOO0O0000OO0OOOO0 .sourceline =10 #line:1526:tag.sourceline = 10
+        OOO0O0000OO0OOOO0 .sourcepos =33 #line:1527:tag.sourcepos = 33
+        O00O0OOOO0O00OO0O =OOO0O0000OO0OOOO0 .__copy__ ()#line:1529:copied = tag.__copy__()
+        OOOOOO00O00OO0O0O .assertEqual (OOO0O0000OO0OOOO0 .sourceline ,O00O0OOOO0O00OO0O .sourceline )#line:1533:self.assertEqual(tag.sourceline, copied.sourceline)
+        OOOOOO00O00OO0O0O .assertEqual (OOO0O0000OO0OOOO0 .sourcepos ,O00O0OOOO0O00OO0O .sourcepos )#line:1534:self.assertEqual(tag.sourcepos, copied.sourcepos)
+        OOOOOO00O00OO0O0O .assertEqual (OOO0O0000OO0OOOO0 .can_be_empty_element ,O00O0OOOO0O00OO0O .can_be_empty_element )#line:1537:)
+        OOOOOO00O00OO0O0O .assertEqual (OOO0O0000OO0OOOO0 .cdata_list_attributes ,O00O0OOOO0O00OO0O .cdata_list_attributes )#line:1540:)
+        OOOOOO00O00OO0O0O .assertEqual (OOO0O0000OO0OOOO0 .preserve_whitespace_tags ,O00O0OOOO0O00OO0O .preserve_whitespace_tags )#line:1543:)
+    def test_unicode_pickle (OO00OO000OOOO000O ):#line:1546:def test_unicode_pickle(self):
+        OOOOO0OO0OO0000OO ="<b>\N{SNOWMAN}</b>"#line:1548:html = "<b>\N{SNOWMAN}</b>"
+        OOO0O00O0OO0OOOOO =OO00OO000OOOO000O .soup (OOOOO0OO0OO0000OO )#line:1549:soup = self.soup(html)
+        OO0O00OO0000O0OOO =pickle .dumps (OOO0O00O0OO0OOOOO ,pickle .HIGHEST_PROTOCOL )#line:1550:dumped = pickle.dumps(soup, pickle.HIGHEST_PROTOCOL)
+        OOO0O0OOOOO00O000 =pickle .loads (OO0O00OO0000O0OOO )#line:1551:loaded = pickle.loads(dumped)
+        OO00OO000OOOO000O .assertEqual (OOO0O0OOOOO00O000 .decode (),OOO0O00O0OO0OOOOO .decode ())#line:1552:self.assertEqual(loaded.decode(), soup.decode())
+    def test_copy_navigablestring_is_not_attached_to_tree (OOO0O0OO0OOO00OO0 ):#line:1554:def test_copy_navigablestring_is_not_attached_to_tree(self):
+        O0OO00O0OO00OO00O ="<b>Foo<a></a></b><b>Bar</b>"#line:1555:html = "<b>Foo<a></a></b><b>Bar</b>"
+        OOOO0OO0O0OOO0O0O =OOO0O0OO0OOO00OO0 .soup (O0OO00O0OO00OO00O )#line:1556:soup = self.soup(html)
+        OO0OOO0000OOOOO00 =OOOO0OO0O0OOO0O0O .find (string ="Foo")#line:1557:s1 = soup.find(string="Foo")
+        O000OOOO0O00OO0O0 =copy .copy (OO0OOO0000OOOOO00 )#line:1558:s2 = copy.copy(s1)
+        OOO0O0OO0OOO00OO0 .assertEqual (OO0OOO0000OOOOO00 ,O000OOOO0O00OO0O0 )#line:1559:self.assertEqual(s1, s2)
+        OOO0O0OO0OOO00OO0 .assertEqual (None ,O000OOOO0O00OO0O0 .parent )#line:1560:self.assertEqual(None, s2.parent)
+        OOO0O0OO0OOO00OO0 .assertEqual (None ,O000OOOO0O00OO0O0 .next_element )#line:1561:self.assertEqual(None, s2.next_element)
+        OOO0O0OO0OOO00OO0 .assertNotEqual (None ,OO0OOO0000OOOOO00 .next_sibling )#line:1562:self.assertNotEqual(None, s1.next_sibling)
+        OOO0O0OO0OOO00OO0 .assertEqual (None ,O000OOOO0O00OO0O0 .next_sibling )#line:1563:self.assertEqual(None, s2.next_sibling)
+        OOO0O0OO0OOO00OO0 .assertEqual (None ,O000OOOO0O00OO0O0 .previous_element )#line:1564:self.assertEqual(None, s2.previous_element)
+    def test_copy_navigablestring_subclass_has_same_type (OO0OOO0O00OOO00OO ):#line:1566:def test_copy_navigablestring_subclass_has_same_type(self):
+        O00O00OOO00OO0000 ="<b><!--Foo--></b>"#line:1567:html = "<b><!--Foo--></b>"
+        O00O0OOO00OOOO00O =OO0OOO0O00OOO00OO .soup (O00O00OOO00OO0000 )#line:1568:soup = self.soup(html)
+        OO00OOO0O0000OOO0 =O00O0OOO00OOOO00O .string #line:1569:s1 = soup.string
+        OO00OO0O000O00O00 =copy .copy (OO00OOO0O0000OOO0 )#line:1570:s2 = copy.copy(s1)
+        OO0OOO0O00OOO00OO .assertEqual (OO00OOO0O0000OOO0 ,OO00OO0O000O00O00 )#line:1571:self.assertEqual(s1, s2)
+        OO0OOO0O00OOO00OO .assertTrue (isinstance (OO00OO0O000O00O00 ,Comment ))#line:1572:self.assertTrue(isinstance(s2, Comment))
+    def test_copy_entire_soup (OO00OO00O0O00OOO0 ):#line:1574:def test_copy_entire_soup(self):
+        O0000O0OO00000000 ="<div><b>Foo<a></a></b><b>Bar</b></div>end"#line:1575:html = "<div><b>Foo<a></a></b><b>Bar</b></div>end"
+        OOOO0000O000OOOOO =OO00OO00O0O00OOO0 .soup (O0000O0OO00000000 )#line:1576:soup = self.soup(html)
+        OO0OOOOO00OO00000 =copy .copy (OOOO0000O000OOOOO )#line:1577:soup_copy = copy.copy(soup)
+        OO00OO00O0O00OOO0 .assertEqual (OOOO0000O000OOOOO ,OO0OOOOO00OO00000 )#line:1578:self.assertEqual(soup, soup_copy)
+    def test_copy_tag_copies_contents (O0O0O000OO0OO0OOO ):#line:1580:def test_copy_tag_copies_contents(self):
+        OOO0O00OOOO00000O ="<div><b>Foo<a></a></b><b>Bar</b></div>end"#line:1581:html = "<div><b>Foo<a></a></b><b>Bar</b></div>end"
+        O0O000O0O0OO0OOOO =O0O0O000OO0OO0OOO .soup (OOO0O00OOOO00000O )#line:1582:soup = self.soup(html)
+        OO00O0O0O0O0OO0O0 =O0O000O0O0OO0OOOO .div #line:1583:div = soup.div
+        OOOO000OO0O00OOO0 =copy .copy (OO00O0O0O0O0OO0O0 )#line:1584:div_copy = copy.copy(div)
+        O0O0O000OO0OO0OOO .assertEqual (str (OO00O0O0O0O0OO0O0 ),str (OOOO000OO0O00OOO0 ))#line:1587:self.assertEqual(str(div), str(div_copy))
+        O0O0O000OO0OO0OOO .assertEqual (OO00O0O0O0O0OO0O0 ,OOOO000OO0O00OOO0 )#line:1588:self.assertEqual(div, div_copy)
+        O0O0O000OO0OO0OOO .assertFalse (OO00O0O0O0O0OO0O0 is OOOO000OO0O00OOO0 )#line:1591:self.assertFalse(div is div_copy)
+        O0O0O000OO0OO0OOO .assertEqual (None ,OOOO000OO0O00OOO0 .parent )#line:1595:self.assertEqual(None, div_copy.parent)
+        O0O0O000OO0OO0OOO .assertEqual (None ,OOOO000OO0O00OOO0 .previous_element )#line:1596:self.assertEqual(None, div_copy.previous_element)
+        O0O0O000OO0OO0OOO .assertEqual (None ,OOOO000OO0O00OOO0 .find (string ='Bar').next_element )#line:1597:self.assertEqual(None, div_copy.find(string='Bar').next_element)
+        O0O0O000OO0OO0OOO .assertNotEqual (None ,OO00O0O0O0O0OO0O0 .find (string ='Bar').next_element )#line:1598:self.assertNotEqual(None, div.find(string='Bar').next_element)
+class TestSubstitutions (SoupTest ):#line:1600:class TestSubstitutions(SoupTest):
+    def test_default_formatter_is_minimal (O0O0OOO000O0O00O0 ):#line:1602:def test_default_formatter_is_minimal(self):
+        OO0O00O00OO0O00O0 ="<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"#line:1603:markup = "<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"
+        O0O0000OO0OO0OOO0 =O0O0OOO000O0O00O0 .soup (OO0O00O00OO0O00O0 )#line:1604:soup = self.soup(markup)
+        OO0OO0O0O0OOO000O =O0O0000OO0OO0OOO0 .decode (formatter ="minimal")#line:1605:decoded = soup.decode(formatter="minimal")
+        O0O0OOO000O0O00O0 .assertEqual (OO0OO0O0O0OOO000O ,O0O0OOO000O0O00O0 .document_for ("<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"))#line:1610:"<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"))
+    def test_formatter_html (OOOOOO0O00O0000OO ):#line:1612:def test_formatter_html(self):
+        OO0O0OO0OO00OOOO0 ="<br><b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"#line:1613:markup = "<br><b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"
+        OO000OOO0O0OO0000 =OOOOOO0O00O0000OO .soup (OO0O0OO0OO00OOOO0 )#line:1614:soup = self.soup(markup)
+        OO0OO00OOO0OOO000 =OO000OOO0O0OO0000 .decode (formatter ="html")#line:1615:decoded = soup.decode(formatter="html")
+        OOOOOO0O00O0000OO .assertEqual (OO0OO00OOO0OOO000 ,OOOOOO0O00O0000OO .document_for ("<br/><b>&lt;&lt;Sacr&eacute; bleu!&gt;&gt;</b>"))#line:1618:self.document_for("<br/><b>&lt;&lt;Sacr&eacute; bleu!&gt;&gt;</b>"))
+    def test_formatter_html5 (O0OOOOOO0OO00O0O0 ):#line:1620:def test_formatter_html5(self):
+        O0000O000O0O00O00 ="<br><b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"#line:1621:markup = "<br><b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"
+        O0O0OO0O00OOOOO00 =O0OOOOOO0OO00O0O0 .soup (O0000O000O0O00O00 )#line:1622:soup = self.soup(markup)
+        O000O00O0OOOO000O =O0O0OO0O00OOOOO00 .decode (formatter ="html5")#line:1623:decoded = soup.decode(formatter="html5")
+        O0OOOOOO0OO00O0O0 .assertEqual (O000O00O0OOOO000O ,O0OOOOOO0OO00O0O0 .document_for ("<br><b>&lt;&lt;Sacr&eacute; bleu!&gt;&gt;</b>"))#line:1626:self.document_for("<br><b>&lt;&lt;Sacr&eacute; bleu!&gt;&gt;</b>"))
+    def test_formatter_minimal (O00OO0OOO0O0OO00O ):#line:1628:def test_formatter_minimal(self):
+        O000O0O0000O00OOO ="<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"#line:1629:markup = "<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"
+        O00OO000OOOO0O000 =O00OO0OOO0O0OO00O .soup (O000O0O0000O00OOO )#line:1630:soup = self.soup(markup)
+        O0000O00OOOOO0OO0 =O00OO000OOOO0O000 .decode (formatter ="minimal")#line:1631:decoded = soup.decode(formatter="minimal")
+        O00OO0OOO0O0OO00O .assertEqual (O0000O00OOOOO0OO0 ,O00OO0OOO0O0OO00O .document_for ("<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"))#line:1636:"<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"))
+    def test_formatter_null (OO00OOO0OOOO00O0O ):#line:1638:def test_formatter_null(self):
+        O0OO0OO00OO00OOO0 ="<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"#line:1639:markup = "<b>&lt;&lt;Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</b>"
+        OOOO000O0O000O0OO =OO00OOO0OOOO00O0O .soup (O0OO0OO00OO00OOO0 )#line:1640:soup = self.soup(markup)
+        O000O000OO00OO00O =OOOO000O0O000O0OO .decode (formatter =None )#line:1641:decoded = soup.decode(formatter=None)
+        OO00OOO0OOOO00O0O .assertEqual (O000O000OO00OO00O ,OO00OOO0OOOO00O0O .document_for ("<b><<Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!>></b>"))#line:1645:self.document_for("<b><<Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!>></b>"))
+    def test_formatter_custom (O0O000O0OO0OOOOO0 ):#line:1647:def test_formatter_custom(self):
+        O00OOO000OOOOOOO0 ="<b>&lt;foo&gt;</b><b>bar</b><br/>"#line:1648:markup = "<b>&lt;foo&gt;</b><b>bar</b><br/>"
+        O00OO0OO00OO00000 =O0O000O0OO0OOOOO0 .soup (O00OOO000OOOOOOO0 )#line:1649:soup = self.soup(markup)
+        OO00O00000O000O00 =O00OO0OO00OO00000 .decode (formatter =lambda O0OOOO0O0O0O00O0O :O0OOOO0O0O0O00O0O .upper ())#line:1650:decoded = soup.decode(formatter = lambda x: x.upper())
+        O0O000O0OO0OOOOO0 .assertEqual (OO00O00000O000O00 ,O0O000O0OO0OOOOO0 .document_for ("<b><FOO></b><b>BAR</b><br/>"))#line:1655:self.document_for("<b><FOO></b><b>BAR</b><br/>"))
+    def test_formatter_is_run_on_attribute_values (OOOO00O0OO0O00O0O ):#line:1657:def test_formatter_is_run_on_attribute_values(self):
+        OOOOO0O00OOO0OO00 ='<a href="http://a.com?a=b&c=é">e</a>'#line:1658:markup = '<a href="http://a.com?a=b&c=é">e</a>'
+        OO0000000OOO000OO =OOOO00O0OO0O00O0O .soup (OOOOO0O00OOO0OO00 )#line:1659:soup = self.soup(markup)
+        O0O0OO0OOO000O0O0 =OO0000000OOO000OO .a #line:1660:a = soup.a
+        OO0000O00OOOO0O0O ='<a href="http://a.com?a=b&amp;c=é">e</a>'#line:1662:expect_minimal = '<a href="http://a.com?a=b&amp;c=é">e</a>'
+        OOOO00O0OO0O00O0O .assertEqual (OO0000O00OOOO0O0O ,O0O0OO0OOO000O0O0 .decode ())#line:1664:self.assertEqual(expect_minimal, a.decode())
+        OOOO00O0OO0O00O0O .assertEqual (OO0000O00OOOO0O0O ,O0O0OO0OOO000O0O0 .decode (formatter ="minimal"))#line:1665:self.assertEqual(expect_minimal, a.decode(formatter="minimal"))
+        O00O00O0OOOO0OOO0 ='<a href="http://a.com?a=b&amp;c=&eacute;">e</a>'#line:1667:expect_html = '<a href="http://a.com?a=b&amp;c=&eacute;">e</a>'
+        OOOO00O0OO0O00O0O .assertEqual (O00O00O0OOOO0OOO0 ,O0O0OO0OOO000O0O0 .decode (formatter ="html"))#line:1668:self.assertEqual(expect_html, a.decode(formatter="html"))
+        OOOO00O0OO0O00O0O .assertEqual (OOOOO0O00OOO0OO00 ,O0O0OO0OOO000O0O0 .decode (formatter =None ))#line:1670:self.assertEqual(markup, a.decode(formatter=None))
+        OOO0000O00OOO0OO0 ='<a href="HTTP://A.COM?A=B&C=É">E</a>'#line:1671:expect_upper = '<a href="HTTP://A.COM?A=B&C=É">E</a>'
+        OOOO00O0OO0O00O0O .assertEqual (OOO0000O00OOO0OO0 ,O0O0OO0OOO000O0O0 .decode (formatter =lambda O0O00OO0O0OO0OOOO :O0O00OO0O0OO0OOOO .upper ()))#line:1672:self.assertEqual(expect_upper, a.decode(formatter=lambda x: x.upper()))
+    def test_formatter_skips_script_tag_for_html_documents (O0O0O0OO0OOOO0000 ):#line:1674:def test_formatter_skips_script_tag_for_html_documents(self):
+        OOO00O0O0OOO00O00 ="""
+  <script type="text/javascript">
+   console.log("< < hey > > ");
+  </script>
+"""#line:1679:"""
+        OOOOO0O00O0O0OO0O =BeautifulSoup (OOO00O0O0OOO00O00 ,'html.parser').encode ()#line:1680:encoded = BeautifulSoup(doc, 'html.parser').encode()
+        O0O0O0OO0OOOO0000 .assertTrue (b"< < hey > >"in OOOOO0O00O0O0OO0O )#line:1681:self.assertTrue(b"< < hey > >" in encoded)
+    def test_formatter_skips_style_tag_for_html_documents (O00O0O0O00OOO00OO ):#line:1683:def test_formatter_skips_style_tag_for_html_documents(self):
+        OO0O00000O0000O0O ="""
+  <style type="text/css">
+   console.log("< < hey > > ");
+  </style>
+"""#line:1688:"""
+        O0O0000OO00O0O00O =BeautifulSoup (OO0O00000O0000O0O ,'html.parser').encode ()#line:1689:encoded = BeautifulSoup(doc, 'html.parser').encode()
+        O00O0O0O00OOO00OO .assertTrue (b"< < hey > >"in O0O0000OO00O0O00O )#line:1690:self.assertTrue(b"< < hey > >" in encoded)
+    def test_prettify_leaves_preformatted_text_alone (OO0OO00OOOO00OO00 ):#line:1692:def test_prettify_leaves_preformatted_text_alone(self):
+        OOOO00OOOOO0O0O00 =OO0OO00OOOO00OO00 .soup ("<div>  foo  <pre>  \tbar\n  \n  </pre>  baz  <textarea> eee\nfff\t</textarea></div>")#line:1693:soup = self.soup("<div>  foo  <pre>  \tbar\n  \n  </pre>  baz  <textarea> eee\nfff\t</textarea></div>")
+        OO0OO00OOOO00OO00 .assertEqual ('<div>\n foo\n <pre>  \tbar\n  \n  </pre>\n baz\n <textarea> eee\nfff\t</textarea>\n</div>',OOOO00OOOOO0O0O00 .div .prettify ())#line:1698:soup.div.prettify())
+    def test_prettify_accepts_formatter_function (O000OO0OOOOOOO00O ):#line:1700:def test_prettify_accepts_formatter_function(self):
+        O0OOOOO0O0O00O0OO =BeautifulSoup ("<html><body>foo</body></html>",'html.parser')#line:1701:soup = BeautifulSoup("<html><body>foo</body></html>", 'html.parser')
+        O0OOOOOOO0O00000O =O0OOOOO0O0O00O0OO .prettify (formatter =lambda O0O000O0OO000O0O0 :O0O000O0OO000O0O0 .upper ())#line:1702:pretty = soup.prettify(formatter = lambda x: x.upper())
+        O000OO0OOOOOOO00O .assertTrue ("FOO"in O0OOOOOOO0O00000O )#line:1703:self.assertTrue("FOO" in pretty)
+    def test_prettify_outputs_unicode_by_default (OO00O0000OOO000OO ):#line:1705:def test_prettify_outputs_unicode_by_default(self):
+        O00O0O000000OOOOO =OO00O0000OOO000OO .soup ("<a></a>")#line:1706:soup = self.soup("<a></a>")
+        OO00O0000OOO000OO .assertEqual (str ,type (O00O0O000000OOOOO .prettify ()))#line:1707:self.assertEqual(str, type(soup.prettify()))
+    def test_prettify_can_encode_data (O00OO000O0O0O00OO ):#line:1709:def test_prettify_can_encode_data(self):
+        O000OO0O0O000OO00 =O00OO000O0O0O00OO .soup ("<a></a>")#line:1710:soup = self.soup("<a></a>")
+        O00OO000O0O0O00OO .assertEqual (bytes ,type (O000OO0O0O000OO00 .prettify ("utf-8")))#line:1711:self.assertEqual(bytes, type(soup.prettify("utf-8")))
+    def test_html_entity_substitution_off_by_default (OO0OOO00O0OOOO0OO ):#line:1713:def test_html_entity_substitution_off_by_default(self):
+        O0O00OOOOO0O00000 ="<b>Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!</b>"#line:1714:markup = "<b>Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!</b>"
+        O000O00000O00OO00 =OO0OOO00O0OOOO0OO .soup (O0O00OOOOO0O00000 )#line:1715:soup = self.soup(markup)
+        O00OO0OO000O0O000 =O000O00000O00OO00 .b .encode ("utf-8")#line:1716:encoded = soup.b.encode("utf-8")
+        OO0OOO00O0OOOO0OO .assertEqual (O00OO0OO000O0O000 ,O0O00OOOOO0O00000 .encode ('utf-8'))#line:1717:self.assertEqual(encoded, markup.encode('utf-8'))
+    def test_encoding_substitution (OOO0O0OOO0O0OO0O0 ):#line:1719:def test_encoding_substitution(self):
+        OOO000OOO00OOOO0O =('<meta content="text/html; charset=x-sjis" ' 'http-equiv="Content-type"/>')#line:1723:'http-equiv="Content-type"/>')
+        O000OOO00OO0OOO00 =OOO0O0OOO0O0OO0O0 .soup (OOO000OOO00OOOO0O )#line:1724:soup = self.soup(meta_tag)
+        OOO0O0OOO0O0OO0O0 .assertEqual (O000OOO00OO0OOO00 .meta ['content'],'text/html; charset=x-sjis')#line:1727:self.assertEqual(soup.meta['content'], 'text/html; charset=x-sjis')
+        OOOOO0O00O000OOOO =O000OOO00OO0OOO00 .encode ("utf-8")#line:1731:utf_8 = soup.encode("utf-8")
+        OOO0O0OOO0O0OO0O0 .assertTrue (b"charset=utf-8"in OOOOO0O00O000OOOO )#line:1732:self.assertTrue(b"charset=utf-8" in utf_8)
+        O0OOOO000O0OO000O =O000OOO00OO0OOO00 .encode ("euc_jp")#line:1734:euc_jp = soup.encode("euc_jp")
+        OOO0O0OOO0O0OO0O0 .assertTrue (b"charset=euc_jp"in O0OOOO000O0OO000O )#line:1735:self.assertTrue(b"charset=euc_jp" in euc_jp)
+        OO00O0O0000OO0O00 =O000OOO00OO0OOO00 .encode ("shift-jis")#line:1737:shift_jis = soup.encode("shift-jis")
+        OOO0O0OOO0O0OO0O0 .assertTrue (b"charset=shift-jis"in OO00O0O0000OO0O00 )#line:1738:self.assertTrue(b"charset=shift-jis" in shift_jis)
+        OO0O0OO0O00O0O0O0 =O000OOO00OO0OOO00 .encode ("utf-16").decode ("utf-16")#line:1740:utf_16_u = soup.encode("utf-16").decode("utf-16")
+        OOO0O0OOO0O0OO0O0 .assertTrue ("charset=utf-16"in OO0O0OO0O00O0O0O0 )#line:1741:self.assertTrue("charset=utf-16" in utf_16_u)
+    def test_encoding_substitution_doesnt_happen_if_tag_is_strained (O000OO0OOOOO0OOOO ):#line:1743:def test_encoding_substitution_doesnt_happen_if_tag_is_strained(self):
+        O0OOO0OO00O000O00 =('<head><meta content="text/html; charset=x-sjis" ' 'http-equiv="Content-type"/></head><pre>foo</pre>')#line:1745:'http-equiv="Content-type"/></head><pre>foo</pre>')
+        OOO0O000O0OOOO0O0 =SoupStrainer ('pre')#line:1750:strainer = SoupStrainer('pre')
+        O0O000OO0OO000000 =O000OO0OOOOO0OOOO .soup (O0OOO0OO00O000O00 ,parse_only =OOO0O000O0OOOO0O0 )#line:1751:soup = self.soup(markup, parse_only=strainer)
+        O000OO0OOOOO0OOOO .assertEqual (O0O000OO0OO000000 .contents [0 ].name ,'pre')#line:1752:self.assertEqual(soup.contents[0].name, 'pre')
+class TestEncoding (SoupTest ):#line:1754:class TestEncoding(SoupTest):
+    ""#line:1755:"""Test the ability to encode objects into strings."""
+    def test_unicode_string_can_be_encoded (O0O0000O00000000O ):#line:1757:def test_unicode_string_can_be_encoded(self):
+        O000OO0OOOOOOO0OO ="<b>\N{SNOWMAN}</b>"#line:1758:html = "<b>\N{SNOWMAN}</b>"
+        OO000O00O00OO0O00 =O0O0000O00000000O .soup (O000OO0OOOOOOO0OO )#line:1759:soup = self.soup(html)
+        O0O0000O00000000O .assertEqual (OO000O00O00OO0O00 .b .string .encode ("utf-8"),"\N{SNOWMAN}".encode ("utf-8"))#line:1761:"\N{SNOWMAN}".encode("utf-8"))
+    def test_tag_containing_unicode_string_can_be_encoded (OOO0OOO0O0O000O00 ):#line:1763:def test_tag_containing_unicode_string_can_be_encoded(self):
+        O0000O0OOO0000OOO ="<b>\N{SNOWMAN}</b>"#line:1764:html = "<b>\N{SNOWMAN}</b>"
+        O000OOO0000OO00O0 =OOO0OOO0O0O000O00 .soup (O0000O0OOO0000OOO )#line:1765:soup = self.soup(html)
+        OOO0OOO0O0O000O00 .assertEqual (O000OOO0000OO00O0 .b .encode ("utf-8"),O0000O0OOO0000OOO .encode ("utf-8"))#line:1767:soup.b.encode("utf-8"), html.encode("utf-8"))
+    def test_encoding_substitutes_unrecognized_characters_by_default (O0OOO0000000OOO00 ):#line:1769:def test_encoding_substitutes_unrecognized_characters_by_default(self):
+        OO00OO0O00OO0O00O ="<b>\N{SNOWMAN}</b>"#line:1770:html = "<b>\N{SNOWMAN}</b>"
+        OO0OO000OOO0O0O0O =O0OOO0000000OOO00 .soup (OO00OO0O00OO0O00O )#line:1771:soup = self.soup(html)
+        O0OOO0000000OOO00 .assertEqual (OO0OO000OOO0O0O0O .b .encode ("ascii"),b"<b>&#9731;</b>")#line:1772:self.assertEqual(soup.b.encode("ascii"), b"<b>&#9731;</b>")
+    def test_encoding_can_be_made_strict (O0O0O0OO00O0000OO ):#line:1774:def test_encoding_can_be_made_strict(self):
+        O0O00OOO0O0OOOOOO ="<b>\N{SNOWMAN}</b>"#line:1775:html = "<b>\N{SNOWMAN}</b>"
+        OOO0000O0000O000O =O0O0O0OO00O0000OO .soup (O0O00OOO0O0OOOOOO )#line:1776:soup = self.soup(html)
+        O0O0O0OO00O0000OO .assertRaises (UnicodeEncodeError ,OOO0000O0000O000O .encode ,"ascii",errors ="strict")#line:1778:UnicodeEncodeError, soup.encode, "ascii", errors="strict")
+    def test_decode_contents (OO0O0OOOOO0O00O0O ):#line:1780:def test_decode_contents(self):
+        O0O00O000OOO0OO0O ="<b>\N{SNOWMAN}</b>"#line:1781:html = "<b>\N{SNOWMAN}</b>"
+        O0O0O0OOOOOOOO0OO =OO0O0OOOOO0O00O0O .soup (O0O00O000OOO0OO0O )#line:1782:soup = self.soup(html)
+        OO0O0OOOOO0O00O0O .assertEqual ("\N{SNOWMAN}",O0O0O0OOOOOOOO0OO .b .decode_contents ())#line:1783:self.assertEqual("\N{SNOWMAN}", soup.b.decode_contents())
+    def test_encode_contents (O0OOO0OOO0OO00O00 ):#line:1785:def test_encode_contents(self):
+        O0O000000O0O00O00 ="<b>\N{SNOWMAN}</b>"#line:1786:html = "<b>\N{SNOWMAN}</b>"
+        OO0O0OOO0000O00O0 =O0OOO0OOO0OO00O00 .soup (O0O000000O0O00O00 )#line:1787:soup = self.soup(html)
+        O0OOO0OOO0OO00O00 .assertEqual ("\N{SNOWMAN}".encode ("utf8"),OO0O0OOO0000O00O0 .b .encode_contents (encoding ="utf8"))#line:1790:encoding="utf8"))
+    def test_deprecated_renderContents (O00O000O000OOO0O0 ):#line:1792:def test_deprecated_renderContents(self):
+        O0OO0O00O0OO00000 ="<b>\N{SNOWMAN}</b>"#line:1793:html = "<b>\N{SNOWMAN}</b>"
+        OOO000O00OO00OOOO =O00O000O000OOO0O0 .soup (O0OO0O00O0OO00000 )#line:1794:soup = self.soup(html)
+        O00O000O000OOO0O0 .assertEqual ("\N{SNOWMAN}".encode ("utf8"),OOO000O00OO00OOOO .b .renderContents ())#line:1796:"\N{SNOWMAN}".encode("utf8"), soup.b.renderContents())
+    def test_repr (O0O0OO0O0000O0OOO ):#line:1798:def test_repr(self):
+        O0OOOO0O00OOOOOOO ="<b>\N{SNOWMAN}</b>"#line:1799:html = "<b>\N{SNOWMAN}</b>"
+        OO00O0OOOOOO0O00O =O0O0OO0O0000O0OOO .soup (O0OOOO0O00OOOOOOO )#line:1800:soup = self.soup(html)
+        if PY3K :#line:1801:if PY3K:
+            O0O0OO0O0000O0OOO .assertEqual (O0OOOO0O00OOOOOOO ,repr (OO00O0OOOOOO0O00O ))#line:1802:self.assertEqual(html, repr(soup))
+        else :#line:1803:else:
+            O0O0OO0O0000O0OOO .assertEqual (b'<b>\\u2603</b>',repr (OO00O0OOOOOO0O00O ))#line:1804:self.assertEqual(b'<b>\\u2603</b>', repr(soup))
+class TestFormatter (SoupTest ):#line:1806:class TestFormatter(SoupTest):
+    def test_default_attributes (OO0OO00OO0OOOO00O ):#line:1808:def test_default_attributes(self):
+        O0OOOOO0OO000O0O0 =Formatter ()#line:1810:formatter = Formatter()
+        OO0OO0OOOO0O0000O =Tag (name ="tag")#line:1811:tag = Tag(name="tag")
+        OO0OO0OOOO0O0000O ['b']=1 #line:1812:tag['b'] = 1
+        OO0OO0OOOO0O0000O ['a']=2 #line:1813:tag['a'] = 2
+        OO0OO00OO0OOOO00O .assertEqual ([('a',2 ),('b',1 )],O0OOOOO0OO000O0O0 .attributes (OO0OO0OOOO0O0000O ))#line:1818:self.assertEqual([('a', 2), ('b', 1)], formatter.attributes(tag))
+        OO0OO0OOOO0O0000O .attrs =None #line:1822:tag.attrs = None
+        OO0OO00OO0OOOO00O .assertEqual ([],O0OOOOO0OO000O0O0 .attributes (OO0OO0OOOO0O0000O ))#line:1823:self.assertEqual([], formatter.attributes(tag))
+    def test_sort_attributes (O0OO0O00O0OOOOOOO ):#line:1825:def test_sort_attributes(self):
+        class OOOOOOO0OOOO0O0O0 (Formatter ):#line:1828:class UnsortedFormatter(Formatter):
+            def attributes (OOOO00OO0000OOOO0 ,OOOOO0OOO000O00OO ):#line:1829:def attributes(self, tag):
+                OOOO00OO0000OOOO0 .called_with =OOOOO0OOO000O00OO #line:1830:self.called_with = tag
+                for O0O0000OOOOOO00OO ,OOOOOOO000O0OO00O in sorted (OOOOO0OOO000O00OO .attrs .items ()):#line:1831:for k, v in sorted(tag.attrs.items()):
+                    if O0O0000OOOOOO00OO =='ignore':#line:1832:if k == 'ignore':
+                        continue #line:1833:continue
+                    yield O0O0000OOOOOO00OO ,OOOOOOO000O0OO00O #line:1834:yield k,v
+        O0000OOOO0000OOOO =O0OO0O00O0OOOOOOO .soup ('<p cval="1" aval="2" ignore="ignored"></p>')#line:1836:soup = self.soup('<p cval="1" aval="2" ignore="ignored"></p>')
+        O0O0000OO0OOOO00O =OOOOOOO0OOOO0O0O0 ()#line:1837:formatter = UnsortedFormatter()
+        O00000000OO0OO0O0 =O0000OOOO0000OOOO .decode (formatter =O0O0000OO0OOOO00O )#line:1838:decoded = soup.decode(formatter=formatter)
+        O0OO0O00O0OOOOOOO .assertEqual (O0O0000OO0OOOO00O .called_with ,O0000OOOO0000OOOO .p )#line:1842:self.assertEqual(formatter.called_with, soup.p)
+        O0OO0O00O0OOOOOOO .assertEqual ('<p aval="2" cval="1"></p>',O00000000OO0OO0O0 )#line:1843:self.assertEqual('<p aval="2" cval="1"></p>', decoded)
+class TestNavigableStringSubclasses (SoupTest ):#line:1846:class TestNavigableStringSubclasses(SoupTest):
+    def test_cdata (O00OOOO0OO00OO0O0 ):#line:1848:def test_cdata(self):
+        OO0O0O00O0000000O =O00OOOO0OO00OO0O0 .soup ("")#line:1851:soup = self.soup("")
+        O00OOO0000O000O00 =CData ("foo")#line:1852:cdata = CData("foo")
+        OO0O0O00O0000000O .insert (1 ,O00OOO0000O000O00 )#line:1853:soup.insert(1, cdata)
+        O00OOOO0OO00OO0O0 .assertEqual (str (OO0O0O00O0000000O ),"<![CDATA[foo]]>")#line:1854:self.assertEqual(str(soup), "<![CDATA[foo]]>")
+        O00OOOO0OO00OO0O0 .assertEqual (OO0O0O00O0000000O .find (text ="foo"),"foo")#line:1855:self.assertEqual(soup.find(text="foo"), "foo")
+        O00OOOO0OO00OO0O0 .assertEqual (OO0O0O00O0000000O .contents [0 ],"foo")#line:1856:self.assertEqual(soup.contents[0], "foo")
+    def test_cdata_is_never_formatted (OOOO00O00O00000O0 ):#line:1858:def test_cdata_is_never_formatted(self):
+        ""#line:1862:"""
+        OOOO00O00O00000O0 .count =0 #line:1864:self.count = 0
+        def O00O00OOO00O0OO00 (*OOOO0000000O00OO0 ):#line:1865:def increment(*args):
+            OOOO00O00O00000O0 .count +=1 #line:1866:self.count += 1
+            return "BITTER FAILURE"#line:1867:return "BITTER FAILURE"
+        OOO00OOO0OOO0OO0O =OOOO00O00O00000O0 .soup ("")#line:1869:soup = self.soup("")
+        OO00O0O000000O000 =CData ("<><><>")#line:1870:cdata = CData("<><><>")
+        OOO00OOO0OOO0OO0O .insert (1 ,OO00O0O000000O000 )#line:1871:soup.insert(1, cdata)
+        OOOO00O00O00000O0 .assertEqual (b"<![CDATA[<><><>]]>",OOO00OOO0OOO0OO0O .encode (formatter =O00O00OOO00O0OO00 ))#line:1873:b"<![CDATA[<><><>]]>", soup.encode(formatter=increment))
+        OOOO00O00O00000O0 .assertEqual (1 ,OOOO00O00O00000O0 .count )#line:1874:self.assertEqual(1, self.count)
+    def test_doctype_ends_in_newline (O000O00O0OO00OO00 ):#line:1876:def test_doctype_ends_in_newline(self):
+        OO000O0OO00O00O0O =Doctype ("foo")#line:1879:doctype = Doctype("foo")
+        OOO0OOO0O0OOO00OO =O000O00O0OO00OO00 .soup ("")#line:1880:soup = self.soup("")
+        OOO0OOO0O0OOO00OO .insert (1 ,OO000O0OO00O00O0O )#line:1881:soup.insert(1, doctype)
+        O000O00O0OO00OO00 .assertEqual (OOO0OOO0O0OOO00OO .encode (),b"<!DOCTYPE foo>\n")#line:1882:self.assertEqual(soup.encode(), b"<!DOCTYPE foo>\n")
+    def test_declaration (OO00OO0OOO0OOOOOO ):#line:1884:def test_declaration(self):
+        OO00O000O0000O00O =Declaration ("foo")#line:1885:d = Declaration("foo")
+        OO00OO0OOO0OOOOOO .assertEqual ("<?foo?>",OO00O000O0000O00O .output_ready ())#line:1886:self.assertEqual("<?foo?>", d.output_ready())
+    def test_default_string_containers (OOO0O0OO00O0O0O0O ):#line:1888:def test_default_string_containers(self):
+        OOOOO00OOO0OO0O00 =OOO0O0OO00O0O0O0O .soup ("<div>text</div><script>text</script><style>text</style>")#line:1893:)
+        OOO0O0OO00O0O0O0O .assertEqual ([NavigableString ,Script ,Stylesheet ],[O00O000O000OOOO00 .__class__ for O00O000O000OOOO00 in OOOOO00OOO0OO0O00 .find_all (text =True )])#line:1897:)
+        OOOOO00OOO0OO0O00 =OOO0O0OO00O0O0O0O .soup ("<template>Some text<p>In a tag</p></template>Some text outside")#line:1904:)
+        assert all (isinstance (O000OO0O000000000 ,TemplateString )for O000OO0O000000000 in OOOOO00OOO0OO0O00 .template .strings )#line:1905:assert all(isinstance(x, TemplateString) for x in soup.template.strings)
+        OO0O00OO0O00O0O0O =OOOOO00OOO0OO0O00 .template .next_sibling #line:1909:outside = soup.template.next_sibling
+        assert isinstance (OO0O00OO0O00O0O0O ,NavigableString )#line:1910:assert isinstance(outside, NavigableString)
+        assert not isinstance (OO0O00OO0O00O0O0O ,TemplateString )#line:1911:assert not isinstance(outside, TemplateString)
+class TestSoupSelector (TreeTest ):#line:1913:class TestSoupSelector(TreeTest):
+    HTML ="""
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>The title</title>
+<link rel="stylesheet" href="blah.css" type="text/css" id="l1">
+</head>
+<body>
+<custom-dashed-tag class="dashed" id="dash1">Hello there.</custom-dashed-tag>
+<div id="main" class="fancy">
+<div id="inner">
+<h1 id="header1">An H1</h1>
+<p>Some text</p>
+<p class="onep" id="p1">Some more text</p>
+<h2 id="header2">An H2</h2>
+<p class="class1 class2 class3" id="pmulti">Another</p>
+<a href="http://bob.example.org/" rel="friend met" id="bob">Bob</a>
+<h2 id="header3">Another H2</h2>
+<a id="me" href="http://simonwillison.net/" rel="me">me</a>
+<span class="s1">
+<a href="#" id="s1a1">span1a1</a>
+<a href="#" id="s1a2">span1a2 <span id="s1a2s1">test</span></a>
+<span class="span2">
+<a href="#" id="s2a1">span2a1</a>
+</span>
+<span class="span3"></span>
+<custom-dashed-tag class="dashed" id="dash2"/>
+<div data-tag="dashedvalue" id="data1"/>
+</span>
+</div>
+<x id="xid">
+<z id="zida"/>
+<z id="zidab"/>
+<z id="zidac"/>
+</x>
+<y id="yid">
+<z id="zidb"/>
+</y>
+<p lang="en" id="lang-en">English</p>
+<p lang="en-gb" id="lang-en-gb">English UK</p>
+<p lang="en-us" id="lang-en-us">English US</p>
+<p lang="fr" id="lang-fr">French</p>
+</div>
+
+<div id="footer">
+</div>
+"""#line:1962:"""
+    def setUp (O00OOO0000OOO0O00 ):#line:1964:def setUp(self):
+        O00OOO0000OOO0O00 .soup =BeautifulSoup (O00OOO0000OOO0O00 .HTML ,'html.parser')#line:1965:self.soup = BeautifulSoup(self.HTML, 'html.parser')
+    def assertSelects (O0000000O0O000O0O ,OO0O0O0O0O0OO0OO0 ,OOOOOOO0000000OOO ,**OOO000O0OO0O00OOO ):#line:1967:def assertSelects(self, selector, expected_ids, **kwargs):
+        OO00O0OO0OO000000 =[O00OO0OO0O0000O00 ['id']for O00OO0OO0O0000O00 in O0000000O0O000O0O .soup .select (OO0O0O0O0O0OO0OO0 ,**OOO000O0OO0O00OOO )]#line:1968:el_ids = [el['id'] for el in self.soup.select(selector, **kwargs)]
+        OO00O0OO0OO000000 .sort ()#line:1969:el_ids.sort()
+        OOOOOOO0000000OOO .sort ()#line:1970:expected_ids.sort()
+        O0000000O0O000O0O .assertEqual (OOOOOOO0000000OOO ,OO00O0OO0OO000000 ,"Selector %s, expected [%s], got [%s]"%(OO0O0O0O0O0OO0OO0 ,', '.join (OOOOOOO0000000OOO ),', '.join (OO00O0OO0OO000000 )))#line:1975:)
+    assertSelect =assertSelects #line:1977:assertSelect = assertSelects
+    def assertSelectMultiple (O000OOO000OO0OOOO ,*OOO0O00000O0OOO0O ):#line:1979:def assertSelectMultiple(self, *tests):
+        for O0O0OO0OOOOO0000O ,OOOOOO0O000OO0O00 in OOO0O00000O0OOO0O :#line:1980:for selector, expected_ids in tests:
+            O000OOO000OO0OOOO .assertSelect (O0O0OO0OOOOO0000O ,OOOOOO0O000OO0O00 )#line:1981:self.assertSelect(selector, expected_ids)
+    def test_one_tag_one (OOO00O000OOOO0OOO ):#line:1983:def test_one_tag_one(self):
+        OOOOOOO0O0000OO0O =OOO00O000OOOO0OOO .soup .select ('title')#line:1984:els = self.soup.select('title')
+        OOO00O000OOOO0OOO .assertEqual (len (OOOOOOO0O0000OO0O ),1 )#line:1985:self.assertEqual(len(els), 1)
+        OOO00O000OOOO0OOO .assertEqual (OOOOOOO0O0000OO0O [0 ].name ,'title')#line:1986:self.assertEqual(els[0].name, 'title')
+        OOO00O000OOOO0OOO .assertEqual (OOOOOOO0O0000OO0O [0 ].contents ,['The title'])#line:1987:self.assertEqual(els[0].contents, ['The title'])
+    def test_one_tag_many (OOO00OO0O000OOOOO ):#line:1989:def test_one_tag_many(self):
+        O0OOO0O0OO0OOOO00 =OOO00OO0O000OOOOO .soup .select ('div')#line:1990:els = self.soup.select('div')
+        OOO00OO0O000OOOOO .assertEqual (len (O0OOO0O0OO0OOOO00 ),4 )#line:1991:self.assertEqual(len(els), 4)
+        for OOO0OO0OO000O00O0 in O0OOO0O0OO0OOOO00 :#line:1992:for div in els:
+            OOO00OO0O000OOOOO .assertEqual (OOO0OO0OO000O00O0 .name ,'div')#line:1993:self.assertEqual(div.name, 'div')
+        OOO000OO0OOOO00OO =OOO00OO0O000OOOOO .soup .select_one ('div')#line:1995:el = self.soup.select_one('div')
+        OOO00OO0O000OOOOO .assertEqual ('main',OOO000OO0OOOO00OO ['id'])#line:1996:self.assertEqual('main', el['id'])
+    def test_select_one_returns_none_if_no_match (OO0OO0OO00OO0OO00 ):#line:1998:def test_select_one_returns_none_if_no_match(self):
+        OO0O0OOOOO0O0O0O0 =OO0OO0OO00OO0OO00 .soup .select_one ('nonexistenttag')#line:1999:match = self.soup.select_one('nonexistenttag')
+        OO0OO0OO00OO0OO00 .assertEqual (None ,OO0O0OOOOO0O0O0O0 )#line:2000:self.assertEqual(None, match)
+    def test_tag_in_tag_one (O000O0000O000OOO0 ):#line:2003:def test_tag_in_tag_one(self):
+        OO0OO00O0OO0O0OO0 =O000O0000O000OOO0 .soup .select ('div div')#line:2004:els = self.soup.select('div div')
+        O000O0000O000OOO0 .assertSelects ('div div',['inner','data1'])#line:2005:self.assertSelects('div div', ['inner', 'data1'])
+    def test_tag_in_tag_many (OO0000OO0000O000O ):#line:2007:def test_tag_in_tag_many(self):
+        for O0000O00O0O0000OO in ('html div','html body div','body div'):#line:2008:for selector in ('html div', 'html body div', 'body div'):
+            OO0000OO0000O000O .assertSelects (O0000O00O0O0000OO ,['data1','main','inner','footer'])#line:2009:self.assertSelects(selector, ['data1', 'main', 'inner', 'footer'])
+    def test_limit (OOO0OOO0000OO0O00 ):#line:2012:def test_limit(self):
+        OOO0OOO0000OO0O00 .assertSelects ('html div',['main'],limit =1 )#line:2013:self.assertSelects('html div', ['main'], limit=1)
+        OOO0OOO0000OO0O00 .assertSelects ('html body div',['inner','main'],limit =2 )#line:2014:self.assertSelects('html body div', ['inner', 'main'], limit=2)
+        OOO0OOO0000OO0O00 .assertSelects ('body div',['data1','main','inner','footer'],limit =10 )#line:2016:limit=10)
+    def test_tag_no_match (O0O000OO00OOOOOOO ):#line:2018:def test_tag_no_match(self):
+        O0O000OO00OOOOOOO .assertEqual (len (O0O000OO00OOOOOOO .soup .select ('del')),0 )#line:2019:self.assertEqual(len(self.soup.select('del')), 0)
+    def test_invalid_tag (OOOO0OO00O0O0OO0O ):#line:2021:def test_invalid_tag(self):
+        OOOO0OO00O0O0OO0O .assertRaises (SelectorSyntaxError ,OOOO0OO00O0O0OO0O .soup .select ,'tag%t')#line:2022:self.assertRaises(SelectorSyntaxError, self.soup.select, 'tag%t')
+    def test_select_dashed_tag_ids (OOOOO0000OO0O0O00 ):#line:2024:def test_select_dashed_tag_ids(self):
+        OOOOO0000OO0O0O00 .assertSelects ('custom-dashed-tag',['dash1','dash2'])#line:2025:self.assertSelects('custom-dashed-tag', ['dash1', 'dash2'])
+    def test_select_dashed_by_id (O0O00OO000O0000OO ):#line:2027:def test_select_dashed_by_id(self):
+        O00OO0OO0O0O0OOOO =O0O00OO000O0000OO .soup .select ('custom-dashed-tag[id=\"dash2\"]')#line:2028:dashed = self.soup.select('custom-dashed-tag[id=\"dash2\"]')
+        O0O00OO000O0000OO .assertEqual (O00OO0OO0O0O0OOOO [0 ].name ,'custom-dashed-tag')#line:2029:self.assertEqual(dashed[0].name, 'custom-dashed-tag')
+        O0O00OO000O0000OO .assertEqual (O00OO0OO0O0O0OOOO [0 ]['id'],'dash2')#line:2030:self.assertEqual(dashed[0]['id'], 'dash2')
+    def test_dashed_tag_text (OO0OO00000OO00000 ):#line:2032:def test_dashed_tag_text(self):
+        OO0OO00000OO00000 .assertEqual (OO0OO00000OO00000 .soup .select ('body > custom-dashed-tag')[0 ].text ,'Hello there.')#line:2033:self.assertEqual(self.soup.select('body > custom-dashed-tag')[0].text, 'Hello there.')
+    def test_select_dashed_matches_find_all (OOOO0O0000O0OO00O ):#line:2035:def test_select_dashed_matches_find_all(self):
+        OOOO0O0000O0OO00O .assertEqual (OOOO0O0000O0OO00O .soup .select ('custom-dashed-tag'),OOOO0O0000O0OO00O .soup .find_all ('custom-dashed-tag'))#line:2036:self.assertEqual(self.soup.select('custom-dashed-tag'), self.soup.find_all('custom-dashed-tag'))
+    def test_header_tags (OO000OO0O0OO0O000 ):#line:2038:def test_header_tags(self):
+        OO000OO0O0OO0O000 .assertSelectMultiple (('h1',['header1']),('h2',['header2','header3']),)#line:2042:)
+    def test_class_one (O0O00000OO00000OO ):#line:2044:def test_class_one(self):
+        for OO000O0O00O00O000 in ('.onep','p.onep','html p.onep'):#line:2045:for selector in ('.onep', 'p.onep', 'html p.onep'):
+            O00O00OOOO00OOOO0 =O0O00000OO00000OO .soup .select (OO000O0O00O00O000 )#line:2046:els = self.soup.select(selector)
+            O0O00000OO00000OO .assertEqual (len (O00O00OOOO00OOOO0 ),1 )#line:2047:self.assertEqual(len(els), 1)
+            O0O00000OO00000OO .assertEqual (O00O00OOOO00OOOO0 [0 ].name ,'p')#line:2048:self.assertEqual(els[0].name, 'p')
+            O0O00000OO00000OO .assertEqual (O00O00OOOO00OOOO0 [0 ]['class'],['onep'])#line:2049:self.assertEqual(els[0]['class'], ['onep'])
+    def test_class_mismatched_tag (O0OO00O0OO0OOOOO0 ):#line:2051:def test_class_mismatched_tag(self):
+        O00OOOOO00OOOOOOO =O0OO00O0OO0OOOOO0 .soup .select ('div.onep')#line:2052:els = self.soup.select('div.onep')
+        O0OO00O0OO0OOOOO0 .assertEqual (len (O00OOOOO00OOOOOOO ),0 )#line:2053:self.assertEqual(len(els), 0)
+    def test_one_id (O000OO0O0O00O00OO ):#line:2055:def test_one_id(self):
+        for O0OOO0OO0000OO0OO in ('div#inner','#inner','div div#inner'):#line:2056:for selector in ('div#inner', '#inner', 'div div#inner'):
+            O000OO0O0O00O00OO .assertSelects (O0OOO0OO0000OO0OO ,['inner'])#line:2057:self.assertSelects(selector, ['inner'])
+    def test_bad_id (OO00O000O000OOO0O ):#line:2059:def test_bad_id(self):
+        OO0OO0OOOO00OOOO0 =OO00O000O000OOO0O .soup .select ('#doesnotexist')#line:2060:els = self.soup.select('#doesnotexist')
+        OO00O000O000OOO0O .assertEqual (len (OO0OO0OOOO00OOOO0 ),0 )#line:2061:self.assertEqual(len(els), 0)
+    def test_items_in_id (O000OOO0OO0O000OO ):#line:2063:def test_items_in_id(self):
+        O000OO0O000OO000O =O000OOO0OO0O000OO .soup .select ('div#inner p')#line:2064:els = self.soup.select('div#inner p')
+        O000OOO0OO0O000OO .assertEqual (len (O000OO0O000OO000O ),3 )#line:2065:self.assertEqual(len(els), 3)
+        for OOOO0OOOO000O00O0 in O000OO0O000OO000O :#line:2066:for el in els:
+            O000OOO0OO0O000OO .assertEqual (OOOO0OOOO000O00O0 .name ,'p')#line:2067:self.assertEqual(el.name, 'p')
+        O000OOO0OO0O000OO .assertEqual (O000OO0O000OO000O [1 ]['class'],['onep'])#line:2068:self.assertEqual(els[1]['class'], ['onep'])
+        O000OOO0OO0O000OO .assertFalse (O000OO0O000OO000O [0 ].has_attr ('class'))#line:2069:self.assertFalse(els[0].has_attr('class'))
+    def test_a_bunch_of_emptys (O00000OOO0OOO000O ):#line:2071:def test_a_bunch_of_emptys(self):
+        for OO0O0O00O0O00OOO0 in ('div#main del','div#main div.oops','div div#main'):#line:2072:for selector in ('div#main del', 'div#main div.oops', 'div div#main'):
+            O00000OOO0OOO000O .assertEqual (len (O00000OOO0OOO000O .soup .select (OO0O0O00O0O00OOO0 )),0 )#line:2073:self.assertEqual(len(self.soup.select(selector)), 0)
+    def test_multi_class_support (OOOO0O000OO0OOO00 ):#line:2075:def test_multi_class_support(self):
+        for O0O0O0000O00O0000 in ('.class1','p.class1','.class2','p.class2','.class3','p.class3','html p.class2','div#inner .class2'):#line:2077:'.class3', 'p.class3', 'html p.class2', 'div#inner .class2'):
+            OOOO0O000OO0OOO00 .assertSelects (O0O0O0000O00O0000 ,['pmulti'])#line:2078:self.assertSelects(selector, ['pmulti'])
+    def test_multi_class_selection (O0O0OOO0000OOOO0O ):#line:2080:def test_multi_class_selection(self):
+        for OO000OOOOOO00O00O in ('.class1.class3','.class3.class2','.class1.class2.class3'):#line:2082:'.class1.class2.class3'):
+            O0O0OOO0000OOOO0O .assertSelects (OO000OOOOOO00O00O ,['pmulti'])#line:2083:self.assertSelects(selector, ['pmulti'])
+    def test_child_selector (O0OO0O00OOOOO0OOO ):#line:2085:def test_child_selector(self):
+        O0OO0O00OOOOO0OOO .assertSelects ('.s1 > a',['s1a1','s1a2'])#line:2086:self.assertSelects('.s1 > a', ['s1a1', 's1a2'])
+        O0OO0O00OOOOO0OOO .assertSelects ('.s1 > a span',['s1a2s1'])#line:2087:self.assertSelects('.s1 > a span', ['s1a2s1'])
+    def test_child_selector_id (OO00O0O0OO0OOOO0O ):#line:2089:def test_child_selector_id(self):
+        OO00O0O0OO0OOOO0O .assertSelects ('.s1 > a#s1a2 span',['s1a2s1'])#line:2090:self.assertSelects('.s1 > a#s1a2 span', ['s1a2s1'])
+    def test_attribute_equals (O0000OO000O0O0O0O ):#line:2092:def test_attribute_equals(self):
+        O0000OO000O0O0O0O .assertSelectMultiple (('p[class="onep"]',['p1']),('p[id="p1"]',['p1']),('[class="onep"]',['p1']),('[id="p1"]',['p1']),('link[rel="stylesheet"]',['l1']),('link[type="text/css"]',['l1']),('link[href="blah.css"]',['l1']),('link[href="no-blah.css"]',[]),('[rel="stylesheet"]',['l1']),('[type="text/css"]',['l1']),('[href="blah.css"]',['l1']),('[href="no-blah.css"]',[]),('p[href="no-blah.css"]',[]),('[href="no-blah.css"]',[]),)#line:2108:)
+    def test_attribute_tilde (OOOO000OO0OOO0OO0 ):#line:2110:def test_attribute_tilde(self):
+        OOOO000OO0OOO0OO0 .assertSelectMultiple (('p[class~="class1"]',['pmulti']),('p[class~="class2"]',['pmulti']),('p[class~="class3"]',['pmulti']),('[class~="class1"]',['pmulti']),('[class~="class2"]',['pmulti']),('[class~="class3"]',['pmulti']),('a[rel~="friend"]',['bob']),('a[rel~="met"]',['bob']),('[rel~="friend"]',['bob']),('[rel~="met"]',['bob']),)#line:2122:)
+    def test_attribute_startswith (OO0O00O00OOOOOOO0 ):#line:2124:def test_attribute_startswith(self):
+        OO0O00O00OOOOOOO0 .assertSelectMultiple (('[rel^="style"]',['l1']),('link[rel^="style"]',['l1']),('notlink[rel^="notstyle"]',[]),('[rel^="notstyle"]',[]),('link[rel^="notstyle"]',[]),('link[href^="bla"]',['l1']),('a[href^="http://"]',['bob','me']),('[href^="http://"]',['bob','me']),('[id^="p"]',['pmulti','p1']),('[id^="m"]',['me','main']),('div[id^="m"]',['main']),('a[id^="m"]',['me']),('div[data-tag^="dashed"]',['data1']))#line:2139:)
+    def test_attribute_endswith (O0O0OOOOOOO0O00OO ):#line:2141:def test_attribute_endswith(self):
+        O0O0OOOOOOO0O00OO .assertSelectMultiple (('[href$=".css"]',['l1']),('link[href$=".css"]',['l1']),('link[id$="1"]',['l1']),('[id$="1"]',['data1','l1','p1','header1','s1a1','s2a1','s1a2s1','dash1']),('div[id$="1"]',['data1']),('[id$="noending"]',[]),)#line:2149:)
+    def test_attribute_contains (O00O00OO000O00O0O ):#line:2151:def test_attribute_contains(self):
+        O00O00OO000O00O0O .assertSelectMultiple (('[rel*="style"]',['l1']),('link[rel*="style"]',['l1']),('notlink[rel*="notstyle"]',[]),('[rel*="notstyle"]',[]),('link[rel*="notstyle"]',[]),('link[href*="bla"]',['l1']),('[href*="http://"]',['bob','me']),('[id*="p"]',['pmulti','p1']),('div[id*="m"]',['main']),('a[id*="m"]',['me']),('[href*=".css"]',['l1']),('link[href*=".css"]',['l1']),('link[id*="1"]',['l1']),('[id*="1"]',['data1','l1','p1','header1','s1a1','s1a2','s2a1','s1a2s1','dash1']),('div[id*="1"]',['data1']),('[id*="noending"]',[]),('[href*="."]',['bob','me','l1']),('a[href*="."]',['bob','me']),('link[href*="."]',['l1']),('div[id*="n"]',['main','inner']),('div[id*="nn"]',['inner']),('div[data-tag*="edval"]',['data1']))#line:2178:)
+    def test_attribute_exact_or_hypen (OOO000OOO0O0000OO ):#line:2180:def test_attribute_exact_or_hypen(self):
+        OOO000OOO0O0000OO .assertSelectMultiple (('p[lang|="en"]',['lang-en','lang-en-gb','lang-en-us']),('[lang|="en"]',['lang-en','lang-en-gb','lang-en-us']),('p[lang|="fr"]',['lang-fr']),('p[lang|="gb"]',[]),)#line:2186:)
+    def test_attribute_exists (O0O0OO00000000000 ):#line:2188:def test_attribute_exists(self):
+        O0O0OO00000000000 .assertSelectMultiple (('[rel]',['l1','bob','me']),('link[rel]',['l1']),('a[rel]',['bob','me']),('[lang]',['lang-en','lang-en-gb','lang-en-us','lang-fr']),('p[class]',['p1','pmulti']),('[blah]',[]),('p[blah]',[]),('div[data-tag]',['data1']))#line:2198:)
+    def test_quoted_space_in_selector_name (OOOO0O00000000000 ):#line:2200:def test_quoted_space_in_selector_name(self):
+        OO000O000O0000000 ="""<div style="display: wrong">nope</div>
+        <div style="display: right">yes</div>
+        """#line:2203:"""
+        O0OOOOOOOOO0000OO =BeautifulSoup (OO000O000O0000000 ,'html.parser')#line:2204:soup = BeautifulSoup(html, 'html.parser')
+        [O0OOO000OOOO0OO00 ]=O0OOOOOOOOO0000OO .select ('div[style="display: right"]')#line:2205:[chosen] = soup.select('div[style="display: right"]')
+        OOOO0O00000000000 .assertEqual ("yes",O0OOO000OOOO0OO00 .string )#line:2206:self.assertEqual("yes", chosen.string)
+    def test_unsupported_pseudoclass (O00OO0O0O0O00O0OO ):#line:2208:def test_unsupported_pseudoclass(self):
+        O00OO0O0O0O00O0OO .assertRaises (NotImplementedError ,O00OO0O0O0O00O0OO .soup .select ,"a:no-such-pseudoclass")#line:2210:NotImplementedError, self.soup.select, "a:no-such-pseudoclass")
+        O00OO0O0O0O00O0OO .assertRaises (SelectorSyntaxError ,O00OO0O0O0O00O0OO .soup .select ,"a:nth-of-type(a)")#line:2213:SelectorSyntaxError, self.soup.select, "a:nth-of-type(a)")
+    def test_nth_of_type (O0O0OO0O000O000OO ):#line:2215:def test_nth_of_type(self):
+        OO0000000O0OOOO00 =O0O0OO0O000O000OO .soup .select ('div#inner p:nth-of-type(1)')#line:2217:els = self.soup.select('div#inner p:nth-of-type(1)')
+        O0O0OO0O000O000OO .assertEqual (len (OO0000000O0OOOO00 ),1 )#line:2218:self.assertEqual(len(els), 1)
+        O0O0OO0O000O000OO .assertEqual (OO0000000O0OOOO00 [0 ].string ,'Some text')#line:2219:self.assertEqual(els[0].string, 'Some text')
+        OO0000000O0OOOO00 =O0O0OO0O000O000OO .soup .select ('div#inner p:nth-of-type(3)')#line:2222:els = self.soup.select('div#inner p:nth-of-type(3)')
+        O0O0OO0O000O000OO .assertEqual (len (OO0000000O0OOOO00 ),1 )#line:2223:self.assertEqual(len(els), 1)
+        O0O0OO0O000O000OO .assertEqual (OO0000000O0OOOO00 [0 ].string ,'Another')#line:2224:self.assertEqual(els[0].string, 'Another')
+        OO0000000O0OOOO00 =O0O0OO0O000O000OO .soup .select ('div#inner p:nth-of-type(4)')#line:2227:els = self.soup.select('div#inner p:nth-of-type(4)')
+        O0O0OO0O000O000OO .assertEqual (len (OO0000000O0OOOO00 ),0 )#line:2228:self.assertEqual(len(els), 0)
+        OO0000000O0OOOO00 =O0O0OO0O000O000OO .soup .select ('div p:nth-of-type(0)')#line:2231:els = self.soup.select('div p:nth-of-type(0)')
+        O0O0OO0O000O000OO .assertEqual (len (OO0000000O0OOOO00 ),0 )#line:2232:self.assertEqual(len(els), 0)
+    def test_nth_of_type_direct_descendant (OOO00OO0OOO0O0OOO ):#line:2234:def test_nth_of_type_direct_descendant(self):
+        O0OO000O0O00000OO =OOO00OO0OOO0O0OOO .soup .select ('div#inner > p:nth-of-type(1)')#line:2235:els = self.soup.select('div#inner > p:nth-of-type(1)')
+        OOO00OO0OOO0O0OOO .assertEqual (len (O0OO000O0O00000OO ),1 )#line:2236:self.assertEqual(len(els), 1)
+        OOO00OO0OOO0O0OOO .assertEqual (O0OO000O0O00000OO [0 ].string ,'Some text')#line:2237:self.assertEqual(els[0].string, 'Some text')
+    def test_id_child_selector_nth_of_type (OOOOOOOOO00O0O00O ):#line:2239:def test_id_child_selector_nth_of_type(self):
+        OOOOOOOOO00O0O00O .assertSelects ('#inner > p:nth-of-type(2)',['p1'])#line:2240:self.assertSelects('#inner > p:nth-of-type(2)', ['p1'])
+    def test_select_on_element (OOOO0OOOO0OO0OO00 ):#line:2242:def test_select_on_element(self):
+        OOOOO0000OO0OO0OO =OOOO0OOOO0OO0OO00 .soup .find ("div",id ="main")#line:2245:inner = self.soup.find("div", id="main")
+        O0O00O0OO00OOO000 =OOOOO0000OO0OO0OO .select ("div")#line:2246:selected = inner.select("div")
+        OOOO0OOOO0OO0OO00 .assertSelectsIDs (O0O00O0OO00OOO000 ,['inner','data1'])#line:2249:self.assertSelectsIDs(selected, ['inner', 'data1'])
+    def test_overspecified_child_id (OOOO000OO0000OOO0 ):#line:2251:def test_overspecified_child_id(self):
+        OOOO000OO0000OOO0 .assertSelects (".fancy #inner",['inner'])#line:2252:self.assertSelects(".fancy #inner", ['inner'])
+        OOOO000OO0000OOO0 .assertSelects (".normal #inner",[])#line:2253:self.assertSelects(".normal #inner", [])
+    def test_adjacent_sibling_selector (OOOOO0O000OOOOO00 ):#line:2255:def test_adjacent_sibling_selector(self):
+        OOOOO0O000OOOOO00 .assertSelects ('#p1 + h2',['header2'])#line:2256:self.assertSelects('#p1 + h2', ['header2'])
+        OOOOO0O000OOOOO00 .assertSelects ('#p1 + h2 + p',['pmulti'])#line:2257:self.assertSelects('#p1 + h2 + p', ['pmulti'])
+        OOOOO0O000OOOOO00 .assertSelects ('#p1 + #header2 + .class1',['pmulti'])#line:2258:self.assertSelects('#p1 + #header2 + .class1', ['pmulti'])
+        OOOOO0O000OOOOO00 .assertEqual ([],OOOOO0O000OOOOO00 .soup .select ('#p1 + p'))#line:2259:self.assertEqual([], self.soup.select('#p1 + p'))
+    def test_general_sibling_selector (OOO00OO0000OO0O0O ):#line:2261:def test_general_sibling_selector(self):
+        OOO00OO0000OO0O0O .assertSelects ('#p1 ~ h2',['header2','header3'])#line:2262:self.assertSelects('#p1 ~ h2', ['header2', 'header3'])
+        OOO00OO0000OO0O0O .assertSelects ('#p1 ~ #header2',['header2'])#line:2263:self.assertSelects('#p1 ~ #header2', ['header2'])
+        OOO00OO0000OO0O0O .assertSelects ('#p1 ~ h2 + a',['me'])#line:2264:self.assertSelects('#p1 ~ h2 + a', ['me'])
+        OOO00OO0000OO0O0O .assertSelects ('#p1 ~ h2 + [rel="me"]',['me'])#line:2265:self.assertSelects('#p1 ~ h2 + [rel="me"]', ['me'])
+        OOO00OO0000OO0O0O .assertEqual ([],OOO00OO0000OO0O0O .soup .select ('#inner ~ h2'))#line:2266:self.assertEqual([], self.soup.select('#inner ~ h2'))
+    def test_dangling_combinator (OOO0000O000OOOO0O ):#line:2268:def test_dangling_combinator(self):
+        OOO0000O000OOOO0O .assertRaises (SelectorSyntaxError ,OOO0000O000OOOO0O .soup .select ,'h1 >')#line:2269:self.assertRaises(SelectorSyntaxError, self.soup.select, 'h1 >')
+    def test_sibling_combinator_wont_select_same_tag_twice (O0O00000O000OOOOO ):#line:2271:def test_sibling_combinator_wont_select_same_tag_twice(self):
+        O0O00000O000OOOOO .assertSelects ('p[lang] ~ p',['lang-en-gb','lang-en-us','lang-fr'])#line:2272:self.assertSelects('p[lang] ~ p', ['lang-en-gb', 'lang-en-us', 'lang-fr'])
+    def test_multiple_select (OOOOOOO0O00O0OOO0 ):#line:2275:def test_multiple_select(self):
+        OOOOOOO0O00O0OOO0 .assertSelects ('x, y',['xid','yid'])#line:2276:self.assertSelects('x, y', ['xid', 'yid'])
+    def test_multiple_select_with_no_space (OOOOOO0OOOOO00000 ):#line:2278:def test_multiple_select_with_no_space(self):
+        OOOOOO0OOOOO00000 .assertSelects ('x,y',['xid','yid'])#line:2279:self.assertSelects('x,y', ['xid', 'yid'])
+    def test_multiple_select_with_more_space (O0000O0O00000O0O0 ):#line:2281:def test_multiple_select_with_more_space(self):
+        O0000O0O00000O0O0 .assertSelects ('x,    y',['xid','yid'])#line:2282:self.assertSelects('x,    y', ['xid', 'yid'])
+    def test_multiple_select_duplicated (O00O0OO0OOO0000O0 ):#line:2284:def test_multiple_select_duplicated(self):
+        O00O0OO0OOO0000O0 .assertSelects ('x, x',['xid'])#line:2285:self.assertSelects('x, x', ['xid'])
+    def test_multiple_select_sibling (OOO00OO000OOOOO00 ):#line:2287:def test_multiple_select_sibling(self):
+        OOO00OO000OOOOO00 .assertSelects ('x, y ~ p[lang=fr]',['xid','lang-fr'])#line:2288:self.assertSelects('x, y ~ p[lang=fr]', ['xid', 'lang-fr'])
+    def test_multiple_select_tag_and_direct_descendant (OO00O0OO0O0O000OO ):#line:2290:def test_multiple_select_tag_and_direct_descendant(self):
+        OO00O0OO0O0O000OO .assertSelects ('x, y > z',['xid','zidb'])#line:2291:self.assertSelects('x, y > z', ['xid', 'zidb'])
+    def test_multiple_select_direct_descendant_and_tags (O00O00O0O0O00O0OO ):#line:2293:def test_multiple_select_direct_descendant_and_tags(self):
+        O00O00O0O0O00O0OO .assertSelects ('div > x, y, z',['xid','yid','zida','zidb','zidab','zidac'])#line:2294:self.assertSelects('div > x, y, z', ['xid', 'yid', 'zida', 'zidb', 'zidab', 'zidac'])
+    def test_multiple_select_indirect_descendant (OO0O00000OO0O0O0O ):#line:2296:def test_multiple_select_indirect_descendant(self):
+        OO0O00000OO0O0O0O .assertSelects ('div x,y,  z',['xid','yid','zida','zidb','zidab','zidac'])#line:2297:self.assertSelects('div x,y,  z', ['xid', 'yid', 'zida', 'zidb', 'zidab', 'zidac'])
+    def test_invalid_multiple_select (O0000000OO0000O0O ):#line:2299:def test_invalid_multiple_select(self):
+        O0000000OO0000O0O .assertRaises (SelectorSyntaxError ,O0000000OO0000O0O .soup .select ,',x, y')#line:2300:self.assertRaises(SelectorSyntaxError, self.soup.select, ',x, y')
+        O0000000OO0000O0O .assertRaises (SelectorSyntaxError ,O0000000OO0000O0O .soup .select ,'x,,y')#line:2301:self.assertRaises(SelectorSyntaxError, self.soup.select, 'x,,y')
+    def test_multiple_select_attrs (OO0O00O0000OO0OO0 ):#line:2303:def test_multiple_select_attrs(self):
+        OO0O00O0000OO0OO0 .assertSelects ('p[lang=en], p[lang=en-gb]',['lang-en','lang-en-gb'])#line:2304:self.assertSelects('p[lang=en], p[lang=en-gb]', ['lang-en', 'lang-en-gb'])
+    def test_multiple_select_ids (OOOOOOO0O0O0O0O0O ):#line:2306:def test_multiple_select_ids(self):
+        OOOOOOO0O0O0O0O0O .assertSelects ('x, y > z[id=zida], z[id=zidab], z[id=zidb]',['xid','zidb','zidab'])#line:2307:self.assertSelects('x, y > z[id=zida], z[id=zidab], z[id=zidb]', ['xid', 'zidb', 'zidab'])
+    def test_multiple_select_nested (OOO0OOOOOOO0OOO0O ):#line:2309:def test_multiple_select_nested(self):
+        OOO0OOOOOOO0OOO0O .assertSelects ('body > div > x, y > z',['xid','zidb'])#line:2310:self.assertSelects('body > div > x, y > z', ['xid', 'zidb'])
+    def test_select_duplicate_elements (O000OO0000000O00O ):#line:2312:def test_select_duplicate_elements(self):
+        OOOO0OO0OOO00O0OO ='<div class="c1"/><div class="c2"/><div class="c1"/>'#line:2315:markup = '<div class="c1"/><div class="c2"/><div class="c1"/>'
+        OOO0O0OOO0OO0O000 =BeautifulSoup (OOOO0OO0OOO00O0OO ,'html.parser')#line:2316:soup = BeautifulSoup(markup, 'html.parser')
+        O0O000OOO0O0O00OO =OOO0O0OOO0OO0O000 .select (".c1, .c2")#line:2317:selected = soup.select(".c1, .c2")
+        O000OO0000000O00O .assertEqual (3 ,len (O0O000OOO0O0O00OO ))#line:2318:self.assertEqual(3, len(selected))
+        for O0O000OO00000O00O in OOO0O0OOO0OO0O000 .find_all (class_ =['c1','c2']):#line:2323:for element in soup.find_all(class_=['c1', 'c2']):
+            assert O0O000OO00000O00O in O0O000OOO0O0O00OO #line:2324:assert element in selected

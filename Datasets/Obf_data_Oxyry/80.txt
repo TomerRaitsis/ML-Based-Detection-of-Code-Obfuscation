@@ -1,0 +1,147 @@
+""#line:1:"""Base Command class, and related routines"""
+from __future__ import absolute_import ,print_function #line:2:from __future__ import absolute_import, print_function
+import logging #line:4:import logging
+import logging .config #line:5:import logging.config
+import optparse #line:6:import optparse
+import os #line:7:import os
+import platform #line:8:import platform
+import sys #line:9:import sys
+import traceback #line:10:import traceback
+from pip ._internal .cli import cmdoptions #line:12:from pip._internal.cli import cmdoptions
+from pip ._internal .cli .parser import (ConfigOptionParser ,UpdatingDefaultsHelpFormatter ,)#line:15:)
+from pip ._internal .cli .status_codes import (ERROR ,PREVIOUS_BUILD_DIR_ERROR ,SUCCESS ,UNKNOWN_ERROR ,VIRTUALENV_NOT_FOUND ,)#line:19:)
+from pip ._internal .download import PipSession #line:20:from pip._internal.download import PipSession
+from pip ._internal .exceptions import (BadCommand ,CommandError ,InstallationError ,PreviousBuildDirError ,UninstallationError ,)#line:24:)
+from pip ._internal .index import PackageFinder #line:25:from pip._internal.index import PackageFinder
+from pip ._internal .locations import running_under_virtualenv #line:26:from pip._internal.locations import running_under_virtualenv
+from pip ._internal .req .constructors import (install_req_from_editable ,install_req_from_line ,)#line:29:)
+from pip ._internal .req .req_file import parse_requirements #line:30:from pip._internal.req.req_file import parse_requirements
+from pip ._internal .utils .deprecation import deprecated #line:31:from pip._internal.utils.deprecation import deprecated
+from pip ._internal .utils .logging import BrokenStdoutLoggingError ,setup_logging #line:32:from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
+from pip ._internal .utils .misc import (get_prog ,normalize_path ,redact_password_from_url ,)#line:35:)
+from pip ._internal .utils .outdated import pip_version_check #line:36:from pip._internal.utils.outdated import pip_version_check
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:37:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+if MYPY_CHECK_RUNNING :#line:39:if MYPY_CHECK_RUNNING:
+    from typing import Optional ,List ,Tuple ,Any #line:40:from typing import Optional, List, Tuple, Any  # noqa: F401
+    from optparse import Values #line:41:from optparse import Values  # noqa: F401
+    from pip ._internal .cache import WheelCache #line:42:from pip._internal.cache import WheelCache  # noqa: F401
+    from pip ._internal .req .req_set import RequirementSet #line:43:from pip._internal.req.req_set import RequirementSet  # noqa: F401
+__all__ =['Command']#line:45:__all__ = ['Command']
+O0OOOOOOO0000OOOO =logging .getLogger (__name__ )#line:47:logger = logging.getLogger(__name__)
+class Command (object ):#line:50:class Command(object):
+    name =None #line:51:name = None  # type: Optional[str]
+    usage =None #line:52:usage = None  # type: Optional[str]
+    hidden =False #line:53:hidden = False  # type: bool
+    ignore_require_venv =False #line:54:ignore_require_venv = False  # type: bool
+    def __init__ (O0O0OO0OO00O000OO ,isolated =False ):#line:56:def __init__(self, isolated=False):
+        O00O00O000O000OO0 ={'usage':O0O0OO0OO00O000OO .usage ,'prog':'%s %s'%(get_prog (),O0O0OO0OO00O000OO .name ),'formatter':UpdatingDefaultsHelpFormatter (),'add_help_option':False ,'name':O0O0OO0OO00O000OO .name ,'description':O0O0OO0OO00O000OO .__doc__ ,'isolated':isolated ,}#line:66:}
+        O0O0OO0OO00O000OO .parser =ConfigOptionParser (**O00O00O000O000OO0 )#line:68:self.parser = ConfigOptionParser(**parser_kw)
+        O000OOO0OOO00O00O ='%s Options'%O0O0OO0OO00O000OO .name .capitalize ()#line:71:optgroup_name = '%s Options' % self.name.capitalize()
+        O0O0OO0OO00O000OO .cmd_opts =optparse .OptionGroup (O0O0OO0OO00O000OO .parser ,O000OOO0OOO00O00O )#line:72:self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
+        O00OO00000O0OOOOO =cmdoptions .make_option_group (cmdoptions .general_group ,O0O0OO0OO00O000OO .parser ,)#line:78:)
+        O0O0OO0OO00O000OO .parser .add_option_group (O00OO00000O0OOOOO )#line:79:self.parser.add_option_group(gen_opts)
+    def run (O0OOO00O00OO000OO ,O00OO0000000O0000 ,O0000O0OOOO0OOO00 ):#line:81:def run(self, options, args):
+        raise NotImplementedError #line:83:raise NotImplementedError
+    def _build_session (OOO0OOOO00OO0O000 ,OOO0O000OOO0OOO0O ,retries =None ,timeout =None ):#line:85:def _build_session(self, options, retries=None, timeout=None):
+        O0O0OOOO0OOOO00OO =PipSession (cache =(normalize_path (os .path .join (OOO0O000OOO0OOO0O .cache_dir ,"http"))if OOO0O000OOO0OOO0O .cache_dir else None ),retries =retries if retries is not None else OOO0O000OOO0OOO0O .retries ,insecure_hosts =OOO0O000OOO0OOO0O .trusted_hosts ,)#line:94:)
+        if OOO0O000OOO0OOO0O .cert :#line:97:if options.cert:
+            O0O0OOOO0OOOO00OO .verify =OOO0O000OOO0OOO0O .cert #line:98:session.verify = options.cert
+        if OOO0O000OOO0OOO0O .client_cert :#line:101:if options.client_cert:
+            O0O0OOOO0OOOO00OO .cert =OOO0O000OOO0OOO0O .client_cert #line:102:session.cert = options.client_cert
+        if OOO0O000OOO0OOO0O .timeout or timeout :#line:105:if options.timeout or timeout:
+            O0O0OOOO0OOOO00OO .timeout =(timeout if timeout is not None else OOO0O000OOO0OOO0O .timeout )#line:108:)
+        if OOO0O000OOO0OOO0O .proxy :#line:111:if options.proxy:
+            O0O0OOOO0OOOO00OO .proxies ={"http":OOO0O000OOO0OOO0O .proxy ,"https":OOO0O000OOO0OOO0O .proxy ,}#line:115:}
+        O0O0OOOO0OOOO00OO .auth .prompting =not OOO0O000OOO0OOO0O .no_input #line:118:session.auth.prompting = not options.no_input
+        return O0O0OOOO0OOOO00OO #line:120:return session
+    def parse_args (O0OO0OO00O0O0O000 ,OOOO000OOO0O000OO ):#line:122:def parse_args(self, args):
+        return O0OO0OO00O0O0O000 .parser .parse_args (OOOO000OOO0O000OO )#line:125:return self.parser.parse_args(args)
+    def main (OO000OO000O0OO00O ,OO0OO0O0000000O00 ):#line:127:def main(self, args):
+        O00OOO0O00000O0O0 ,OO0OO0O0000000O00 =OO000OO000O0OO00O .parse_args (OO0OO0O0000000O00 )#line:129:options, args = self.parse_args(args)
+        OO000OO000O0OO00O .verbosity =O00OOO0O00000O0O0 .verbose -O00OOO0O00000O0O0 .quiet #line:132:self.verbosity = options.verbose - options.quiet
+        OOOO000OO00000O0O =setup_logging (verbosity =OO000OO000O0OO00O .verbosity ,no_color =O00OOO0O00000O0O0 .no_color ,user_log_file =O00OOO0O00000O0O0 .log ,)#line:138:)
+        if sys .version_info [:2 ]==(3 ,4 ):#line:140:if sys.version_info[:2] == (3, 4):
+            deprecated ("Python 3.4 support has been deprecated. pip 19.1 will be the " "last one supporting it. Please upgrade your Python as Python " "3.4 won't be maintained after March 2019 (cf PEP 429).",replacement =None ,gone_in ='19.2',)#line:147:)
+        elif sys .version_info [:2 ]==(2 ,7 ):#line:148:elif sys.version_info[:2] == (2, 7):
+            O0O0OO0OO00O000O0 =("A future version of pip will drop support for Python 2.7.")#line:151:)
+            if platform .python_implementation ()=="CPython":#line:152:if platform.python_implementation() == "CPython":
+                O0O0OO0OO00O000O0 =("Python 2.7 will reach the end of its life on January " "1st, 2020. Please upgrade your Python as Python 2.7 " "won't be maintained after that date. ")+O0O0OO0OO00O000O0 #line:157:) + message
+            deprecated (O0O0OO0OO00O000O0 ,replacement =None ,gone_in =None )#line:158:deprecated(message, replacement=None, gone_in=None)
+        if O00OOO0O00000O0O0 .no_input :#line:164:if options.no_input:
+            os .environ ['PIP_NO_INPUT']='1'#line:165:os.environ['PIP_NO_INPUT'] = '1'
+        if O00OOO0O00000O0O0 .exists_action :#line:167:if options.exists_action:
+            os .environ ['PIP_EXISTS_ACTION']=' '.join (O00OOO0O00000O0O0 .exists_action )#line:168:os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
+        if O00OOO0O00000O0O0 .require_venv and not OO000OO000O0OO00O .ignore_require_venv :#line:170:if options.require_venv and not self.ignore_require_venv:
+            if not running_under_virtualenv ():#line:172:if not running_under_virtualenv():
+                O0OOOOOOO0000OOOO .critical ('Could not find an activated virtualenv (required).')#line:175:)
+                sys .exit (VIRTUALENV_NOT_FOUND )#line:176:sys.exit(VIRTUALENV_NOT_FOUND)
+        try :#line:178:try:
+            OO00O00000O000000 =OO000OO000O0OO00O .run (O00OOO0O00000O0O0 ,OO0OO0O0000000O00 )#line:179:status = self.run(options, args)
+            if isinstance (OO00O00000O000000 ,int ):#line:182:if isinstance(status, int):
+                return OO00O00000O000000 #line:183:return status
+        except PreviousBuildDirError as O00O00OOO0O000O0O :#line:184:except PreviousBuildDirError as exc:
+            O0OOOOOOO0000OOOO .critical (str (O00O00OOO0O000O0O ))#line:185:logger.critical(str(exc))
+            O0OOOOOOO0000OOOO .debug ('Exception information:',exc_info =True )#line:186:logger.debug('Exception information:', exc_info=True)
+            return PREVIOUS_BUILD_DIR_ERROR #line:188:return PREVIOUS_BUILD_DIR_ERROR
+        except (InstallationError ,UninstallationError ,BadCommand )as O00O00OOO0O000O0O :#line:189:except (InstallationError, UninstallationError, BadCommand) as exc:
+            O0OOOOOOO0000OOOO .critical (str (O00O00OOO0O000O0O ))#line:190:logger.critical(str(exc))
+            O0OOOOOOO0000OOOO .debug ('Exception information:',exc_info =True )#line:191:logger.debug('Exception information:', exc_info=True)
+            return ERROR #line:193:return ERROR
+        except CommandError as O00O00OOO0O000O0O :#line:194:except CommandError as exc:
+            O0OOOOOOO0000OOOO .critical ('ERROR: %s',O00O00OOO0O000O0O )#line:195:logger.critical('ERROR: %s', exc)
+            O0OOOOOOO0000OOOO .debug ('Exception information:',exc_info =True )#line:196:logger.debug('Exception information:', exc_info=True)
+            return ERROR #line:198:return ERROR
+        except BrokenStdoutLoggingError :#line:199:except BrokenStdoutLoggingError:
+            print ('ERROR: Pipe to stdout was broken',file =sys .stderr )#line:202:print('ERROR: Pipe to stdout was broken', file=sys.stderr)
+            if OOOO000OO00000O0O <=logging .DEBUG :#line:203:if level_number <= logging.DEBUG:
+                traceback .print_exc (file =sys .stderr )#line:204:traceback.print_exc(file=sys.stderr)
+            return ERROR #line:206:return ERROR
+        except KeyboardInterrupt :#line:207:except KeyboardInterrupt:
+            O0OOOOOOO0000OOOO .critical ('Operation cancelled by user')#line:208:logger.critical('Operation cancelled by user')
+            O0OOOOOOO0000OOOO .debug ('Exception information:',exc_info =True )#line:209:logger.debug('Exception information:', exc_info=True)
+            return ERROR #line:211:return ERROR
+        except BaseException :#line:212:except BaseException:
+            O0OOOOOOO0000OOOO .critical ('Exception:',exc_info =True )#line:213:logger.critical('Exception:', exc_info=True)
+            return UNKNOWN_ERROR #line:215:return UNKNOWN_ERROR
+        finally :#line:216:finally:
+            O00000OOOOO0O0OOO =(hasattr (O00OOO0O00000O0O0 ,"no_index")and not (O00OOO0O00000O0O0 .disable_pip_version_check or O00OOO0O00000O0O0 .no_index ))#line:222:)
+            if O00000OOOOO0O0OOO :#line:224:if allow_version_check:
+                O000000OOOO00OOOO =OO000OO000O0OO00O ._build_session (O00OOO0O00000O0O0 ,retries =0 ,timeout =min (5 ,O00OOO0O00000O0O0 .timeout ))#line:229:)
+                with O000000OOOO00OOOO :#line:230:with session:
+                    pip_version_check (O000000OOOO00OOOO ,O00OOO0O00000O0O0 )#line:231:pip_version_check(session, options)
+            logging .shutdown ()#line:234:logging.shutdown()
+        return SUCCESS #line:236:return SUCCESS
+class OO0OOO000OO0000OO (Command ):#line:239:class RequirementCommand(Command):
+    @staticmethod #line:241:@staticmethod
+    def populate_requirement_set (O00OOOOO0OOO0OO0O ,OO00O0O0O00O000OO ,OOOOOO0000000O00O ,O000OOOO0OOOOO0O0 ,O000O000OO000O00O ,OOOOO0OO00OO00OOO ,OOO00O0000000000O ):#line:249:):
+        ""#line:253:"""
+        for O0OOOOOOOO0OO0OOO in OOOOOO0000000O00O .constraints :#line:257:for filename in options.constraints:
+            for OO000O000000OO0O0 in parse_requirements (O0OOOOOOOO0OO0OOO ,constraint =True ,finder =O000OOOO0OOOOO0O0 ,options =OOOOOO0000000O00O ,session =O000O000OO000O00O ,wheel_cache =OOO00O0000000000O ):#line:261:session=session, wheel_cache=wheel_cache):
+                OO000O000000OO0O0 .is_direct =True #line:262:req_to_add.is_direct = True
+                O00OOOOO0OOO0OO0O .add_requirement (OO000O000000OO0O0 )#line:263:requirement_set.add_requirement(req_to_add)
+        for OOO0O00O00O000000 in OO00O0O0O00O000OO :#line:265:for req in args:
+            OO000O000000OO0O0 =install_req_from_line (OOO0O00O00O000000 ,None ,isolated =OOOOOO0000000O00O .isolated_mode ,use_pep517 =OOOOOO0000000O00O .use_pep517 ,wheel_cache =OOO00O0000000000O )#line:270:)
+            OO000O000000OO0O0 .is_direct =True #line:271:req_to_add.is_direct = True
+            O00OOOOO0OOO0OO0O .add_requirement (OO000O000000OO0O0 )#line:272:requirement_set.add_requirement(req_to_add)
+        for OOO0O00O00O000000 in OOOOOO0000000O00O .editables :#line:274:for req in options.editables:
+            OO000O000000OO0O0 =install_req_from_editable (OOO0O00O00O000000 ,isolated =OOOOOO0000000O00O .isolated_mode ,use_pep517 =OOOOOO0000000O00O .use_pep517 ,wheel_cache =OOO00O0000000000O )#line:280:)
+            OO000O000000OO0O0 .is_direct =True #line:281:req_to_add.is_direct = True
+            O00OOOOO0OOO0OO0O .add_requirement (OO000O000000OO0O0 )#line:282:requirement_set.add_requirement(req_to_add)
+        for O0OOOOOOOO0OO0OOO in OOOOOO0000000O00O .requirements :#line:284:for filename in options.requirements:
+            for OO000O000000OO0O0 in parse_requirements (O0OOOOOOOO0OO0OOO ,finder =O000OOOO0OOOOO0O0 ,options =OOOOOO0000000O00O ,session =O000O000OO000O00O ,wheel_cache =OOO00O0000000000O ,use_pep517 =OOOOOO0000000O00O .use_pep517 ):#line:289:use_pep517=options.use_pep517):
+                OO000O000000OO0O0 .is_direct =True #line:290:req_to_add.is_direct = True
+                O00OOOOO0OOO0OO0O .add_requirement (OO000O000000OO0O0 )#line:291:requirement_set.add_requirement(req_to_add)
+        O00OOOOO0OOO0OO0O .require_hashes =OOOOOO0000000O00O .require_hashes #line:294:requirement_set.require_hashes = options.require_hashes
+        if not (OO00O0O0O00O000OO or OOOOOO0000000O00O .editables or OOOOOO0000000O00O .requirements ):#line:296:if not (args or options.editables or options.requirements):
+            O00O0OOO000OO0OO0 ={'name':OOOOO0OO00OO00OOO }#line:297:opts = {'name': name}
+            if OOOOOO0000000O00O .find_links :#line:298:if options.find_links:
+                raise CommandError ('You must give at least one requirement to %(name)s ' '(maybe you meant "pip %(name)s %(links)s"?)'%dict (O00O0OOO000OO0OO0 ,links =' '.join (OOOOOO0000000O00O .find_links )))#line:302:dict(opts, links=' '.join(options.find_links)))
+            else :#line:303:else:
+                raise CommandError ('You must give at least one requirement to %(name)s ' '(see "pip help %(name)s")'%O00O0OOO000OO0OO0 )#line:306:'(see "pip help %(name)s")' % opts)
+    def _build_package_finder (OO0OOO0O0OOO00O0O ,OO00O000OO0OO0OOO ,O0O0O0OO00000OOO0 ,platform =None ,python_versions =None ,abi =None ,implementation =None ):#line:316:):
+        ""#line:320:"""
+        OOOOO0OO00OO0OOO0 =[OO00O000OO0OO0OOO .index_url ]+OO00O000OO0OO0OOO .extra_index_urls #line:321:index_urls = [options.index_url] + options.extra_index_urls
+        if OO00O000OO0OO0OOO .no_index :#line:322:if options.no_index:
+            O0OOOOOOO0000OOOO .debug ('Ignoring indexes: %s',','.join (redact_password_from_url (OOO0OO0000OO000O0 )for OOO0OO0000OO000O0 in OOOOO0OO00OO0OOO0 ),)#line:326:)
+            OOOOO0OO00OO0OOO0 =[]#line:327:index_urls = []
+        return PackageFinder (find_links =OO00O000OO0OO0OOO .find_links ,format_control =OO00O000OO0OO0OOO .format_control ,index_urls =OOOOO0OO00OO0OOO0 ,trusted_hosts =OO00O000OO0OO0OOO .trusted_hosts ,allow_all_prereleases =OO00O000OO0OO0OOO .pre ,session =O0O0O0OO00000OOO0 ,platform =platform ,versions =python_versions ,abi =abi ,implementation =implementation ,prefer_binary =OO00O000OO0OO0OOO .prefer_binary ,)#line:341:)

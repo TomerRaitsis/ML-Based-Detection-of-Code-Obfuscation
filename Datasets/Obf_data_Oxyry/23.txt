@@ -1,0 +1,278 @@
+#!/usr/bin/env python
+""#line:9:"""
+__version_info__ =(1 ,4 ,3 )#line:16:__version_info__ = (1, 4, 3)
+__version__ ='.'.join (map (str ,__version_info__ ))#line:17:__version__ = '.'.join(map(str, __version_info__))
+import sys #line:20:import sys
+import os #line:21:import os
+PY3 =sys .version_info [0 ]==3 #line:23:PY3 = sys.version_info[0] == 3
+if PY3 :#line:25:if PY3:
+    unicode =str #line:26:unicode = str
+if sys .platform .startswith ('java'):#line:28:if sys.platform.startswith('java'):
+    import platform #line:29:import platform
+    os_name =platform .java_ver ()[3 ][0 ]#line:30:os_name = platform.java_ver()[3][0]
+    if os_name .startswith ('Windows'):#line:31:if os_name.startswith('Windows'): # "Windows XP", "Windows 7", etc.
+        system ='win32'#line:32:system = 'win32'
+    elif os_name .startswith ('Mac'):#line:33:elif os_name.startswith('Mac'): # "Mac OS X", etc.
+        system ='darwin'#line:34:system = 'darwin'
+    else :#line:35:else: # "Linux", "SunOS", "FreeBSD", etc.
+        system ='linux2'#line:39:system = 'linux2'
+else :#line:40:else:
+    system =sys .platform #line:41:system = sys.platform
+def user_data_dir (appname =None ,appauthor =None ,version =None ,roaming =False ):#line:45:def user_data_dir(appname=None, appauthor=None, version=None, roaming=False):
+    ""#line:76:"""
+    if system =="win32":#line:77:if system == "win32":
+        if appauthor is None :#line:78:if appauthor is None:
+            appauthor =appname #line:79:appauthor = appname
+        O0OO0O0O0O0O00000 =roaming and "CSIDL_APPDATA"or "CSIDL_LOCAL_APPDATA"#line:80:const = roaming and "CSIDL_APPDATA" or "CSIDL_LOCAL_APPDATA"
+        OO00O00O0OO0OO000 =os .path .normpath (_OOO000O0O00OOOO0O (O0OO0O0O0O0O00000 ))#line:81:path = os.path.normpath(_get_win_folder(const))
+        if appname :#line:82:if appname:
+            if appauthor is not False :#line:83:if appauthor is not False:
+                OO00O00O0OO0OO000 =os .path .join (OO00O00O0OO0OO000 ,appauthor ,appname )#line:84:path = os.path.join(path, appauthor, appname)
+            else :#line:85:else:
+                OO00O00O0OO0OO000 =os .path .join (OO00O00O0OO0OO000 ,appname )#line:86:path = os.path.join(path, appname)
+    elif system =='darwin':#line:87:elif system == 'darwin':
+        OO00O00O0OO0OO000 =os .path .expanduser ('~/Library/Application Support/')#line:88:path = os.path.expanduser('~/Library/Application Support/')
+        if appname :#line:89:if appname:
+            OO00O00O0OO0OO000 =os .path .join (OO00O00O0OO0OO000 ,appname )#line:90:path = os.path.join(path, appname)
+    else :#line:91:else:
+        OO00O00O0OO0OO000 =os .getenv ('XDG_DATA_HOME',os .path .expanduser ("~/.local/share"))#line:92:path = os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
+        if appname :#line:93:if appname:
+            OO00O00O0OO0OO000 =os .path .join (OO00O00O0OO0OO000 ,appname )#line:94:path = os.path.join(path, appname)
+    if appname and version :#line:95:if appname and version:
+        OO00O00O0OO0OO000 =os .path .join (OO00O00O0OO0OO000 ,version )#line:96:path = os.path.join(path, version)
+    return OO00O00O0OO0OO000 #line:97:return path
+def site_data_dir (appname =None ,appauthor =None ,version =None ,multipath =False ):#line:100:def site_data_dir(appname=None, appauthor=None, version=None, multipath=False):
+    ""#line:130:"""
+    if system =="win32":#line:131:if system == "win32":
+        if appauthor is None :#line:132:if appauthor is None:
+            appauthor =appname #line:133:appauthor = appname
+        O00000OO000O0OO0O =os .path .normpath (_OOO000O0O00OOOO0O ("CSIDL_COMMON_APPDATA"))#line:134:path = os.path.normpath(_get_win_folder("CSIDL_COMMON_APPDATA"))
+        if appname :#line:135:if appname:
+            if appauthor is not False :#line:136:if appauthor is not False:
+                O00000OO000O0OO0O =os .path .join (O00000OO000O0OO0O ,appauthor ,appname )#line:137:path = os.path.join(path, appauthor, appname)
+            else :#line:138:else:
+                O00000OO000O0OO0O =os .path .join (O00000OO000O0OO0O ,appname )#line:139:path = os.path.join(path, appname)
+    elif system =='darwin':#line:140:elif system == 'darwin':
+        O00000OO000O0OO0O =os .path .expanduser ('/Library/Application Support')#line:141:path = os.path.expanduser('/Library/Application Support')
+        if appname :#line:142:if appname:
+            O00000OO000O0OO0O =os .path .join (O00000OO000O0OO0O ,appname )#line:143:path = os.path.join(path, appname)
+    else :#line:144:else:
+        O00000OO000O0OO0O =os .getenv ('XDG_DATA_DIRS',os .pathsep .join (['/usr/local/share','/usr/share']))#line:148:os.pathsep.join(['/usr/local/share', '/usr/share']))
+        O00O00000000O0O00 =[os .path .expanduser (O0OOOOO00OOOO000O .rstrip (os .sep ))for O0OOOOO00OOOO000O in O00000OO000O0OO0O .split (os .pathsep )]#line:149:pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep)]
+        if appname :#line:150:if appname:
+            if version :#line:151:if version:
+                appname =os .path .join (appname ,version )#line:152:appname = os.path.join(appname, version)
+            O00O00000000O0O00 =[os .sep .join ([OOO000OO0O0O0OOOO ,appname ])for OOO000OO0O0O0OOOO in O00O00000000O0O00 ]#line:153:pathlist = [os.sep.join([x, appname]) for x in pathlist]
+        if multipath :#line:155:if multipath:
+            O00000OO000O0OO0O =os .pathsep .join (O00O00000000O0O00 )#line:156:path = os.pathsep.join(pathlist)
+        else :#line:157:else:
+            O00000OO000O0OO0O =O00O00000000O0O00 [0 ]#line:158:path = pathlist[0]
+        return O00000OO000O0OO0O #line:159:return path
+    if appname and version :#line:161:if appname and version:
+        O00000OO000O0OO0O =os .path .join (O00000OO000O0OO0O ,version )#line:162:path = os.path.join(path, version)
+    return O00000OO000O0OO0O #line:163:return path
+def user_config_dir (appname =None ,appauthor =None ,version =None ,roaming =False ):#line:166:def user_config_dir(appname=None, appauthor=None, version=None, roaming=False):
+    ""#line:194:"""
+    if system in ["win32","darwin"]:#line:195:if system in ["win32", "darwin"]:
+        O0O0O0O0OOO0O0OO0 =user_data_dir (appname ,appauthor ,None ,roaming )#line:196:path = user_data_dir(appname, appauthor, None, roaming)
+    else :#line:197:else:
+        O0O0O0O0OOO0O0OO0 =os .getenv ('XDG_CONFIG_HOME',os .path .expanduser ("~/.config"))#line:198:path = os.getenv('XDG_CONFIG_HOME', os.path.expanduser("~/.config"))
+        if appname :#line:199:if appname:
+            O0O0O0O0OOO0O0OO0 =os .path .join (O0O0O0O0OOO0O0OO0 ,appname )#line:200:path = os.path.join(path, appname)
+    if appname and version :#line:201:if appname and version:
+        O0O0O0O0OOO0O0OO0 =os .path .join (O0O0O0O0OOO0O0OO0 ,version )#line:202:path = os.path.join(path, version)
+    return O0O0O0O0OOO0O0OO0 #line:203:return path
+def site_config_dir (appname =None ,appauthor =None ,version =None ,multipath =False ):#line:206:def site_config_dir(appname=None, appauthor=None, version=None, multipath=False):
+    ""#line:235:"""
+    if system in ["win32","darwin"]:#line:236:if system in ["win32", "darwin"]:
+        OO00OO00O00000O0O =site_data_dir (appname ,appauthor )#line:237:path = site_data_dir(appname, appauthor)
+        if appname and version :#line:238:if appname and version:
+            OO00OO00O00000O0O =os .path .join (OO00OO00O00000O0O ,version )#line:239:path = os.path.join(path, version)
+    else :#line:240:else:
+        OO00OO00O00000O0O =os .getenv ('XDG_CONFIG_DIRS','/etc/xdg')#line:243:path = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
+        O00O0000O0OO0OOO0 =[os .path .expanduser (O0OOOO0O0000O0OO0 .rstrip (os .sep ))for O0OOOO0O0000O0OO0 in OO00OO00O00000O0O .split (os .pathsep )]#line:244:pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep)]
+        if appname :#line:245:if appname:
+            if version :#line:246:if version:
+                appname =os .path .join (appname ,version )#line:247:appname = os.path.join(appname, version)
+            O00O0000O0OO0OOO0 =[os .sep .join ([O0O0OO0O00O00000O ,appname ])for O0O0OO0O00O00000O in O00O0000O0OO0OOO0 ]#line:248:pathlist = [os.sep.join([x, appname]) for x in pathlist]
+        if multipath :#line:250:if multipath:
+            OO00OO00O00000O0O =os .pathsep .join (O00O0000O0OO0OOO0 )#line:251:path = os.pathsep.join(pathlist)
+        else :#line:252:else:
+            OO00OO00O00000O0O =O00O0000O0OO0OOO0 [0 ]#line:253:path = pathlist[0]
+    return OO00OO00O00000O0O #line:254:return path
+def user_cache_dir (appname =None ,appauthor =None ,version =None ,opinion =True ):#line:257:def user_cache_dir(appname=None, appauthor=None, version=None, opinion=True):
+    ""#line:289:"""
+    if system =="win32":#line:290:if system == "win32":
+        if appauthor is None :#line:291:if appauthor is None:
+            appauthor =appname #line:292:appauthor = appname
+        OO0000000OOO00OO0 =os .path .normpath (_OOO000O0O00OOOO0O ("CSIDL_LOCAL_APPDATA"))#line:293:path = os.path.normpath(_get_win_folder("CSIDL_LOCAL_APPDATA"))
+        if appname :#line:294:if appname:
+            if appauthor is not False :#line:295:if appauthor is not False:
+                OO0000000OOO00OO0 =os .path .join (OO0000000OOO00OO0 ,appauthor ,appname )#line:296:path = os.path.join(path, appauthor, appname)
+            else :#line:297:else:
+                OO0000000OOO00OO0 =os .path .join (OO0000000OOO00OO0 ,appname )#line:298:path = os.path.join(path, appname)
+            if opinion :#line:299:if opinion:
+                OO0000000OOO00OO0 =os .path .join (OO0000000OOO00OO0 ,"Cache")#line:300:path = os.path.join(path, "Cache")
+    elif system =='darwin':#line:301:elif system == 'darwin':
+        OO0000000OOO00OO0 =os .path .expanduser ('~/Library/Caches')#line:302:path = os.path.expanduser('~/Library/Caches')
+        if appname :#line:303:if appname:
+            OO0000000OOO00OO0 =os .path .join (OO0000000OOO00OO0 ,appname )#line:304:path = os.path.join(path, appname)
+    else :#line:305:else:
+        OO0000000OOO00OO0 =os .getenv ('XDG_CACHE_HOME',os .path .expanduser ('~/.cache'))#line:306:path = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
+        if appname :#line:307:if appname:
+            OO0000000OOO00OO0 =os .path .join (OO0000000OOO00OO0 ,appname )#line:308:path = os.path.join(path, appname)
+    if appname and version :#line:309:if appname and version:
+        OO0000000OOO00OO0 =os .path .join (OO0000000OOO00OO0 ,version )#line:310:path = os.path.join(path, version)
+    return OO0000000OOO00OO0 #line:311:return path
+def user_state_dir (appname =None ,appauthor =None ,version =None ,roaming =False ):#line:314:def user_state_dir(appname=None, appauthor=None, version=None, roaming=False):
+    ""#line:344:"""
+    if system in ["win32","darwin"]:#line:345:if system in ["win32", "darwin"]:
+        O00OOO00OO0O0OOOO =user_data_dir (appname ,appauthor ,None ,roaming )#line:346:path = user_data_dir(appname, appauthor, None, roaming)
+    else :#line:347:else:
+        O00OOO00OO0O0OOOO =os .getenv ('XDG_STATE_HOME',os .path .expanduser ("~/.local/state"))#line:348:path = os.getenv('XDG_STATE_HOME', os.path.expanduser("~/.local/state"))
+        if appname :#line:349:if appname:
+            O00OOO00OO0O0OOOO =os .path .join (O00OOO00OO0O0OOOO ,appname )#line:350:path = os.path.join(path, appname)
+    if appname and version :#line:351:if appname and version:
+        O00OOO00OO0O0OOOO =os .path .join (O00OOO00OO0O0OOOO ,version )#line:352:path = os.path.join(path, version)
+    return O00OOO00OO0O0OOOO #line:353:return path
+def user_log_dir (appname =None ,appauthor =None ,version =None ,opinion =True ):#line:356:def user_log_dir(appname=None, appauthor=None, version=None, opinion=True):
+    ""#line:387:"""
+    if system =="darwin":#line:388:if system == "darwin":
+        OO0O00OO00O0O000O =os .path .join (os .path .expanduser ('~/Library/Logs'),appname )#line:391:appname)
+    elif system =="win32":#line:392:elif system == "win32":
+        OO0O00OO00O0O000O =user_data_dir (appname ,appauthor ,version )#line:393:path = user_data_dir(appname, appauthor, version)
+        version =False #line:394:version = False
+        if opinion :#line:395:if opinion:
+            OO0O00OO00O0O000O =os .path .join (OO0O00OO00O0O000O ,"Logs")#line:396:path = os.path.join(path, "Logs")
+    else :#line:397:else:
+        OO0O00OO00O0O000O =user_cache_dir (appname ,appauthor ,version )#line:398:path = user_cache_dir(appname, appauthor, version)
+        version =False #line:399:version = False
+        if opinion :#line:400:if opinion:
+            OO0O00OO00O0O000O =os .path .join (OO0O00OO00O0O000O ,"log")#line:401:path = os.path.join(path, "log")
+    if appname and version :#line:402:if appname and version:
+        OO0O00OO00O0O000O =os .path .join (OO0O00OO00O0O000O ,version )#line:403:path = os.path.join(path, version)
+    return OO0O00OO00O0O000O #line:404:return path
+class AppDirs (object ):#line:407:class AppDirs(object):
+    ""#line:408:"""Convenience wrapper for getting application dirs."""
+    def __init__ (OO0OO00OO0OOO00O0 ,appname =None ,appauthor =None ,version =None ,roaming =False ,multipath =False ):#line:410:roaming=False, multipath=False):
+        OO0OO00OO0OOO00O0 .appname =appname #line:411:self.appname = appname
+        OO0OO00OO0OOO00O0 .appauthor =appauthor #line:412:self.appauthor = appauthor
+        OO0OO00OO0OOO00O0 .version =version #line:413:self.version = version
+        OO0OO00OO0OOO00O0 .roaming =roaming #line:414:self.roaming = roaming
+        OO0OO00OO0OOO00O0 .multipath =multipath #line:415:self.multipath = multipath
+    @property #line:417:@property
+    def user_data_dir (OOO00O00OOOO00OO0 ):#line:418:def user_data_dir(self):
+        return user_data_dir (OOO00O00OOOO00OO0 .appname ,OOO00O00OOOO00OO0 .appauthor ,version =OOO00O00OOOO00OO0 .version ,roaming =OOO00O00OOOO00OO0 .roaming )#line:420:version=self.version, roaming=self.roaming)
+    @property #line:422:@property
+    def site_data_dir (O0O0OO0O0O0OO00OO ):#line:423:def site_data_dir(self):
+        return site_data_dir (O0O0OO0O0O0OO00OO .appname ,O0O0OO0O0O0OO00OO .appauthor ,version =O0O0OO0O0O0OO00OO .version ,multipath =O0O0OO0O0O0OO00OO .multipath )#line:425:version=self.version, multipath=self.multipath)
+    @property #line:427:@property
+    def user_config_dir (OO0000OOO00O000OO ):#line:428:def user_config_dir(self):
+        return user_config_dir (OO0000OOO00O000OO .appname ,OO0000OOO00O000OO .appauthor ,version =OO0000OOO00O000OO .version ,roaming =OO0000OOO00O000OO .roaming )#line:430:version=self.version, roaming=self.roaming)
+    @property #line:432:@property
+    def site_config_dir (O000OO000000O000O ):#line:433:def site_config_dir(self):
+        return site_config_dir (O000OO000000O000O .appname ,O000OO000000O000O .appauthor ,version =O000OO000000O000O .version ,multipath =O000OO000000O000O .multipath )#line:435:version=self.version, multipath=self.multipath)
+    @property #line:437:@property
+    def user_cache_dir (OOO0O0000O00O00OO ):#line:438:def user_cache_dir(self):
+        return user_cache_dir (OOO0O0000O00O00OO .appname ,OOO0O0000O00O00OO .appauthor ,version =OOO0O0000O00O00OO .version )#line:440:version=self.version)
+    @property #line:442:@property
+    def user_state_dir (O0000OOOO000OOO00 ):#line:443:def user_state_dir(self):
+        return user_state_dir (O0000OOOO000OOO00 .appname ,O0000OOOO000OOO00 .appauthor ,version =O0000OOOO000OOO00 .version )#line:445:version=self.version)
+    @property #line:447:@property
+    def user_log_dir (OOO00OOOOO00OO000 ):#line:448:def user_log_dir(self):
+        return user_log_dir (OOO00OOOOO00OO000 .appname ,OOO00OOOOO00OO000 .appauthor ,version =OOO00OOOOO00OO000 .version )#line:450:version=self.version)
+def _OOO00000OOO000O0O (O00OOOOOOO0OOOO00 ):#line:455:def _get_win_folder_from_registry(csidl_name):
+    ""#line:459:"""
+    if PY3 :#line:460:if PY3:
+      import winreg as _winreg #line:461:import winreg as _winreg
+    else :#line:462:else:
+      import _winreg #line:463:import _winreg
+    OO0OOOOO000O00O0O ={"CSIDL_APPDATA":"AppData","CSIDL_COMMON_APPDATA":"Common AppData","CSIDL_LOCAL_APPDATA":"Local AppData",}[O00OOOOOOO0OOOO00 ]#line:469:}[csidl_name]
+    OOOOOOO0OOO00O00O =_winreg .OpenKey (_winreg .HKEY_CURRENT_USER ,r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")#line:474:)
+    O0OOOOOO0OO000OO0 ,OO0OO00000OO00OO0 =_winreg .QueryValueEx (OOOOOOO0OOO00O00O ,OO0OOOOO000O00O0O )#line:475:dir, type = _winreg.QueryValueEx(key, shell_folder_name)
+    return O0OOOOOO0OO000OO0 #line:476:return dir
+def _O0O0O0O000OOO00OO (OO00O0000OO000OOO ):#line:479:def _get_win_folder_with_pywin32(csidl_name):
+    from win32com .shell import shellcon ,shell #line:480:from win32com.shell import shellcon, shell
+    O00000OO00O0O0000 =shell .SHGetFolderPath (0 ,getattr (shellcon ,OO00O0000OO000OOO ),0 ,0 )#line:481:dir = shell.SHGetFolderPath(0, getattr(shellcon, csidl_name), 0, 0)
+    try :#line:485:try:
+        O00000OO00O0O0000 =unicode (O00000OO00O0O0000 )#line:486:dir = unicode(dir)
+        O000O0O00O0O0O00O =False #line:490:has_high_char = False
+        for OOO0O00O0O00OOO00 in O00000OO00O0O0000 :#line:491:for c in dir:
+            if ord (OOO0O00O0O00OOO00 )>255 :#line:492:if ord(c) > 255:
+                O000O0O00O0O0O00O =True #line:493:has_high_char = True
+                break #line:494:break
+        if O000O0O00O0O0O00O :#line:495:if has_high_char:
+            try :#line:496:try:
+                import win32api #line:497:import win32api
+                O00000OO00O0O0000 =win32api .GetShortPathName (O00000OO00O0O0000 )#line:498:dir = win32api.GetShortPathName(dir)
+            except ImportError :#line:499:except ImportError:
+                pass #line:500:pass
+    except UnicodeError :#line:501:except UnicodeError:
+        pass #line:502:pass
+    return O00000OO00O0O0000 #line:503:return dir
+def _OO00000000O0OO000 (O00O00O0OOOOO0000 ):#line:506:def _get_win_folder_with_ctypes(csidl_name):
+    import ctypes #line:507:import ctypes
+    O0O000O00O0000OOO ={"CSIDL_APPDATA":26 ,"CSIDL_COMMON_APPDATA":35 ,"CSIDL_LOCAL_APPDATA":28 ,}[O00O00O0OOOOO0000 ]#line:513:}[csidl_name]
+    OOOO0OO0O0OO00O0O =ctypes .create_unicode_buffer (1024 )#line:515:buf = ctypes.create_unicode_buffer(1024)
+    ctypes .windll .shell32 .SHGetFolderPathW (None ,O0O000O00O0000OOO ,None ,0 ,OOOO0OO0O0OO00O0O )#line:516:ctypes.windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
+    O0000O00OOO00OO0O =False #line:520:has_high_char = False
+    for O00OO000O00OO0OO0 in OOOO0OO0O0OO00O0O :#line:521:for c in buf:
+        if ord (O00OO000O00OO0OO0 )>255 :#line:522:if ord(c) > 255:
+            O0000O00OOO00OO0O =True #line:523:has_high_char = True
+            break #line:524:break
+    if O0000O00OOO00OO0O :#line:525:if has_high_char:
+        OOOOO0O000O00O0O0 =ctypes .create_unicode_buffer (1024 )#line:526:buf2 = ctypes.create_unicode_buffer(1024)
+        if ctypes .windll .kernel32 .GetShortPathNameW (OOOO0OO0O0OO00O0O .value ,OOOOO0O000O00O0O0 ,1024 ):#line:527:if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
+            OOOO0OO0O0OO00O0O =OOOOO0O000O00O0O0 #line:528:buf = buf2
+    return OOOO0OO0O0OO00O0O .value #line:530:return buf.value
+def _OOO000OO0OO0OO00O (O000OOO00O00000O0 ):#line:532:def _get_win_folder_with_jna(csidl_name):
+    import array #line:533:import array
+    from com .sun import jna #line:534:from com.sun import jna
+    from com .sun .jna .platform import win32 #line:535:from com.sun.jna.platform import win32
+    OOOO0OO000OOOO0O0 =win32 .WinDef .MAX_PATH *2 #line:537:buf_size = win32.WinDef.MAX_PATH * 2
+    OOOO000OO0000OO00 =array .zeros ('c',OOOO0OO000OOOO0O0 )#line:538:buf = array.zeros('c', buf_size)
+    O0O000O0OOOO00O0O =win32 .Shell32 .INSTANCE #line:539:shell = win32.Shell32.INSTANCE
+    O0O000O0OOOO00O0O .SHGetFolderPath (None ,getattr (win32 .ShlObj ,O000OOO00O00000O0 ),None ,win32 .ShlObj .SHGFP_TYPE_CURRENT ,OOOO000OO0000OO00 )#line:540:shell.SHGetFolderPath(None, getattr(win32.ShlObj, csidl_name), None, win32.ShlObj.SHGFP_TYPE_CURRENT, buf)
+    OOOO0O0O000OO00O0 =jna .Native .toString (OOOO000OO0000OO00 .tostring ()).rstrip ("\0")#line:541:dir = jna.Native.toString(buf.tostring()).rstrip("\0")
+    OOOO0O00OOO00000O =False #line:545:has_high_char = False
+    for OO0O0O0OOOOO00O00 in OOOO0O0O000OO00O0 :#line:546:for c in dir:
+        if ord (OO0O0O0OOOOO00O00 )>255 :#line:547:if ord(c) > 255:
+            OOOO0O00OOO00000O =True #line:548:has_high_char = True
+            break #line:549:break
+    if OOOO0O00OOO00000O :#line:550:if has_high_char:
+        OOOO000OO0000OO00 =array .zeros ('c',OOOO0OO000OOOO0O0 )#line:551:buf = array.zeros('c', buf_size)
+        OOO00O00OO0O0OO00 =win32 .Kernel32 .INSTANCE #line:552:kernel = win32.Kernel32.INSTANCE
+        if OOO00O00OO0O0OO00 .GetShortPathName (OOOO0O0O000OO00O0 ,OOOO000OO0000OO00 ,OOOO0OO000OOOO0O0 ):#line:553:if kernel.GetShortPathName(dir, buf, buf_size):
+            OOOO0O0O000OO00O0 =jna .Native .toString (OOOO000OO0000OO00 .tostring ()).rstrip ("\0")#line:554:dir = jna.Native.toString(buf.tostring()).rstrip("\0")
+    return OOOO0O0O000OO00O0 #line:556:return dir
+if system =="win32":#line:558:if system == "win32":
+    try :#line:559:try:
+        from ctypes import windll #line:560:from ctypes import windll
+        _OOO000O0O00OOOO0O =_OO00000000O0OO000 #line:561:_get_win_folder = _get_win_folder_with_ctypes
+    except ImportError :#line:562:except ImportError:
+        try :#line:563:try:
+            import com .sun .jna #line:564:import com.sun.jna
+            _OOO000O0O00OOOO0O =_OOO000OO0OO0OO00O #line:565:_get_win_folder = _get_win_folder_with_jna
+        except ImportError :#line:566:except ImportError:
+            _OOO000O0O00OOOO0O =_OOO00000OOO000O0O #line:567:_get_win_folder = _get_win_folder_from_registry
+if __name__ =="__main__":#line:572:if __name__ == "__main__":
+    appname ="MyApp"#line:573:appname = "MyApp"
+    appauthor ="MyCompany"#line:574:appauthor = "MyCompany"
+    props =("user_data_dir","user_config_dir","user_cache_dir","user_state_dir","user_log_dir","site_data_dir","site_config_dir")#line:582:"site_config_dir")
+    print ("-- app dirs %s --"%__version__ )#line:584:print("-- app dirs %s --" % __version__)
+    print ("-- app dirs (with optional 'version')")#line:586:print("-- app dirs (with optional 'version')")
+    dirs =AppDirs (appname ,appauthor ,version ="1.0")#line:587:dirs = AppDirs(appname, appauthor, version="1.0")
+    for prop in props :#line:588:for prop in props:
+        print ("%s: %s"%(prop ,getattr (dirs ,prop )))#line:589:print("%s: %s" % (prop, getattr(dirs, prop)))
+    print ("\n-- app dirs (without optional 'version')")#line:591:print("\n-- app dirs (without optional 'version')")
+    dirs =AppDirs (appname ,appauthor )#line:592:dirs = AppDirs(appname, appauthor)
+    for prop in props :#line:593:for prop in props:
+        print ("%s: %s"%(prop ,getattr (dirs ,prop )))#line:594:print("%s: %s" % (prop, getattr(dirs, prop)))
+    print ("\n-- app dirs (without optional 'appauthor')")#line:596:print("\n-- app dirs (without optional 'appauthor')")
+    dirs =AppDirs (appname )#line:597:dirs = AppDirs(appname)
+    for prop in props :#line:598:for prop in props:
+        print ("%s: %s"%(prop ,getattr (dirs ,prop )))#line:599:print("%s: %s" % (prop, getattr(dirs, prop)))
+    print ("\n-- app dirs (with disabled 'appauthor')")#line:601:print("\n-- app dirs (with disabled 'appauthor')")
+    dirs =AppDirs (appname ,appauthor =False )#line:602:dirs = AppDirs(appname, appauthor=False)
+    for prop in props :#line:603:for prop in props:
+        print ("%s: %s"%(prop ,getattr (dirs ,prop )))#line:604:print("%s: %s" % (prop, getattr(dirs, prop)))

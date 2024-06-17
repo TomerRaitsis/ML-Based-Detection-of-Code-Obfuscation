@@ -1,0 +1,138 @@
+""#line:2
+import logging #line:4
+import os #line:5
+import sys #line:6
+import textwrap #line:7
+from collections import OrderedDict #line:8
+from distutils .sysconfig import get_python_lib #line:9
+from sysconfig import get_paths #line:10
+from pip ._vendor .pkg_resources import Requirement ,VersionConflict ,WorkingSet #line:12
+from pip import __file__ as pip_location #line:14
+from pip ._internal .utils .misc import call_subprocess #line:15
+from pip ._internal .utils .temp_dir import TempDirectory #line:16
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:17
+from pip ._internal .utils .ui import open_spinner #line:18
+if MYPY_CHECK_RUNNING :#line:20
+    from typing import Tuple ,Set ,Iterable ,Optional ,List #line:21
+    from pip ._internal .index import PackageFinder #line:22
+logger =logging .getLogger (__name__ )#line:24
+class _OOO0OOOOO0O0000OO :#line:27
+    def __init__ (OOOO0O00000OO00O0 ,O000000O000OO0000 ):#line:29
+        OOOO0O00000OO00O0 .path =O000000O000OO0000 #line:31
+        OOOO0O00000OO00O0 .setup =False #line:32
+        OOOO0O00000OO00O0 .bin_dir =get_paths ('nt'if os .name =='nt'else 'posix_prefix',vars ={'base':O000000O000OO0000 ,'platbase':O000000O000OO0000 })['scripts']#line:36
+        O0O0OOOOO00O00OOO =get_python_lib (plat_specific =False ,prefix =O000000O000OO0000 )#line:39
+        O0O000O0OO000OO0O =get_python_lib (plat_specific =True ,prefix =O000000O000OO0000 )#line:40
+        if O0O0OOOOO00O00OOO ==O0O000O0OO000OO0O :#line:41
+            OOOO0O00000OO00O0 .lib_dirs =[O0O0OOOOO00O00OOO ]#line:42
+        else :#line:43
+            OOOO0O00000OO00O0 .lib_dirs =[O0O0OOOOO00O00OOO ,O0O000O0OO000OO0O ]#line:44
+class BuildEnvironment (object ):#line:47
+    ""#line:49
+    def __init__ (O0000OOOO00OO0000 ):#line:51
+        O0000OOOO00OO0000 ._temp_dir =TempDirectory (kind ="build-env")#line:53
+        O0000OOOO00OO0000 ._temp_dir .create ()#line:54
+        O0000OOOO00OO0000 ._prefixes =OrderedDict (((O00OOO0O0OOO0OO0O ,_OOO0OOOOO0O0000OO (os .path .join (O0000OOOO00OO0000 ._temp_dir .path ,O00OOO0O0OOO0OO0O )))for O00OOO0O0OOO0OO0O in ('normal','overlay')))#line:59
+        O0000OOOO00OO0000 ._bin_dirs =[]#line:61
+        O0000OOOO00OO0000 ._lib_dirs =[]#line:62
+        for OOO00O0OOOO0OO0OO in reversed (list (O0000OOOO00OO0000 ._prefixes .values ())):#line:63
+            O0000OOOO00OO0000 ._bin_dirs .append (OOO00O0OOOO0OO0OO .bin_dir )#line:64
+            O0000OOOO00OO0000 ._lib_dirs .extend (OOO00O0OOOO0OO0OO .lib_dirs )#line:65
+        OOOO0OOOOOO0OOO00 ={os .path .normcase (OO00O000O0O00OO0O )for OO00O000O0O00OO0O in (get_python_lib (plat_specific =False ),get_python_lib (plat_specific =True ),)}#line:75
+        O0000OOOO00OO0000 ._site_dir =os .path .join (O0000OOOO00OO0000 ._temp_dir .path ,'site')#line:76
+        if not os .path .exists (O0000OOOO00OO0000 ._site_dir ):#line:77
+            os .mkdir (O0000OOOO00OO0000 ._site_dir )#line:78
+        with open (os .path .join (O0000OOOO00OO0000 ._site_dir ,'sitecustomize.py'),'w')as O0OO0O0000OOO000O :#line:79
+            O0OO0O0000OOO000O .write (textwrap .dedent ('''
+                import os, site, sys
+
+                # First, drop system-sites related paths.
+                original_sys_path = sys.path[:]
+                known_paths = set()
+                for path in {system_sites!r}:
+                    site.addsitedir(path, known_paths=known_paths)
+                system_paths = set(
+                    os.path.normcase(path)
+                    for path in sys.path[len(original_sys_path):]
+                )
+                original_sys_path = [
+                    path for path in original_sys_path
+                    if os.path.normcase(path) not in system_paths
+                ]
+                sys.path = original_sys_path
+
+                # Second, add lib directories.
+                # ensuring .pth file are processed.
+                for path in {lib_dirs!r}:
+                    assert not path in sys.path
+                    site.addsitedir(path)
+                ''').format (system_sites =OOOO0OOOOOO0OOO00 ,lib_dirs =O0000OOOO00OO0000 ._lib_dirs ))#line:105
+    def __enter__ (O0OOOO00000OO000O ):#line:107
+        O0OOOO00000OO000O ._save_env ={OOOO0OOOOO00O00O0 :os .environ .get (OOOO0OOOOO00O00O0 ,None )for OOOO0OOOOO00O00O0 in ('PATH','PYTHONNOUSERSITE','PYTHONPATH')}#line:111
+        O00OOO0OO0000O00O =O0OOOO00000OO000O ._bin_dirs [:]#line:113
+        OOO0O000000O0OOO0 =O0OOOO00000OO000O ._save_env ['PATH']#line:114
+        if OOO0O000000O0OOO0 :#line:115
+            O00OOO0OO0000O00O .extend (OOO0O000000O0OOO0 .split (os .pathsep ))#line:116
+        O000OOO00OO00O00O =[O0OOOO00000OO000O ._site_dir ]#line:118
+        os .environ .update ({'PATH':os .pathsep .join (O00OOO0OO0000O00O ),'PYTHONNOUSERSITE':'1','PYTHONPATH':os .pathsep .join (O000OOO00OO00O00O ),})#line:124
+    def __exit__ (OO00OO0OO0O000OO0 ,O00O00OOO0O00OOO0 ,O0O0000O0O0OO0O0O ,O00O000OOOOO00O0O ):#line:126
+        for O0OOO00000000O00O ,OOO0O0OOOOOO00O0O in OO00OO0OO0O000OO0 ._save_env .items ():#line:127
+            if OOO0O0OOOOOO00O0O is None :#line:128
+                os .environ .pop (O0OOO00000000O00O ,None )#line:129
+            else :#line:130
+                os .environ [O0OOO00000000O00O ]=OOO0O0OOOOOO00O0O #line:131
+    def cleanup (O000000OOOO0OO0OO ):#line:133
+        O000000OOOO0OO0OO ._temp_dir .cleanup ()#line:135
+    def check_requirements (O0O00OOOO000OO0OO ,O0O0O0OOOO0OO0O0O ):#line:137
+        ""#line:142
+        O0O000OOOO0O0OOOO =set ()#line:143
+        O00000OO0OO0OO000 =set ()#line:144
+        if O0O0O0OOOO0OO0O0O :#line:145
+            O00OOOOOOOOOOOO0O =WorkingSet (O0O00OOOO000OO0OO ._lib_dirs )#line:146
+            for O0O0O00000OOOO00O in O0O0O0OOOO0OO0O0O :#line:147
+                try :#line:148
+                    if O00OOOOOOOOOOOO0O .find (Requirement .parse (O0O0O00000OOOO00O ))is None :#line:149
+                        O0O000OOOO0O0OOOO .add (O0O0O00000OOOO00O )#line:150
+                except VersionConflict as OOO00O0O000000OO0 :#line:151
+                    O00000OO0OO0OO000 .add ((str (OOO00O0O000000OO0 .args [0 ].as_requirement ()),str (OOO00O0O000000OO0 .args [1 ])))#line:153
+        return O00000OO0OO0OO000 ,O0O000OOOO0O0OOOO #line:154
+    def install_requirements (O0OO0OOO0OOO000O0 ,O0OOOO000O0O0O0OO ,OOO00OOO0O00OO00O ,OOOO0OOOOO0OOOOOO ,O0O000OO0OOO00O00 ):#line:162
+        O0OO0O000O0OO00OO =O0OO0OOO0OOO000O0 ._prefixes [OOOO0OOOOO0OOOOOO ]#line:164
+        assert not O0OO0O000O0OO00OO .setup #line:165
+        O0OO0O000O0OO00OO .setup =True #line:166
+        if not OOO00OOO0O00OO00O :#line:167
+            return #line:168
+        OOO000O0O0OOOOOOO =[sys .executable ,os .path .dirname (pip_location ),'install','--ignore-installed','--no-user','--prefix',O0OO0O000O0OO00OO .path ,'--no-warn-script-location',]#line:173
+        if logger .getEffectiveLevel ()<=logging .DEBUG :#line:174
+            OOO000O0O0OOOOOOO .append ('-v')#line:175
+        for O0OO0OO0OO0000O00 in ('no_binary','only_binary'):#line:176
+            O0OO0OO00OO00OO0O =getattr (O0OOOO000O0O0O0OO .format_control ,O0OO0OO0OO0000O00 )#line:177
+            OOO000O0O0OOOOOOO .extend (('--'+O0OO0OO0OO0000O00 .replace ('_','-'),','.join (sorted (O0OO0OO00OO00OO0O or {':none:'}))))#line:179
+        if O0OOOO000O0O0O0OO .index_urls :#line:180
+            OOO000O0O0OOOOOOO .extend (['-i',O0OOOO000O0O0O0OO .index_urls [0 ]])#line:181
+            for O0OO0OOOO0O00000O in O0OOOO000O0O0O0OO .index_urls [1 :]:#line:182
+                OOO000O0O0OOOOOOO .extend (['--extra-index-url',O0OO0OOOO0O00000O ])#line:183
+        else :#line:184
+            OOO000O0O0OOOOOOO .append ('--no-index')#line:185
+        for OOOO0O00000O00OOO in O0OOOO000O0O0O0OO .find_links :#line:186
+            OOO000O0O0OOOOOOO .extend (['--find-links',OOOO0O00000O00OOO ])#line:187
+        for _OO0OOOO0OOOO000OO ,OO00O0OOO0OO0O0O0 ,_OO0OOOO0OOOO000OO in O0OOOO000O0O0O0OO .secure_origins :#line:188
+            OOO000O0O0OOOOOOO .extend (['--trusted-host',OO00O0OOO0OO0O0O0 ])#line:189
+        if O0OOOO000O0O0O0OO .allow_all_prereleases :#line:190
+            OOO000O0O0OOOOOOO .append ('--pre')#line:191
+        OOO000O0O0OOOOOOO .append ('--')#line:192
+        OOO000O0O0OOOOOOO .extend (OOO00OOO0O00OO00O )#line:193
+        with open_spinner (O0O000OO0OOO00O00 )as O0OOOO0OO0OO0OOOO :#line:194
+            call_subprocess (OOO000O0O0OOOOOOO ,show_stdout =False ,spinner =O0OOOO0OO0OO0OOOO )#line:195
+class NoOpBuildEnvironment (BuildEnvironment ):#line:198
+    ""#line:200
+    def __init__ (OO0O0O00000O00000 ):#line:202
+        pass #line:203
+    def __enter__ (O00OO0O00O0O0OOO0 ):#line:205
+        pass #line:206
+    def __exit__ (OO0O00O0OO0OO0O00 ,O000OO00O0O000OO0 ,OOO00000OOOOO00O0 ,OO0OO00OOO00000O0 ):#line:208
+        pass #line:209
+    def cleanup (O0O0OOOOO0O000O00 ):#line:211
+        pass #line:212
+    def install_requirements (O000O0OOO000O0O0O ,O000O0O00OOO000O0 ,OOOOO00OOOO00000O ,OO0OOOOOOO00O0O0O ,OOOOO0OOOOOOO00O0 ):#line:214
+        raise NotImplementedError ()#line:215

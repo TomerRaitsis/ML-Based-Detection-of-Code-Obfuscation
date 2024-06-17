@@ -1,0 +1,392 @@
+""#line:26:"""
+from __future__ import absolute_import #line:27:from __future__ import absolute_import
+import contextlib #line:29:import contextlib
+import ctypes #line:30:import ctypes
+import errno #line:31:import errno
+import os .path #line:32:import os.path
+import shutil #line:33:import shutil
+import socket #line:34:import socket
+import ssl #line:35:import ssl
+import threading #line:36:import threading
+import weakref #line:37:import weakref
+from ..import util #line:39:from .. import util
+from ._securetransport .bindings import (Security ,SecurityConst ,CoreFoundation )#line:42:)
+from ._securetransport .low_level import (_assert_no_error ,_cert_array_from_pem ,_temporary_keychain ,_load_client_cert_chain )#line:46:)
+try :#line:48:try:  # Platform-specific: Python 2
+    from socket import _fileobject #line:49:from socket import _fileobject
+except ImportError :#line:50:except ImportError:  # Platform-specific: Python 3
+    _fileobject =None #line:51:_fileobject = None
+    from ..packages .backports .makefile import backport_makefile #line:52:from ..packages.backports.makefile import backport_makefile
+__all__ =['inject_into_urllib3','extract_from_urllib3']#line:54:__all__ = ['inject_into_urllib3', 'extract_from_urllib3']
+OOO00O0O0O0OOOOO0 =True #line:57:HAS_SNI = True
+O000O0O000O0OOOOO =util .HAS_SNI #line:59:orig_util_HAS_SNI = util.HAS_SNI
+O0OO00OO00O00OO00 =util .ssl_ .SSLContext #line:60:orig_util_SSLContext = util.ssl_.SSLContext
+_OOO0OO00OO0OOOOOO =weakref .WeakValueDictionary ()#line:78:_connection_refs = weakref.WeakValueDictionary()
+_O0O0O0O0O00OOO00O =threading .Lock ()#line:79:_connection_ref_lock = threading.Lock()
+OOOO00OO0OOO000OO =16384 #line:83:SSL_WRITE_BLOCKSIZE = 16384
+O0O0O00OO0OOO0O0O =[SecurityConst .TLS_AES_256_GCM_SHA384 ,SecurityConst .TLS_CHACHA20_POLY1305_SHA256 ,SecurityConst .TLS_AES_128_GCM_SHA256 ,SecurityConst .TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 ,SecurityConst .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 ,SecurityConst .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 ,SecurityConst .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 ,SecurityConst .TLS_DHE_DSS_WITH_AES_256_GCM_SHA384 ,SecurityConst .TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 ,SecurityConst .TLS_DHE_DSS_WITH_AES_128_GCM_SHA256 ,SecurityConst .TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 ,SecurityConst .TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 ,SecurityConst .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 ,SecurityConst .TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA ,SecurityConst .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA ,SecurityConst .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 ,SecurityConst .TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 ,SecurityConst .TLS_DHE_RSA_WITH_AES_256_CBC_SHA ,SecurityConst .TLS_DHE_DSS_WITH_AES_256_CBC_SHA ,SecurityConst .TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 ,SecurityConst .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 ,SecurityConst .TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA ,SecurityConst .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA ,SecurityConst .TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 ,SecurityConst .TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 ,SecurityConst .TLS_DHE_RSA_WITH_AES_128_CBC_SHA ,SecurityConst .TLS_DHE_DSS_WITH_AES_128_CBC_SHA ,SecurityConst .TLS_RSA_WITH_AES_256_GCM_SHA384 ,SecurityConst .TLS_RSA_WITH_AES_128_GCM_SHA256 ,SecurityConst .TLS_RSA_WITH_AES_256_CBC_SHA256 ,SecurityConst .TLS_RSA_WITH_AES_128_CBC_SHA256 ,SecurityConst .TLS_RSA_WITH_AES_256_CBC_SHA ,SecurityConst .TLS_RSA_WITH_AES_128_CBC_SHA ,]#line:122:]
+_OOOO000O0000O0O0O ={ssl .PROTOCOL_SSLv23 :(SecurityConst .kTLSProtocol1 ,SecurityConst .kTLSProtocol12 ),}#line:128:}
+if hasattr (ssl ,"PROTOCOL_SSLv2"):#line:130:if hasattr(ssl, "PROTOCOL_SSLv2"):
+    _OOOO000O0000O0O0O [ssl .PROTOCOL_SSLv2 ]=(SecurityConst .kSSLProtocol2 ,SecurityConst .kSSLProtocol2 )#line:133:)
+if hasattr (ssl ,"PROTOCOL_SSLv3"):#line:134:if hasattr(ssl, "PROTOCOL_SSLv3"):
+    _OOOO000O0000O0O0O [ssl .PROTOCOL_SSLv3 ]=(SecurityConst .kSSLProtocol3 ,SecurityConst .kSSLProtocol3 )#line:137:)
+if hasattr (ssl ,"PROTOCOL_TLSv1"):#line:138:if hasattr(ssl, "PROTOCOL_TLSv1"):
+    _OOOO000O0000O0O0O [ssl .PROTOCOL_TLSv1 ]=(SecurityConst .kTLSProtocol1 ,SecurityConst .kTLSProtocol1 )#line:141:)
+if hasattr (ssl ,"PROTOCOL_TLSv1_1"):#line:142:if hasattr(ssl, "PROTOCOL_TLSv1_1"):
+    _OOOO000O0000O0O0O [ssl .PROTOCOL_TLSv1_1 ]=(SecurityConst .kTLSProtocol11 ,SecurityConst .kTLSProtocol11 )#line:145:)
+if hasattr (ssl ,"PROTOCOL_TLSv1_2"):#line:146:if hasattr(ssl, "PROTOCOL_TLSv1_2"):
+    _OOOO000O0000O0O0O [ssl .PROTOCOL_TLSv1_2 ]=(SecurityConst .kTLSProtocol12 ,SecurityConst .kTLSProtocol12 )#line:149:)
+if hasattr (ssl ,"PROTOCOL_TLS"):#line:150:if hasattr(ssl, "PROTOCOL_TLS"):
+    _OOOO000O0000O0O0O [ssl .PROTOCOL_TLS ]=_OOOO000O0000O0O0O [ssl .PROTOCOL_SSLv23 ]#line:151:_protocol_to_min_max[ssl.PROTOCOL_TLS] = _protocol_to_min_max[ssl.PROTOCOL_SSLv23]
+def inject_into_urllib3 ():#line:154:def inject_into_urllib3():
+    ""#line:157:"""
+    util .ssl_ .SSLContext =OOO00O0O0O000OO00 #line:158:util.ssl_.SSLContext = SecureTransportContext
+    util .HAS_SNI =OOO00O0O0O0OOOOO0 #line:159:util.HAS_SNI = HAS_SNI
+    util .ssl_ .HAS_SNI =OOO00O0O0O0OOOOO0 #line:160:util.ssl_.HAS_SNI = HAS_SNI
+    util .IS_SECURETRANSPORT =True #line:161:util.IS_SECURETRANSPORT = True
+    util .ssl_ .IS_SECURETRANSPORT =True #line:162:util.ssl_.IS_SECURETRANSPORT = True
+def extract_from_urllib3 ():#line:165:def extract_from_urllib3():
+    ""#line:168:"""
+    util .ssl_ .SSLContext =O0OO00OO00O00OO00 #line:169:util.ssl_.SSLContext = orig_util_SSLContext
+    util .HAS_SNI =O000O0O000O0OOOOO #line:170:util.HAS_SNI = orig_util_HAS_SNI
+    util .ssl_ .HAS_SNI =O000O0O000O0OOOOO #line:171:util.ssl_.HAS_SNI = orig_util_HAS_SNI
+    util .IS_SECURETRANSPORT =False #line:172:util.IS_SECURETRANSPORT = False
+    util .ssl_ .IS_SECURETRANSPORT =False #line:173:util.ssl_.IS_SECURETRANSPORT = False
+def _O000OO00O0O000O0O (OO0O0OOOOO0O0OO00 ,O000OOOOOOO0O00O0 ,OO0OOO00O00O00OO0 ):#line:176:def _read_callback(connection_id, data_buffer, data_length_pointer):
+    ""#line:180:"""
+    O0OO0OO00O00O0O0O =None #line:181:wrapped_socket = None
+    try :#line:182:try:
+        O0OO0OO00O00O0O0O =_OOO0OO00OO0OOOOOO .get (OO0O0OOOOO0O0OO00 )#line:183:wrapped_socket = _connection_refs.get(connection_id)
+        if O0OO0OO00O00O0O0O is None :#line:184:if wrapped_socket is None:
+            return SecurityConst .errSSLInternal #line:185:return SecurityConst.errSSLInternal
+        OO00O0OO0000O000O =O0OO0OO00O00O0O0O .socket #line:186:base_socket = wrapped_socket.socket
+        O0O00O0000OOOO00O =OO0OOO00O00O00OO0 [0 ]#line:188:requested_length = data_length_pointer[0]
+        OOOO0OOO00O00O00O =O0OO0OO00O00O0O0O .gettimeout ()#line:190:timeout = wrapped_socket.gettimeout()
+        OOOO00000O00O00OO =None #line:191:error = None
+        OO00OOOOO0OO0O0OO =0 #line:192:read_count = 0
+        try :#line:194:try:
+            while OO00OOOOO0OO0O0OO <O0O00O0000OOOO00O :#line:195:while read_count < requested_length:
+                if OOOO0OOO00O00O00O is None or OOOO0OOO00O00O00O >=0 :#line:196:if timeout is None or timeout >= 0:
+                    if not util .wait_for_read (OO00O0OO0000O000O ,OOOO0OOO00O00O00O ):#line:197:if not util.wait_for_read(base_socket, timeout):
+                        raise socket .error (errno .EAGAIN ,'timed out')#line:198:raise socket.error(errno.EAGAIN, 'timed out')
+                OOOOO00O00O0O000O =O0O00O0000OOOO00O -OO00OOOOO0OO0O0OO #line:200:remaining = requested_length - read_count
+                OO00OOO0O0O00OO00 =(ctypes .c_char *OOOOO00O00O0O000O ).from_address (O000OOOOOOO0O00O0 +OO00OOOOO0OO0O0OO )#line:203:)
+                OOO00OOOOOOOOO0OO =OO00O0OO0000O000O .recv_into (OO00OOO0O0O00OO00 ,OOOOO00O00O0O000O )#line:204:chunk_size = base_socket.recv_into(buffer, remaining)
+                OO00OOOOO0OO0O0OO +=OOO00OOOOOOOOO0OO #line:205:read_count += chunk_size
+                if not OOO00OOOOOOOOO0OO :#line:206:if not chunk_size:
+                    if not OO00OOOOO0OO0O0OO :#line:207:if not read_count:
+                        return SecurityConst .errSSLClosedGraceful #line:208:return SecurityConst.errSSLClosedGraceful
+                    break #line:209:break
+        except (socket .error )as O00O00OO0OO0000O0 :#line:210:except (socket.error) as e:
+            OOOO00000O00O00OO =O00O00OO0OO0000O0 .errno #line:211:error = e.errno
+            if OOOO00000O00O00OO is not None and OOOO00000O00O00OO !=errno .EAGAIN :#line:213:if error is not None and error != errno.EAGAIN:
+                OO0OOO00O00O00OO0 [0 ]=OO00OOOOO0OO0O0OO #line:214:data_length_pointer[0] = read_count
+                if OOOO00000O00O00OO ==errno .ECONNRESET or OOOO00000O00O00OO ==errno .EPIPE :#line:215:if error == errno.ECONNRESET or error == errno.EPIPE:
+                    return SecurityConst .errSSLClosedAbort #line:216:return SecurityConst.errSSLClosedAbort
+                raise #line:217:raise
+        OO0OOO00O00O00OO0 [0 ]=OO00OOOOO0OO0O0OO #line:219:data_length_pointer[0] = read_count
+        if OO00OOOOO0OO0O0OO !=O0O00O0000OOOO00O :#line:221:if read_count != requested_length:
+            return SecurityConst .errSSLWouldBlock #line:222:return SecurityConst.errSSLWouldBlock
+        return 0 #line:224:return 0
+    except Exception as O00O00OO0OO0000O0 :#line:225:except Exception as e:
+        if O0OO0OO00O00O0O0O is not None :#line:226:if wrapped_socket is not None:
+            O0OO0OO00O00O0O0O ._exception =O00O00OO0OO0000O0 #line:227:wrapped_socket._exception = e
+        return SecurityConst .errSSLInternal #line:228:return SecurityConst.errSSLInternal
+def _OOO0O000OO0000O00 (O0OO0OOO0OOOO00OO ,OOOO0O0OOOOOO0OOO ,O00OO0O0000000O0O ):#line:231:def _write_callback(connection_id, data_buffer, data_length_pointer):
+    ""#line:235:"""
+    O00OOOO0O000000O0 =None #line:236:wrapped_socket = None
+    try :#line:237:try:
+        O00OOOO0O000000O0 =_OOO0OO00OO0OOOOOO .get (O0OO0OOO0OOOO00OO )#line:238:wrapped_socket = _connection_refs.get(connection_id)
+        if O00OOOO0O000000O0 is None :#line:239:if wrapped_socket is None:
+            return SecurityConst .errSSLInternal #line:240:return SecurityConst.errSSLInternal
+        O0O000OO00O0OOOO0 =O00OOOO0O000000O0 .socket #line:241:base_socket = wrapped_socket.socket
+        O000O00OO0000O0OO =O00OO0O0000000O0O [0 ]#line:243:bytes_to_write = data_length_pointer[0]
+        O0OOO00O0OO0OOO0O =ctypes .string_at (OOOO0O0OOOOOO0OOO ,O000O00OO0000O0OO )#line:244:data = ctypes.string_at(data_buffer, bytes_to_write)
+        OOOO0O00O0O00O00O =O00OOOO0O000000O0 .gettimeout ()#line:246:timeout = wrapped_socket.gettimeout()
+        O0O0OOO00000000OO =None #line:247:error = None
+        OO00O000O00OO0OOO =0 #line:248:sent = 0
+        try :#line:250:try:
+            while OO00O000O00OO0OOO <O000O00OO0000O0OO :#line:251:while sent < bytes_to_write:
+                if OOOO0O00O0O00O00O is None or OOOO0O00O0O00O00O >=0 :#line:252:if timeout is None or timeout >= 0:
+                    if not util .wait_for_write (O0O000OO00O0OOOO0 ,OOOO0O00O0O00O00O ):#line:253:if not util.wait_for_write(base_socket, timeout):
+                        raise socket .error (errno .EAGAIN ,'timed out')#line:254:raise socket.error(errno.EAGAIN, 'timed out')
+                OOO0O0O00O0O0O00O =O0O000OO00O0OOOO0 .send (O0OOO00O0OO0OOO0O )#line:255:chunk_sent = base_socket.send(data)
+                OO00O000O00OO0OOO +=OOO0O0O00O0O0O00O #line:256:sent += chunk_sent
+                O0OOO00O0OO0OOO0O =O0OOO00O0OO0OOO0O [OOO0O0O00O0O0O00O :]#line:260:data = data[chunk_sent:]
+        except (socket .error )as OO0OOOO0OO00O0O00 :#line:261:except (socket.error) as e:
+            O0O0OOO00000000OO =OO0OOOO0OO00O0O00 .errno #line:262:error = e.errno
+            if O0O0OOO00000000OO is not None and O0O0OOO00000000OO !=errno .EAGAIN :#line:264:if error is not None and error != errno.EAGAIN:
+                O00OO0O0000000O0O [0 ]=OO00O000O00OO0OOO #line:265:data_length_pointer[0] = sent
+                if O0O0OOO00000000OO ==errno .ECONNRESET or O0O0OOO00000000OO ==errno .EPIPE :#line:266:if error == errno.ECONNRESET or error == errno.EPIPE:
+                    return SecurityConst .errSSLClosedAbort #line:267:return SecurityConst.errSSLClosedAbort
+                raise #line:268:raise
+        O00OO0O0000000O0O [0 ]=OO00O000O00OO0OOO #line:270:data_length_pointer[0] = sent
+        if OO00O000O00OO0OOO !=O000O00OO0000O0OO :#line:272:if sent != bytes_to_write:
+            return SecurityConst .errSSLWouldBlock #line:273:return SecurityConst.errSSLWouldBlock
+        return 0 #line:275:return 0
+    except Exception as OO0OOOO0OO00O0O00 :#line:276:except Exception as e:
+        if O00OOOO0O000000O0 is not None :#line:277:if wrapped_socket is not None:
+            O00OOOO0O000000O0 ._exception =OO0OOOO0OO00O0O00 #line:278:wrapped_socket._exception = e
+        return SecurityConst .errSSLInternal #line:279:return SecurityConst.errSSLInternal
+_O0O0O0OO0O0OO0000 =Security .SSLReadFunc (_O000OO00O0O000O0O )#line:285:_read_callback_pointer = Security.SSLReadFunc(_read_callback)
+_OO000O00OO0OOOO00 =Security .SSLWriteFunc (_OOO0O000OO0000O00 )#line:286:_write_callback_pointer = Security.SSLWriteFunc(_write_callback)
+class OOO0O000OO0O000O0 (object ):#line:289:class WrappedSocket(object):
+    ""#line:295:"""
+    def __init__ (O0O00O0O00O00O000 ,O0O000O0O000O0OOO ):#line:296:def __init__(self, socket):
+        O0O00O0O00O00O000 .socket =O0O000O0O000O0OOO #line:297:self.socket = socket
+        O0O00O0O00O00O000 .context =None #line:298:self.context = None
+        O0O00O0O00O00O000 ._makefile_refs =0 #line:299:self._makefile_refs = 0
+        O0O00O0O00O00O000 ._closed =False #line:300:self._closed = False
+        O0O00O0O00O00O000 ._exception =None #line:301:self._exception = None
+        O0O00O0O00O00O000 ._keychain =None #line:302:self._keychain = None
+        O0O00O0O00O00O000 ._keychain_dir =None #line:303:self._keychain_dir = None
+        O0O00O0O00O00O000 ._client_cert_chain =None #line:304:self._client_cert_chain = None
+        O0O00O0O00O00O000 ._timeout =O0O00O0O00O00O000 .socket .gettimeout ()#line:311:self._timeout = self.socket.gettimeout()
+        O0O00O0O00O00O000 .socket .settimeout (0 )#line:312:self.socket.settimeout(0)
+    @contextlib .contextmanager #line:314:@contextlib.contextmanager
+    def _raise_on_error (O00O000O00O0000OO ):#line:315:def _raise_on_error(self):
+        ""#line:323:"""
+        O00O000O00O0000OO ._exception =None #line:324:self._exception = None
+        yield #line:329:yield
+        if O00O000O00O0000OO ._exception is not None :#line:330:if self._exception is not None:
+            OOO000OOO0O0O00O0 ,O00O000O00O0000OO ._exception =O00O000O00O0000OO ._exception ,None #line:331:exception, self._exception = self._exception, None
+            O00O000O00O0000OO .close ()#line:332:self.close()
+            raise OOO000OOO0O0O00O0 #line:333:raise exception
+    def _set_ciphers (O00OO0O0O00000OOO ):#line:335:def _set_ciphers(self):
+        ""#line:341:"""
+        OO00000OOOOOO000O =(Security .SSLCipherSuite *len (O0O0O00OO0OOO0O0O ))(*O0O0O00OO0OOO0O0O )#line:342:ciphers = (Security.SSLCipherSuite * len(CIPHER_SUITES))(*CIPHER_SUITES)
+        O000000000O0OO00O =Security .SSLSetEnabledCiphers (O00OO0O0O00000OOO .context ,OO00000OOOOOO000O ,len (O0O0O00OO0OOO0O0O ))#line:345:)
+        _assert_no_error (O000000000O0OO00O )#line:346:_assert_no_error(result)
+    def _custom_validate (O00O0O000OOO00O00 ,OO0O0000OO000OOOO ,OO0O0O000O00OO0O0 ):#line:348:def _custom_validate(self, verify, trust_bundle):
+        ""#line:353:"""
+        if not OO0O0000OO000OOOO :#line:355:if not verify:
+            return #line:356:return
+        if os .path .isfile (OO0O0O000O00OO0O0 ):#line:359:if os.path.isfile(trust_bundle):
+            with open (OO0O0O000O00OO0O0 ,'rb')as OOOO0O00O0O000OO0 :#line:360:with open(trust_bundle, 'rb') as f:
+                OO0O0O000O00OO0O0 =OOOO0O00O0O000OO0 .read ()#line:361:trust_bundle = f.read()
+        OOOO000O0OO000OOO =None #line:363:cert_array = None
+        OO0O000O0OOOO00O0 =Security .SecTrustRef ()#line:364:trust = Security.SecTrustRef()
+        try :#line:366:try:
+            OOOO000O0OO000OOO =_cert_array_from_pem (OO0O0O000O00OO0O0 )#line:368:cert_array = _cert_array_from_pem(trust_bundle)
+            O00O000O0000OOO0O =Security .SSLCopyPeerTrust (O00O0O000OOO00O00 .context ,ctypes .byref (OO0O000O0OOOO00O0 ))#line:376:)
+            _assert_no_error (O00O000O0000OOO0O )#line:377:_assert_no_error(result)
+            if not OO0O000O0OOOO00O0 :#line:378:if not trust:
+                raise ssl .SSLError ("Failed to copy trust reference")#line:379:raise ssl.SSLError("Failed to copy trust reference")
+            O00O000O0000OOO0O =Security .SecTrustSetAnchorCertificates (OO0O000O0OOOO00O0 ,OOOO000O0OO000OOO )#line:381:result = Security.SecTrustSetAnchorCertificates(trust, cert_array)
+            _assert_no_error (O00O000O0000OOO0O )#line:382:_assert_no_error(result)
+            O00O000O0000OOO0O =Security .SecTrustSetAnchorCertificatesOnly (OO0O000O0OOOO00O0 ,True )#line:384:result = Security.SecTrustSetAnchorCertificatesOnly(trust, True)
+            _assert_no_error (O00O000O0000OOO0O )#line:385:_assert_no_error(result)
+            OOOOOO0OOOO0OO0OO =Security .SecTrustResultType ()#line:387:trust_result = Security.SecTrustResultType()
+            O00O000O0000OOO0O =Security .SecTrustEvaluate (OO0O000O0OOOO00O0 ,ctypes .byref (OOOOOO0OOOO0OO0OO ))#line:390:)
+            _assert_no_error (O00O000O0000OOO0O )#line:391:_assert_no_error(result)
+        finally :#line:392:finally:
+            if OO0O000O0OOOO00O0 :#line:393:if trust:
+                CoreFoundation .CFRelease (OO0O000O0OOOO00O0 )#line:394:CoreFoundation.CFRelease(trust)
+            if OOOO000O0OO000OOO is not None :#line:396:if cert_array is not None:
+                CoreFoundation .CFRelease (OOOO000O0OO000OOO )#line:397:CoreFoundation.CFRelease(cert_array)
+        OO0OO0000000OO0OO =(SecurityConst .kSecTrustResultUnspecified ,SecurityConst .kSecTrustResultProceed )#line:403:)
+        if OOOOOO0OOOO0OO0OO .value not in OO0OO0000000OO0OO :#line:404:if trust_result.value not in successes:
+            raise ssl .SSLError ("certificate verify failed, error code: %d"%OOOOOO0OOOO0OO0OO .value )#line:408:)
+    def handshake (O00OO0OOO0OO00OO0 ,OOO0OO0O00O000O00 ,O0O00O0000O0O0000 ,O0O000OO0OOOO00OO ,OOOOOOOO0O0O0O0O0 ,OO0OO000OOO0O0000 ,OOOO00O00OO000O00 ,O0OOOO00O0O000O00 ,OOO0OOO0OO0OO0OOO ):#line:418:client_key_passphrase):
+        ""#line:422:"""
+        O00OO0OOO0OO00OO0 .context =Security .SSLCreateContext (None ,SecurityConst .kSSLClientSide ,SecurityConst .kSSLStreamType )#line:427:)
+        O00O0O0O00OOO0OO0 =Security .SSLSetIOFuncs (O00OO0OOO0OO00OO0 .context ,_O0O0O0OO0O0OO0000 ,_OO000O00OO0OOOO00 )#line:430:)
+        _assert_no_error (O00O0O0O00OOO0OO0 )#line:431:_assert_no_error(result)
+        with _O0O0O0O0O00OOO00O :#line:436:with _connection_ref_lock:
+            O0OOOOO00OO0OOOOO =id (O00OO0OOO0OO00OO0 )%2147483647 #line:437:handle = id(self) % 2147483647
+            while O0OOOOO00OO0OOOOO in _OOO0OO00OO0OOOOOO :#line:438:while handle in _connection_refs:
+                O0OOOOO00OO0OOOOO =(O0OOOOO00OO0OOOOO +1 )%2147483647 #line:439:handle = (handle + 1) % 2147483647
+            _OOO0OO00OO0OOOOOO [O0OOOOO00OO0OOOOO ]=O00OO0OOO0OO00OO0 #line:440:_connection_refs[handle] = self
+        O00O0O0O00OOO0OO0 =Security .SSLSetConnection (O00OO0OOO0OO00OO0 .context ,O0OOOOO00OO0OOOOO )#line:442:result = Security.SSLSetConnection(self.context, handle)
+        _assert_no_error (O00O0O0O00OOO0OO0 )#line:443:_assert_no_error(result)
+        if OOO0OO0O00O000O00 :#line:446:if server_hostname:
+            if not isinstance (OOO0OO0O00O000O00 ,bytes ):#line:447:if not isinstance(server_hostname, bytes):
+                OOO0OO0O00O000O00 =OOO0OO0O00O000O00 .encode ('utf-8')#line:448:server_hostname = server_hostname.encode('utf-8')
+            O00O0O0O00OOO0OO0 =Security .SSLSetPeerDomainName (O00OO0OOO0OO00OO0 .context ,OOO0OO0O00O000O00 ,len (OOO0OO0O00O000O00 ))#line:452:)
+            _assert_no_error (O00O0O0O00OOO0OO0 )#line:453:_assert_no_error(result)
+        O00OO0OOO0OO00OO0 ._set_ciphers ()#line:456:self._set_ciphers()
+        O00O0O0O00OOO0OO0 =Security .SSLSetProtocolVersionMin (O00OO0OOO0OO00OO0 .context ,OOOOOOOO0O0O0O0O0 )#line:459:result = Security.SSLSetProtocolVersionMin(self.context, min_version)
+        _assert_no_error (O00O0O0O00OOO0OO0 )#line:460:_assert_no_error(result)
+        O00O0O0O00OOO0OO0 =Security .SSLSetProtocolVersionMax (O00OO0OOO0OO00OO0 .context ,OO0OO000OOO0O0000 )#line:461:result = Security.SSLSetProtocolVersionMax(self.context, max_version)
+        _assert_no_error (O00O0O0O00OOO0OO0 )#line:462:_assert_no_error(result)
+        if not O0O00O0000O0O0000 or O0O000OO0OOOO00OO is not None :#line:468:if not verify or trust_bundle is not None:
+            O00O0O0O00OOO0OO0 =Security .SSLSetSessionOption (O00OO0OOO0OO00OO0 .context ,SecurityConst .kSSLSessionOptionBreakOnServerAuth ,True )#line:473:)
+            _assert_no_error (O00O0O0O00OOO0OO0 )#line:474:_assert_no_error(result)
+        if OOOO00O00OO000O00 :#line:477:if client_cert:
+            O00OO0OOO0OO00OO0 ._keychain ,O00OO0OOO0OO00OO0 ._keychain_dir =_temporary_keychain ()#line:478:self._keychain, self._keychain_dir = _temporary_keychain()
+            O00OO0OOO0OO00OO0 ._client_cert_chain =_load_client_cert_chain (O00OO0OOO0OO00OO0 ._keychain ,OOOO00O00OO000O00 ,O0OOOO00O0O000O00 )#line:481:)
+            O00O0O0O00OOO0OO0 =Security .SSLSetCertificate (O00OO0OOO0OO00OO0 .context ,O00OO0OOO0OO00OO0 ._client_cert_chain )#line:484:)
+            _assert_no_error (O00O0O0O00OOO0OO0 )#line:485:_assert_no_error(result)
+        while True :#line:487:while True:
+            with O00OO0OOO0OO00OO0 ._raise_on_error ():#line:488:with self._raise_on_error():
+                O00O0O0O00OOO0OO0 =Security .SSLHandshake (O00OO0OOO0OO00OO0 .context )#line:489:result = Security.SSLHandshake(self.context)
+                if O00O0O0O00OOO0OO0 ==SecurityConst .errSSLWouldBlock :#line:491:if result == SecurityConst.errSSLWouldBlock:
+                    raise socket .timeout ("handshake timed out")#line:492:raise socket.timeout("handshake timed out")
+                elif O00O0O0O00OOO0OO0 ==SecurityConst .errSSLServerAuthCompleted :#line:493:elif result == SecurityConst.errSSLServerAuthCompleted:
+                    O00OO0OOO0OO00OO0 ._custom_validate (O0O00O0000O0O0000 ,O0O000OO0OOOO00OO )#line:494:self._custom_validate(verify, trust_bundle)
+                    continue #line:495:continue
+                else :#line:496:else:
+                    _assert_no_error (O00O0O0O00OOO0OO0 )#line:497:_assert_no_error(result)
+                    break #line:498:break
+    def fileno (OOOO00O000O00OOO0 ):#line:500:def fileno(self):
+        return OOOO00O000O00OOO0 .socket .fileno ()#line:501:return self.socket.fileno()
+    def _decref_socketios (O00O0OO0000OOO00O ):#line:504:def _decref_socketios(self):
+        if O00O0OO0000OOO00O ._makefile_refs >0 :#line:505:if self._makefile_refs > 0:
+            O00O0OO0000OOO00O ._makefile_refs -=1 #line:506:self._makefile_refs -= 1
+        if O00O0OO0000OOO00O ._closed :#line:507:if self._closed:
+            O00O0OO0000OOO00O .close ()#line:508:self.close()
+    def recv (OO00OOO0O0OOO0OOO ,OO0000OO000OO00OO ):#line:510:def recv(self, bufsiz):
+        OO00000000O0000O0 =ctypes .create_string_buffer (OO0000OO000OO00OO )#line:511:buffer = ctypes.create_string_buffer(bufsiz)
+        OOO0O0O000O000OOO =OO00OOO0O0OOO0OOO .recv_into (OO00000000O0000O0 ,OO0000OO000OO00OO )#line:512:bytes_read = self.recv_into(buffer, bufsiz)
+        OOOOOO000OOO00O00 =OO00000000O0000O0 [:OOO0O0O000O000OOO ]#line:513:data = buffer[:bytes_read]
+        return OOOOOO000OOO00O00 #line:514:return data
+    def recv_into (OOO0O0O0OOO0O00O0 ,O000O0OOOO00000O0 ,nbytes =None ):#line:516:def recv_into(self, buffer, nbytes=None):
+        if OOO0O0O0OOO0O00O0 ._closed :#line:518:if self._closed:
+            return 0 #line:519:return 0
+        if nbytes is None :#line:521:if nbytes is None:
+            nbytes =len (O000O0OOOO00000O0 )#line:522:nbytes = len(buffer)
+        O000O0OOOO00000O0 =(ctypes .c_char *nbytes ).from_buffer (O000O0OOOO00000O0 )#line:524:buffer = (ctypes.c_char * nbytes).from_buffer(buffer)
+        O0000OOOO0O0000OO =ctypes .c_size_t (0 )#line:525:processed_bytes = ctypes.c_size_t(0)
+        with OOO0O0O0OOO0O00O0 ._raise_on_error ():#line:527:with self._raise_on_error():
+            O0OO00O0000OO0O00 =Security .SSLRead (OOO0O0O0OOO0O00O0 .context ,O000O0OOOO00000O0 ,nbytes ,ctypes .byref (O0000OOOO0O0000OO ))#line:530:)
+        if (O0OO00O0000OO0O00 ==SecurityConst .errSSLWouldBlock ):#line:535:if (result == SecurityConst.errSSLWouldBlock):
+            if O0000OOOO0O0000OO .value ==0 :#line:540:if processed_bytes.value == 0:
+                raise socket .timeout ("recv timed out")#line:542:raise socket.timeout("recv timed out")
+        elif O0OO00O0000OO0O00 in (SecurityConst .errSSLClosedGraceful ,SecurityConst .errSSLClosedNoNotify ):#line:543:elif result in (SecurityConst.errSSLClosedGraceful, SecurityConst.errSSLClosedNoNotify):
+            OOO0O0O0OOO0O00O0 .close ()#line:548:self.close()
+        else :#line:549:else:
+            _assert_no_error (O0OO00O0000OO0O00 )#line:550:_assert_no_error(result)
+        return O0000OOOO0O0000OO .value #line:554:return processed_bytes.value
+    def settimeout (OO00O0OOOO0O00OO0 ,OO0O0OOO000O00O00 ):#line:556:def settimeout(self, timeout):
+        OO00O0OOOO0O00OO0 ._timeout =OO0O0OOO000O00O00 #line:557:self._timeout = timeout
+    def gettimeout (O00OO000OOOO0O0OO ):#line:559:def gettimeout(self):
+        return O00OO000OOOO0O0OO ._timeout #line:560:return self._timeout
+    def send (OO00O00O0OOO0O00O ,O0OOOO0000O0O0000 ):#line:562:def send(self, data):
+        OOOO0O0O0O00OOO00 =ctypes .c_size_t (0 )#line:563:processed_bytes = ctypes.c_size_t(0)
+        with OO00O00O0OOO0O00O ._raise_on_error ():#line:565:with self._raise_on_error():
+            OO00O0O0OO00O0000 =Security .SSLWrite (OO00O00O0OOO0O00O .context ,O0OOOO0000O0O0000 ,len (O0OOOO0000O0O0000 ),ctypes .byref (OOOO0O0O0O00OOO00 ))#line:568:)
+        if OO00O0O0OO00O0000 ==SecurityConst .errSSLWouldBlock and OOOO0O0O0O00OOO00 .value ==0 :#line:570:if result == SecurityConst.errSSLWouldBlock and processed_bytes.value == 0:
+            raise socket .timeout ("send timed out")#line:572:raise socket.timeout("send timed out")
+        else :#line:573:else:
+            _assert_no_error (OO00O0O0OO00O0000 )#line:574:_assert_no_error(result)
+        return OOOO0O0O0O00OOO00 .value #line:577:return processed_bytes.value
+    def sendall (OOOOOO00OO000O0O0 ,OO00O0O00OOO00OOO ):#line:579:def sendall(self, data):
+        O0O0OO0OOO0O0OO00 =0 #line:580:total_sent = 0
+        while O0O0OO0OOO0O0OO00 <len (OO00O0O00OOO00OOO ):#line:581:while total_sent < len(data):
+            OOO0OO00O00O0OOO0 =OOOOOO00OO000O0O0 .send (OO00O0O00OOO00OOO [O0O0OO0OOO0O0OO00 :O0O0OO0OOO0O0OO00 +OOOO00OO0OOO000OO ])#line:582:sent = self.send(data[total_sent:total_sent + SSL_WRITE_BLOCKSIZE])
+            O0O0OO0OOO0O0OO00 +=OOO0OO00O00O0OOO0 #line:583:total_sent += sent
+    def shutdown (O0O0000OO000OO0O0 ):#line:585:def shutdown(self):
+        with O0O0000OO000OO0O0 ._raise_on_error ():#line:586:with self._raise_on_error():
+            Security .SSLClose (O0O0000OO000OO0O0 .context )#line:587:Security.SSLClose(self.context)
+    def close (OO0O0O0O0O00O000O ):#line:589:def close(self):
+        if OO0O0O0O0O00O000O ._makefile_refs <1 :#line:591:if self._makefile_refs < 1:
+            OO0O0O0O0O00O000O ._closed =True #line:592:self._closed = True
+            if OO0O0O0O0O00O000O .context :#line:593:if self.context:
+                CoreFoundation .CFRelease (OO0O0O0O0O00O000O .context )#line:594:CoreFoundation.CFRelease(self.context)
+                OO0O0O0O0O00O000O .context =None #line:595:self.context = None
+            if OO0O0O0O0O00O000O ._client_cert_chain :#line:596:if self._client_cert_chain:
+                CoreFoundation .CFRelease (OO0O0O0O0O00O000O ._client_cert_chain )#line:597:CoreFoundation.CFRelease(self._client_cert_chain)
+                OO0O0O0O0O00O000O ._client_cert_chain =None #line:598:self._client_cert_chain = None
+            if OO0O0O0O0O00O000O ._keychain :#line:599:if self._keychain:
+                Security .SecKeychainDelete (OO0O0O0O0O00O000O ._keychain )#line:600:Security.SecKeychainDelete(self._keychain)
+                CoreFoundation .CFRelease (OO0O0O0O0O00O000O ._keychain )#line:601:CoreFoundation.CFRelease(self._keychain)
+                shutil .rmtree (OO0O0O0O0O00O000O ._keychain_dir )#line:602:shutil.rmtree(self._keychain_dir)
+                OO0O0O0O0O00O000O ._keychain =OO0O0O0O0O00O000O ._keychain_dir =None #line:603:self._keychain = self._keychain_dir = None
+            return OO0O0O0O0O00O000O .socket .close ()#line:604:return self.socket.close()
+        else :#line:605:else:
+            OO0O0O0O0O00O000O ._makefile_refs -=1 #line:606:self._makefile_refs -= 1
+    def getpeercert (O00O0OOOOOOOOOOO0 ,binary_form =False ):#line:608:def getpeercert(self, binary_form=False):
+        if not binary_form :#line:628:if not binary_form:
+            raise ValueError ("SecureTransport only supports dumping binary certs")#line:631:)
+        O0O0OO0O0000O00O0 =Security .SecTrustRef ()#line:632:trust = Security.SecTrustRef()
+        O000000O0O0O00O0O =None #line:633:certdata = None
+        O0O000O0OOOOO00OO =None #line:634:der_bytes = None
+        try :#line:636:try:
+            O0OOOOOOOO0000O0O =Security .SSLCopyPeerTrust (O00O0OOOOOOOOOOO0 .context ,ctypes .byref (O0O0OO0O0000O00O0 ))#line:640:)
+            _assert_no_error (O0OOOOOOOO0000O0O )#line:641:_assert_no_error(result)
+            if not O0O0OO0O0000O00O0 :#line:642:if not trust:
+                return None #line:644:return None
+            O0OOO00OOO00O0O00 =Security .SecTrustGetCertificateCount (O0O0OO0O0000O00O0 )#line:646:cert_count = Security.SecTrustGetCertificateCount(trust)
+            if not O0OOO00OOO00O0O00 :#line:647:if not cert_count:
+                return None #line:650:return None
+            O0O000OOOOOOO00O0 =Security .SecTrustGetCertificateAtIndex (O0O0OO0O0000O00O0 ,0 )#line:652:leaf = Security.SecTrustGetCertificateAtIndex(trust, 0)
+            assert O0O000OOOOOOO00O0 #line:653:assert leaf
+            O000000O0O0O00O0O =Security .SecCertificateCopyData (O0O000OOOOOOO00O0 )#line:656:certdata = Security.SecCertificateCopyData(leaf)
+            assert O000000O0O0O00O0O #line:657:assert certdata
+            O0OO0OO0O00O00000 =CoreFoundation .CFDataGetLength (O000000O0O0O00O0O )#line:659:data_length = CoreFoundation.CFDataGetLength(certdata)
+            O0O000O0OO0O0O00O =CoreFoundation .CFDataGetBytePtr (O000000O0O0O00O0O )#line:660:data_buffer = CoreFoundation.CFDataGetBytePtr(certdata)
+            O0O000O0OOOOO00OO =ctypes .string_at (O0O000O0OO0O0O00O ,O0OO0OO0O00O00000 )#line:661:der_bytes = ctypes.string_at(data_buffer, data_length)
+        finally :#line:662:finally:
+            if O000000O0O0O00O0O :#line:663:if certdata:
+                CoreFoundation .CFRelease (O000000O0O0O00O0O )#line:664:CoreFoundation.CFRelease(certdata)
+            if O0O0OO0O0000O00O0 :#line:665:if trust:
+                CoreFoundation .CFRelease (O0O0OO0O0000O00O0 )#line:666:CoreFoundation.CFRelease(trust)
+        return O0O000O0OOOOO00OO #line:668:return der_bytes
+    def _reuse (OO0OO0000O000OO0O ):#line:670:def _reuse(self):
+        OO0OO0000O000OO0O ._makefile_refs +=1 #line:671:self._makefile_refs += 1
+    def _drop (OOO00O0O0O0O0O00O ):#line:673:def _drop(self):
+        if OOO00O0O0O0O0O00O ._makefile_refs <1 :#line:674:if self._makefile_refs < 1:
+            OOO00O0O0O0O0O00O .close ()#line:675:self.close()
+        else :#line:676:else:
+            OOO00O0O0O0O0O00O ._makefile_refs -=1 #line:677:self._makefile_refs -= 1
+if _fileobject :#line:680:if _fileobject:  # Platform-specific: Python 2
+    def OO0000OO0OO0O0O0O (O00000O0O000O00OO ,O0OOOO0OOO00OOOOO ,bufsize =-1 ):#line:681:def makefile(self, mode, bufsize=-1):
+        O00000O0O000O00OO ._makefile_refs +=1 #line:682:self._makefile_refs += 1
+        return _fileobject (O00000O0O000O00OO ,O0OOOO0OOO00OOOOO ,bufsize ,close =True )#line:683:return _fileobject(self, mode, bufsize, close=True)
+else :#line:684:else:  # Platform-specific: Python 3
+    def OO0000OO0OO0O0O0O (O0O00O0O000O00O0O ,mode ="r",buffering =None ,*O0O0OOOOO0O00OO00 ,**O0000O0O00000000O ):#line:685:def makefile(self, mode="r", buffering=None, *args, **kwargs):
+        buffering =0 #line:688:buffering = 0
+        return backport_makefile (O0O00O0O000O00O0O ,mode ,buffering ,*O0O0OOOOO0O00OO00 ,**O0000O0O00000000O )#line:689:return backport_makefile(self, mode, buffering, *args, **kwargs)
+OOO0O000OO0O000O0 .makefile =OO0000OO0OO0O0O0O #line:691:WrappedSocket.makefile = makefile
+class OOO00O0O0O000OO00 (object ):#line:694:class SecureTransportContext(object):
+    ""#line:699:"""
+    def __init__ (O0O00OO0OOO0O00O0 ,OO00OOOO0O00OOO00 ):#line:700:def __init__(self, protocol):
+        O0O00OO0OOO0O00O0 ._min_version ,O0O00OO0OOO0O00O0 ._max_version =_OOOO000O0000O0O0O [OO00OOOO0O00OOO00 ]#line:701:self._min_version, self._max_version = _protocol_to_min_max[protocol]
+        O0O00OO0OOO0O00O0 ._options =0 #line:702:self._options = 0
+        O0O00OO0OOO0O00O0 ._verify =False #line:703:self._verify = False
+        O0O00OO0OOO0O00O0 ._trust_bundle =None #line:704:self._trust_bundle = None
+        O0O00OO0OOO0O00O0 ._client_cert =None #line:705:self._client_cert = None
+        O0O00OO0OOO0O00O0 ._client_key =None #line:706:self._client_key = None
+        O0O00OO0OOO0O00O0 ._client_key_passphrase =None #line:707:self._client_key_passphrase = None
+    @property #line:709:@property
+    def check_hostname (O0000000OOO0O000O ):#line:710:def check_hostname(self):
+        ""#line:714:"""
+        return True #line:715:return True
+    @check_hostname .setter #line:717:@check_hostname.setter
+    def check_hostname (OO00OOO00000O0O0O ,OO0OO00000O0OOO00 ):#line:718:def check_hostname(self, value):
+        ""#line:722:"""
+        pass #line:723:pass
+    @property #line:725:@property
+    def options (OO0O0OOOOOO00000O ):#line:726:def options(self):
+        return OO0O0OOOOOO00000O ._options #line:733:return self._options
+    @options .setter #line:735:@options.setter
+    def options (O000O0OO00O00O0O0 ,O00OO0O0OO0O0O00O ):#line:736:def options(self, value):
+        O000O0OO00O00O0O0 ._options =O00OO0O0OO0O0O00O #line:738:self._options = value
+    @property #line:740:@property
+    def verify_mode (OO000OO000OOO0O00 ):#line:741:def verify_mode(self):
+        return ssl .CERT_REQUIRED if OO000OO000OOO0O00 ._verify else ssl .CERT_NONE #line:742:return ssl.CERT_REQUIRED if self._verify else ssl.CERT_NONE
+    @verify_mode .setter #line:744:@verify_mode.setter
+    def verify_mode (O000OO0OOOOO0OO0O ,O0O000O00O00OO00O ):#line:745:def verify_mode(self, value):
+        O000OO0OOOOO0OO0O ._verify =True if O0O000O00O00OO00O ==ssl .CERT_REQUIRED else False #line:746:self._verify = True if value == ssl.CERT_REQUIRED else False
+    def set_default_verify_paths (O000OO0OOOOOOOOOO ):#line:748:def set_default_verify_paths(self):
+        pass #line:758:pass
+    def load_default_certs (O0O00OOO0O000OO0O ):#line:760:def load_default_certs(self):
+        return O0O00OOO0O000OO0O .set_default_verify_paths ()#line:761:return self.set_default_verify_paths()
+    def set_ciphers (OOO000OOOOOOO000O ,O00OO0O0OOOO0OO00 ):#line:763:def set_ciphers(self, ciphers):
+        if O00OO0O0OOOO0OO00 !=util .ssl_ .DEFAULT_CIPHERS :#line:765:if ciphers != util.ssl_.DEFAULT_CIPHERS:
+            raise ValueError ("SecureTransport doesn't support custom cipher strings")#line:768:)
+    def load_verify_locations (O0O0000O0O0O00OO0 ,cafile =None ,capath =None ,cadata =None ):#line:770:def load_verify_locations(self, cafile=None, capath=None, cadata=None):
+        if capath is not None :#line:772:if capath is not None:
+            raise ValueError ("SecureTransport does not support cert directories")#line:775:)
+        O0O0000O0O0O00OO0 ._trust_bundle =cafile or cadata #line:777:self._trust_bundle = cafile or cadata
+    def load_cert_chain (O0O00OOO000OO0O00 ,OOO0OOO0O000O00O0 ,keyfile =None ,password =None ):#line:779:def load_cert_chain(self, certfile, keyfile=None, password=None):
+        O0O00OOO000OO0O00 ._client_cert =OOO0OOO0O000O00O0 #line:780:self._client_cert = certfile
+        O0O00OOO000OO0O00 ._client_key =keyfile #line:781:self._client_key = keyfile
+        O0O00OOO000OO0O00 ._client_cert_passphrase =password #line:782:self._client_cert_passphrase = password
+    def wrap_socket (OOO0000OO0O0O0O0O ,O0O00OO0O00OO00OO ,server_side =False ,do_handshake_on_connect =True ,suppress_ragged_eofs =True ,server_hostname =None ):#line:786:server_hostname=None):
+        assert not server_side #line:790:assert not server_side
+        assert do_handshake_on_connect #line:791:assert do_handshake_on_connect
+        assert suppress_ragged_eofs #line:792:assert suppress_ragged_eofs
+        OOO0O0OO0OO000000 =OOO0O000OO0O000O0 (O0O00OO0O00OO00OO )#line:796:wrapped_socket = WrappedSocket(sock)
+        OOO0O0OO0OO000000 .handshake (server_hostname ,OOO0000OO0O0O0O0O ._verify ,OOO0000OO0O0O0O0O ._trust_bundle ,OOO0000OO0O0O0O0O ._min_version ,OOO0000OO0O0O0O0O ._max_version ,OOO0000OO0O0O0O0O ._client_cert ,OOO0000OO0O0O0O0O ._client_key ,OOO0000OO0O0O0O0O ._client_key_passphrase )#line:803:)
+        return OOO0O0OO0OO000000 #line:804:return wrapped_socket

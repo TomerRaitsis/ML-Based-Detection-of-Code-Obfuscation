@@ -1,0 +1,105 @@
+import requests #line:1
+import streamlit as st #line:2
+from get_geolocation .geolocation import GeolocationModel #line:3
+from weather_forecast .forecast import WeatherForecast #line:4
+import matplotlib .pyplot as plt #line:5
+class SkyCast :#line:8
+    def __init__ (OO0000O0O0O0O0OO0 ):#line:9
+        OO0000O0O0O0O0OO0 .geolocation_model =GeolocationModel ()#line:10
+        OO0000O0O0O0O0OO0 .api_key ="your_api_key_here"#line:11
+        OO0000O0O0O0O0OO0 .base_url ="https://api.weatherbit.io/v2.0/current"#line:12
+        OO0000O0O0O0O0OO0 .weather_option ="Today's Weather"#line:13
+    def title (OOOOOOO0OOO0O0O00 ):#line:15
+        st .markdown ('<div style="border: 1px solid #ccc; padding: 20px; border-radius: 10px;">' '<h1 style="text-align: center; color: #0080FF;">SkyCast 🌤️</h1>' "</div>",unsafe_allow_html =True ,)#line:21
+    def input (OOOO00000O0O0OO0O ):#line:23
+        st .sidebar .title ("Weather Options")#line:24
+        OOOO00000O0O0OO0O .weather_option =st .sidebar .radio ("Choose Weather Option",options =["Today's Weather","Forecast Weather"],key ="weather_option",)#line:29
+        if OOOO00000O0O0OO0O .weather_option =="Today's Weather":#line:31
+            OOOO00000O0O0OO0O .display_today_weather ()#line:32
+        else :#line:33
+            OOOO00000O0O0OO0O .display_forecast_weather ()#line:34
+    def display_today_weather (OO0O0000000000O00 ):#line:36
+        OO000O00O0OO0O000 ,OO00OO0O000000OOO =None ,None #line:37
+        OOOO0OOO00OOOO00O =st .sidebar .text_input ("Enter City Name",key ="city_name")#line:39
+        if st .sidebar .button ("Submit"):#line:40
+            OO000O00O0OO0O000 ,OO00OO0O000000OOO =OO0O0000000000O00 .geolocation_model .get_location_by_name (OOOO0OOO00OOOO00O )#line:41
+        else :#line:42
+            return #line:44
+        st .markdown (f"<h2 style='text-align: center;'>Today's Weather</h2>",unsafe_allow_html =True ,)#line:49
+        if OO000O00O0OO0O000 is not None and OO00OO0O000000OOO is not None :#line:51
+            OOOOOOO0OOO00O000 =OO0O0000000000O00 .get_weather_data (OO000O00O0OO0O000 ,OO00OO0O000000OOO )#line:53
+            if OOOOOOO0OOO00O000 is not None :#line:54
+                O00OOO0O00O0OO000 =OOOOOOO0OOO00O000 ["data"][0 ]#line:55
+                O0O0000O0O0O00000 =O00OOO0O00O0OO000 ["datetime"]#line:58
+                O0O0000O0O0O00000 =O0O0000O0O0O00000 [:-3 ]#line:59
+                st .markdown (f'<h3 style="text-align: center;">{O00OOO0O00O0OO000["city_name"]}, {O00OOO0O00O0OO000["country_code"]}: {O0O0000O0O0O00000}</h3>',unsafe_allow_html =True ,)#line:64
+                OO00OO0OO0OO0O0O0 ,O0O0000O000O0O0O0 =st .columns (2 )#line:67
+                with OO00OO0OO0OO0O0O0 :#line:69
+                    st .markdown (f'Temperature: {O00OOO0O00O0OO000["temp"]}°C')#line:70
+                    st .markdown (f'Wind Speed: {O00OOO0O00O0OO000["wind_spd"]} m/s')#line:71
+                    st .markdown (f'Cloud Coverage: {O00OOO0O00O0OO000["clouds"]}%')#line:72
+                    st .markdown (f'Visibility: {O00OOO0O00O0OO000["vis"]} km')#line:73
+                with O0O0000O000O0O0O0 :#line:75
+                    st .markdown (f'Weather Description: {O00OOO0O00O0OO000["weather"]["description"]}')#line:78
+                    st .markdown (f'Wind Direction: {O00OOO0O00O0OO000["wind_cdir_full"]}')#line:79
+                    st .markdown (f'UV Index: {O00OOO0O00O0OO000["uv"]}')#line:80
+                    st .markdown (f'Dew Point: {O00OOO0O00O0OO000["dewpt"]}°C')#line:81
+            else :#line:83
+                st .write ("Location not found.")#line:84
+    def display_forecast_weather (O0O0O00OO0OO0OOOO ):#line:86
+        OO0OOOO0O0O0O0O0O ,O0O0O00OO0000OOOO =None ,None #line:87
+        O00O0OOOO00O00OOO =st .sidebar .text_input ("Enter City Name",key ="city_name")#line:89
+        O0OO0OO00O0OO0O00 =st .sidebar .number_input ("How Many days do you want to Forecast",key ="days",value =1 ,min_value =1 ,step =1 ,format ="%d",)#line:97
+        if st .sidebar .button ("Submit"):#line:99
+            OO0OOOO0O0O0O0O0O ,O0O0O00OO0000OOOO =O0O0O00OO0OO0OOOO .geolocation_model .get_location_by_name (O00O0OOOO00O00OOO )#line:100
+        else :#line:101
+            return #line:103
+        st .markdown (f"<h2 style='text-align: center;'>Forecast Weather</h2>",unsafe_allow_html =True ,)#line:107
+        if OO0OOOO0O0O0O0O0O is not None and O0O0O00OO0000OOOO is not None :#line:109
+            OOO0O0O00OO0OO000 =WeatherForecast (OO0OOOO0O0O0O0O0O ,O0O0O00OO0000OOOO ,O0O0O00OO0OO0OOOO .api_key ,O0OO0OO00O0OO0O00 )#line:111
+            O0O0O00000O0OOO0O =OOO0O0O00OO0OO000 .get_weather_forecast ()#line:114
+            for O0O000O00000OOOO0 in range (len (O0O0O00000O0OOO0O )):#line:117
+                st .markdown (f'<h3 style="text-align: center;">{O0O0O00000O0OOO0O["date"][O0O000O00000OOOO0]}</h3>',unsafe_allow_html =True ,)#line:121
+                O000O0OO00O0OOO00 ,O00O0OOO0OOO00OO0 =st .columns (2 )#line:123
+                with O000O0OO00O0OOO00 :#line:125
+                    st .markdown (f'Temperature: {O0O0O00000O0OOO0O["temperature"][O0O000O00000OOOO0]}°C')#line:126
+                    st .markdown (f'Wind Speed: {O0O0O00000O0OOO0O["wind_speed"][O0O000O00000OOOO0]} m/s')#line:127
+                    st .markdown (f'Cloud Coverage: {O0O0O00000O0OOO0O["cloud_coverage"][O0O000O00000OOOO0]}%')#line:128
+                    st .markdown (f'Visibility: {O0O0O00000O0OOO0O["visibility"][O0O000O00000OOOO0]} km')#line:129
+                with O00O0OOO0OOO00OO0 :#line:131
+                    st .markdown (f'Weather Description: {O0O0O00000O0OOO0O["weather_description"][O0O000O00000OOOO0]}')#line:134
+                    st .markdown (f'Wind Direction: {O0O0O00000O0OOO0O["wind_direction"][O0O000O00000OOOO0]}')#line:135
+                    st .markdown (f'UV Index: {O0O0O00000O0OOO0O["uv_index"][O0O000O00000OOOO0]}')#line:136
+                    st .markdown (f'Dew Point: {O0O0O00000O0OOO0O["dew_point"][O0O000O00000OOOO0]}°C')#line:137
+            OOO0O0OOOOOOOO0OO =O0O0O00000O0OOO0O ["temperature"]#line:139
+            O00OOOOO000OOO000 =O0O0O00000O0OOO0O ["min_temp"]#line:140
+            O0000OO00OO0O0O0O =O0O0O00000O0OOO0O ["max_temp"]#line:141
+            O0OO0OO00OOO0OO00 =O0O0O00000O0OOO0O ["date"]#line:142
+            st .set_option ("deprecation.showPyplotGlobalUse",False )#line:144
+            plt .figure (figsize =(10 ,6 ))#line:145
+            plt .plot (O0OO0OO00OOO0OO00 ,OOO0O0OOOOOOOO0OO ,label ="Temperature",marker ="o",linestyle ="-",color ="blue")#line:150
+            plt .plot (O0OO0OO00OOO0OO00 ,O00OOOOO000OOO000 ,label ="Min Temperature",marker ="o",linestyle ="-",color ="green",)#line:160
+            plt .plot (O0OO0OO00OOO0OO00 ,O0000OO00OO0O0O0O ,label ="Max Temperature",marker ="o",linestyle ="-",color ="red",)#line:170
+            plt .xlabel ("Date")#line:173
+            plt .ylabel ("Temperature (°C)")#line:174
+            plt .title ("Temperature Forecast")#line:175
+            plt .legend ()#line:178
+            st .pyplot ()#line:181
+        else :#line:183
+            st .write ("Location not found.")#line:184
+    def get_weather_data (O000000OO0OOO00O0 ,OOO00OO00OOOO00OO ,O000O000O0000OOO0 ):#line:186
+        OOOO0000O000O000O ={"lat":OOO00OO00OOOO00OO ,"lon":O000O000O0000OOO0 ,"key":O000000OO0OOO00O0 .api_key ,"include":"minutely",}#line:192
+        try :#line:193
+            OO0O0OO0OOOOO0OO0 =requests .get (O000000OO0OOO00O0 .base_url ,params =OOOO0000O000O000O )#line:194
+            if OO0O0OO0OOOOO0OO0 .status_code ==200 :#line:195
+                OO0OOOOO00O00OO0O =OO0O0OO0OOOOO0OO0 .json ()#line:196
+                return OO0OOOOO00O00OO0O #line:197
+            else :#line:198
+                st .write (f"Error: {OO0O0OO0OOOOO0OO0.status_code} - {OO0O0OO0OOOOO0OO0.text}")#line:199
+                return None #line:200
+        except requests .exceptions .RequestException as O00O000000O0O00O0 :#line:201
+            st .write (f"Error: {O00O000000O0O00O0}")#line:202
+            return None #line:203
+weather_forecast =SkyCast ()#line:207
+weather_forecast .title ()#line:210
+weather_forecast .input ()#line:211

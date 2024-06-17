@@ -1,0 +1,492 @@
+import pygame ,sys ,time #line:2:import pygame, sys, time
+from pygame .locals import *#line:3:from pygame.locals import *
+pygame .init ()#line:6:pygame.init()
+win =pygame .display .set_mode ((1000 ,500 ))#line:7:win = pygame.display.set_mode((1000, 500))
+pygame .display .set_caption ("")#line:8:pygame.display.set_caption("")
+xImg =pygame .transform .scale (pygame .image .load ("X.png"),(100 ,100 ))#line:12:xImg = pygame.transform.scale(pygame.image.load("X.png"), (100, 100))
+oImg =pygame .transform .scale (pygame .image .load ("O.jpg"),(100 ,100 ))#line:13:oImg = pygame.transform.scale(pygame.image.load("O.jpg"), (100, 100))
+clock =pygame .time .Clock ()#line:14:clock = pygame.time.Clock()
+font =pygame .font .SysFont ("comicsans",30 ,1 ,1 )#line:15:font = pygame.font.SysFont("comicsans", 30, 1, 1)
+text1 =font .render ("Make your entry",1 ,"BLUE")#line:16:text1 = font.render("Make your entry", 1, "BLUE")
+text2 =font .render ("Invalid  entry",1 ,"BLUE")#line:17:text2 = font.render("Invalid  entry", 1, "BLUE")
+text3 =font .render ("Entry already exists",1 ,"BLUE")#line:18:text3 = font.render("Entry already exists", 1, "BLUE")
+text4 =font .render ("You won",1 ,"BLUE")#line:19:text4 = font.render("You won", 1, "BLUE")
+text5 =font .render ("Comp has won",1 ,"BLUE")#line:20:text5 = font.render("Comp has won", 1, "BLUE")
+text6 =font .render ("The game has been a tie",1 ,"BLUE")#line:21:text6 = font.render("The game has been a tie", 1, "BLUE")
+fps =10 #line:23:fps = 10
+gameStage =1 #line:24:gameStage = 1
+run =True #line:25:run = True
+r1 =["","",""]#line:26:r1 = ["", "", ""]
+r2 =["","",""]#line:27:r2 = ["", "", ""]
+r3 =["","",""]#line:28:r3 = ["", "", ""]
+r =[]#line:29:r = []
+run =True #line:31:run = True
+run1 =False #line:32:run1 = False
+boardDraw =False #line:33:boardDraw = False
+def reDrawWindow ():#line:37:def reDrawWindow():
+    win .fill ("WHITE")#line:38:win.fill("WHITE")
+    if gameStage ==1 :#line:39:if gameStage == 1:
+        firstFontDisplayer ()#line:40:firstFontDisplayer()
+    if gameStage ==2 :#line:41:if gameStage == 2:
+        secondFontDisplayer ()#line:42:secondFontDisplayer()
+    if boardDraw :#line:43:if boardDraw:
+        boardReDraw ()#line:44:boardReDraw()
+    if gameStage ==3 :#line:45:if gameStage == 3:
+        entryDisplayer ()#line:46:entryDisplayer()
+    pygame .display .update ()#line:48:pygame.display.update()
+def firstFontDisplayer ():#line:51:def firstFontDisplayer():
+    OO00O000OO0OO00O0 =pygame .font .SysFont ("comicsans",50 ,True )#line:52:font1 = pygame.font.SysFont("comicsans", 50, True)
+    OO00O0O0000O0O00O =OO00O000OO0OO00O0 .render ("Do you want to be ",True ,"RED")#line:53:text1 = font1.render("Do you want to be ", True, "RED")
+    OOO0OO00O0O0OO000 =OO00O000OO0OO00O0 .render ("X",True ,"RED")#line:54:text2 = font1.render("X", True, "RED")
+    OOO000OOOOO00000O =OO00O000OO0OO00O0 .render ("O",True ,"RED")#line:55:text3 = font1.render("O", True, "RED")
+    pygame .draw .rect (win ,"GREEN",(100 ,150 ,360 ,40 ))#line:56:pygame.draw.rect(win, "GREEN", (100, 150, 360, 40))
+    pygame .draw .rect (win ,"GREEN",(198 ,250 ,30 ,30 ))#line:57:pygame.draw.rect(win, "GREEN", (198, 250, 30, 30))
+    pygame .draw .rect (win ,"GREEN",(198 ,300 ,30 ,30 ))#line:58:pygame.draw.rect(win, "GREEN", (198, 300, 30, 30))
+    win .blit (OO00O0O0000O0O00O ,(110 ,160 ))#line:59:win.blit(text1, (110, 160))
+    win .blit (OOO0OO00O0O0OO000 ,(200 ,250 ))#line:60:win.blit(text2, (200, 250))
+    win .blit (OOO000OOOOO00000O ,(200 ,300 ))#line:61:win.blit(text3, (200, 300))
+def cursorChecker (OOOOO0O0O0OOOO000 ,O00OOOO0OO0O00OO0 ):#line:64:def cursorChecker(a, b):
+    if (OOOOO0O0O0OOOO000 [0 ]>O00OOOO0OO0O00OO0 [0 ]and OOOOO0O0O0OOOO000 [0 ]<O00OOOO0OO0O00OO0 [0 ]+O00OOOO0OO0O00OO0 [2 ])and (OOOOO0O0O0OOOO000 [1 ]>O00OOOO0OO0O00OO0 [1 ]and OOOOO0O0O0OOOO000 [1 ]<O00OOOO0OO0O00OO0 [1 ]+O00OOOO0OO0O00OO0 [3 ]):#line:65:if (a[0] > b[0] and a[0] < b[0] + b[2]) and (a[1] > b[1] and a[1] < b[1] + b[3]):
+        return True #line:66:return True
+    else :#line:67:else:
+        return False #line:68:return False
+def secondFontDisplayer ():#line:71:def secondFontDisplayer():
+    OOOOO0O0O000OO000 =pygame .font .SysFont ("comicsans",30 ,True ,True )#line:72:font2 = pygame.font.SysFont("comicsans", 30, True, True)
+    OOOO0O00O0000OOO0 =OOOOO0O0O000OO000 .render ("YOU PLAY FIRST",True ,"BLUE")#line:73:text1 = font2.render("YOU PLAY FIRST", True, "BLUE")
+    OOO0O0O0O000OO0O0 =OOOOO0O0O000OO000 .render ("COMPUER WILL PLAY FIRST",True ,"BLUE")#line:74:text2 = font2.render("COMPUER WILL PLAY FIRST", True, "BLUE")
+    pygame .draw .rect (win ,"GRAY",(110 ,160 ,190 ,20 ))#line:75:pygame.draw.rect(win, "GRAY", (110, 160, 190, 20))
+    pygame .draw .rect (win ,"GRAY",(110 ,210 ,320 ,20 ))#line:76:pygame.draw.rect(win, "GRAY", (110, 210, 320, 20))
+    win .blit (OOOO0O00O0000OOO0 ,(110 ,160 ))#line:77:win.blit(text1, (110, 160))
+    win .blit (OOO0O0O0O000OO0O0 ,(110 ,210 ))#line:78:win.blit(text2, (110, 210))
+def boardReDraw ():#line:81:def boardReDraw():
+    pygame .draw .rect (win ,"ORANGE",(100 ,100 ,300 ,300 ))#line:82:pygame.draw.rect(win, "ORANGE", (100, 100, 300, 300))
+    for OO00OO00O0O0OO0OO in range (100 ,401 ,100 ):#line:83:for col in range(100, 401, 100):
+        pygame .draw .line (win ,"FUCHSIA",(OO00OO00O0O0OO0OO ,100 ),(OO00OO00O0O0OO0OO ,400 ),3 )#line:84:pygame.draw.line(win, "FUCHSIA", (col, 100), (col, 400), 3)
+    for OO000000OO00OOO0O in range (100 ,401 ,100 ):#line:85:for row in range(100, 401, 100):
+        pygame .draw .line (win ,"FUCHSIA",(100 ,OO000000OO00OOO0O ),(400 ,OO000000OO00OOO0O ),3 )#line:86:pygame.draw.line(win, "FUCHSIA", (100, row), (400, row), 3)
+def entryDisplayer ():#line:89:def entryDisplayer():
+    O0000000O000O00OO =100 #line:90:k = 100
+    for O00OO0OOOOOOOO00O in r1 :#line:91:for i in r1:
+        if O00OO0OOOOOOOO00O =="X":#line:92:if i == "X":
+            win .blit (xImg ,(O0000000O000O00OO ,100 ))#line:93:win.blit(xImg, (k, 100))
+        elif O00OO0OOOOOOOO00O =="O":#line:94:elif i == "O":
+            win .blit (oImg ,(O0000000O000O00OO ,100 ))#line:95:win.blit(oImg, (k, 100))
+        O0000000O000O00OO +=100 #line:96:k += 100
+    O0000000O000O00OO =100 #line:97:k = 100
+    for O00OO0OOOOOOOO00O in r2 :#line:98:for i in r2:
+        if O00OO0OOOOOOOO00O =="X":#line:99:if i == "X":
+            win .blit (xImg ,(O0000000O000O00OO ,200 ))#line:100:win.blit(xImg, (k, 200))
+        elif O00OO0OOOOOOOO00O =="O":#line:101:elif i == "O":
+            win .blit (oImg ,(O0000000O000O00OO ,200 ))#line:102:win.blit(oImg, (k, 200))
+        O0000000O000O00OO +=100 #line:103:k += 100
+    O0000000O000O00OO =100 #line:104:k = 100
+    for O00OO0OOOOOOOO00O in r3 :#line:105:for i in r3:
+        if O00OO0OOOOOOOO00O =="X":#line:106:if i == "X":
+            win .blit (xImg ,(O0000000O000O00OO ,300 ))#line:107:win.blit(xImg, (k, 300))
+        elif O00OO0OOOOOOOO00O =="O":#line:108:elif i == "O":
+            win .blit (oImg ,(O0000000O000O00OO ,300 ))#line:109:win.blit(oImg, (k, 300))
+        O0000000O000O00OO +=100 #line:110:k += 100
+    pygame .display .update ()#line:111:pygame.display.update()
+def gameCONCLUDER (OOOOO00OOO00OOO00 ):#line:114:def gameCONCLUDER(a):
+    if OOOOO00OOO00OOO00 ==1 :#line:115:if a == 1:
+        reDrawWindow ()#line:116:reDrawWindow()
+        win .blit (text4 ,(500 ,100 ))#line:117:win.blit(text4, (500, 100))
+        time .sleep (2 )#line:118:time.sleep(2)
+        pygame .quit ()#line:119:pygame.quit()
+        sys .exit ()#line:120:sys.exit()
+    elif OOOOO00OOO00OOO00 ==0 :#line:121:elif a == 0:
+        print ("got the call")#line:122:print("got the call")
+        reDrawWindow ()#line:123:reDrawWindow()
+        win .blit (text5 ,(500 ,100 ))#line:124:win.blit(text5, (500, 100))
+        pygame .display .update ()#line:125:pygame.display.update()
+        time .sleep (2 )#line:126:time.sleep(2)
+        pygame .quit ()#line:127:pygame.quit()
+        sys .exit ()#line:128:sys.exit()
+def tieChecker ():#line:131:def tieChecker():
+    reDrawWindow ()#line:132:reDrawWindow()
+    win .blit (text6 ,(500 ,100 ))#line:133:win.blit(text6, (500, 100))
+    pygame .display .update ()#line:134:pygame.display.update()
+    time .sleep (2 )#line:135:time.sleep(2)
+    pygame .quit ()#line:136:pygame.quit()
+    sys .exit ()#line:137:sys.exit()
+def player (O000OO0O0OO0OO000 ):#line:140:def player(a):
+    reDrawWindow ()#line:141:reDrawWindow()
+    if O000OO0O0OO0OO000 not in range (1 ,10 ):#line:142:if a not in range(1, 10):
+        print ("INVALID ENTRY")#line:143:print("INVALID ENTRY")
+        win .blit (text2 ,(450 ,100 ))#line:144:win.blit(text2, (450, 100))
+        pygame .display .update ()#line:145:pygame.display.update()
+        time .sleep (2 )#line:146:time.sleep(2)
+        return firstinitialiser ()#line:147:return firstinitialiser()
+    if O000OO0O0OO0OO000 in r :#line:148:if a in r:
+        print ("ENTRY ALREADY EXISTS")#line:149:print("ENTRY ALREADY EXISTS")
+        win .blit (text3 ,(450 ,100 ))#line:150:win.blit(text3, (450, 100))
+        pygame .display .update ()#line:151:pygame.display.update()
+        time .sleep (2 )#line:152:time.sleep(2)
+        return firstinitialiser ()#line:153:return firstinitialiser()
+    if O000OO0O0OO0OO000 ==1 and O000OO0O0OO0OO000 not in r :#line:154:if a == 1 and a not in r:
+        r1 [0 ]=m #line:155:r1[0] = m
+    elif O000OO0O0OO0OO000 ==2 and O000OO0O0OO0OO000 not in r :#line:156:elif a == 2 and a not in r:
+        r1 [1 ]=m #line:157:r1[1] = m
+    elif O000OO0O0OO0OO000 ==3 and O000OO0O0OO0OO000 not in r :#line:158:elif a == 3 and a not in r:
+        r1 [2 ]=m #line:159:r1[2] = m
+    elif O000OO0O0OO0OO000 ==4 and O000OO0O0OO0OO000 not in r :#line:160:elif a == 4 and a not in r:
+        r2 [0 ]=m #line:161:r2[0] = m
+    elif O000OO0O0OO0OO000 ==5 and O000OO0O0OO0OO000 not in r :#line:162:elif a == 5 and a not in r:
+        r2 [1 ]=m #line:163:r2[1] = m
+    elif O000OO0O0OO0OO000 ==6 and O000OO0O0OO0OO000 not in r :#line:164:elif a == 6 and a not in r:
+        r2 [2 ]=m #line:165:r2[2] = m
+    elif O000OO0O0OO0OO000 ==7 and O000OO0O0OO0OO000 not in r :#line:166:elif a == 7 and a not in r:
+        r3 [0 ]=m #line:167:r3[0] = m
+    elif O000OO0O0OO0OO000 ==8 and O000OO0O0OO0OO000 not in r :#line:168:elif a == 8 and a not in r:
+        r3 [1 ]=m #line:169:r3[1] = m
+    elif O000OO0O0OO0OO000 ==9 and O000OO0O0OO0OO000 not in r :#line:170:elif a == 9 and a not in r:
+        r3 [2 ]=m #line:171:r3[2] = m
+    r .append (O000OO0O0OO0OO000 )#line:172:r.append(a)
+    print (" | ".join (r1 ))#line:173:print(" | ".join(r1))
+    print ("_.","_.","_.")#line:174:print("_.", "_.", "_.")
+    print (" | ".join (r2 ))#line:175:print(" | ".join(r2))
+    print ("_.","_.","_.")#line:176:print("_.", "_.", "_.")
+    print (" | ".join (r3 ))#line:177:print(" | ".join(r3))
+    if r1 .count (m )==3 :#line:178:if r1.count(m) == 3:
+        print ("PLAYER1 HAS WON")#line:179:print("PLAYER1 HAS WON")
+        return gameCONCLUDER (1 )#line:180:return gameCONCLUDER(1)
+    elif r2 .count (m )==3 :#line:181:elif r2.count(m) == 3:
+        print ("PLAYER1 HAS WON")#line:182:print("PLAYER1 HAS WON")
+        return gameCONCLUDER (1 )#line:183:return gameCONCLUDER(1)
+    elif r3 .count (m )==3 :#line:184:elif r3.count(m) == 3:
+        print ("PLAYER1 HAS WON")#line:185:print("PLAYER1 HAS WON")
+        return gameCONCLUDER (1 )#line:186:return gameCONCLUDER(1)
+    elif r1 [0 ]==r2 [0 ]==r3 [0 ]==m :#line:187:elif r1[0] == r2[0] == r3[0] == m:
+        print ("PLAYER1 HAS WON")#line:188:print("PLAYER1 HAS WON")
+        return gameCONCLUDER (1 )#line:189:return gameCONCLUDER(1)
+    elif r1 [1 ]==r2 [1 ]==r3 [1 ]==m :#line:190:elif r1[1] == r2[1] == r3[1] == m:
+        print ("PLAYER1 HAS WON")#line:191:print("PLAYER1 HAS WON")
+        return gameCONCLUDER (1 )#line:192:return gameCONCLUDER(1)
+    elif r1 [2 ]==r2 [2 ]==r3 [2 ]==m :#line:193:elif r1[2] == r2[2] == r3[2] == m:
+        print ("PLAYER1 HAS WON")#line:194:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:195:return gameCONCLUDER()
+    elif r1 [0 ]==r2 [1 ]==r3 [2 ]==m :#line:196:elif r1[0] == r2[1] == r3[2] == m:
+        print ("PLAYER1 HAS WON")#line:197:print("PLAYER1 HAS WON")
+        return gameCONCLUDER (1 )#line:198:return gameCONCLUDER(1)
+    elif r1 [2 ]==r2 [1 ]==r3 [0 ]==m :#line:199:elif r1[2] == r2[1] == r3[0] == m:
+        print ("PLAYER1 HAS WON")#line:200:print("PLAYER1 HAS WON")
+        return gameCONCLUDER (1 )#line:201:return gameCONCLUDER(1)
+    if (""not in r1 and ""not in r2 and ""not in r3 and len (r1 )==len (r2 )==len (r3 )==3 ):#line:207:):
+        print ("The game has been a tie")#line:208:print("The game has been a tie")
+        return tieChecker ()#line:209:return tieChecker()
+    else :#line:211:else:
+        reDrawWindow ()#line:212:reDrawWindow()
+        compPLAY ()#line:213:compPLAY()
+def compPLAY ():#line:216:def compPLAY():
+    reDrawWindow ()#line:217:reDrawWindow()
+    def O0000000000O0OO0O (OOO0O0O000O0O0OOO ):#line:219:def compCOMPLETER(a):
+        entryDisplayer ()#line:220:entryDisplayer()
+        r .append (OOO0O0O000O0O0OOO )#line:221:r.append(a)
+        print ("computers move is",OOO0O0O000O0O0OOO )#line:222:print("computers move is", a)
+        print (" | ".join (r1 ))#line:223:print(" | ".join(r1))
+        print ("_.","_.","_.")#line:224:print("_.", "_.", "_.")
+        print (" | ".join (r2 ))#line:225:print(" | ".join(r2))
+        print ("_.","_.","_.")#line:226:print("_.", "_.", "_.")
+        print (" | ".join (r3 ))#line:227:print(" | ".join(r3))
+        if r1 .count (n )==3 :#line:228:if r1.count(n) == 3:
+            print ("computer  HAS WON")#line:229:print("computer  HAS WON")
+            return gameCONCLUDER (0 )#line:230:return gameCONCLUDER(0)
+        elif r2 .count (n )==3 :#line:231:elif r2.count(n) == 3:
+            print ("computer  HAS WON")#line:232:print("computer  HAS WON")
+            return gameCONCLUDER (0 )#line:233:return gameCONCLUDER(0)
+        elif r3 .count (n )==3 :#line:234:elif r3.count(n) == 3:
+            print ("computer  HAS WON")#line:235:print("computer  HAS WON")
+            return gameCONCLUDER (0 )#line:236:return gameCONCLUDER(0)
+        elif r1 [0 ]==r2 [0 ]==r3 [0 ]==n :#line:237:elif r1[0] == r2[0] == r3[0] == n:
+            print ("computer  HAS WON")#line:238:print("computer  HAS WON")
+            return gameCONCLUDER (0 )#line:239:return gameCONCLUDER(0)
+        elif r1 [1 ]==r2 [1 ]==r3 [1 ]==n :#line:240:elif r1[1] == r2[1] == r3[1] == n:
+            print ("computer  HAS WON")#line:241:print("computer  HAS WON")
+            return gameCONCLUDER (0 )#line:242:return gameCONCLUDER(0)
+        elif r1 [2 ]==r2 [2 ]==r3 [2 ]==n :#line:243:elif r1[2] == r2[2] == r3[2] == n:
+            print ("computer  HAS WON")#line:244:print("computer  HAS WON")
+            return gameCONCLUDER (0 )#line:245:return gameCONCLUDER(0)
+        elif r1 [0 ]==r2 [1 ]==r3 [2 ]==n :#line:246:elif r1[0] == r2[1] == r3[2] == n:
+            print ("computer  HAS WON")#line:247:print("computer  HAS WON")
+            return gameCONCLUDER (0 )#line:248:return gameCONCLUDER(0)
+        elif r1 [2 ]==r2 [1 ]==r3 [0 ]==n :#line:249:elif r1[2] == r2[1] == r3[0] == n:
+            print ("computer HAS WON")#line:250:print("computer HAS WON")
+            return gameCONCLUDER (0 )#line:251:return gameCONCLUDER(0)
+        if (""not in r1 and ""not in r2 and ""not in r3 and len (r1 )==len (r2 )==len (r3 )==3 ):#line:257:):
+            print ("The game has been a tie")#line:258:print("The game has been a tie")
+            return tieChecker ()#line:259:return tieChecker()
+        else :#line:260:else:
+            reDrawWindow ()#line:261:reDrawWindow()
+            firstinitialiser ()#line:262:firstinitialiser()
+    def OO0OOO000OOOO0O00 ():#line:264:def selfwinCHECKER():
+        if r1 .count (n )==2 :#line:265:if r1.count(n) == 2:
+            for OOO0OOO0O000OOO0O in range (len (r1 )):#line:266:for i in range(len(r1)):
+                if r1 [OOO0OOO0O000OOO0O ]=="":#line:267:if r1[i] == "":
+                    r1 [OOO0OOO0O000OOO0O ]=n #line:268:r1[i] = n
+                    print ("selfwin has worked at r1")#line:269:print("selfwin has worked at r1")
+                    O0000000000O0OO0O (OOO0OOO0O000OOO0O +OOO0OOO0O000OOO0O )#line:270:compCOMPLETER(i + i)
+        elif r2 .count (n )==2 :#line:271:elif r2.count(n) == 2:
+            for OOO0OOO0O000OOO0O in range (len (r2 )):#line:272:for i in range(len(r2)):
+                if r2 [OOO0OOO0O000OOO0O ]=="":#line:273:if r2[i] == "":
+                    r2 [OOO0OOO0O000OOO0O ]=n #line:274:r2[i] = n
+                    print ("selfwin has worked at r2")#line:275:print("selfwin has worked at r2")
+                    O0000000000O0OO0O (OOO0OOO0O000OOO0O +4 )#line:276:compCOMPLETER(i + 4)
+        elif r3 .count (n )==2 :#line:277:elif r3.count(n) == 2:
+            for OOO0OOO0O000OOO0O in range (len (r3 )):#line:278:for i in range(len(r3)):
+                if r3 [OOO0OOO0O000OOO0O ]=="":#line:279:if r3[i] == "":
+                    r3 [OOO0OOO0O000OOO0O ]=n #line:280:r3[i] = n
+                    print ("selfwin has worked at r3")#line:281:print("selfwin has worked at r3")
+                    O0000000000O0OO0O (OOO0OOO0O000OOO0O +7 )#line:282:compCOMPLETER(i + 7)
+        for OOO0OOO0O000OOO0O in range (3 ):#line:283:for i in range(3):
+            O000O0O00O0O0O0OO =[r1 [OOO0OOO0O000OOO0O ],r2 [OOO0OOO0O000OOO0O ],r3 [OOO0OOO0O000OOO0O ]]#line:284:o = [r1[i], r2[i], r3[i]]
+            if O000O0O00O0O0O0OO .count (n )==2 :#line:285:if o.count(n) == 2:
+                for O00O0O0000OOO0OOO in range (3 ):#line:286:for j in range(3):
+                    if O000O0O00O0O0O0OO [O00O0O0000OOO0OOO ]=="":#line:287:if o[j] == "":
+                        if O00O0O0000OOO0OOO ==0 :#line:288:if j == 0:
+                            r1 [OOO0OOO0O000OOO0O ]=n #line:289:r1[i] = n
+                            print ("selfwin has worked at",O000O0O00O0O0O0OO [O00O0O0000OOO0OOO ])#line:290:print("selfwin has worked at", o[j])
+                            O0000000000O0OO0O (OOO0OOO0O000OOO0O +1 )#line:291:compCOMPLETER(i + 1)
+                        elif O00O0O0000OOO0OOO ==1 :#line:292:elif j == 1:
+                            r2 [OOO0OOO0O000OOO0O ]=n #line:293:r2[i] = n
+                            print ("selfwin has worked at",O000O0O00O0O0O0OO [O00O0O0000OOO0OOO ])#line:294:print("selfwin has worked at", o[j])
+                            O0000000000O0OO0O (OOO0OOO0O000OOO0O +4 )#line:295:compCOMPLETER(i + 4)
+                        elif O00O0O0000OOO0OOO ==2 :#line:296:elif j == 2:
+                            r3 [OOO0OOO0O000OOO0O ]=n #line:297:r3[i] = n
+                            print ("selfwin has worked at",O000O0O00O0O0O0OO [O00O0O0000OOO0OOO ])#line:298:print("selfwin has worked at", o[j])
+                            O0000000000O0OO0O (OOO0OOO0O000OOO0O +7 )#line:299:compCOMPLETER(i + 7)
+        O00O00OOOOO0O0O0O =[r1 [0 ],r2 [1 ],r3 [2 ]]#line:300:d1 = [r1[0], r2[1], r3[2]]
+        if O00O00OOOOO0O0O0O .count (n )==2 :#line:301:if d1.count(n) == 2:
+            for OOO0OOO0O000OOO0O in range (3 ):#line:302:for i in range(3):
+                if O00O00OOOOO0O0O0O [OOO0OOO0O000OOO0O ]=="":#line:303:if d1[i] == "":
+                    if OOO0OOO0O000OOO0O ==0 :#line:304:if i == 0:
+                        r1 [0 ]=n #line:305:r1[0] = n
+                        print ("d1 is",O00O00OOOOO0O0O0O ,"but r1[0] is",r1 [0 ],"but your i is",OOO0OOO0O000OOO0O )#line:306:print("d1 is", d1, "but r1[0] is", r1[0], "but your i is", i)
+                        print ("selfwin has worked at my doubt")#line:308:print("selfwin has worked at my doubt")
+                        O0000000000O0OO0O (1 )#line:309:compCOMPLETER(1)
+                    elif OOO0OOO0O000OOO0O ==1 :#line:310:elif i == 1:
+                        r2 [1 ]=n #line:311:r2[1] = n
+                        print ("selfwin has worked")#line:312:print("selfwin has worked")
+                        O0000000000O0OO0O (5 )#line:313:compCOMPLETER(5)
+                    elif OOO0OOO0O000OOO0O ==2 :#line:314:elif i == 2:
+                        r3 [2 ]=n #line:315:r3[2] = n
+                        print ("selfwin has worked")#line:316:print("selfwin has worked")
+                        O0000000000O0OO0O (9 )#line:317:compCOMPLETER(9)
+        O0OO0O0OOO0O00OOO =[r1 [2 ],r2 [1 ],r3 [0 ]]#line:318:d2 = [r1[2], r2[1], r3[0]]
+        if O0OO0O0OOO0O00OOO .count (n )==2 :#line:319:if d2.count(n) == 2:
+            for OOO0OOO0O000OOO0O in range (3 ):#line:320:for i in range(3):
+                if O0OO0O0OOO0O00OOO [OOO0OOO0O000OOO0O ]=="":#line:321:if d2[i] == "":
+                    if OOO0OOO0O000OOO0O ==0 :#line:322:if i == 0:
+                        r1 [2 ]=n #line:323:r1[2] = n
+                        print ("selfwin has worked")#line:324:print("selfwin has worked")
+                        O0000000000O0OO0O (3 )#line:325:compCOMPLETER(3)
+                    elif OOO0OOO0O000OOO0O ==1 :#line:326:elif i == 1:
+                        r2 [1 ]=n #line:327:r2[1] = n
+                        print ("selfwin has worked")#line:328:print("selfwin has worked")
+                        O0000000000O0OO0O (5 )#line:329:compCOMPLETER(5)
+                    elif OOO0OOO0O000OOO0O ==2 :#line:330:elif i == 2:
+                        r3 [0 ]=n #line:331:r3[0] = n
+                        print ("selfwin has worked")#line:332:print("selfwin has worked")
+                        O0000000000O0OO0O (7 )#line:333:compCOMPLETER(7)
+    OO0OOO000OOOO0O00 ()#line:335:selfwinCHECKER()
+    def OO0OOOO0000O0OO00 ():#line:337:def oppwinCHECKER():
+        if r1 .count (m )==2 :#line:338:if r1.count(m) == 2:
+            for O0O0OO0OO0OO00000 in range (len (r1 )):#line:339:for i in range(len(r1)):
+                if r1 [O0O0OO0OO0OO00000 ]=="":#line:340:if r1[i] == "":
+                    r1 [O0O0OO0OO0OO00000 ]=n #line:341:r1[i] = n
+                    print ("oppwin has worked at r1")#line:342:print("oppwin has worked at r1")
+                    O0000000000O0OO0O (O0O0OO0OO0OO00000 +1 )#line:343:compCOMPLETER(i + 1)
+        elif r2 .count (m )==2 :#line:345:elif r2.count(m) == 2:
+            for O0O0OO0OO0OO00000 in range (len (r2 )):#line:346:for i in range(len(r2)):
+                if r2 [O0O0OO0OO0OO00000 ]=="":#line:347:if r2[i] == "":
+                    print ("r2 is ",r2 )#line:348:print("r2 is ", r2)
+                    r2 [O0O0OO0OO0OO00000 ]=n #line:349:r2[i] = n
+                    print ("oppwin has worked at r2")#line:350:print("oppwin has worked at r2")
+                    O0000000000O0OO0O (O0O0OO0OO0OO00000 +4 )#line:351:compCOMPLETER(i + 4)
+        elif r3 .count (m )==2 :#line:353:elif r3.count(m) == 2:
+            for O0O0OO0OO0OO00000 in range (len (r3 )):#line:354:for i in range(len(r3)):
+                if r3 [O0O0OO0OO0OO00000 ]=="":#line:355:if r3[i] == "":
+                    r3 [O0O0OO0OO0OO00000 ]=n #line:356:r3[i] = n
+                    print ("oppwin has worked at r3")#line:357:print("oppwin has worked at r3")
+                    O0000000000O0OO0O (O0O0OO0OO0OO00000 +7 )#line:358:compCOMPLETER(i + 7)
+        for O0O0OO0OO0OO00000 in range (3 ):#line:359:for i in range(3):
+            OO0OO0OOOO0000000 =[r1 [O0O0OO0OO0OO00000 ],r2 [O0O0OO0OO0OO00000 ],r3 [O0O0OO0OO0OO00000 ]]#line:360:o = [r1[i], r2[i], r3[i]]
+            if OO0OO0OOOO0000000 .count (m )==2 :#line:361:if o.count(m) == 2:
+                for OO00O0OOOOOOOO00O in range (3 ):#line:362:for j in range(3):
+                    if OO0OO0OOOO0000000 [OO00O0OOOOOOOO00O ]=="":#line:363:if o[j] == "":
+                        if OO00O0OOOOOOOO00O ==0 :#line:364:if j == 0:
+                            r1 [O0O0OO0OO0OO00000 ]=n #line:365:r1[i] = n
+                            print ("oppwin has worked at ",OO0OO0OOOO0000000 [OO00O0OOOOOOOO00O ])#line:366:print("oppwin has worked at ", o[j])
+                            O0000000000O0OO0O (O0O0OO0OO0OO00000 +1 )#line:367:compCOMPLETER(i + 1)
+                        elif OO00O0OOOOOOOO00O ==1 :#line:368:elif j == 1:
+                            r2 [O0O0OO0OO0OO00000 ]=n #line:369:r2[i] = n
+                            print ("oppwin has worked at",OO0OO0OOOO0000000 [OO00O0OOOOOOOO00O ])#line:370:print("oppwin has worked at", o[j])
+                            O0000000000O0OO0O (O0O0OO0OO0OO00000 +4 )#line:371:compCOMPLETER(i + 4)
+                        elif OO00O0OOOOOOOO00O ==2 :#line:372:elif j == 2:
+                            r3 [O0O0OO0OO0OO00000 ]=n #line:373:r3[i] = n
+                            print ("oppwin has worked at",OO0OO0OOOO0000000 [OO00O0OOOOOOOO00O ])#line:374:print("oppwin has worked at", o[j])
+                            O0000000000O0OO0O (O0O0OO0OO0OO00000 +7 )#line:375:compCOMPLETER(i + 7)
+        O0OO0OO00O00O0000 =[r1 [0 ],r2 [1 ],r3 [2 ]]#line:376:d1 = [r1[0], r2[1], r3[2]]
+        if O0OO0OO00O00O0000 .count (m )==2 :#line:377:if d1.count(m) == 2:
+            for O0O0OO0OO0OO00000 in range (3 ):#line:378:for i in range(3):
+                if O0OO0OO00O00O0000 [O0O0OO0OO0OO00000 ]=="":#line:379:if d1[i] == "":
+                    if O0O0OO0OO0OO00000 ==0 :#line:380:if i == 0:
+                        r1 [0 ]=n #line:381:r1[0] = n
+                        print ("oppwin has worked")#line:382:print("oppwin has worked")
+                        O0000000000O0OO0O (O0O0OO0OO0OO00000 +1 )#line:383:compCOMPLETER(i + 1)
+                    elif O0O0OO0OO0OO00000 ==1 :#line:384:elif i == 1:
+                        r2 [1 ]=n #line:385:r2[1] = n
+                        print ("oppwin has worked")#line:386:print("oppwin has worked")
+                        O0000000000O0OO0O (O0O0OO0OO0OO00000 +4 )#line:387:compCOMPLETER(i + 4)
+                    elif O0O0OO0OO0OO00000 ==2 :#line:388:elif i == 2:
+                        r3 [2 ]=n #line:389:r3[2] = n
+                        print ("oppwin has worked")#line:390:print("oppwin has worked")
+                        O0000000000O0OO0O (O0O0OO0OO0OO00000 +7 )#line:391:compCOMPLETER(i + 7)
+        OO0OOOO00O00000O0 =[r1 [2 ],r2 [1 ],r3 [0 ]]#line:392:d2 = [r1[2], r2[1], r3[0]]
+        if OO0OOOO00O00000O0 .count (m )==2 :#line:393:if d2.count(m) == 2:
+            for O0O0OO0OO0OO00000 in range (3 ):#line:394:for i in range(3):
+                if OO0OOOO00O00000O0 [O0O0OO0OO0OO00000 ]=="":#line:395:if d2[i] == "":
+                    if O0O0OO0OO0OO00000 ==0 :#line:396:if i == 0:
+                        r1 [2 ]=n #line:397:r1[2] = n
+                        print ("oppwin has worked")#line:398:print("oppwin has worked")
+                        O0000000000O0OO0O (3 )#line:399:compCOMPLETER(3)
+                    elif O0O0OO0OO0OO00000 ==1 :#line:400:elif i == 1:
+                        r2 [1 ]=n #line:401:r2[1] = n
+                        print ("oppwin has worked")#line:402:print("oppwin has worked")
+                        O0000000000O0OO0O (5 )#line:403:compCOMPLETER(5)
+                    elif O0O0OO0OO0OO00000 ==2 :#line:404:elif i == 2:
+                        r3 [0 ]=n #line:405:r3[0] = n
+                        print ("oppwin has worked")#line:406:print("oppwin has worked")
+                        O0000000000O0OO0O (7 )#line:407:compCOMPLETER(7)
+    OO0OOOO0000O0OO00 ()#line:409:oppwinCHECKER()
+    def OOO00OO0O00O0O0O0 ():#line:411:def middleCHECKER():
+        if r2 [1 ]=="":#line:412:if r2[1] == "":
+            r2 [1 ]=n #line:413:r2[1] = n
+            print ("miidlechecker has worked")#line:414:print("miidlechecker has worked")
+            O0000000000O0OO0O (5 )#line:415:compCOMPLETER(5)
+    OOO00OO0O00O0O0O0 ()#line:417:middleCHECKER()
+    def OOOOO00000000OO0O ():#line:419:def endsideCHECKER():
+        if r1 [0 ]=="":#line:420:if r1[0] == "":
+            r1 [0 ]=n #line:421:r1[0] = n
+            print ("endsidechecker has worked")#line:422:print("endsidechecker has worked")
+            O0000000000O0OO0O (1 )#line:423:compCOMPLETER(1)
+        elif r1 [2 ]=="":#line:424:elif r1[2] == "":
+            r1 [2 ]=n #line:425:r1[2] = n
+            print ("endsidechecker has worked")#line:426:print("endsidechecker has worked")
+            O0000000000O0OO0O (3 )#line:427:compCOMPLETER(3)
+        elif r3 [0 ]=="":#line:428:elif r3[0] == "":
+            r3 [0 ]=n #line:429:r3[0] = n
+            print ("endsidechecker has worked")#line:430:print("endsidechecker has worked")
+            O0000000000O0OO0O (7 )#line:431:compCOMPLETER(7)
+        elif r3 [2 ]=="":#line:432:elif r3[2] == "":
+            r3 [2 ]=n #line:433:r3[2] = n
+            print ("endsidechecker has worked")#line:434:print("endsidechecker has worked")
+            O0000000000O0OO0O (9 )#line:435:compCOMPLETER(9)
+    OOOOO00000000OO0O ()#line:437:endsideCHECKER()
+    def OO0000OOOOOOOO0OO ():#line:439:def endmiddleCHECKER():
+        if r1 [1 ]=="":#line:440:if r1[1] == "":
+            r1 [1 ]=n #line:441:r1[1] = n
+            print ("endmiddlechecker has worked")#line:442:print("endmiddlechecker has worked")
+            O0000000000O0OO0O (2 )#line:443:compCOMPLETER(2)
+        elif r2 [0 ]=="":#line:444:elif r2[0] == "":
+            r2 [0 ]=n #line:445:r2[0] = n
+            O0000000000O0OO0O (4 )#line:446:compCOMPLETER(4)
+            print ("endmiddlechecker has worked")#line:447:print("endmiddlechecker has worked")
+        elif r2 [2 ]=="":#line:448:elif r2[2] == "":
+            r2 [2 ]=n #line:449:r2[2] = n
+            OO0000O000O0O0O00 =6 #line:450:p = 6
+            print ("endmiddlechecker has worked")#line:451:print("endmiddlechecker has worked")
+            O0000000000O0OO0O (6 )#line:452:compCOMPLETER(6)
+        elif r3 [1 ]=="":#line:453:elif r3[1] == "":
+            r3 [1 ]=n #line:454:r3[1] = n
+            print ("endmiddlechecker has worked")#line:455:print("endmiddlechecker has worked")
+            O0000000000O0OO0O (8 )#line:456:compCOMPLETER(8)
+    OO0000OOOOOOOO0OO ()#line:458:endmiddleCHECKER()
+def firstinitialiser ():#line:461:def firstinitialiser():
+    reDrawWindow ()#line:462:reDrawWindow()
+    O00OO000OO0000000 =True #line:463:q = True
+    while O00OO000OO0000000 :#line:464:while q:
+        win .blit (text1 ,(450 ,100 ))#line:465:win.blit(text1, (450, 100))
+        pygame .time .delay (100 )#line:466:pygame.time.delay(100)
+        for OOOOOOO0O0O0OO00O in pygame .event .get ():#line:467:for event in pygame.event.get():
+            if OOOOOOO0O0O0OO00O .type ==MOUSEBUTTONDOWN :#line:468:if event.type == MOUSEBUTTONDOWN:
+                OO0O00OO000OOO0OO ,OO0OOOO00000O000O =pygame .mouse .get_pos ()#line:469:mx, my = pygame.mouse.get_pos()
+                print (OO0O00OO000OOO0OO ,OO0OOOO00000O000O )#line:470:print(mx, my)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(100 ,100 ,100 ,100 )):#line:471:if cursorChecker((mx, my), (100, 100, 100, 100)):
+                    print (1 )#line:472:print(1)
+                    O00OO000OO0000000 =False #line:473:q = False
+                    player (1 )#line:474:player(1)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(200 ,100 ,100 ,100 )):#line:476:if cursorChecker((mx, my), (200, 100, 100, 100)):
+                    print (2 )#line:477:print(2)
+                    O00OO000OO0000000 =False #line:478:q = False
+                    player (2 )#line:479:player(2)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(300 ,100 ,100 ,100 )):#line:481:if cursorChecker((mx, my), (300, 100, 100, 100)):
+                    print (3 )#line:482:print(3)
+                    O00OO000OO0000000 =False #line:483:q = False
+                    player (3 )#line:484:player(3)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(100 ,200 ,100 ,100 )):#line:485:if cursorChecker((mx, my), (100, 200, 100, 100)):
+                    print (4 )#line:486:print(4)
+                    O00OO000OO0000000 =False #line:487:q = False
+                    player (4 )#line:488:player(4)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(200 ,200 ,100 ,100 )):#line:490:if cursorChecker((mx, my), (200, 200, 100, 100)):
+                    print (5 )#line:491:print(5)
+                    O00OO000OO0000000 =False #line:492:q = False
+                    player (5 )#line:493:player(5)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(300 ,200 ,100 ,100 )):#line:495:if cursorChecker((mx, my), (300, 200, 100, 100)):
+                    print (6 )#line:496:print(6)
+                    O00OO000OO0000000 =False #line:497:q = False
+                    player (6 )#line:498:player(6)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(100 ,300 ,100 ,100 )):#line:500:if cursorChecker((mx, my), (100, 300, 100, 100)):
+                    print (7 )#line:501:print(7)
+                    O00OO000OO0000000 =False #line:502:q = False
+                    player (7 )#line:503:player(7)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(200 ,300 ,100 ,100 )):#line:505:if cursorChecker((mx, my), (200, 300, 100, 100)):
+                    print (8 )#line:506:print(8)
+                    O00OO000OO0000000 =False #line:507:q = False
+                    player (8 )#line:508:player(8)
+                if cursorChecker ((OO0O00OO000OOO0OO ,OO0OOOO00000O000O ),(300 ,300 ,100 ,100 )):#line:510:if cursorChecker((mx, my), (300, 300, 100, 100)):
+                    print (9 )#line:511:print(9)
+                    O00OO000OO0000000 =False #line:512:q = False
+                    player (9 )#line:513:player(9)
+            pygame .display .update ()#line:514:pygame.display.update()
+while run :#line:517:while run:
+    for event in pygame .event .get ():#line:518:for event in pygame.event.get():
+        if event .type ==QUIT :#line:519:if event.type == QUIT:
+            pygame .quit ()#line:520:pygame.quit()
+        if event .type ==MOUSEBUTTONDOWN :#line:522:if event.type == MOUSEBUTTONDOWN:
+            mx ,my =pygame .mouse .get_pos ()#line:523:mx, my = pygame.mouse.get_pos()
+            if gameStage ==1 :#line:524:if gameStage == 1:
+                if cursorChecker ((mx ,my ),(198 ,250 ,30 ,30 )):#line:525:if cursorChecker((mx, my), (198, 250, 30, 30)):
+                    print ("you clicked X")#line:526:print("you clicked X")
+                    gameStage +=1 #line:527:gameStage += 1
+                    m ="X"#line:528:m = "X"
+                    n ="O"#line:529:n = "O"
+                if cursorChecker ((mx ,my ),(198 ,300 ,30 ,30 )):#line:530:if cursorChecker((mx, my), (198, 300, 30, 30)):
+                    print ("you clicked on O")#line:531:print("you clicked on O")
+                    gameStage +=1 #line:532:gameStage += 1
+                    m ="O"#line:533:m = "O"
+                    n ="X"#line:534:n = "X"
+            elif gameStage ==2 :#line:535:elif gameStage == 2:
+                mx ,my =pygame .mouse .get_pos ()#line:536:mx, my = pygame.mouse.get_pos()
+                if cursorChecker ((mx ,my ),((110 ,160 ,190 ,20 ))):#line:537:if cursorChecker((mx, my), ((110, 160, 190, 20))):
+                    print ("you will play first")#line:538:print("you will play first")
+                    firstPlay =0 #line:539:firstPlay = 0
+                    gameStage +=1 #line:540:gameStage += 1
+                    run1 =True #line:541:run1 = True
+                elif cursorChecker ((mx ,my ),(110 ,210 ,320 ,20 )):#line:542:elif cursorChecker((mx, my), (110, 210, 320, 20)):
+                    print ("computer will play first")#line:543:print("computer will play first")
+                    firstPlay =1 #line:544:firstPlay = 1
+                    gameStage +=1 #line:545:gameStage += 1
+                    run1 =True #line:546:run1 = True
+            if run1 :#line:548:if run1:
+                if firstPlay ==0 :#line:549:if firstPlay == 0:
+                    run1 =False #line:550:run1 = False
+                    boardDraw =True #line:551:boardDraw = True
+                    time .sleep (2 )#line:552:time.sleep(2)
+                    reDrawWindow ()#line:553:reDrawWindow()
+                    firstinitialiser ()#line:554:firstinitialiser()
+                elif firstPlay ==1 :#line:556:elif firstPlay == 1:
+                    boardDraw =True #line:557:boardDraw = True
+                    time .sleep (2 )#line:558:time.sleep(2)
+                    run1 =False #line:559:run1 = False
+                    compPLAY ()#line:560:compPLAY()
+        reDrawWindow ()#line:561:reDrawWindow()

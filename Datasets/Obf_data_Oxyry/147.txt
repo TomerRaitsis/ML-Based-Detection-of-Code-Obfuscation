@@ -1,0 +1,30 @@
+""#line:11
+from .import sessions #line:13
+def request (OOOO000OOOOO000OO ,OOO00OOOO00OO0OO0 ,**O0OOO0000O0000OO0 ):#line:16
+    ""#line:54
+    with sessions .Session ()as O00OO00O0OO0OOOOO :#line:59
+        return O00OO00O0OO0OOOOO .request (method =OOOO000OOOOO000OO ,url =OOO00OOOO00OO0OO0 ,**O0OOO0000O0000OO0 )#line:60
+def get (O00O0OOO000O0OO0O ,params =None ,**O000O000000O0OOOO ):#line:63
+    ""#line:72
+    O000O000000O0OOOO .setdefault ('allow_redirects',True )#line:74
+    return request ('get',O00O0OOO000O0OO0O ,params =params ,**O000O000000O0OOOO )#line:75
+def options (OOOO0OOOO0OO0O000 ,**OO00O000000OO0O0O ):#line:78
+    ""#line:85
+    OO00O000000OO0O0O .setdefault ('allow_redirects',True )#line:87
+    return request ('options',OOOO0OOOO0OO0O000 ,**OO00O000000OO0O0O )#line:88
+def head (O00O00000OO0O0OOO ,**O00000O000O0000OO ):#line:91
+    ""#line:98
+    O00000O000O0000OO .setdefault ('allow_redirects',False )#line:100
+    return request ('head',O00O00000OO0O0OOO ,**O00000O000O0000OO )#line:101
+def post (OO0OOOOOO000O0O00 ,data =None ,json =None ,**OOO0OOO000OO000OO ):#line:104
+    ""#line:114
+    return request ('post',OO0OOOOOO000O0O00 ,data =data ,json =json ,**OOO0OOO000OO000OO )#line:116
+def put (O0OOO00O00O0O0000 ,data =None ,**OO00O0O000OO0000O ):#line:119
+    ""#line:129
+    return request ('put',O0OOO00O00O0O0000 ,data =data ,**OO00O0O000OO0000O )#line:131
+def patch (OOOOO0OOOOOOO000O ,data =None ,**OO0O0OO00O0O000O0 ):#line:134
+    ""#line:144
+    return request ('patch',OOOOO0OOOOOOO000O ,data =data ,**OO0O0OO00O0O000O0 )#line:146
+def delete (OO0000OOO00000000 ,**OOOOOOOO0O00O0OO0 ):#line:149
+    ""#line:156
+    return request ('delete',OO0000OOO00000000 ,**OOOOOOOO0O00O0OO0 )#line:158

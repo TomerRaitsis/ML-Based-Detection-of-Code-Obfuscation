@@ -1,0 +1,330 @@
+""#line:6:"""
+import sys #line:7:import sys
+print ("Welcome to the two player mode of tictactoe")#line:9:print("Welcome to the two player mode of tictactoe")
+print ("press 1 be O and 2 to be X")#line:10:print("press 1 be O and 2 to be X")
+m =int (input ("enter here"))#line:11:m = int(input("enter here"))
+if m ==1 :#line:12:if m == 1:
+    m ="O"#line:13:m = "O"
+    n ="X"#line:14:n = "X"
+elif m ==2 :#line:15:elif m == 2:
+    m ="X"#line:16:m = "X"
+    n ="O"#line:17:n = "O"
+c =[]#line:18:c = []
+r1 =["","",""]#line:19:r1 = ["", "", ""]
+r2 =["","",""]#line:20:r2 = ["", "", ""]
+r3 =["","",""]#line:21:r3 = ["", "", ""]
+r =[]#line:22:r = []
+def gameCONCLUDER ():#line:25:def gameCONCLUDER():
+    OOO0000000OO0OOO0 =int (input ("Enter 1 to terminate the game"))#line:26:a = int(input("Enter 1 to terminate the game"))
+    if OOO0000000OO0OOO0 ==1 :#line:27:if a == 1:
+        sys .exit ()#line:28:sys.exit()
+def firstinitialiser ():#line:31:def firstinitialiser():
+    global n1 #line:32:global n1
+    n1 =int (input ("PLAYER1 TURN (1-9)"))#line:33:n1 = int(input("PLAYER1 TURN (1-9)"))
+    tictactoe (n1 )#line:34:tictactoe(n1)
+def tictactoe (OO0O00OOO00000O0O ):#line:37:def tictactoe(a):
+    if OO0O00OOO00000O0O not in range (1 ,10 ):#line:38:if a not in range(1, 10):
+        print ("INVALID ENTRY")#line:39:print("INVALID ENTRY")
+        return firstinitialiser ()#line:40:return firstinitialiser()
+    if OO0O00OOO00000O0O in r :#line:41:if a in r:
+        print ("ENTRY ALREADY EXISTS")#line:42:print("ENTRY ALREADY EXISTS")
+        return firstinitialiser ()#line:43:return firstinitialiser()
+    if OO0O00OOO00000O0O ==1 and OO0O00OOO00000O0O not in r :#line:44:if a == 1 and a not in r:
+        r1 [0 ]=m #line:45:r1[0] = m
+    elif OO0O00OOO00000O0O ==2 and OO0O00OOO00000O0O not in r :#line:46:elif a == 2 and a not in r:
+        r1 [1 ]=m #line:47:r1[1] = m
+    elif OO0O00OOO00000O0O ==3 and OO0O00OOO00000O0O not in r :#line:48:elif a == 3 and a not in r:
+        r1 [2 ]=m #line:49:r1[2] = m
+    elif OO0O00OOO00000O0O ==4 and OO0O00OOO00000O0O not in r :#line:50:elif a == 4 and a not in r:
+        r2 [0 ]=m #line:51:r2[0] = m
+    elif OO0O00OOO00000O0O ==5 and OO0O00OOO00000O0O not in r :#line:52:elif a == 5 and a not in r:
+        r2 [1 ]=m #line:53:r2[1] = m
+    elif OO0O00OOO00000O0O ==6 and OO0O00OOO00000O0O not in r :#line:54:elif a == 6 and a not in r:
+        r2 [2 ]=m #line:55:r2[2] = m
+    elif OO0O00OOO00000O0O ==7 and OO0O00OOO00000O0O not in r :#line:56:elif a == 7 and a not in r:
+        r3 [0 ]=m #line:57:r3[0] = m
+    elif OO0O00OOO00000O0O ==8 and OO0O00OOO00000O0O not in r :#line:58:elif a == 8 and a not in r:
+        r3 [1 ]=m #line:59:r3[1] = m
+    elif OO0O00OOO00000O0O ==9 and OO0O00OOO00000O0O not in r :#line:60:elif a == 9 and a not in r:
+        r3 [2 ]=m #line:61:r3[2] = m
+    r .append (n1 )#line:62:r.append(n1)
+    print (" | ".join (r1 ))#line:63:print(" | ".join(r1))
+    print ("_.","_.","_.")#line:64:print("_.", "_.", "_.")
+    print (" | ".join (r2 ))#line:65:print(" | ".join(r2))
+    print ("_.","_.","_.")#line:66:print("_.", "_.", "_.")
+    print (" | ".join (r3 ))#line:67:print(" | ".join(r3))
+    if r1 .count (m )==3 :#line:68:if r1.count(m) == 3:
+        print ("PLAYER1 HAS WON")#line:69:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:70:return gameCONCLUDER()
+    elif r2 .count (m )==3 :#line:71:elif r2.count(m) == 3:
+        print ("PLAYER1 HAS WON")#line:72:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:73:return gameCONCLUDER()
+    elif r3 .count (m )==3 :#line:74:elif r3.count(m) == 3:
+        print ("PLAYER1 HAS WON")#line:75:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:76:return gameCONCLUDER()
+    elif r1 [0 ]==r2 [0 ]==r3 [0 ]==m :#line:77:elif r1[0] == r2[0] == r3[0] == m:
+        print ("PLAYER1 HAS WON")#line:78:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:79:return gameCONCLUDER()
+    elif r1 [1 ]==r2 [1 ]==r3 [1 ]==m :#line:80:elif r1[1] == r2[1] == r3[1] == m:
+        print ("PLAYER1 HAS WON")#line:81:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:82:return gameCONCLUDER()
+    elif r1 [2 ]==r2 [2 ]==r3 [2 ]==m :#line:83:elif r1[2] == r2[2] == r3[2] == m:
+        print ("PLAYER1 HAS WON")#line:84:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:85:return gameCONCLUDER()
+    elif r1 [0 ]==r2 [1 ]==r3 [2 ]==m :#line:86:elif r1[0] == r2[1] == r3[2] == m:
+        print ("PLAYER1 HAS WON")#line:87:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:88:return gameCONCLUDER()
+    elif r1 [2 ]==r2 [1 ]==r3 [0 ]==m :#line:89:elif r1[2] == r2[1] == r3[0] == m:
+        print ("PLAYER1 HAS WON")#line:90:print("PLAYER1 HAS WON")
+        return gameCONCLUDER ()#line:91:return gameCONCLUDER()
+    if (""not in r1 and ""not in r2 and ""not in r3 and len (r1 )==len (r2 )==len (r3 )==3 ):#line:97:):
+        print ("The game has been a tie")#line:98:print("The game has been a tie")
+    else :#line:99:else:
+        compPLAY ()#line:100:compPLAY()
+def compPLAY ():#line:103:def compPLAY():
+    def OOO00OO000O0O00O0 (O0000O0OOOOO00O0O ):#line:104:def compCOMPLETER(a):
+        r .append (O0000O0OOOOO00O0O )#line:105:r.append(a)
+        print ("computers move is",O0000O0OOOOO00O0O )#line:106:print("computers move is", a)
+        print (" | ".join (r1 ))#line:107:print(" | ".join(r1))
+        print ("_.","_.","_.")#line:108:print("_.", "_.", "_.")
+        print (" | ".join (r2 ))#line:109:print(" | ".join(r2))
+        print ("_.","_.","_.")#line:110:print("_.", "_.", "_.")
+        print (" | ".join (r3 ))#line:111:print(" | ".join(r3))
+        if r1 .count (n )==3 :#line:112:if r1.count(n) == 3:
+            print ("computer  HAS WON")#line:113:print("computer  HAS WON")
+            return gameCONCLUDER ()#line:114:return gameCONCLUDER()
+        elif r2 .count (n )==3 :#line:115:elif r2.count(n) == 3:
+            print ("computer  HAS WON")#line:116:print("computer  HAS WON")
+            return gameCONCLUDER ()#line:117:return gameCONCLUDER()
+        elif r3 .count (n )==3 :#line:118:elif r3.count(n) == 3:
+            print ("computer  HAS WON")#line:119:print("computer  HAS WON")
+            return gameCONCLUDER ()#line:120:return gameCONCLUDER()
+        elif r1 [0 ]==r2 [0 ]==r3 [0 ]==n :#line:121:elif r1[0] == r2[0] == r3[0] == n:
+            print ("computer  HAS WON")#line:122:print("computer  HAS WON")
+            return gameCONCLUDER ()#line:123:return gameCONCLUDER()
+        elif r1 [1 ]==r2 [1 ]==r3 [1 ]==n :#line:124:elif r1[1] == r2[1] == r3[1] == n:
+            print ("computer  HAS WON")#line:125:print("computer  HAS WON")
+            return gameCONCLUDER ()#line:126:return gameCONCLUDER()
+        elif r1 [2 ]==r2 [2 ]==r3 [2 ]==n :#line:127:elif r1[2] == r2[2] == r3[2] == n:
+            print ("computer  HAS WON")#line:128:print("computer  HAS WON")
+            return gameCONCLUDER ()#line:129:return gameCONCLUDER()
+        elif r1 [0 ]==r2 [1 ]==r3 [2 ]==n :#line:130:elif r1[0] == r2[1] == r3[2] == n:
+            print ("computer  HAS WON")#line:131:print("computer  HAS WON")
+            return gameCONCLUDER ()#line:132:return gameCONCLUDER()
+        elif r1 [2 ]==r2 [1 ]==r3 [0 ]==n :#line:133:elif r1[2] == r2[1] == r3[0] == n:
+            print ("computer HAS WON")#line:134:print("computer HAS WON")
+            return gameCONCLUDER ()#line:135:return gameCONCLUDER()
+        if (""not in r1 and ""not in r2 and ""not in r3 and len (r1 )==len (r2 )==len (r3 )==3 ):#line:141:):
+            print ("The game has been a tie")#line:142:print("The game has been a tie")
+            return gameCONCLUDER ()#line:143:return gameCONCLUDER()
+        else :#line:144:else:
+            firstinitialiser ()#line:145:firstinitialiser()
+    def O0O0O00OOO0OO00OO ():#line:147:def selfwinCHECKER():
+        if r1 .count (n )==2 :#line:148:if r1.count(n) == 2:
+            for O0OO000OO00OO0O0O in range (len (r1 )):#line:149:for i in range(len(r1)):
+                if r1 [O0OO000OO00OO0O0O ]=="":#line:150:if r1[i] == "":
+                    r1 [O0OO000OO00OO0O0O ]=n #line:151:r1[i] = n
+                    print ("selfwin has worked at r1")#line:152:print("selfwin has worked at r1")
+                    OOO00OO000O0O00O0 (O0OO000OO00OO0O0O +O0OO000OO00OO0O0O )#line:153:compCOMPLETER(i + i)
+        elif r2 .count (n )==2 :#line:154:elif r2.count(n) == 2:
+            for O0OO000OO00OO0O0O in range (len (r2 )):#line:155:for i in range(len(r2)):
+                if r2 [O0OO000OO00OO0O0O ]=="":#line:156:if r2[i] == "":
+                    r2 [O0OO000OO00OO0O0O ]=n #line:157:r2[i] = n
+                    print ("selfwin has worked at r2")#line:158:print("selfwin has worked at r2")
+                    OOO00OO000O0O00O0 (O0OO000OO00OO0O0O +4 )#line:159:compCOMPLETER(i + 4)
+        elif r3 .count (n )==2 :#line:160:elif r3.count(n) == 2:
+            for O0OO000OO00OO0O0O in range (len (r3 )):#line:161:for i in range(len(r3)):
+                if r3 [O0OO000OO00OO0O0O ]=="":#line:162:if r3[i] == "":
+                    r3 [O0OO000OO00OO0O0O ]=n #line:163:r3[i] = n
+                    print ("selfwin has worked at r3")#line:164:print("selfwin has worked at r3")
+                    OOO00OO000O0O00O0 (O0OO000OO00OO0O0O +7 )#line:165:compCOMPLETER(i + 7)
+        for O0OO000OO00OO0O0O in range (3 ):#line:166:for i in range(3):
+            OOOOO0O0O0O000000 =[r1 [O0OO000OO00OO0O0O ],r2 [O0OO000OO00OO0O0O ],r3 [O0OO000OO00OO0O0O ]]#line:167:o = [r1[i], r2[i], r3[i]]
+            if OOOOO0O0O0O000000 .count (n )==2 :#line:168:if o.count(n) == 2:
+                for O000O00OO00OO000O in range (3 ):#line:169:for j in range(3):
+                    if OOOOO0O0O0O000000 [O000O00OO00OO000O ]=="":#line:170:if o[j] == "":
+                        if O000O00OO00OO000O ==0 :#line:171:if j == 0:
+                            r1 [O0OO000OO00OO0O0O ]=n #line:172:r1[i] = n
+                            print ("selfwin has worked at",OOOOO0O0O0O000000 [O000O00OO00OO000O ])#line:173:print("selfwin has worked at", o[j])
+                            OOO00OO000O0O00O0 (O0OO000OO00OO0O0O +1 )#line:174:compCOMPLETER(i + 1)
+                        elif O000O00OO00OO000O ==1 :#line:175:elif j == 1:
+                            r2 [O0OO000OO00OO0O0O ]=n #line:176:r2[i] = n
+                            print ("selfwin has worked at",OOOOO0O0O0O000000 [O000O00OO00OO000O ])#line:177:print("selfwin has worked at", o[j])
+                            OOO00OO000O0O00O0 (O0OO000OO00OO0O0O +4 )#line:178:compCOMPLETER(i + 4)
+                        elif O000O00OO00OO000O ==2 :#line:179:elif j == 2:
+                            r3 [O0OO000OO00OO0O0O ]=n #line:180:r3[i] = n
+                            print ("selfwin has worked at",OOOOO0O0O0O000000 [O000O00OO00OO000O ])#line:181:print("selfwin has worked at", o[j])
+                            OOO00OO000O0O00O0 (O0OO000OO00OO0O0O +7 )#line:182:compCOMPLETER(i + 7)
+        OOO0O0OOO0O0O00OO =[r1 [0 ],r2 [1 ],r3 [2 ]]#line:183:d1 = [r1[0], r2[1], r3[2]]
+        if OOO0O0OOO0O0O00OO .count (n )==2 :#line:184:if d1.count(n) == 2:
+            for O0OO000OO00OO0O0O in range (3 ):#line:185:for i in range(3):
+                if OOO0O0OOO0O0O00OO [O0OO000OO00OO0O0O ]=="":#line:186:if d1[i] == "":
+                    if O0OO000OO00OO0O0O ==0 :#line:187:if i == 0:
+                        r1 [0 ]=n #line:188:r1[0] = n
+                        print ("d1 is",OOO0O0OOO0O0O00OO ,"but r1[0] is",r1 [0 ],"but your i is",O0OO000OO00OO0O0O )#line:189:print("d1 is", d1, "but r1[0] is", r1[0], "but your i is", i)
+                        print ("selfwin has worked at my doubt")#line:191:print("selfwin has worked at my doubt")
+                        OOO00OO000O0O00O0 (1 )#line:192:compCOMPLETER(1)
+                    elif O0OO000OO00OO0O0O ==1 :#line:193:elif i == 1:
+                        r2 [1 ]=n #line:194:r2[1] = n
+                        print ("selfwin has worked")#line:195:print("selfwin has worked")
+                        OOO00OO000O0O00O0 (5 )#line:196:compCOMPLETER(5)
+                    elif O0OO000OO00OO0O0O ==2 :#line:197:elif i == 2:
+                        r3 [2 ]=n #line:198:r3[2] = n
+                        print ("selfwin has worked")#line:199:print("selfwin has worked")
+                        OOO00OO000O0O00O0 (9 )#line:200:compCOMPLETER(9)
+        OO0OOOO00OOO0OO00 =[r1 [2 ],r2 [1 ],r3 [0 ]]#line:201:d2 = [r1[2], r2[1], r3[0]]
+        if OO0OOOO00OOO0OO00 .count (n )==2 :#line:202:if d2.count(n) == 2:
+            for O0OO000OO00OO0O0O in range (3 ):#line:203:for i in range(3):
+                if OO0OOOO00OOO0OO00 [O0OO000OO00OO0O0O ]=="":#line:204:if d2[i] == "":
+                    if O0OO000OO00OO0O0O ==0 :#line:205:if i == 0:
+                        r1 [2 ]=n #line:206:r1[2] = n
+                        print ("selfwin has worked")#line:207:print("selfwin has worked")
+                        OOO00OO000O0O00O0 (3 )#line:208:compCOMPLETER(3)
+                    elif O0OO000OO00OO0O0O ==1 :#line:209:elif i == 1:
+                        r2 [1 ]=n #line:210:r2[1] = n
+                        print ("selfwin has worked")#line:211:print("selfwin has worked")
+                        OOO00OO000O0O00O0 (5 )#line:212:compCOMPLETER(5)
+                    elif O0OO000OO00OO0O0O ==2 :#line:213:elif i == 2:
+                        r3 [0 ]=n #line:214:r3[0] = n
+                        print ("selfwin has worked")#line:215:print("selfwin has worked")
+                        OOO00OO000O0O00O0 (7 )#line:216:compCOMPLETER(7)
+    O0O0O00OOO0OO00OO ()#line:218:selfwinCHECKER()
+    def OO0O0OOOO0OO0OO00 ():#line:220:def oppwinCHECKER():
+        if r1 .count (m )==2 :#line:221:if r1.count(m) == 2:
+            for O000O0OO0O0OOO000 in range (len (r1 )):#line:222:for i in range(len(r1)):
+                if r1 [O000O0OO0O0OOO000 ]=="":#line:223:if r1[i] == "":
+                    r1 [O000O0OO0O0OOO000 ]=n #line:224:r1[i] = n
+                    print ("oppwin has worked at r1")#line:225:print("oppwin has worked at r1")
+                    OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +1 )#line:226:compCOMPLETER(i + 1)
+        elif r2 .count (m )==2 :#line:228:elif r2.count(m) == 2:
+            for O000O0OO0O0OOO000 in range (len (r2 )):#line:229:for i in range(len(r2)):
+                if r2 [O000O0OO0O0OOO000 ]=="":#line:230:if r2[i] == "":
+                    print ("r2 is ",r2 )#line:231:print("r2 is ", r2)
+                    r2 [O000O0OO0O0OOO000 ]=n #line:232:r2[i] = n
+                    print ("oppwin has worked at r2")#line:233:print("oppwin has worked at r2")
+                    OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +4 )#line:234:compCOMPLETER(i + 4)
+        elif r3 .count (m )==2 :#line:236:elif r3.count(m) == 2:
+            for O000O0OO0O0OOO000 in range (len (r3 )):#line:237:for i in range(len(r3)):
+                if r3 [O000O0OO0O0OOO000 ]=="":#line:238:if r3[i] == "":
+                    r3 [O000O0OO0O0OOO000 ]=n #line:239:r3[i] = n
+                    print ("oppwin has worked at r3")#line:240:print("oppwin has worked at r3")
+                    OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +7 )#line:241:compCOMPLETER(i + 7)
+        for O000O0OO0O0OOO000 in range (3 ):#line:242:for i in range(3):
+            OO000O0O0OO0OO0OO =[r1 [O000O0OO0O0OOO000 ],r2 [O000O0OO0O0OOO000 ],r3 [O000O0OO0O0OOO000 ]]#line:243:o = [r1[i], r2[i], r3[i]]
+            if OO000O0O0OO0OO0OO .count (m )==2 :#line:244:if o.count(m) == 2:
+                for O0O0O0OOO0O000OOO in range (3 ):#line:245:for j in range(3):
+                    if OO000O0O0OO0OO0OO [O0O0O0OOO0O000OOO ]=="":#line:246:if o[j] == "":
+                        if O0O0O0OOO0O000OOO ==0 :#line:247:if j == 0:
+                            r1 [O000O0OO0O0OOO000 ]=n #line:248:r1[i] = n
+                            print ("oppwin has worked at ",OO000O0O0OO0OO0OO [O0O0O0OOO0O000OOO ])#line:249:print("oppwin has worked at ", o[j])
+                            OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +1 )#line:250:compCOMPLETER(i + 1)
+                        elif O0O0O0OOO0O000OOO ==1 :#line:251:elif j == 1:
+                            r2 [O000O0OO0O0OOO000 ]=n #line:252:r2[i] = n
+                            print ("oppwin has worked at",OO000O0O0OO0OO0OO [O0O0O0OOO0O000OOO ])#line:253:print("oppwin has worked at", o[j])
+                            OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +4 )#line:254:compCOMPLETER(i + 4)
+                        elif O0O0O0OOO0O000OOO ==2 :#line:255:elif j == 2:
+                            r3 [O000O0OO0O0OOO000 ]=n #line:256:r3[i] = n
+                            print ("oppwin has worked at",OO000O0O0OO0OO0OO [O0O0O0OOO0O000OOO ])#line:257:print("oppwin has worked at", o[j])
+                            OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +7 )#line:258:compCOMPLETER(i + 7)
+        O00OO0OOOOOOO0O00 =[r1 [0 ],r2 [1 ],r3 [2 ]]#line:259:d1 = [r1[0], r2[1], r3[2]]
+        if O00OO0OOOOOOO0O00 .count (m )==2 :#line:260:if d1.count(m) == 2:
+            for O000O0OO0O0OOO000 in range (3 ):#line:261:for i in range(3):
+                if O00OO0OOOOOOO0O00 [O000O0OO0O0OOO000 ]=="":#line:262:if d1[i] == "":
+                    if O000O0OO0O0OOO000 ==0 :#line:263:if i == 0:
+                        r1 [0 ]=n #line:264:r1[0] = n
+                        print ("oppwin has worked")#line:265:print("oppwin has worked")
+                        OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +1 )#line:266:compCOMPLETER(i + 1)
+                    elif O000O0OO0O0OOO000 ==1 :#line:267:elif i == 1:
+                        r2 [1 ]=n #line:268:r2[1] = n
+                        print ("oppwin has worked")#line:269:print("oppwin has worked")
+                        OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +4 )#line:270:compCOMPLETER(i + 4)
+                    elif O000O0OO0O0OOO000 ==2 :#line:271:elif i == 2:
+                        r3 [2 ]=n #line:272:r3[2] = n
+                        print ("oppwin has worked")#line:273:print("oppwin has worked")
+                        OOO00OO000O0O00O0 (O000O0OO0O0OOO000 +7 )#line:274:compCOMPLETER(i + 7)
+        O0000OO00OOO000OO =[r1 [2 ],r2 [1 ],r3 [0 ]]#line:275:d2 = [r1[2], r2[1], r3[0]]
+        if O0000OO00OOO000OO .count (m )==2 :#line:276:if d2.count(m) == 2:
+            for O000O0OO0O0OOO000 in range (3 ):#line:277:for i in range(3):
+                if O0000OO00OOO000OO [O000O0OO0O0OOO000 ]=="":#line:278:if d2[i] == "":
+                    if O000O0OO0O0OOO000 ==0 :#line:279:if i == 0:
+                        r1 [2 ]=n #line:280:r1[2] = n
+                        print ("oppwin has worked")#line:281:print("oppwin has worked")
+                        OOO00OO000O0O00O0 (3 )#line:282:compCOMPLETER(3)
+                    elif O000O0OO0O0OOO000 ==1 :#line:283:elif i == 1:
+                        r2 [1 ]=n #line:284:r2[1] = n
+                        print ("oppwin has worked")#line:285:print("oppwin has worked")
+                        OOO00OO000O0O00O0 (5 )#line:286:compCOMPLETER(5)
+                    elif O000O0OO0O0OOO000 ==2 :#line:287:elif i == 2:
+                        r3 [0 ]=n #line:288:r3[0] = n
+                        print ("oppwin has worked")#line:289:print("oppwin has worked")
+                        OOO00OO000O0O00O0 (7 )#line:290:compCOMPLETER(7)
+    OO0O0OOOO0OO0OO00 ()#line:292:oppwinCHECKER()
+    def OO00OO0OO000OO0O0 ():#line:294:def strategy1():
+        if r1 [0 ]==""and r3 [2 ]==""or c !=[]:#line:295:if r1[0] == "" and r3[2] == "" or c != []:
+            if r1 [0 ]=="":#line:296:if r1[0] == "":
+                r1 [0 ]=n #line:297:r1[0] = n
+                print ("strategy 1 has worked")#line:298:print("strategy 1 has worked")
+                c .append (1 )#line:299:c.append(1)
+                OOO00OO000O0O00O0 (1 )#line:300:compCOMPLETER(1)
+            if r1 [0 ]==n and r3 [2 ]==n :#line:301:if r1[0] == n and r3[2] == n:
+                if r1 [2 ]=="":#line:302:if r1[2] == "":
+                    r1 [2 ]=n #line:303:r1[2] = n
+                    OOO00OO000O0O00O0 (3 )#line:304:compCOMPLETER(3)
+                elif r3 [0 ]=="":#line:305:elif r3[0] == "":
+                    r3 [0 ]=n #line:306:r3[0] = n
+                    OOO00OO000O0O00O0 (7 )#line:307:compCOMPLETER(7)
+            elif r3 [2 ]=="":#line:308:elif r3[2] == "":
+                r3 [2 ]=n #line:309:r3[2] = n
+                print ("strategy1 has worked")#line:310:print("strategy1 has worked")
+                c .append (1 )#line:311:c.append(1)
+                OOO00OO000O0O00O0 (9 )#line:312:compCOMPLETER(9)
+    OO00OO0OO000OO0O0 ()#line:314:strategy1()
+    def O0O00O0O000O0000O ():#line:316:def middleCHECKER():
+        if r2 [1 ]=="":#line:317:if r2[1] == "":
+            r2 [1 ]=n #line:318:r2[1] = n
+            print ("miidlechecker has worked")#line:319:print("miidlechecker has worked")
+            OOO00OO000O0O00O0 (5 )#line:320:compCOMPLETER(5)
+    O0O00O0O000O0000O ()#line:322:middleCHECKER()
+    def O0O0O00OO00000OOO ():#line:324:def endsideCHECKER():
+        if r1 [0 ]=="":#line:325:if r1[0] == "":
+            r1 [0 ]=n #line:326:r1[0] = n
+            print ("endsidechecker has worked")#line:327:print("endsidechecker has worked")
+            OOO00OO000O0O00O0 (1 )#line:328:compCOMPLETER(1)
+        elif r1 [2 ]=="":#line:329:elif r1[2] == "":
+            r1 [2 ]=n #line:330:r1[2] = n
+            print ("endsidechecker has worked")#line:331:print("endsidechecker has worked")
+            OOO00OO000O0O00O0 (3 )#line:332:compCOMPLETER(3)
+        elif r3 [0 ]=="":#line:333:elif r3[0] == "":
+            r3 [0 ]=n #line:334:r3[0] = n
+            print ("endsidechecker has worked")#line:335:print("endsidechecker has worked")
+            OOO00OO000O0O00O0 (7 )#line:336:compCOMPLETER(7)
+        elif r3 [2 ]=="":#line:337:elif r3[2] == "":
+            r3 [2 ]=n #line:338:r3[2] = n
+            print ("endsidechecker has worked")#line:339:print("endsidechecker has worked")
+            OOO00OO000O0O00O0 (9 )#line:340:compCOMPLETER(9)
+    O0O0O00OO00000OOO ()#line:342:endsideCHECKER()
+    def O0O00O0OO0O00O0O0 ():#line:344:def endmiddleCHECKER():
+        if r1 [1 ]=="":#line:345:if r1[1] == "":
+            r1 [1 ]=n #line:346:r1[1] = n
+            OOO00OO000O0O00O0 (2 )#line:347:compCOMPLETER(2)
+        elif r2 [0 ]=="":#line:348:elif r2[0] == "":
+            r2 [0 ]=n #line:349:r2[0] = n
+            OOO00OO000O0O00O0 (4 )#line:350:compCOMPLETER(4)
+            print ("endmiddlechecker has worked")#line:351:print("endmiddlechecker has worked")
+        elif r2 [2 ]=="":#line:352:elif r2[2] == "":
+            r2 [2 ]=n #line:353:r2[2] = n
+            OOO0OO0O0O0OOO0OO =6 #line:354:p = 6
+            print ("endmiddlechecker has worked")#line:355:print("endmiddlechecker has worked")
+            OOO00OO000O0O00O0 (6 )#line:356:compCOMPLETER(6)
+        elif r3 [1 ]=="":#line:357:elif r3[1] == "":
+            r3 [1 ]=n #line:358:r3[1] = n
+            print ("endmiddlechecker has worked")#line:359:print("endmiddlechecker has worked")
+            OOO00OO000O0O00O0 (8 )#line:360:compCOMPLETER(8)
+    O0O00O0OO0O00O0O0 ()#line:362:endmiddleCHECKER()
+print ("press 1 to play first , press 2 to let computer play first")#line:365:print("press 1 to play first , press 2 to let computer play first")
+global a #line:366:global a
+a =int (input ("enter here "))#line:367:a = int(input("enter here "))
+if a ==1 :#line:368:if a == 1:
+    firstinitialiser ()#line:369:firstinitialiser()
+elif a ==2 :#line:370:elif a == 2:
+    compPLAY ()#line:371:compPLAY()

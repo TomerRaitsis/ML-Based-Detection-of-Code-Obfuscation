@@ -1,0 +1,318 @@
+from tkinter import *#line:1
+from tkinter .messagebox import *#line:2
+from tkinter .scrolledtext import *#line:3
+import matplotlib .pyplot as plt #line:4
+import requests #line:5
+import bs4 #line:6
+from sqlite3 import *#line:7
+def _OOO0000000OOO0OO0 ():#line:8
+	O0OOO0OO00O0OOOOO =OOO0OO0O0OOO0OOO0 =O000OOOOOO00O0O00 =0 #line:9
+	if not st_rno .get ():#line:10
+		showerror ("Failure","Roll no should not be empty ")#line:11
+		O0OOO0OO00O0OOOOO =1 #line:12
+	elif st_rno .get ().isalpha ():#line:13
+		showerror ("Failure","Only numbers allowed for rollno")#line:14
+		OOO0OO0O0OOO0OOO0 =1 #line:15
+	elif int (st_rno .get ())<0 :#line:16
+		showerror ("Failue","Roll no should be greater than 0")#line:17
+		O000OOOOOO00O0O00 =1 #line:18
+	if O0OOO0OO00O0OOOOO ==1 or OOO0OO0O0OOO0OOO0 ==1 or O000OOOOOO00O0O00 ==1 :#line:19
+		return 1 #line:20
+	else :#line:21
+		return 0 #line:22
+def _OOOO00OO0000O0O00 ():#line:24
+	OO00000O000000000 =OO0O0OO00O0O0O00O =O00OOO0O00O00O000 =0 #line:25
+	if not st_nme .get ():#line:26
+		showerror ("Failure","Name should not be empty ")#line:27
+		OO00000O000000000 =1 #line:28
+	elif st_nme .get ().isdigit ():#line:29
+		showerror ("Failure","Only characters allowed for Name")#line:30
+		OO0O0OO00O0O0O00O =1 #line:31
+	elif len (st_nme .get ())<2 :#line:32
+		showerror ("Failue","Length of name should be greater than 1")#line:33
+		O00OOO0O00O00O000 =1 #line:34
+	if OO00000O000000000 ==1 or OO0O0OO00O0O0O00O ==1 or O00OOO0O00O00O000 ==1 :#line:35
+		return 1 #line:36
+	else :#line:37
+		return 0 #line:38
+def _O0O0000O0000O0OO0 ():#line:41
+	O00OOOO0OO0O000OO =OO00OOO00OOOO00O0 =OO000OO00O00OOOO0 =0 #line:42
+	if not st_mks .get ():#line:43
+		showerror ("Failure","Marks should not be empty ")#line:44
+		O00OOOO0OO0O000OO =1 #line:45
+	elif st_mks .get ().isalpha ():#line:46
+		showerror ("Failure","Only numbers allowed for marks")#line:47
+		OO00OOO00OOOO00O0 =1 #line:48
+	elif int (st_mks .get ())<0 :#line:49
+		showerror ("Failue","Marks should be greater than 0")#line:50
+		OO000OO00O00OOOO0 =1 #line:51
+	if O00OOOO0OO0O000OO ==1 or OO00OOO00OOOO00O0 ==1 or OO000OO00O00OOOO0 ==1 :#line:52
+		return 1 #line:53
+	else :#line:54
+		return 0 #line:55
+def loc ():#line:58
+		O0OO000O0O0OO00OO ="https://ipinfo.io/"#line:59
+		O00000000O00000OO =requests .get (O0OO000O0O0OO00OO )#line:60
+		O000000OO000OOO00 =O00000000O00000OO .json ()#line:61
+		OO00O00O00O00OOO0 =O000000OO000OOO00 ['loc']#line:62
+		return OO00O00O00O00OOO0 #line:63
+location =loc ()#line:64
+def temp ():#line:66
+	OO0O00OO0OOOO0OO0 ="Airoli"#line:67
+	O000O0O00O00OO00O ="http://api.openweathermap.org/data/2.5/weather?units=metric"#line:68
+	OOO00O00000OO0000 ="&q="+OO0O00OO0OOOO0OO0 #line:69
+	O0O0O000O00OOOO00 ="&appid="+"c6e315d09197cec231495138183954bd"#line:70
+	OO0OOOOO0O0O0OOO0 =O000O0O00O00OO00O +OOO00O00000OO0000 +O0O0O000O00OOOO00 #line:71
+	OO0OOO0O0OO0000O0 =requests .get (OO0OOOOO0O0O0OOO0 )#line:72
+	OO000OO0OO0O00O00 =OO0OOO0O0OO0000O0 .json ()#line:73
+	OO0OO00000000OOO0 =OO000OO0OO0O00O00 ['main']#line:74
+	OO000O000OO00O0OO =OO0OO00000000OOO0 ['temp']#line:75
+	return OO000O000OO00O0OO #line:76
+temperature =temp ()#line:77
+def f1 ():#line:79
+	add_window .deiconify ()#line:80
+	main_window .withdraw ()#line:81
+def f2 ():#line:83
+	main_window .deiconify ()#line:84
+	add_window .withdraw ()#line:85
+def f3 ():#line:89
+	view_window .deiconify ()#line:90
+	main_window .withdraw ()#line:91
+	view_st_data .delete (1.0 ,END )#line:92
+	OO000OO0OOO0O0OOO =''#line:93
+	O00OOOO00OOO0O000 =None #line:94
+	try :#line:95
+		O00OOOO00OOO0O000 =connect ("datab.db")#line:96
+		OOOO0O00OO0O00O00 =O00OOOO00OOO0O000 .cursor ()#line:97
+		OOO00O0OO00O00OO0 ="select * from student"#line:98
+		OOOO0O00OO0O00O00 .execute (OOO00O0OO00O00OO0 )#line:99
+		O0OO00000O000O0OO =OOOO0O00OO0O00O00 .fetchall ()#line:100
+		for OO00O000O00O0000O in O0OO00000O000O0OO :#line:101
+			OO000OO0OOO0O0OOO =OO000OO0OOO0O0OOO +"Rno: "+str (OO00O000O00O0000O [0 ])+"   Name:	"+str (OO00O000O00O0000O [1 ])+"   Marks:  "+str (OO00O000O00O0000O [2 ])+"\n"#line:102
+		view_st_data .insert (INSERT ,OO000OO0OOO0O0OOO )#line:103
+	except Exception as OO00OOO00OO0000OO :#line:104
+		showerror ("Failure ",OO00OOO00OO0000OO )#line:105
+	finally :#line:106
+		if O00OOOO00OOO0O000 is not None :#line:107
+				O00OOOO00OOO0O000 .close ()#line:108
+def f4 ():#line:110
+	main_window .deiconify ()#line:111
+	view_window .withdraw ()#line:112
+def f5 ():#line:114
+	update_window .deiconify ()#line:115
+	main_window .withdraw ()#line:116
+def f6 ():#line:118
+	main_window .deiconify ()#line:119
+	view_window .withdraw ()#line:120
+def f7 ():#line:122
+	delete_window .deiconify ()#line:123
+	main_window .withdraw ()#line:124
+def f8 ():#line:126
+	main_window .deiconify ()#line:127
+	delete_window .withdraw ()#line:128
+def f9 ():#line:130
+	try :#line:131
+		OO0000OOO000OO0O0 =None #line:132
+		OO0000OOO000OO0O0 =connect ('datab.db')#line:133
+		O0O000OO0O00O0O0O =_OOOO00OO0000O0O00 ()#line:134
+		O0OOO0OO0O0O00OO0 =_OOO0000000OOO0OO0 ()#line:135
+		O00O0OOOOOOO000O0 =_O0O0000O0000O0OO0 ()#line:136
+		if O0OOO0OO0O0O00OO0 ==0 :#line:137
+			if O0O000OO0O00O0O0O ==0 :#line:138
+				if O00O0OOOOOOO000O0 ==0 :#line:139
+					O0O00OOO0OO0O0OO0 =int (add_ent_rno .get ())#line:140
+					O0O0O0000OO00OOOO =add_ent_name .get ()#line:141
+					O00O0OOOOOOO000O0 =int (add_ent_marks .get ())#line:142
+					OO0OOOO000O0000OO =OO0000OOO000OO0O0 .cursor ()#line:143
+					O0O000O0OO0O0O000 ="insert into student values('%d','%s','%d')"#line:144
+					OO0OOOO000O0000OO .execute (O0O000O0OO0O0O000 %(O0O00OOO0OO0O0OO0 ,O0O0O0000OO00OOOO ,O00O0OOOOOOO000O0 ))#line:145
+					OO0000OOO000OO0O0 .commit ()#line:146
+					showinfo ('Success','record added')#line:147
+					add_ent_rno .delete (0 ,END )#line:148
+					add_ent_name .delete (0 ,END )#line:149
+					add_ent_marks .delete (0 ,END )#line:150
+	except Exception as OOO00000O0OO00OO0 :#line:151
+		showerror ('Failure',OOO00000O0OO00OO0 )#line:152
+		OO0000OOO000OO0O0 .rollback ()#line:153
+	finally :#line:154
+		if OO0000OOO000OO0O0 is not None :#line:155
+			OO0000OOO000OO0O0 .close ()#line:156
+def f10 ():#line:159
+		OO000OO000O0OOOO0 ="https://www.brainyquote.com/quote_of_the_day"#line:160
+		OO0OO0O0O00O0OO0O =requests .get (OO000OO000O0OOOO0 )#line:161
+		O00O000OO00OOOOO0 =bs4 .BeautifulSoup (OO0OO0O0O00O0OO0O .text ,'html.parser')#line:162
+		O0O0O0OO0000OOOO0 =O00O000OO00OOOOO0 .find ('img',{'class':'p-qotd'})#line:163
+		OOO0O0O0O0O0OO00O =O0O0O0OO0000OOOO0 ['alt']#line:164
+		return OOO0O0O0O0O0OO00O #line:165
+message =f10 ()#line:166
+msg =message .strip ()#line:167
+def f11 ():#line:169
+	try :#line:170
+		O00000O0000O0OO0O =connect ('datab.db')#line:171
+		O0O00OO0OOO0OOOO0 =O00000O0000O0OO0O .cursor ()#line:172
+		O0OOOO00O00O0000O =_OOOO00OO0000O0O00 ()#line:173
+		O000OO000O00O0O00 =_OOO0000000OOO0OO0 ()#line:174
+		O0OO00O0O0OOOO0O0 =_O0O0000O0000O0OO0 ()#line:175
+		if O000OO000O00O0O00 ==0 :#line:176
+			if O0OOOO00O00O0000O ==0 :#line:177
+				if O0OO00O0O0OOOO0O0 ==0 :#line:178
+					OOO0O0O00O00OOOOO =int (update_ent_rno .get ())#line:179
+					OO0O0O00OOO0OOO0O =update_ent_name .get ()#line:180
+					OOOOO000OO0000O00 =int (update_ent_marks .get ())#line:181
+					OO000OO0O0OOOO0O0 ="select rno from student"#line:182
+					O0O00OO0OOO0OOOO0 .execute (OO000OO0O0OOOO0O0 )#line:183
+					O00OOOOOO000000OO =O0O00OO0OOO0OOOO0 .fetchall ()#line:184
+					for OO0O0OO0000OOOOO0 in O00OOOOOO000000OO :#line:185
+						if (OO0O0OO0000OOOOO0 [0 ]==OOO0O0O00O00OOOOO ):#line:186
+							O0O00OO0OOO0OOOO0 =O00000O0000O0OO0O .cursor ()#line:187
+							O0O00OO0OOO0OOOO0 .execute ("update student set name=(?),marks=(?) where rno=(?)",(OO0O0O00OOO0OOO0O ,OOOOO000OO0000O00 ,OOO0O0O00O00OOOOO ))#line:188
+							O00000O0000O0OO0O .commit ()#line:189
+							showinfo ('Success','record updated')#line:190
+							break #line:191
+					if (OO0O0OO0000OOOOO0 [0 ]!=OOO0O0O00O00OOOOO ):#line:192
+						showerror ('Failure','record does not exist')#line:193
+					update_ent_rno .delete (0 ,END )#line:194
+					update_ent_rno .delete (0 ,END )#line:195
+					update_ent_rno .delete (0 ,END )#line:196
+	except Exception as OO0O0O0OO00000O00 :#line:197
+		showerror ('Failure',OO0O0O0OO00000O00 )#line:198
+	finally :#line:199
+		if O00000O0000O0OO0O is not None :#line:200
+			O00000O0000O0OO0O .close ()#line:201
+def f12 ():#line:203
+	OO00OO0OOOOO00O0O =None #line:204
+	try :#line:205
+		OO00OO0OOOOO00O0O =connect ("datab.db")#line:206
+		O0O0OO000000000O0 =OO00OO0OOOOO00O0O .cursor ()#line:207
+		O0OO0O00O000000OO =_OOO0000000OOO0OO0 ()#line:208
+		if O0OO0O00O000000OO ==0 :#line:209
+			O0O0O0OOOO0OO0O00 =int (delete_ent_rno .get ())#line:210
+			O0OO0OO0O000O00O0 ="select rno from student"#line:211
+			O0O0OO000000000O0 .execute (O0OO0OO0O000O00O0 )#line:212
+			OOOOOOOO0OO0OOOOO =O0O0OO000000000O0 .fetchall ()#line:213
+			for O0OOOOO0000000O0O in OOOOOOOO0OO0OOOOO :#line:214
+				if (O0OOOOO0000000O0O [0 ]==O0O0O0OOOO0OO0O00 ):#line:215
+					O0O0OO000000000O0 =OO00OO0OOOOO00O0O .cursor ()#line:216
+					OO0OOO0OOOO00O000 ="delete from student where rno=?"#line:217
+					O0O0OO000000000O0 .execute (OO0OOO0OOOO00O000 ,(O0O0O0OOOO0OO0O00 ,))#line:218
+					OO00OO0OOOOO00O0O .commit ()#line:219
+					showinfo ("Success","Record deleted")#line:220
+					break #line:221
+			if (O0OOOOO0000000O0O [0 ]!=O0O0O0OOOO0OO0O00 ):#line:222
+					showerror ("Failure","Invalid roll no")#line:223
+			if (O0OOOOO0000000O0O [0 ]==""):#line:224
+					showerror ("Failure","No data")#line:225
+	except Exception as OOO0OOOO00O0O0OOO :#line:226
+		showerror ("Delete issue",OOO0OOOO00O0O0OOO )#line:227
+		delete_ent_rno .delete (0 ,END )#line:228
+	finally :#line:229
+		if OO00OO0OOOOO00O0O is not None :#line:230
+			OO00OO0OOOOO00O0O .close ()#line:231
+def f13 ():#line:233
+	try :#line:234
+		O000O0OOO00O00OO0 =connect ("datab.db")#line:235
+		OO00OO0OO0OO0O00O =O000O0OOO00O00OO0 .cursor ()#line:236
+		OOOOO00000OOO0OO0 ="select name,marks from student order by marks desc"#line:237
+		OO00OO0OO0OO0O00O .execute (OOOOO00000OOO0OO0 )#line:238
+		OO000OOOOOOOO0000 =OO00OO0OO0OO0O00O .fetchall ()#line:239
+		O000OO0OO000OO0OO =[O00OOOOOOOO00O0O0 [0 ]for O00OOOOOOOO00O0O0 in OO000OOOOOOOO0000 ]#line:240
+		O00000000000O00OO =[O0OOOOOO00OOOOO00 [1 ]for O0OOOOOO00OOOOO00 in OO000OOOOOOOO0000 ]#line:241
+		plt .bar (O000OO0OO000OO0OO ,O00000000000O00OO ,color =('r','g','b','y'))#line:242
+		plt .xlabel ("Names")#line:243
+		plt .ylabel ("Marks")#line:244
+		plt .show ()#line:245
+	except Exception as OO0O00OOO0O00O00O :#line:246
+		print ("select issue",OO0O00OOO0O00O00O )#line:247
+	finally :#line:248
+		if O000O0OOO00O00OO0 is not None :#line:249
+			O000O0OOO00O00OO0 .close ()#line:250
+main_window =Tk ()#line:253
+main_window .geometry ("600x600+400+100")#line:254
+main_window .title ("S.M.S")#line:255
+f =("Calibri",20 ,"bold")#line:256
+btn_Add =Button (main_window ,text ="Add",font =f ,width =10 ,command =f1 )#line:257
+btn_View =Button (main_window ,text ="View",font =f ,width =10 ,command =f3 )#line:258
+btn_Update =Button (main_window ,text ="Update",font =f ,width =10 ,command =f5 )#line:259
+btn_Delete =Button (main_window ,text ="Delete",font =f ,width =10 ,command =f7 )#line:260
+btn_Charts =Button (main_window ,text ="Charts",font =f ,width =10 ,command =f13 )#line:261
+lbl_Location =Label (main_window ,text ="Location: ",font =f )#line:262
+lbl_Location_value =Label (main_window ,text =location ,font =f )#line:263
+lbl_Temperature =Label (main_window ,text ="Temperature: ",font =f )#line:264
+lbl_Temperature_value =Label (main_window ,text =temperature ,font =f )#line:265
+lbl_qotd =Label (main_window ,text ="QOTD: ",font =f )#line:266
+lbl_qotd_txt =Message (main_window ,text =msg ,font =f ,width =480 )#line:267
+btn_Add .pack (pady =10 )#line:268
+btn_View .pack (pady =10 )#line:269
+btn_Update .pack (pady =10 )#line:270
+btn_Delete .pack (pady =10 )#line:271
+btn_Charts .pack (pady =10 )#line:272
+lbl_Location .place (x =5 ,y =500 ,anchor ='sw')#line:273
+lbl_Temperature .place (x =350 ,y =500 ,anchor ='sw')#line:274
+lbl_Location_value .place (x =111 ,y =500 ,anchor ='sw')#line:275
+lbl_Temperature_value .place (x =510 ,y =500 ,anchor ='sw')#line:276
+lbl_qotd .place (x =5 ,y =540 ,anchor ='sw')#line:277
+lbl_qotd_txt .place (x =81 ,y =578 ,anchor ='sw')#line:278
+st_rno =StringVar ()#line:282
+st_nme =StringVar ()#line:283
+st_mks =StringVar ()#line:284
+add_window =Toplevel (main_window )#line:285
+add_window .title ("Add St.")#line:286
+add_window .geometry ("600x600+400+100")#line:287
+add_lbl_rno =Label (add_window ,text ="Enter roll no",font =f )#line:288
+add_ent_rno =Entry (add_window ,bd =5 ,font =f ,textvariable =st_rno )#line:289
+add_lbl_name =Label (add_window ,text ="Enter name",font =f )#line:290
+add_ent_name =Entry (add_window ,bd =5 ,font =f ,textvariable =st_nme )#line:291
+add_lbl_marks =Label (add_window ,text ="Enter marks",font =f )#line:292
+add_ent_marks =Entry (add_window ,bd =5 ,font =f ,textvariable =st_mks )#line:293
+add_btn_save =Button (add_window ,text ="Save",width =10 ,font =f ,command =f9 )#line:294
+add_btn_back =Button (add_window ,text ="Back",width =10 ,font =f ,command =f2 )#line:295
+add_lbl_rno .pack (pady =10 )#line:296
+add_ent_rno .pack (pady =10 )#line:297
+add_lbl_name .pack (pady =10 )#line:298
+add_ent_name .pack (pady =10 )#line:299
+add_lbl_marks .pack (pady =10 )#line:300
+add_ent_marks .pack (pady =10 )#line:301
+add_btn_save .pack (pady =10 )#line:302
+add_btn_back .pack (pady =10 )#line:303
+add_window .withdraw ()#line:304
+view_window =Toplevel (main_window )#line:308
+view_window .title ("View St.")#line:309
+view_window .geometry ("600x600+400+100")#line:310
+view_st_data =ScrolledText (view_window ,width =30 ,height =10 ,font =f )#line:311
+view_btn_back =Button (view_window ,text ="Back",width =10 ,font =f ,command =f4 )#line:312
+view_st_data .pack (pady =10 )#line:313
+view_btn_back .pack (pady =10 )#line:314
+view_window .withdraw ()#line:315
+update_window =Toplevel (main_window )#line:319
+update_window .title ("Update St.")#line:320
+update_window .geometry ("600x600+400+100")#line:321
+update_lbl_rno =Label (update_window ,text ="Enter roll no",font =f )#line:322
+update_ent_rno =Entry (update_window ,bd =5 ,font =f ,textvariable =st_rno )#line:323
+update_lbl_name =Label (update_window ,text ="Enter name",font =f )#line:324
+update_ent_name =Entry (update_window ,bd =5 ,font =f ,textvariable =st_nme )#line:325
+update_lbl_marks =Label (update_window ,text ="Enter marks",font =f )#line:326
+update_ent_marks =Entry (update_window ,bd =5 ,font =f ,textvariable =st_mks )#line:327
+update_btn_save =Button (update_window ,text ="Save",width =10 ,font =f ,command =f11 )#line:328
+update_btn_back =Button (update_window ,text ="Back",width =10 ,font =f ,command =f6 )#line:329
+update_lbl_rno .pack (pady =10 )#line:330
+update_ent_rno .pack (pady =10 )#line:331
+update_lbl_name .pack (pady =10 )#line:332
+update_ent_name .pack (pady =10 )#line:333
+update_lbl_marks .pack (pady =10 )#line:334
+update_ent_marks .pack (pady =10 )#line:335
+update_btn_save .pack (pady =10 )#line:336
+update_btn_back .pack (pady =10 )#line:337
+update_window .withdraw ()#line:338
+delete_window =Toplevel (main_window )#line:342
+delete_window .title ("Delete St.")#line:343
+delete_window .geometry ("600x600+400+100")#line:344
+delete_lbl_rno =Label (delete_window ,text ="Enter roll no ",font =f )#line:345
+delete_ent_rno =Entry (delete_window ,bd =5 ,font =f ,textvariable =st_rno )#line:346
+delete_btn_delete =Button (delete_window ,text ="Delete",width =10 ,font =f ,command =f12 )#line:347
+delete_btn_back =Button (delete_window ,text ="Back",width =10 ,font =f ,command =f8 )#line:348
+delete_lbl_rno .pack (pady =10 )#line:349
+delete_ent_rno .pack (pady =10 )#line:350
+delete_btn_delete .pack (pady =10 )#line:351
+delete_btn_back .pack (pady =10 )#line:352
+delete_window .withdraw ()#line:353
+main_window .mainloop ()
