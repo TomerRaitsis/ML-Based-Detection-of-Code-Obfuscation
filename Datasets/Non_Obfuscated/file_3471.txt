@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Counter variable
+counter=1
+
+# Iterate over each file in the directory
+for file in *; do
+  # Check if it is a file
+  if [ -f "$file" ]; then
+    # Rename the file with a numbered sequence and .txt extension
+    mv "$file" "file_$counter.txt"
+    # Increment the counter
+    counter=$((counter + 1))
+  fi
+done
