@@ -1,760 +1,508 @@
-""#line:1:"""CSS selector parser."""
-import re #line:2:import re
-from functools import lru_cache #line:3:from functools import lru_cache
-from .import util #line:4:from . import util
-from .import css_match as cm #line:5:from . import css_match as cm
-from .import css_types as ct #line:6:from . import css_types as ct
-from .util import SelectorSyntaxError #line:7:from .util import SelectorSyntaxError
-UNICODE_REPLACEMENT_CHAR =0xFFFD #line:9:UNICODE_REPLACEMENT_CHAR = 0xFFFD
-PSEUDO_SIMPLE ={":any-link",":empty",":first-child",":first-of-type",":in-range",":out-of-range",":last-child",":last-of-type",":link",":only-child",":only-of-type",":root",':checked',':default',':disabled',':enabled',':indeterminate',':optional',':placeholder-shown',':read-only',':read-write',':required',':scope',':defined'}#line:37:}
-PSEUDO_SIMPLE_NO_MATCH ={':active',':current',':focus',':focus-visible',':focus-within',':future',':host',':hover',':local-link',':past',':paused',':playing',':target',':target-within',':user-invalid',':visited'}#line:57:}
-PSEUDO_COMPLEX ={':contains',':has',':is',':matches',':not',':where'}#line:67:}
-PSEUDO_COMPLEX_NO_MATCH ={':current',':host',':host-context'}#line:73:}
-PSEUDO_SPECIAL ={':dir',':lang',':nth-child',':nth-last-child',':nth-last-of-type',':nth-of-type'}#line:83:}
-PSEUDO_SUPPORTED =PSEUDO_SIMPLE |PSEUDO_SIMPLE_NO_MATCH |PSEUDO_COMPLEX |PSEUDO_COMPLEX_NO_MATCH |PSEUDO_SPECIAL #line:85:PSEUDO_SUPPORTED = PSEUDO_SIMPLE | PSEUDO_SIMPLE_NO_MATCH | PSEUDO_COMPLEX | PSEUDO_COMPLEX_NO_MATCH | PSEUDO_SPECIAL
-NEWLINE =r'(?:\r\n|(?!\r\n)[\n\f\r])'#line:89:NEWLINE = r'(?:\r\n|(?!\r\n)[\n\f\r])'
-WS =r'(?:[ \t]|{})'.format (NEWLINE )#line:90:WS = r'(?:[ \t]|{})'.format(NEWLINE)
-COMMENTS =r'(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)'#line:92:COMMENTS = r'(?:/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)'
-WSC =r'(?:{ws}|{comments})'.format (ws =WS ,comments =COMMENTS )#line:94:WSC = r'(?:{ws}|{comments})'.format(ws=WS, comments=COMMENTS)
-CSS_ESCAPES =r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$))'.format (ws =WS )#line:96:CSS_ESCAPES = r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$))'.format(ws=WS)
-CSS_STRING_ESCAPES =r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$|{nl}))'.format (ws =WS ,nl =NEWLINE )#line:97:CSS_STRING_ESCAPES = r'(?:\\(?:[a-f0-9]{{1,6}}{ws}?|[^\r\n\f]|$|{nl}))'.format(ws=WS, nl=NEWLINE)
-IDENTIFIER =r'''
-(?:(?:-?(?:[^\x00-\x2f\x30-\x40\x5B-\x5E\x60\x7B-\x9f]|{esc})+|--)
-(?:[^\x00-\x2c\x2e\x2f\x3A-\x40\x5B-\x5E\x60\x7B-\x9f]|{esc})*)
-'''.format (esc =CSS_ESCAPES )#line:102:'''.format(esc=CSS_ESCAPES)
-NTH =r'(?:[-+])?(?:[0-9]+n?|n)(?:(?<=n){ws}*(?:[-+]){ws}*(?:[0-9]+))?'.format (ws =WSC )#line:104:NTH = r'(?:[-+])?(?:[0-9]+n?|n)(?:(?<=n){ws}*(?:[-+]){ws}*(?:[0-9]+))?'.format(ws=WSC)
-VALUE =r'''
-(?:"(?:\\(?:.|{nl})|[^\\"\r\n\f]+)*?"|'(?:\\(?:.|{nl})|[^\\'\r\n\f]+)*?'|{ident}+)
-'''.format (nl =NEWLINE ,ident =IDENTIFIER )#line:108:'''.format(nl=NEWLINE, ident=IDENTIFIER)
-ATTR =r'''
-(?:{ws}*(?P<cmp>[!~^|*$]?=){ws}*(?P<value>{value})(?:{ws}+(?P<case>[is]))?)?{ws}*\]
-'''.format (ws =WSC ,value =VALUE )#line:112:'''.format(ws=WSC, value=VALUE)
-PAT_ID =r'\#{ident}'.format (ident =IDENTIFIER )#line:116:PAT_ID = r'\#{ident}'.format(ident=IDENTIFIER)
-PAT_CLASS =r'\.{ident}'.format (ident =IDENTIFIER )#line:118:PAT_CLASS = r'\.{ident}'.format(ident=IDENTIFIER)
-PAT_TAG =r'(?P<tag_ns>(?:{ident}|\*)?\|)?(?P<tag_name>{ident}|\*)'.format (ident =IDENTIFIER )#line:120:PAT_TAG = r'(?P<tag_ns>(?:{ident}|\*)?\|)?(?P<tag_name>{ident}|\*)'.format(ident=IDENTIFIER)
-PAT_ATTR =r'''
-\[{ws}*(?P<attr_ns>(?:{ident}|\*)?\|)?(?P<attr_name>{ident}){attr}
-'''.format (ws =WSC ,ident =IDENTIFIER ,attr =ATTR )#line:124:'''.format(ws=WSC, ident=IDENTIFIER, attr=ATTR)
-PAT_PSEUDO_CLASS =r'(?P<name>:{ident})(?P<open>\({ws}*)?'.format (ws =WSC ,ident =IDENTIFIER )#line:126:PAT_PSEUDO_CLASS = r'(?P<name>:{ident})(?P<open>\({ws}*)?'.format(ws=WSC, ident=IDENTIFIER)
-PAT_PSEUDO_CLASS_SPECIAL =r'(?P<name>:{ident})(?P<open>\({ws}*)'.format (ws =WSC ,ident =IDENTIFIER )#line:128:PAT_PSEUDO_CLASS_SPECIAL = r'(?P<name>:{ident})(?P<open>\({ws}*)'.format(ws=WSC, ident=IDENTIFIER)
-PAT_PSEUDO_CLASS_CUSTOM =r'(?P<name>:(?=--){ident})'.format (ident =IDENTIFIER )#line:130:PAT_PSEUDO_CLASS_CUSTOM = r'(?P<name>:(?=--){ident})'.format(ident=IDENTIFIER)
-PAT_PSEUDO_CLOSE =r'{ws}*\)'.format (ws =WSC )#line:132:PAT_PSEUDO_CLOSE = r'{ws}*\)'.format(ws=WSC)
-PAT_PSEUDO_ELEMENT =r':{}'.format (PAT_PSEUDO_CLASS )#line:134:PAT_PSEUDO_ELEMENT = r':{}'.format(PAT_PSEUDO_CLASS)
-PAT_AT_RULE =r'@P{ident}'.format (ident =IDENTIFIER )#line:136:PAT_AT_RULE = r'@P{ident}'.format(ident=IDENTIFIER)
-PAT_PSEUDO_NTH_CHILD =r'''
-(?P<pseudo_nth_child>{name}
-(?P<nth_child>{nth}|even|odd))(?:{wsc}*\)|(?P<of>{comments}*{ws}{wsc}*of{comments}*{ws}{wsc}*))
-'''.format (name =PAT_PSEUDO_CLASS_SPECIAL ,wsc =WSC ,comments =COMMENTS ,ws =WS ,nth =NTH )#line:141:'''.format(name=PAT_PSEUDO_CLASS_SPECIAL, wsc=WSC, comments=COMMENTS, ws=WS, nth=NTH)
-PAT_PSEUDO_NTH_TYPE =r'''
-(?P<pseudo_nth_type>{name}
-(?P<nth_type>{nth}|even|odd)){ws}*\)
-'''.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC ,nth =NTH )#line:146:'''.format(name=PAT_PSEUDO_CLASS_SPECIAL, ws=WSC, nth=NTH)
-PAT_PSEUDO_LANG =r'{name}(?P<values>{value}(?:{ws}*,{ws}*{value})*){ws}*\)'.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC ,value =VALUE )#line:150:)
-PAT_PSEUDO_DIR =r'{name}(?P<dir>ltr|rtl){ws}*\)'.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC )#line:152:PAT_PSEUDO_DIR = r'{name}(?P<dir>ltr|rtl){ws}*\)'.format(name=PAT_PSEUDO_CLASS_SPECIAL, ws=WSC)
-PAT_COMBINE =r'{wsc}*?(?P<relation>[,+>~]|{ws}(?![,+>~])){wsc}*'.format (ws =WS ,wsc =WSC )#line:154:PAT_COMBINE = r'{wsc}*?(?P<relation>[,+>~]|{ws}(?![,+>~])){wsc}*'.format(ws=WS, wsc=WSC)
-PAT_PSEUDO_CONTAINS =r'{name}(?P<values>{value}(?:{ws}*,{ws}*{value})*){ws}*\)'.format (name =PAT_PSEUDO_CLASS_SPECIAL ,ws =WSC ,value =VALUE )#line:158:)
-RE_CSS_ESC =re .compile (r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$))'.format (ws =WSC ),re .I )#line:162:RE_CSS_ESC = re.compile(r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$))'.format(ws=WSC), re.I)
-RE_CSS_STR_ESC =re .compile (r'(?:(\\[a-f0-9]{{1,6}}{ws}?)|(\\[^\r\n\f])|(\\$)|(\\{nl}))'.format (ws =WS ,nl =NEWLINE ),re .I )#line:165:)
-RE_NTH =re .compile (r'(?P<s1>[-+])?(?P<a>[0-9]+n?|n)(?:(?<=n){ws}*(?P<s2>[-+]){ws}*(?P<b>[0-9]+))?'.format (ws =WSC ),re .I )#line:170:)
-RE_VALUES =re .compile (r'(?:(?P<value>{value})|(?P<split>{ws}*,{ws}*))'.format (ws =WSC ,value =VALUE ),re .X )#line:172:RE_VALUES = re.compile(r'(?:(?P<value>{value})|(?P<split>{ws}*,{ws}*))'.format(ws=WSC, value=VALUE), re.X)
-RE_WS =re .compile (WS )#line:174:RE_WS = re.compile(WS)
-RE_WS_BEGIN =re .compile ('^{}*'.format (WSC ))#line:175:RE_WS_BEGIN = re.compile('^{}*'.format(WSC))
-RE_WS_END =re .compile ('{}*$'.format (WSC ))#line:176:RE_WS_END = re.compile('{}*$'.format(WSC))
-RE_CUSTOM =re .compile (r'^{}$'.format (PAT_PSEUDO_CLASS_CUSTOM ),re .X )#line:177:RE_CUSTOM = re.compile(r'^{}$'.format(PAT_PSEUDO_CLASS_CUSTOM), re.X)
-COMMA_COMBINATOR =','#line:181:COMMA_COMBINATOR = ','
-WS_COMBINATOR =" "#line:183:WS_COMBINATOR = " "
-FLG_PSEUDO =0x01 #line:186:FLG_PSEUDO = 0x01
-FLG_NOT =0x02 #line:187:FLG_NOT = 0x02
-FLG_RELATIVE =0x04 #line:188:FLG_RELATIVE = 0x04
-FLG_DEFAULT =0x08 #line:189:FLG_DEFAULT = 0x08
-FLG_HTML =0x10 #line:190:FLG_HTML = 0x10
-FLG_INDETERMINATE =0x20 #line:191:FLG_INDETERMINATE = 0x20
-FLG_OPEN =0x40 #line:192:FLG_OPEN = 0x40
-FLG_IN_RANGE =0x80 #line:193:FLG_IN_RANGE = 0x80
-FLG_OUT_OF_RANGE =0x100 #line:194:FLG_OUT_OF_RANGE = 0x100
-FLG_PLACEHOLDER_SHOWN =0x200 #line:195:FLG_PLACEHOLDER_SHOWN = 0x200
-_O0OO00OOO00000O00 =500 #line:198:_MAXCACHE = 500
-@lru_cache (maxsize =_O0OO00OOO00000O00 )#line:201:@lru_cache(maxsize=_MAXCACHE)
-def _O0O0O00OO00OOO000 (OO0000O0O00000O00 ,O0000OO0O0OO0OOO0 ,O00O0OO0O0000O0O0 ,OOOOO00O00OOOO0OO ):#line:202:def _cached_css_compile(pattern, namespaces, custom, flags):
-    ""#line:203:"""Cached CSS compile."""
-    OO0OOOOOO0OO0OO00 =process_custom (O00O0OO0O0000O0O0 )#line:205:custom_selectors = process_custom(custom)
-    return cm .SoupSieve (OO0000O0O00000O00 ,CSSParser (OO0000O0O00000O00 ,custom =OO0OOOOOO0OO0OO00 ,flags =OOOOO00O00OOOO0OO ).process_selectors (),O0000OO0O0OO0OOO0 ,O00O0OO0O0000O0O0 ,OOOOO00O00OOOO0OO )#line:212:)
-def _O000000OOO0O0O0O0 ():#line:215:def _purge_cache():
-    ""#line:216:"""Purge the cache."""
-    _O0O0O00OO00OOO000 .cache_clear ()#line:218:_cached_css_compile.cache_clear()
-def process_custom (OO0OOOO00O0O0O0O0 ):#line:221:def process_custom(custom):
-    ""#line:222:"""Process custom."""
-    OO0OO00OO00OOOOOO ={}#line:224:custom_selectors = {}
-    if OO0OOOO00O0O0O0O0 is not None :#line:225:if custom is not None:
-        for O0000O00O0OO0000O ,OOOO00O00O0000O00 in OO0OOOO00O0O0O0O0 .items ():#line:226:for key, value in custom.items():
-            OO000O000O00O00OO =util .lower (O0000O00O0OO0000O )#line:227:name = util.lower(key)
-            if RE_CUSTOM .match (OO000O000O00O00OO )is None :#line:228:if RE_CUSTOM.match(name) is None:
-                raise SelectorSyntaxError ("The name '{}' is not a valid custom pseudo-class name".format (OO000O000O00O00OO ))#line:229:raise SelectorSyntaxError("The name '{}' is not a valid custom pseudo-class name".format(name))
-            if OO000O000O00O00OO in OO0OO00OO00OOOOOO :#line:230:if name in custom_selectors:
-                raise KeyError ("The custom selector '{}' has already been registered".format (OO000O000O00O00OO ))#line:231:raise KeyError("The custom selector '{}' has already been registered".format(name))
-            OO0OO00OO00OOOOOO [css_unescape (OO000O000O00O00OO )]=OOOO00O00O0000O00 #line:232:custom_selectors[css_unescape(name)] = value
-    return OO0OO00OO00OOOOOO #line:233:return custom_selectors
-def css_unescape (O0OOO0OO0O0OOO0O0 ,string =False ):#line:236:def css_unescape(content, string=False):
-    ""#line:241:"""
-    def OOOO00O00O0O0O000 (OO000OO0OO000O000 ):#line:243:def replace(m):
-        ""#line:244:"""Replace with the appropriate substitute."""
-        if OO000OO0OO000O000 .group (1 ):#line:246:if m.group(1):
-            OO0OOOOO0000O0O0O =int (OO000OO0OO000O000 .group (1 )[1 :],16 )#line:247:codepoint = int(m.group(1)[1:], 16)
-            if OO0OOOOO0000O0O0O ==0 :#line:248:if codepoint == 0:
-                OO0OOOOO0000O0O0O =UNICODE_REPLACEMENT_CHAR #line:249:codepoint = UNICODE_REPLACEMENT_CHAR
-            OO00O0OO0OOOOOO0O =chr (OO0OOOOO0000O0O0O )#line:250:value = chr(codepoint)
-        elif OO000OO0OO000O000 .group (2 ):#line:251:elif m.group(2):
-            OO00O0OO0OOOOOO0O =OO000OO0OO000O000 .group (2 )[1 :]#line:252:value = m.group(2)[1:]
-        elif OO000OO0OO000O000 .group (3 ):#line:253:elif m.group(3):
-            OO00O0OO0OOOOOO0O ='\ufffd'#line:254:value = '\ufffd'
-        else :#line:255:else:
-            OO00O0OO0OOOOOO0O =''#line:256:value = ''
-        return OO00O0OO0OOOOOO0O #line:258:return value
-    return (RE_CSS_ESC if not string else RE_CSS_STR_ESC ).sub (OOOO00O00O0O0O000 ,O0OOO0OO0O0OOO0O0 )#line:260:return (RE_CSS_ESC if not string else RE_CSS_STR_ESC).sub(replace, content)
-def escape (O00O0O0OO000O0O00 ):#line:263:def escape(ident):
-    ""#line:264:"""Escape identifier."""
-    OOOOOO000O00OO000 =[]#line:266:string = []
-    OO000O00OO0OOOOO0 =len (O00O0O0OO000O0O00 )#line:267:length = len(ident)
-    O0OO00OO000OOO000 =OO000O00OO0OOOOO0 >0 and O00O0O0OO000O0O00 [0 ]=='-'#line:268:start_dash = length > 0 and ident[0] == '-'
-    if OO000O00OO0OOOOO0 ==1 and O0OO00OO000OOO000 :#line:269:if length == 1 and start_dash:
-        OOOOOO000O00OO000 .append ('\\{}'.format (O00O0O0OO000O0O00 ))#line:271:string.append('\\{}'.format(ident))
-    else :#line:272:else:
-        for OO00O00000O0OO0O0 ,O00OOOO000O0OOO00 in enumerate (O00O0O0OO000O0O00 ):#line:273:for index, c in enumerate(ident):
-            O00OOOOOOO0OO0OO0 =ord (O00OOOO000O0OOO00 )#line:274:codepoint = ord(c)
-            if O00OOOOOOO0OO0OO0 ==0x00 :#line:275:if codepoint == 0x00:
-                OOOOOO000O00OO000 .append ('\ufffd')#line:276:string.append('\ufffd')
-            elif (0x01 <=O00OOOOOOO0OO0OO0 <=0x1F )or O00OOOOOOO0OO0OO0 ==0x7F :#line:277:elif (0x01 <= codepoint <= 0x1F) or codepoint == 0x7F:
-                OOOOOO000O00OO000 .append ('\\{:x} '.format (O00OOOOOOO0OO0OO0 ))#line:278:string.append('\\{:x} '.format(codepoint))
-            elif (OO00O00000O0OO0O0 ==0 or (O0OO00OO000OOO000 and OO00O00000O0OO0O0 ==1 ))and (0x30 <=O00OOOOOOO0OO0OO0 <=0x39 ):#line:279:elif (index == 0 or (start_dash and index == 1)) and (0x30 <= codepoint <= 0x39):
-                OOOOOO000O00OO000 .append ('\\{:x} '.format (O00OOOOOOO0OO0OO0 ))#line:280:string.append('\\{:x} '.format(codepoint))
-            elif (O00OOOOOOO0OO0OO0 in (0x2D ,0x5F )or O00OOOOOOO0OO0OO0 >=0x80 or (0x30 <=O00OOOOOOO0OO0OO0 <=0x39 )or (0x30 <=O00OOOOOOO0OO0OO0 <=0x39 )or (0x41 <=O00OOOOOOO0OO0OO0 <=0x5A )or (0x61 <=O00OOOOOOO0OO0OO0 <=0x7A )):#line:284:):
-                OOOOOO000O00OO000 .append (O00OOOO000O0OOO00 )#line:285:string.append(c)
-            else :#line:286:else:
-                OOOOOO000O00OO000 .append ('\\{}'.format (O00OOOO000O0OOO00 ))#line:287:string.append('\\{}'.format(c))
-    return ''.join (OOOOOO000O00OO000 )#line:288:return ''.join(string)
-class SelectorPattern (object ):#line:291:class SelectorPattern(object):
-    ""#line:292:"""Selector pattern."""
-    def __init__ (O000000O000O0000O ,OOO00OO0OOO00000O ,OOO0OOO0O0000O000 ):#line:294:def __init__(self, name, pattern):
-        ""#line:295:"""Initialize."""
-        O000000O000O0000O .name =OOO00OO0OOO00000O #line:297:self.name = name
-        O000000O000O0000O .re_pattern =re .compile (OOO0OOO0O0000O000 ,re .I |re .X |re .U )#line:298:self.re_pattern = re.compile(pattern, re.I | re.X | re.U)
-    def get_name (OO0OOO000OOOO0O0O ):#line:300:def get_name(self):
-        ""#line:301:"""Get name."""
-        return OO0OOO000OOOO0O0O .name #line:303:return self.name
-    def match (O0OO0O0OO000000OO ,OO000OO0O0O0O00O0 ,OO0000O0OO0O0O0O0 ,OOO0O00O0000O0000 ):#line:305:def match(self, selector, index, flags):
-        ""#line:306:"""Match the selector."""
-        return O0OO0O0OO000000OO .re_pattern .match (OO000OO0O0O0O00O0 ,OO0000O0OO0O0O0O0 )#line:308:return self.re_pattern.match(selector, index)
-class SpecialPseudoPattern (SelectorPattern ):#line:311:class SpecialPseudoPattern(SelectorPattern):
-    ""#line:312:"""Selector pattern."""
-    def __init__ (O00O000OO00OO0O00 ,O0000O00OO00OO0O0 ):#line:314:def __init__(self, patterns):
-        ""#line:315:"""Initialize."""
-        O00O000OO00OO0O00 .patterns ={}#line:317:self.patterns = {}
-        for O0O000O00000000O0 in O0000O00OO00OO0O0 :#line:318:for p in patterns:
-            O00OOO0O0OOOO0O0O =O0O000O00000000O0 [0 ]#line:319:name = p[0]
-            OOOO0O0OOOO000OO0 =O0O000O00000000O0 [3 ](O00OOO0O0OOOO0O0O ,O0O000O00000000O0 [2 ])#line:320:pattern = p[3](name, p[2])
-            for O00OO0OO0O0OO000O in O0O000O00000000O0 [1 ]:#line:321:for pseudo in p[1]:
-                O00O000OO00OO0O00 .patterns [O00OO0OO0O0OO000O ]=OOOO0O0OOOO000OO0 #line:322:self.patterns[pseudo] = pattern
-        O00O000OO00OO0O00 .matched_name =None #line:324:self.matched_name = None
-        O00O000OO00OO0O00 .re_pseudo_name =re .compile (PAT_PSEUDO_CLASS_SPECIAL ,re .I |re .X |re .U )#line:325:self.re_pseudo_name = re.compile(PAT_PSEUDO_CLASS_SPECIAL, re.I | re.X | re.U)
-    def get_name (O0OOOO00OO00O0OO0 ):#line:327:def get_name(self):
-        ""#line:328:"""Get name."""
-        return O0OOOO00OO00O0OO0 .matched_name .get_name ()#line:330:return self.matched_name.get_name()
-    def match (OO0OO0OO0OO000OOO ,OO0OO000OOOOO0O0O ,OO0000000OO000000 ,O000OOO00OOO0O0O0 ):#line:332:def match(self, selector, index, flags):
-        ""#line:333:"""Match the selector."""
-        OOO000OO0000O0000 =None #line:335:pseudo = None
-        OOOO0OO00O000O000 =OO0OO0OO0OO000OOO .re_pseudo_name .match (OO0OO000OOOOO0O0O ,OO0000000OO000000 )#line:336:m = self.re_pseudo_name.match(selector, index)
-        if OOOO0OO00O000O000 :#line:337:if m:
-            O000O0O0O0OOOOO0O =util .lower (css_unescape (OOOO0OO00O000O000 .group ('name')))#line:338:name = util.lower(css_unescape(m.group('name')))
-            OOOO00OO00O0000OO =OO0OO0OO0OO000OOO .patterns .get (O000O0O0O0OOOOO0O )#line:339:pattern = self.patterns.get(name)
-            if OOOO00OO00O0000OO :#line:340:if pattern:
-                OOO000OO0000O0000 =OOOO00OO00O0000OO .match (OO0OO000OOOOO0O0O ,OO0000000OO000000 ,O000OOO00OOO0O0O0 )#line:341:pseudo = pattern.match(selector, index, flags)
-                if OOO000OO0000O0000 :#line:342:if pseudo:
-                    OO0OO0OO0OO000OOO .matched_name =OOOO00OO00O0000OO #line:343:self.matched_name = pattern
-        return OOO000OO0000O0000 #line:345:return pseudo
-class _OOO000OOO0O0OO000 (object ):#line:348:class _Selector(object):
-    ""#line:355:"""
-    def __init__ (O0OOO0OOOOOOO00O0 ,**OOO00OOOOOOOOO0O0 ):#line:357:def __init__(self, **kwargs):
-        ""#line:358:"""Initialize."""
-        O0OOO0OOOOOOO00O0 .tag =OOO00OOOOOOOOO0O0 .get ('tag',None )#line:360:self.tag = kwargs.get('tag', None)
-        O0OOO0OOOOOOO00O0 .ids =OOO00OOOOOOOOO0O0 .get ('ids',[])#line:361:self.ids = kwargs.get('ids', [])
-        O0OOO0OOOOOOO00O0 .classes =OOO00OOOOOOOOO0O0 .get ('classes',[])#line:362:self.classes = kwargs.get('classes', [])
-        O0OOO0OOOOOOO00O0 .attributes =OOO00OOOOOOOOO0O0 .get ('attributes',[])#line:363:self.attributes = kwargs.get('attributes', [])
-        O0OOO0OOOOOOO00O0 .nth =OOO00OOOOOOOOO0O0 .get ('nth',[])#line:364:self.nth = kwargs.get('nth', [])
-        O0OOO0OOOOOOO00O0 .selectors =OOO00OOOOOOOOO0O0 .get ('selectors',[])#line:365:self.selectors = kwargs.get('selectors', [])
-        O0OOO0OOOOOOO00O0 .relations =OOO00OOOOOOOOO0O0 .get ('relations',[])#line:366:self.relations = kwargs.get('relations', [])
-        O0OOO0OOOOOOO00O0 .rel_type =OOO00OOOOOOOOO0O0 .get ('rel_type',None )#line:367:self.rel_type = kwargs.get('rel_type', None)
-        O0OOO0OOOOOOO00O0 .contains =OOO00OOOOOOOOO0O0 .get ('contains',[])#line:368:self.contains = kwargs.get('contains', [])
-        O0OOO0OOOOOOO00O0 .lang =OOO00OOOOOOOOO0O0 .get ('lang',[])#line:369:self.lang = kwargs.get('lang', [])
-        O0OOO0OOOOOOO00O0 .flags =OOO00OOOOOOOOO0O0 .get ('flags',0 )#line:370:self.flags = kwargs.get('flags', 0)
-        O0OOO0OOOOOOO00O0 .no_match =OOO00OOOOOOOOO0O0 .get ('no_match',False )#line:371:self.no_match = kwargs.get('no_match', False)
-    def _freeze_relations (OOOO000O0O00O0000 ,OO0O00O00O0O0OO0O ):#line:373:def _freeze_relations(self, relations):
-        ""#line:374:"""Freeze relation."""
-        if OO0O00O00O0O0OO0O :#line:376:if relations:
-            OOO00OO0OOO00O00O =OO0O00O00O0O0OO0O [0 ]#line:377:sel = relations[0]
-            OOO00OO0OOO00O00O .relations .extend (OO0O00O00O0O0OO0O [1 :])#line:378:sel.relations.extend(relations[1:])
-            return ct .SelectorList ([OOO00OO0OOO00O00O .freeze ()])#line:379:return ct.SelectorList([sel.freeze()])
-        else :#line:380:else:
-            return ct .SelectorList ()#line:381:return ct.SelectorList()
-    def freeze (O000O0OO00O0O0OOO ):#line:383:def freeze(self):
-        ""#line:384:"""Freeze self."""
-        if O000O0OO00O0O0OOO .no_match :#line:386:if self.no_match:
-            return ct .SelectorNull ()#line:387:return ct.SelectorNull()
-        else :#line:388:else:
-            return ct .Selector (O000O0OO00O0O0OOO .tag ,tuple (O000O0OO00O0O0OOO .ids ),tuple (O000O0OO00O0O0OOO .classes ),tuple (O000O0OO00O0O0OOO .attributes ),tuple (O000O0OO00O0O0OOO .nth ),tuple (O000O0OO00O0O0OOO .selectors ),O000O0OO00O0O0OOO ._freeze_relations (O000O0OO00O0O0OOO .relations ),O000O0OO00O0O0OOO .rel_type ,tuple (O000O0OO00O0O0OOO .contains ),tuple (O000O0OO00O0O0OOO .lang ),O000O0OO00O0O0OOO .flags )#line:401:)
-    def __str__ (OO0O0O00O0O0OO00O ):#line:403:def __str__(self):  # pragma: no cover
-        ""#line:404:"""String representation."""
-        return ('_Selector(tag={!r}, ids={!r}, classes={!r}, attributes={!r}, nth={!r}, selectors={!r}, ' 'relations={!r}, rel_type={!r}, contains={!r}, lang={!r}, flags={!r}, no_match={!r})').format (OO0O0O00O0O0OO00O .tag ,OO0O0O00O0O0OO00O .ids ,OO0O0O00O0O0OO00O .classes ,OO0O0O00O0O0OO00O .attributes ,OO0O0O00O0O0OO00O .nth ,OO0O0O00O0O0OO00O .selectors ,OO0O0O00O0O0OO00O .relations ,OO0O0O00O0O0OO00O .rel_type ,OO0O0O00O0O0OO00O .contains ,OO0O0O00O0O0OO00O .lang ,OO0O0O00O0O0OO00O .flags ,OO0O0O00O0O0OO00O .no_match )#line:412:)
-    __repr__ =__str__ #line:414:__repr__ = __str__
-class CSSParser (object ):#line:417:class CSSParser(object):
-    ""#line:418:"""Parse CSS selectors."""
-    css_tokens =(SelectorPattern ("pseudo_close",PAT_PSEUDO_CLOSE ),SpecialPseudoPattern ((("pseudo_contains",(':contains',),PAT_PSEUDO_CONTAINS ,SelectorPattern ),("pseudo_nth_child",(':nth-child',':nth-last-child'),PAT_PSEUDO_NTH_CHILD ,SelectorPattern ),("pseudo_nth_type",(':nth-of-type',':nth-last-of-type'),PAT_PSEUDO_NTH_TYPE ,SelectorPattern ),("pseudo_lang",(':lang',),PAT_PSEUDO_LANG ,SelectorPattern ),("pseudo_dir",(':dir',),PAT_PSEUDO_DIR ,SelectorPattern ))),SelectorPattern ("pseudo_class_custom",PAT_PSEUDO_CLASS_CUSTOM ),SelectorPattern ("pseudo_class",PAT_PSEUDO_CLASS ),SelectorPattern ("pseudo_element",PAT_PSEUDO_ELEMENT ),SelectorPattern ("at_rule",PAT_AT_RULE ),SelectorPattern ("id",PAT_ID ),SelectorPattern ("class",PAT_CLASS ),SelectorPattern ("tag",PAT_TAG ),SelectorPattern ("attribute",PAT_ATTR ),SelectorPattern ("combine",PAT_COMBINE ))#line:440:)
-    def __init__ (OOOOOOOO0OOOOO00O ,OOO0O0OOO0OO0OOO0 ,custom =None ,flags =0 ):#line:442:def __init__(self, selector, custom=None, flags=0):
-        ""#line:443:"""Initialize."""
-        OOOOOOOO0OOOOO00O .pattern =OOO0O0OOO0OO0OOO0 .replace ('\x00','\ufffd')#line:445:self.pattern = selector.replace('\x00', '\ufffd')
-        OOOOOOOO0OOOOO00O .flags =flags #line:446:self.flags = flags
-        OOOOOOOO0OOOOO00O .debug =OOOOOOOO0OOOOO00O .flags &util .DEBUG #line:447:self.debug = self.flags & util.DEBUG
-        OOOOOOOO0OOOOO00O .custom ={}if custom is None else custom #line:448:self.custom = {} if custom is None else custom
-    def parse_attribute_selector (O0OO0000OO0OO00OO ,O00000O0O00O00O00 ,OO00000OO0O0O0OO0 ,OO0O0O0OO000OO0OO ):#line:450:def parse_attribute_selector(self, sel, m, has_selector):
-        ""#line:451:"""Create attribute selector from the returned regex match."""
-        OOO00OO0OO0O0OOOO =False #line:453:inverse = False
-        O0O0OO0OOO0O00OO0 =OO00000OO0O0O0OO0 .group ('cmp')#line:454:op = m.group('cmp')
-        O00O0O0OOO00000O0 =util .lower (OO00000OO0O0O0OO0 .group ('case'))if OO00000OO0O0O0OO0 .group ('case')else None #line:455:case = util.lower(m.group('case')) if m.group('case') else None
-        OO0OOOOO0000O00OO =css_unescape (OO00000OO0O0O0OO0 .group ('attr_ns')[:-1 ])if OO00000OO0O0O0OO0 .group ('attr_ns')else ''#line:456:ns = css_unescape(m.group('attr_ns')[:-1]) if m.group('attr_ns') else ''
-        O0OO000OOOO0O0OOO =css_unescape (OO00000OO0O0O0OO0 .group ('attr_name'))#line:457:attr = css_unescape(m.group('attr_name'))
-        OO00OO0O0OOOO000O =False #line:458:is_type = False
-        OOOO0O0OO00OO0OO0 =None #line:459:pattern2 = None
-        if O00O0O0OOO00000O0 :#line:461:if case:
-            O00OOOOOOO00OOO0O =re .I if O00O0O0OOO00000O0 =='i'else 0 #line:462:flags = re.I if case == 'i' else 0
-        elif util .lower (O0OO000OOOO0O0OOO )=='type':#line:463:elif util.lower(attr) == 'type':
-            O00OOOOOOO00OOO0O =re .I #line:464:flags = re.I
-            OO00OO0O0OOOO000O =True #line:465:is_type = True
-        else :#line:466:else:
-            O00OOOOOOO00OOO0O =0 #line:467:flags = 0
-        if O0O0OO0OOO0O00OO0 :#line:469:if op:
-            if OO00000OO0O0O0OO0 .group ('value').startswith (('"',"'")):#line:470:if m.group('value').startswith(('"', "'")):
-                O00OOO0O000O0000O =css_unescape (OO00000OO0O0O0OO0 .group ('value')[1 :-1 ],True )#line:471:value = css_unescape(m.group('value')[1:-1], True)
-            else :#line:472:else:
-                O00OOO0O000O0000O =css_unescape (OO00000OO0O0O0OO0 .group ('value'))#line:473:value = css_unescape(m.group('value'))
-        else :#line:474:else:
-            O00OOO0O000O0000O =None #line:475:value = None
-        if not O0O0OO0OOO0O00OO0 :#line:476:if not op:
-            OO00OO0O0OOO00000 =None #line:478:pattern = None
-        elif O0O0OO0OOO0O00OO0 .startswith ('^'):#line:479:elif op.startswith('^'):
-            OO00OO0O0OOO00000 =re .compile (r'^%s.*'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:481:pattern = re.compile(r'^%s.*' % re.escape(value), flags)
-        elif O0O0OO0OOO0O00OO0 .startswith ('$'):#line:482:elif op.startswith('$'):
-            OO00OO0O0OOO00000 =re .compile (r'.*?%s$'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:484:pattern = re.compile(r'.*?%s$' % re.escape(value), flags)
-        elif O0O0OO0OOO0O00OO0 .startswith ('*'):#line:485:elif op.startswith('*'):
-            OO00OO0O0OOO00000 =re .compile (r'.*?%s.*'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:487:pattern = re.compile(r'.*?%s.*' % re.escape(value), flags)
-        elif O0O0OO0OOO0O00OO0 .startswith ('~'):#line:488:elif op.startswith('~'):
-            O00OOO0O000O0000O =r'[^\s\S]'if not O00OOO0O000O0000O or RE_WS .search (O00OOO0O000O0000O )else re .escape (O00OOO0O000O0000O )#line:492:value = r'[^\s\S]' if not value or RE_WS.search(value) else re.escape(value)
-            OO00OO0O0OOO00000 =re .compile (r'.*?(?:(?<=^)|(?<=[ \t\r\n\f]))%s(?=(?:[ \t\r\n\f]|$)).*'%O00OOO0O000O0000O ,O00OOOOOOO00OOO0O )#line:493:pattern = re.compile(r'.*?(?:(?<=^)|(?<=[ \t\r\n\f]))%s(?=(?:[ \t\r\n\f]|$)).*' % value, flags)
-        elif O0O0OO0OOO0O00OO0 .startswith ('|'):#line:494:elif op.startswith('|'):
-            OO00OO0O0OOO00000 =re .compile (r'^%s(?:-.*)?$'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:496:pattern = re.compile(r'^%s(?:-.*)?$' % re.escape(value), flags)
-        else :#line:497:else:
-            OO00OO0O0OOO00000 =re .compile (r'^%s$'%re .escape (O00OOO0O000O0000O ),O00OOOOOOO00OOO0O )#line:499:pattern = re.compile(r'^%s$' % re.escape(value), flags)
-            if O0O0OO0OOO0O00OO0 .startswith ('!'):#line:500:if op.startswith('!'):
-                OOO00OO0OO0O0OOOO =True #line:502:inverse = True
-        if OO00OO0O0OOOO000O and OO00OO0O0OOO00000 :#line:503:if is_type and pattern:
-            OOOO0O0OO00OO0OO0 =re .compile (OO00OO0O0OOO00000 .pattern )#line:504:pattern2 = re.compile(pattern.pattern)
-        OOOOOO00OOO0OOO0O =ct .SelectorAttribute (O0OO000OOOO0O0OOO ,OO0OOOOO0000O00OO ,OO00OO0O0OOO00000 ,OOOO0O0OO00OO0OO0 )#line:507:sel_attr = ct.SelectorAttribute(attr, ns, pattern, pattern2)
-        if OOO00OO0OO0O0OOOO :#line:508:if inverse:
-            O0O0OOO0000O0O0O0 =_OOO000OOO0O0OO000 ()#line:510:sub_sel = _Selector()
-            O0O0OOO0000O0O0O0 .attributes .append (OOOOOO00OOO0OOO0O )#line:511:sub_sel.attributes.append(sel_attr)
-            OO0OOOO00O0O00O0O =ct .SelectorList ([O0O0OOO0000O0O0O0 .freeze ()],True ,False )#line:512:not_list = ct.SelectorList([sub_sel.freeze()], True, False)
-            O00000O0O00O00O00 .selectors .append (OO0OOOO00O0O00O0O )#line:513:sel.selectors.append(not_list)
-        else :#line:514:else:
-            O00000O0O00O00O00 .attributes .append (OOOOOO00OOO0OOO0O )#line:515:sel.attributes.append(sel_attr)
-        OO0O0O0OO000OO0OO =True #line:517:has_selector = True
-        return OO0O0O0OO000OO0OO #line:518:return has_selector
-    def parse_tag_pattern (OO00O0OOO0OOOO00O ,O0O00OOO000O0OO00 ,O0O0O0O00OOOO0000 ,OO0OO0OOO000O0O00 ):#line:520:def parse_tag_pattern(self, sel, m, has_selector):
-        ""#line:521:"""Parse tag pattern from regex match."""
-        OO000O0O00OO000O0 =css_unescape (O0O0O0O00OOOO0000 .group ('tag_ns')[:-1 ])if O0O0O0O00OOOO0000 .group ('tag_ns')else None #line:523:prefix = css_unescape(m.group('tag_ns')[:-1]) if m.group('tag_ns') else None
-        OO0OO0O000OOOOO00 =css_unescape (O0O0O0O00OOOO0000 .group ('tag_name'))#line:524:tag = css_unescape(m.group('tag_name'))
-        O0O00OOO000O0OO00 .tag =ct .SelectorTag (OO0OO0O000OOOOO00 ,OO000O0O00OO000O0 )#line:525:sel.tag = ct.SelectorTag(tag, prefix)
-        OO0OO0OOO000O0O00 =True #line:526:has_selector = True
-        return OO0OO0OOO000O0O00 #line:527:return has_selector
-    def parse_pseudo_class_custom (OO0OOOOO0O0O0000O ,OOOOO000000O00O00 ,O00O000OOOOOOOO00 ,OOO0O0000OOOO0OO0 ):#line:529:def parse_pseudo_class_custom(self, sel, m, has_selector):
-        ""#line:535:"""
-        O0OOOO0000O0OOOO0 =util .lower (css_unescape (O00O000OOOOOOOO00 .group ('name')))#line:537:pseudo = util.lower(css_unescape(m.group('name')))
-        O00OOOOOOOO0O0OOO =OO0OOOOO0O0O0000O .custom .get (O0OOOO0000O0OOOO0 )#line:538:selector = self.custom.get(pseudo)
-        if O00OOOOOOOO0O0OOO is None :#line:539:if selector is None:
-            raise SelectorSyntaxError ("Undefined custom selector '{}' found at postion {}".format (O0OOOO0000O0OOOO0 ,O00O000OOOOOOOO00 .end (0 )),OO0OOOOO0O0O0000O .pattern ,O00O000OOOOOOOO00 .end (0 ))#line:544:)
-        if not isinstance (O00OOOOOOOO0O0OOO ,ct .SelectorList ):#line:546:if not isinstance(selector, ct.SelectorList):
-            OO0OOOOO0O0O0000O .custom [O0OOOO0000O0OOOO0 ]=None #line:547:self.custom[pseudo] = None
-            O00OOOOOOOO0O0OOO =CSSParser (O00OOOOOOOO0O0OOO ,custom =OO0OOOOO0O0O0000O .custom ,flags =OO0OOOOO0O0O0000O .flags ).process_selectors (flags =FLG_PSEUDO )#line:550:).process_selectors(flags=FLG_PSEUDO)
-            OO0OOOOO0O0O0000O .custom [O0OOOO0000O0OOOO0 ]=O00OOOOOOOO0O0OOO #line:551:self.custom[pseudo] = selector
-        OOOOO000000O00O00 .selectors .append (O00OOOOOOOO0O0OOO )#line:553:sel.selectors.append(selector)
-        OOO0O0000OOOO0OO0 =True #line:554:has_selector = True
-        return OOO0O0000OOOO0OO0 #line:555:return has_selector
-    def parse_pseudo_class (OO00O0O00OO0000OO ,OOO00OOO0OO000OOO ,O0O00OO00O0O00OO0 ,OO0O000O000OOO0OO ,OOOO0OO00O0O0O0OO ,O0O00OO00OO00O0OO ):#line:557:def parse_pseudo_class(self, sel, m, has_selector, iselector, is_html):
-        ""#line:558:"""Parse pseudo class."""
-        OO000O00O0O000OO0 =False #line:560:complex_pseudo = False
-        OOOO0O0O0OOO0O0O0 =util .lower (css_unescape (O0O00OO00O0O00OO0 .group ('name')))#line:561:pseudo = util.lower(css_unescape(m.group('name')))
-        if O0O00OO00O0O00OO0 .group ('open'):#line:562:if m.group('open'):
-            OO000O00O0O000OO0 =True #line:563:complex_pseudo = True
-        if OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_COMPLEX :#line:564:if complex_pseudo and pseudo in PSEUDO_COMPLEX:
-            OO0O000O000OOO0OO =OO00O0O00OO0000OO .parse_pseudo_open (OOO00OOO0OO000OOO ,OOOO0O0O0OOO0O0O0 ,OO0O000O000OOO0OO ,OOOO0OO00O0O0O0OO ,O0O00OO00O0O00OO0 .end (0 ))#line:565:has_selector = self.parse_pseudo_open(sel, pseudo, has_selector, iselector, m.end(0))
-        elif not OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_SIMPLE :#line:566:elif not complex_pseudo and pseudo in PSEUDO_SIMPLE:
-            if OOOO0O0O0OOO0O0O0 ==':root':#line:567:if pseudo == ':root':
-                OOO00OOO0OO000OOO .flags |=ct .SEL_ROOT #line:568:sel.flags |= ct.SEL_ROOT
-            elif OOOO0O0O0OOO0O0O0 ==':defined':#line:569:elif pseudo == ':defined':
-                OOO00OOO0OO000OOO .flags |=ct .SEL_DEFINED #line:570:sel.flags |= ct.SEL_DEFINED
-                O0O00OO00OO00O0OO =True #line:571:is_html = True
-            elif OOOO0O0O0OOO0O0O0 ==':scope':#line:572:elif pseudo == ':scope':
-                OOO00OOO0OO000OOO .flags |=ct .SEL_SCOPE #line:573:sel.flags |= ct.SEL_SCOPE
-            elif OOOO0O0O0OOO0O0O0 ==':empty':#line:574:elif pseudo == ':empty':
-                OOO00OOO0OO000OOO .flags |=ct .SEL_EMPTY #line:575:sel.flags |= ct.SEL_EMPTY
-            elif OOOO0O0O0OOO0O0O0 in (':link',':any-link'):#line:576:elif pseudo in (':link', ':any-link'):
-                OOO00OOO0OO000OOO .selectors .append (CSS_LINK )#line:577:sel.selectors.append(CSS_LINK)
-            elif OOOO0O0O0OOO0O0O0 ==':checked':#line:578:elif pseudo == ':checked':
-                OOO00OOO0OO000OOO .selectors .append (CSS_CHECKED )#line:579:sel.selectors.append(CSS_CHECKED)
-            elif OOOO0O0O0OOO0O0O0 ==':default':#line:580:elif pseudo == ':default':
-                OOO00OOO0OO000OOO .selectors .append (CSS_DEFAULT )#line:581:sel.selectors.append(CSS_DEFAULT)
-            elif OOOO0O0O0OOO0O0O0 ==':indeterminate':#line:582:elif pseudo == ':indeterminate':
-                OOO00OOO0OO000OOO .selectors .append (CSS_INDETERMINATE )#line:583:sel.selectors.append(CSS_INDETERMINATE)
-            elif OOOO0O0O0OOO0O0O0 ==":disabled":#line:584:elif pseudo == ":disabled":
-                OOO00OOO0OO000OOO .selectors .append (CSS_DISABLED )#line:585:sel.selectors.append(CSS_DISABLED)
-            elif OOOO0O0O0OOO0O0O0 ==":enabled":#line:586:elif pseudo == ":enabled":
-                OOO00OOO0OO000OOO .selectors .append (CSS_ENABLED )#line:587:sel.selectors.append(CSS_ENABLED)
-            elif OOOO0O0O0OOO0O0O0 ==":required":#line:588:elif pseudo == ":required":
-                OOO00OOO0OO000OOO .selectors .append (CSS_REQUIRED )#line:589:sel.selectors.append(CSS_REQUIRED)
-            elif OOOO0O0O0OOO0O0O0 ==":optional":#line:590:elif pseudo == ":optional":
-                OOO00OOO0OO000OOO .selectors .append (CSS_OPTIONAL )#line:591:sel.selectors.append(CSS_OPTIONAL)
-            elif OOOO0O0O0OOO0O0O0 ==":read-only":#line:592:elif pseudo == ":read-only":
-                OOO00OOO0OO000OOO .selectors .append (CSS_READ_ONLY )#line:593:sel.selectors.append(CSS_READ_ONLY)
-            elif OOOO0O0O0OOO0O0O0 ==":read-write":#line:594:elif pseudo == ":read-write":
-                OOO00OOO0OO000OOO .selectors .append (CSS_READ_WRITE )#line:595:sel.selectors.append(CSS_READ_WRITE)
-            elif OOOO0O0O0OOO0O0O0 ==":in-range":#line:596:elif pseudo == ":in-range":
-                OOO00OOO0OO000OOO .selectors .append (CSS_IN_RANGE )#line:597:sel.selectors.append(CSS_IN_RANGE)
-            elif OOOO0O0O0OOO0O0O0 ==":out-of-range":#line:598:elif pseudo == ":out-of-range":
-                OOO00OOO0OO000OOO .selectors .append (CSS_OUT_OF_RANGE )#line:599:sel.selectors.append(CSS_OUT_OF_RANGE)
-            elif OOOO0O0O0OOO0O0O0 ==":placeholder-shown":#line:600:elif pseudo == ":placeholder-shown":
-                OOO00OOO0OO000OOO .selectors .append (CSS_PLACEHOLDER_SHOWN )#line:601:sel.selectors.append(CSS_PLACEHOLDER_SHOWN)
-            elif OOOO0O0O0OOO0O0O0 ==':first-child':#line:602:elif pseudo == ':first-child':
-                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,False ,False ,ct .SelectorList ()))#line:603:sel.nth.append(ct.SelectorNth(1, False, 0, False, False, ct.SelectorList()))
-            elif OOOO0O0O0OOO0O0O0 ==':last-child':#line:604:elif pseudo == ':last-child':
-                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,False ,True ,ct .SelectorList ()))#line:605:sel.nth.append(ct.SelectorNth(1, False, 0, False, True, ct.SelectorList()))
-            elif OOOO0O0O0OOO0O0O0 ==':first-of-type':#line:606:elif pseudo == ':first-of-type':
-                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,True ,False ,ct .SelectorList ()))#line:607:sel.nth.append(ct.SelectorNth(1, False, 0, True, False, ct.SelectorList()))
-            elif OOOO0O0O0OOO0O0O0 ==':last-of-type':#line:608:elif pseudo == ':last-of-type':
-                OOO00OOO0OO000OOO .nth .append (ct .SelectorNth (1 ,False ,0 ,True ,True ,ct .SelectorList ()))#line:609:sel.nth.append(ct.SelectorNth(1, False, 0, True, True, ct.SelectorList()))
-            elif OOOO0O0O0OOO0O0O0 ==':only-child':#line:610:elif pseudo == ':only-child':
-                OOO00OOO0OO000OOO .nth .extend ([ct .SelectorNth (1 ,False ,0 ,False ,False ,ct .SelectorList ()),ct .SelectorNth (1 ,False ,0 ,False ,True ,ct .SelectorList ())])#line:616:)
-            elif OOOO0O0O0OOO0O0O0 ==':only-of-type':#line:617:elif pseudo == ':only-of-type':
-                OOO00OOO0OO000OOO .nth .extend ([ct .SelectorNth (1 ,False ,0 ,True ,False ,ct .SelectorList ()),ct .SelectorNth (1 ,False ,0 ,True ,True ,ct .SelectorList ())])#line:623:)
-            OO0O000O000OOO0OO =True #line:624:has_selector = True
-        elif OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_COMPLEX_NO_MATCH :#line:625:elif complex_pseudo and pseudo in PSEUDO_COMPLEX_NO_MATCH:
-            OO00O0O00OO0000OO .parse_selectors (OOOO0OO00O0O0O0OO ,O0O00OO00O0O00OO0 .end (0 ),FLG_PSEUDO |FLG_OPEN )#line:626:self.parse_selectors(iselector, m.end(0), FLG_PSEUDO | FLG_OPEN)
-            OOO00OOO0OO000OOO .no_match =True #line:627:sel.no_match = True
-            OO0O000O000OOO0OO =True #line:628:has_selector = True
-        elif not OO000O00O0O000OO0 and OOOO0O0O0OOO0O0O0 in PSEUDO_SIMPLE_NO_MATCH :#line:629:elif not complex_pseudo and pseudo in PSEUDO_SIMPLE_NO_MATCH:
-            OOO00OOO0OO000OOO .no_match =True #line:630:sel.no_match = True
-            OO0O000O000OOO0OO =True #line:631:has_selector = True
-        elif OOOO0O0O0OOO0O0O0 in PSEUDO_SUPPORTED :#line:632:elif pseudo in PSEUDO_SUPPORTED:
-            raise SelectorSyntaxError ("Invalid syntax for pseudo class '{}'".format (OOOO0O0O0OOO0O0O0 ),OO00O0O00OO0000OO .pattern ,O0O00OO00O0O00OO0 .start (0 ))#line:637:)
-        else :#line:638:else:
-            raise NotImplementedError ("'{}' pseudo-class is not implemented at this time".format (OOOO0O0O0OOO0O0O0 ))#line:641:)
-        return OO0O000O000OOO0OO ,O0O00OO00OO00O0OO #line:643:return has_selector, is_html
-    def parse_pseudo_nth (O00O0O00O0000O0OO ,OO00O0OOO000O0O0O ,OO00OO000O0O0OOO0 ,O0O0O00OO0OO0OOOO ,OOO00O00O00OO0000 ):#line:645:def parse_pseudo_nth(self, sel, m, has_selector, iselector):
-        ""#line:646:"""Parse `nth` pseudo."""
-        OO0O00OO0OO00OO0O =OO00OO000O0O0OOO0 .groupdict ()#line:648:mdict = m.groupdict()
-        if OO0O00OO0OO00OO0O .get ('pseudo_nth_child'):#line:649:if mdict.get('pseudo_nth_child'):
-            OO0O00OO00O0O000O ='_child'#line:650:postfix = '_child'
-        else :#line:651:else:
-            OO0O00OO00O0O000O ='_type'#line:652:postfix = '_type'
-        OO0O00OO0OO00OO0O ['name']=util .lower (css_unescape (OO0O00OO0OO00OO0O ['name']))#line:653:mdict['name'] = util.lower(css_unescape(mdict['name']))
-        O0O0000000OO0O000 =util .lower (OO0O00OO0OO00OO0O .get ('nth'+OO0O00OO00O0O000O ))#line:654:content = util.lower(mdict.get('nth' + postfix))
-        if O0O0000000OO0O000 =='even':#line:655:if content == 'even':
-            OO0OO000O0O0OOOO0 =2 #line:657:s1 = 2
-            OOO0OOOO000O0O0OO =0 #line:658:s2 = 0
-            OOO00O0O00OO0000O =True #line:659:var = True
-        elif O0O0000000OO0O000 =='odd':#line:660:elif content == 'odd':
-            OO0OO000O0O0OOOO0 =2 #line:662:s1 = 2
-            OOO0OOOO000O0O0OO =1 #line:663:s2 = 1
-            OOO00O0O00OO0000O =True #line:664:var = True
-        else :#line:665:else:
-            OOOO00OO0O0OO0OOO =RE_NTH .match (O0O0000000OO0O000 )#line:666:nth_parts = RE_NTH.match(content)
-            OO0OO000O0O0OOOO0 ='-'if OOOO00OO0O0OO0OOO .group ('s1')and OOOO00OO0O0OO0OOO .group ('s1')=='-'else ''#line:667:s1 = '-' if nth_parts.group('s1') and nth_parts.group('s1') == '-' else ''
-            OOO00000O0O0O0000 =OOOO00OO0O0OO0OOO .group ('a')#line:668:a = nth_parts.group('a')
-            OOO00O0O00OO0000O =OOO00000O0O0O0000 .endswith ('n')#line:669:var = a.endswith('n')
-            if OOO00000O0O0O0000 .startswith ('n'):#line:670:if a.startswith('n'):
-                OO0OO000O0O0OOOO0 +='1'#line:671:s1 += '1'
-            elif OOO00O0O00OO0000O :#line:672:elif var:
-                OO0OO000O0O0OOOO0 +=OOO00000O0O0O0000 [:-1 ]#line:673:s1 += a[:-1]
-            else :#line:674:else:
-                OO0OO000O0O0OOOO0 +=OOO00000O0O0O0000 #line:675:s1 += a
-            OOO0OOOO000O0O0OO ='-'if OOOO00OO0O0OO0OOO .group ('s2')and OOOO00OO0O0OO0OOO .group ('s2')=='-'else ''#line:676:s2 = '-' if nth_parts.group('s2') and nth_parts.group('s2') == '-' else ''
-            if OOOO00OO0O0OO0OOO .group ('b'):#line:677:if nth_parts.group('b'):
-                OOO0OOOO000O0O0OO +=OOOO00OO0O0OO0OOO .group ('b')#line:678:s2 += nth_parts.group('b')
-            else :#line:679:else:
-                OOO0OOOO000O0O0OO ='0'#line:680:s2 = '0'
-            OO0OO000O0O0OOOO0 =int (OO0OO000O0O0OOOO0 ,10 )#line:681:s1 = int(s1, 10)
-            OOO0OOOO000O0O0OO =int (OOO0OOOO000O0O0OO ,10 )#line:682:s2 = int(s2, 10)
-        OO00OOOOO0OOOO00O =OO0O00OO0OO00OO0O ['name']#line:684:pseudo_sel = mdict['name']
-        if OO0O00OO00O0O000O =='_child':#line:685:if postfix == '_child':
-            if OO00OO000O0O0OOO0 .group ('of'):#line:686:if m.group('of'):
-                O0OO0OO0OOOO0000O =O00O0O00O0000O0OO .parse_selectors (OOO00O00O00OO0000 ,OO00OO000O0O0OOO0 .end (0 ),FLG_PSEUDO |FLG_OPEN )#line:688:nth_sel = self.parse_selectors(iselector, m.end(0), FLG_PSEUDO | FLG_OPEN)
-            else :#line:689:else:
-                O0OO0OO0OOOO0000O =CSS_NTH_OF_S_DEFAULT #line:691:nth_sel = CSS_NTH_OF_S_DEFAULT
-            if OO00OOOOO0OOOO00O ==':nth-child':#line:692:if pseudo_sel == ':nth-child':
-                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,False ,False ,O0OO0OO0OOOO0000O ))#line:693:sel.nth.append(ct.SelectorNth(s1, var, s2, False, False, nth_sel))
-            elif OO00OOOOO0OOOO00O ==':nth-last-child':#line:694:elif pseudo_sel == ':nth-last-child':
-                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,False ,True ,O0OO0OO0OOOO0000O ))#line:695:sel.nth.append(ct.SelectorNth(s1, var, s2, False, True, nth_sel))
-        else :#line:696:else:
-            if OO00OOOOO0OOOO00O ==':nth-of-type':#line:697:if pseudo_sel == ':nth-of-type':
-                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,True ,False ,ct .SelectorList ()))#line:698:sel.nth.append(ct.SelectorNth(s1, var, s2, True, False, ct.SelectorList()))
-            elif OO00OOOOO0OOOO00O ==':nth-last-of-type':#line:699:elif pseudo_sel == ':nth-last-of-type':
-                OO00O0OOO000O0O0O .nth .append (ct .SelectorNth (OO0OO000O0O0OOOO0 ,OOO00O0O00OO0000O ,OOO0OOOO000O0O0OO ,True ,True ,ct .SelectorList ()))#line:700:sel.nth.append(ct.SelectorNth(s1, var, s2, True, True, ct.SelectorList()))
-        O0O0O00OO0OO0OOOO =True #line:701:has_selector = True
-        return O0O0O00OO0OO0OOOO #line:702:return has_selector
-    def parse_pseudo_open (OOO00O0OOOO0OO000 ,OOO0000O000OO0O0O ,O00O0000000000O0O ,OOOOOOO000O0O0OOO ,OOOOOO00OO00O000O ,O00OOO0OOO00OO00O ):#line:704:def parse_pseudo_open(self, sel, name, has_selector, iselector, index):
-        ""#line:705:"""Parse pseudo with opening bracket."""
-        OOO0000OO0O00O00O =FLG_PSEUDO |FLG_OPEN #line:707:flags = FLG_PSEUDO | FLG_OPEN
-        if O00O0000000000O0O ==':not':#line:708:if name == ':not':
-            OOO0000OO0O00O00O |=FLG_NOT #line:709:flags |= FLG_NOT
-        if O00O0000000000O0O ==':has':#line:710:if name == ':has':
-            OOO0000OO0O00O00O |=FLG_RELATIVE #line:711:flags |= FLG_RELATIVE
-        OOO0000O000OO0O0O .selectors .append (OOO00O0OOOO0OO000 .parse_selectors (OOOOOO00OO00O000O ,O00OOO0OOO00OO00O ,OOO0000OO0O00O00O ))#line:713:sel.selectors.append(self.parse_selectors(iselector, index, flags))
-        OOOOOOO000O0O0OOO =True #line:714:has_selector = True
-        return OOOOOOO000O0O0OOO #line:715:return has_selector
-    def parse_has_combinator (O00O0OOOO0OO0OOO0 ,OO0OOO0O0O00OO0OO ,O0O0O0O0O00O00000 ,O0O00OO000000OO00 ,O0O0O00O000O000O0 ,OO00O000OO00OO00O ,OO0OO0OO000O000O0 ):#line:717:def parse_has_combinator(self, sel, m, has_selector, selectors, rel_type, index):
-        ""#line:718:"""Parse combinator tokens."""
-        O00O0O0OOOOOO00OO =O0O0O0O0O00O00000 .group ('relation').strip ()#line:720:combinator = m.group('relation').strip()
-        if not O00O0O0OOOOOO00OO :#line:721:if not combinator:
-            O00O0O0OOOOOO00OO =WS_COMBINATOR #line:722:combinator = WS_COMBINATOR
-        if O00O0O0OOOOOO00OO ==COMMA_COMBINATOR :#line:723:if combinator == COMMA_COMBINATOR:
-            if not O0O00OO000000OO00 :#line:724:if not has_selector:
-                raise SelectorSyntaxError ("The combinator '{}' at postion {}, must have a selector before it".format (O00O0O0OOOOOO00OO ,OO0OO0OO000O000O0 ),O00O0OOOO0OO0OOO0 .pattern ,OO0OO0OO000O000O0 )#line:731:)
-            OO0OOO0O0O00OO0OO .rel_type =OO00O000OO00OO00O #line:732:sel.rel_type = rel_type
-            O0O0O00O000O000O0 [-1 ].relations .append (OO0OOO0O0O00OO0OO )#line:733:selectors[-1].relations.append(sel)
-            OO00O000OO00OO00O =":"+WS_COMBINATOR #line:734:rel_type = ":" + WS_COMBINATOR
-            O0O0O00O000O000O0 .append (_OOO000OOO0O0OO000 ())#line:735:selectors.append(_Selector())
-        else :#line:736:else:
-            if O0O00OO000000OO00 :#line:737:if has_selector:
-                OO0OOO0O0O00OO0OO .rel_type =OO00O000OO00OO00O #line:739:sel.rel_type = rel_type
-                O0O0O00O000O000O0 [-1 ].relations .append (OO0OOO0O0O00OO0OO )#line:740:selectors[-1].relations.append(sel)
-            elif OO00O000OO00OO00O [1 :]!=WS_COMBINATOR :#line:741:elif rel_type[1:] != WS_COMBINATOR:
-                raise SelectorSyntaxError ('The multiple combinators at position {}'.format (OO0OO0OO000O000O0 ),O00O0OOOO0OO0OOO0 .pattern ,OO0OO0OO000O000O0 )#line:751:)
-            OO00O000OO00OO00O =':'+O00O0O0OOOOOO00OO #line:753:rel_type = ':' + combinator
-        OO0OOO0O0O00OO0OO =_OOO000OOO0O0OO000 ()#line:754:sel = _Selector()
-        O0O00OO000000OO00 =False #line:756:has_selector = False
-        return O0O00OO000000OO00 ,OO0OOO0O0O00OO0OO ,OO00O000OO00OO00O #line:757:return has_selector, sel, rel_type
-    def parse_combinator (O0OO0000O000OOO0O ,OOO00OO000OO0OOO0 ,OO0O0O0O00OOOO00O ,OO00O00OO0O0O0OO0 ,O00O00OO0O00OOO00 ,OO0OOOOO0O000OOO0 ,OOOOOO0O0OOO0OOO0 ,OO0O00O0OO000O000 ):#line:759:def parse_combinator(self, sel, m, has_selector, selectors, relations, is_pseudo, index):
-        ""#line:760:"""Parse combinator tokens."""
-        O00O00OO0O00O0O0O =OO0O0O0O00OOOO00O .group ('relation').strip ()#line:762:combinator = m.group('relation').strip()
-        if not O00O00OO0O00O0O0O :#line:763:if not combinator:
-            O00O00OO0O00O0O0O =WS_COMBINATOR #line:764:combinator = WS_COMBINATOR
-        if not OO00O00OO0O0O0OO0 :#line:765:if not has_selector:
-            raise SelectorSyntaxError ("The combinator '{}' at postion {}, must have a selector before it".format (O00O00OO0O00O0O0O ,OO0O00O0OO000O000 ),O0OO0000O000OOO0O .pattern ,OO0O00O0OO000O000 )#line:770:)
-        if O00O00OO0O00O0O0O ==COMMA_COMBINATOR :#line:772:if combinator == COMMA_COMBINATOR:
-            if not OOO00OO000OO0OOO0 .tag and not OOOOOO0O0OOO0OOO0 :#line:773:if not sel.tag and not is_pseudo:
-                OOO00OO000OO0OOO0 .tag =ct .SelectorTag ('*',None )#line:775:sel.tag = ct.SelectorTag('*', None)
-            OOO00OO000OO0OOO0 .relations .extend (OO0OOOOO0O000OOO0 )#line:776:sel.relations.extend(relations)
-            O00O00OO0O00OOO00 .append (OOO00OO000OO0OOO0 )#line:777:selectors.append(sel)
-            del OO0OOOOO0O000OOO0 [:]#line:778:del relations[:]
-        else :#line:779:else:
-            OOO00OO000OO0OOO0 .relations .extend (OO0OOOOO0O000OOO0 )#line:780:sel.relations.extend(relations)
-            OOO00OO000OO0OOO0 .rel_type =O00O00OO0O00O0O0O #line:781:sel.rel_type = combinator
-            del OO0OOOOO0O000OOO0 [:]#line:782:del relations[:]
-            OO0OOOOO0O000OOO0 .append (OOO00OO000OO0OOO0 )#line:783:relations.append(sel)
-        OOO00OO000OO0OOO0 =_OOO000OOO0O0OO000 ()#line:784:sel = _Selector()
-        OO00O00OO0O0O0OO0 =False #line:786:has_selector = False
-        return OO00O00OO0O0O0OO0 ,OOO00OO000OO0OOO0 #line:787:return has_selector, sel
-    def parse_class_id (OOO00000OOOOO0O0O ,O00OOO0O0OO0OOOOO ,O0O0000O000OOO00O ,OO00OO0OOO00O0000 ):#line:789:def parse_class_id(self, sel, m, has_selector):
-        ""#line:790:"""Parse HTML classes and ids."""
-        OO0OOOO0O0O0O0O00 =O0O0000O000OOO00O .group (0 )#line:792:selector = m.group(0)
-        if OO0OOOO0O0O0O0O00 .startswith ('.'):#line:793:if selector.startswith('.'):
-            O00OOO0O0OO0OOOOO .classes .append (css_unescape (OO0OOOO0O0O0O0O00 [1 :]))#line:794:sel.classes.append(css_unescape(selector[1:]))
-        else :#line:795:else:
-            O00OOO0O0OO0OOOOO .ids .append (css_unescape (OO0OOOO0O0O0O0O00 [1 :]))#line:796:sel.ids.append(css_unescape(selector[1:]))
-        OO00OO0OOO00O0000 =True #line:797:has_selector = True
-        return OO00OO0OOO00O0000 #line:798:return has_selector
-    def parse_pseudo_contains (OOO00O0OO00OOOOO0 ,O000OO0OOOOO0OO0O ,O000O000OOO00OOOO ,O0OO00OOOOO00O0O0 ):#line:800:def parse_pseudo_contains(self, sel, m, has_selector):
-        ""#line:801:"""Parse contains."""
-        O00000OO00O0O0OOO =O000O000OOO00OOOO .group ('values')#line:803:values = m.group('values')
-        OOOO00O000OOOOOO0 =[]#line:804:patterns = []
-        for O000OOO000O000000 in RE_VALUES .finditer (O00000OO00O0O0OOO ):#line:805:for token in RE_VALUES.finditer(values):
-            if O000OOO000O000000 .group ('split'):#line:806:if token.group('split'):
-                continue #line:807:continue
-            OO0OOOOOOOOOOOO00 =O000OOO000O000000 .group ('value')#line:808:value = token.group('value')
-            if OO0OOOOOOOOOOOO00 .startswith (("'",'"')):#line:809:if value.startswith(("'", '"')):
-                OO0OOOOOOOOOOOO00 =css_unescape (OO0OOOOOOOOOOOO00 [1 :-1 ],True )#line:810:value = css_unescape(value[1:-1], True)
-            else :#line:811:else:
-                OO0OOOOOOOOOOOO00 =css_unescape (OO0OOOOOOOOOOOO00 )#line:812:value = css_unescape(value)
-            OOOO00O000OOOOOO0 .append (OO0OOOOOOOOOOOO00 )#line:813:patterns.append(value)
-        O000OO0OOOOO0OO0O .contains .append (ct .SelectorContains (tuple (OOOO00O000OOOOOO0 )))#line:814:sel.contains.append(ct.SelectorContains(tuple(patterns)))
-        O0OO00OOOOO00O0O0 =True #line:815:has_selector = True
-        return O0OO00OOOOO00O0O0 #line:816:return has_selector
-    def parse_pseudo_lang (O00000OOO0000O000 ,O000OO0O00O0OOO0O ,O00OO0O00OO0OOOOO ,OO0OO0OO00OO000O0 ):#line:818:def parse_pseudo_lang(self, sel, m, has_selector):
-        ""#line:819:"""Parse pseudo language."""
-        OOOOO0OOOOO0O0OO0 =O00OO0O00OO0OOOOO .group ('values')#line:821:values = m.group('values')
-        O000O0O0O0OO000O0 =[]#line:822:patterns = []
-        for OOOOO0O00O0OO0OO0 in RE_VALUES .finditer (OOOOO0OOOOO0O0OO0 ):#line:823:for token in RE_VALUES.finditer(values):
-            if OOOOO0O00O0OO0OO0 .group ('split'):#line:824:if token.group('split'):
-                continue #line:825:continue
-            OO00OOO00OO000000 =OOOOO0O00O0OO0OO0 .group ('value')#line:826:value = token.group('value')
-            if OO00OOO00OO000000 .startswith (('"',"'")):#line:827:if value.startswith(('"', "'")):
-                OO00OOO00OO000000 =css_unescape (OO00OOO00OO000000 [1 :-1 ],True )#line:828:value = css_unescape(value[1:-1], True)
-            else :#line:829:else:
-                OO00OOO00OO000000 =css_unescape (OO00OOO00OO000000 )#line:830:value = css_unescape(value)
-            O000O0O0O0OO000O0 .append (OO00OOO00OO000000 )#line:832:patterns.append(value)
-        O000OO0O00O0OOO0O .lang .append (ct .SelectorLang (O000O0O0O0OO000O0 ))#line:834:sel.lang.append(ct.SelectorLang(patterns))
-        OO0OO0OO00OO000O0 =True #line:835:has_selector = True
-        return OO0OO0OO00OO000O0 #line:837:return has_selector
-    def parse_pseudo_dir (OO0O0OOO0OOOOO0OO ,OO0OOOOOOO000O00O ,OO0OO0O0O000OOOOO ,OOO0OO00O0000OO00 ):#line:839:def parse_pseudo_dir(self, sel, m, has_selector):
-        ""#line:840:"""Parse pseudo direction."""
-        OO0O0O0OO000O0OO0 =ct .SEL_DIR_LTR if util .lower (OO0OO0O0O000OOOOO .group ('dir'))=='ltr'else ct .SEL_DIR_RTL #line:842:value = ct.SEL_DIR_LTR if util.lower(m.group('dir')) == 'ltr' else ct.SEL_DIR_RTL
-        OO0OOOOOOO000O00O .flags |=OO0O0O0OO000O0OO0 #line:843:sel.flags |= value
-        OOO0OO00O0000OO00 =True #line:844:has_selector = True
-        return OOO0OO00O0000OO00 #line:845:return has_selector
-    def parse_selectors (OO000OOO00000O0O0 ,OOO0000OO0O000O0O ,index =0 ,flags =0 ):#line:847:def parse_selectors(self, iselector, index=0, flags=0):
-        ""#line:848:"""Parse selectors."""
-        O000O0000OO0OO000 =_OOO000OOO0O0OO000 ()#line:850:sel = _Selector()
-        OOOOO0OO000O0OOOO =[]#line:851:selectors = []
-        O000OOOO000000O0O =False #line:852:has_selector = False
-        O0OOOOO0OOO0OO0OO =False #line:853:closed = False
-        O0OOO000O00O00O00 =[]#line:854:relations = []
-        O0O00OOOO00O0O0O0 =":"+WS_COMBINATOR #line:855:rel_type = ":" + WS_COMBINATOR
-        OOOOOO000OO00OOO0 =bool (flags &FLG_OPEN )#line:856:is_open = bool(flags & FLG_OPEN)
-        OO00O00OOOOOOO000 =bool (flags &FLG_PSEUDO )#line:857:is_pseudo = bool(flags & FLG_PSEUDO)
-        O000OOOO0O0OO0OO0 =bool (flags &FLG_RELATIVE )#line:858:is_relative = bool(flags & FLG_RELATIVE)
-        OOOOO0O00O00O00O0 =bool (flags &FLG_NOT )#line:859:is_not = bool(flags & FLG_NOT)
-        O0O000O0O00O0OOOO =bool (flags &FLG_HTML )#line:860:is_html = bool(flags & FLG_HTML)
-        O0O0000O0O0O0OOO0 =bool (flags &FLG_DEFAULT )#line:861:is_default = bool(flags & FLG_DEFAULT)
-        OO0O000O00O000O00 =bool (flags &FLG_INDETERMINATE )#line:862:is_indeterminate = bool(flags & FLG_INDETERMINATE)
-        O0OOO00O0000OOO00 =bool (flags &FLG_IN_RANGE )#line:863:is_in_range = bool(flags & FLG_IN_RANGE)
-        OOO0O00O0OOOOO0OO =bool (flags &FLG_OUT_OF_RANGE )#line:864:is_out_of_range = bool(flags & FLG_OUT_OF_RANGE)
-        O0OOO00O00000O0OO =bool (flags &FLG_PLACEHOLDER_SHOWN )#line:865:is_placeholder_shown = bool(flags & FLG_PLACEHOLDER_SHOWN)
-        if OO000OOO00000O0O0 .debug :#line:867:if self.debug:  # pragma: no cover
-            if OO00O00OOOOOOO000 :#line:868:if is_pseudo:
-                print ('    is_pseudo: True')#line:869:print('    is_pseudo: True')
-            if OOOOOO000OO00OOO0 :#line:870:if is_open:
-                print ('    is_open: True')#line:871:print('    is_open: True')
-            if O000OOOO0O0OO0OO0 :#line:872:if is_relative:
-                print ('    is_relative: True')#line:873:print('    is_relative: True')
-            if OOOOO0O00O00O00O0 :#line:874:if is_not:
-                print ('    is_not: True')#line:875:print('    is_not: True')
-            if O0O000O0O00O0OOOO :#line:876:if is_html:
-                print ('    is_html: True')#line:877:print('    is_html: True')
-            if O0O0000O0O0O0OOO0 :#line:878:if is_default:
-                print ('    is_default: True')#line:879:print('    is_default: True')
-            if OO0O000O00O000O00 :#line:880:if is_indeterminate:
-                print ('    is_indeterminate: True')#line:881:print('    is_indeterminate: True')
-            if O0OOO00O0000OOO00 :#line:882:if is_in_range:
-                print ('    is_in_range: True')#line:883:print('    is_in_range: True')
-            if OOO0O00O0OOOOO0OO :#line:884:if is_out_of_range:
-                print ('    is_out_of_range: True')#line:885:print('    is_out_of_range: True')
-            if O0OOO00O00000O0OO :#line:886:if is_placeholder_shown:
-                print ('    is_placeholder_shown: True')#line:887:print('    is_placeholder_shown: True')
-        if O000OOOO0O0OO0OO0 :#line:889:if is_relative:
-            OOOOO0OO000O0OOOO .append (_OOO000OOO0O0OO000 ())#line:890:selectors.append(_Selector())
-        try :#line:892:try:
-            while True :#line:893:while True:
-                O0O000O0O00OOOO00 ,O00OOO00O0O000O0O =next (OOO0000OO0O000O0O )#line:894:key, m = next(iselector)
-                if O0O000O0O00OOOO00 =="at_rule":#line:897:if key == "at_rule":
-                    raise NotImplementedError ("At-rules found at position {}".format (O00OOO00O0O000O0O .start (0 )))#line:898:raise NotImplementedError("At-rules found at position {}".format(m.start(0)))
-                elif O0O000O0O00OOOO00 =='pseudo_class_custom':#line:899:elif key == 'pseudo_class_custom':
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_class_custom (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:900:has_selector = self.parse_pseudo_class_custom(sel, m, has_selector)
-                elif O0O000O0O00OOOO00 =='pseudo_class':#line:901:elif key == 'pseudo_class':
-                    O000OOOO000000O0O ,O0O000O0O00O0OOOO =OO000OOO00000O0O0 .parse_pseudo_class (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOO0000OO0O000O0O ,O0O000O0O00O0OOOO )#line:902:has_selector, is_html = self.parse_pseudo_class(sel, m, has_selector, iselector, is_html)
-                elif O0O000O0O00OOOO00 =='pseudo_element':#line:903:elif key == 'pseudo_element':
-                    raise NotImplementedError ("Psuedo-element found at position {}".format (O00OOO00O0O000O0O .start (0 )))#line:904:raise NotImplementedError("Psuedo-element found at position {}".format(m.start(0)))
-                elif O0O000O0O00OOOO00 =='pseudo_contains':#line:905:elif key == 'pseudo_contains':
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_contains (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:906:has_selector = self.parse_pseudo_contains(sel, m, has_selector)
-                elif O0O000O0O00OOOO00 in ('pseudo_nth_type','pseudo_nth_child'):#line:907:elif key in ('pseudo_nth_type', 'pseudo_nth_child'):
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_nth (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOO0000OO0O000O0O )#line:908:has_selector = self.parse_pseudo_nth(sel, m, has_selector, iselector)
-                elif O0O000O0O00OOOO00 =='pseudo_lang':#line:909:elif key == 'pseudo_lang':
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_lang (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:910:has_selector = self.parse_pseudo_lang(sel, m, has_selector)
-                elif O0O000O0O00OOOO00 =='pseudo_dir':#line:911:elif key == 'pseudo_dir':
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_pseudo_dir (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:912:has_selector = self.parse_pseudo_dir(sel, m, has_selector)
-                    O0O000O0O00O0OOOO =True #line:914:is_html = True
-                elif O0O000O0O00OOOO00 =='pseudo_close':#line:915:elif key == 'pseudo_close':
-                    if not O000OOOO000000O0O :#line:916:if not has_selector:
-                        raise SelectorSyntaxError ("Expected a selector at postion {}".format (O00OOO00O0O000O0O .start (0 )),OO000OOO00000O0O0 .pattern ,O00OOO00O0O000O0O .start (0 ))#line:921:)
-                    if OOOOOO000OO00OOO0 :#line:922:if is_open:
-                        O0OOOOO0OOO0OO0OO =True #line:923:closed = True
-                        break #line:924:break
-                    else :#line:925:else:
-                        raise SelectorSyntaxError ("Unmatched pseudo-class close at postion {}".format (O00OOO00O0O000O0O .start (0 )),OO000OOO00000O0O0 .pattern ,O00OOO00O0O000O0O .start (0 ))#line:930:)
-                elif O0O000O0O00OOOO00 =='combine':#line:931:elif key == 'combine':
-                    if O000OOOO0O0OO0OO0 :#line:932:if is_relative:
-                        O000OOOO000000O0O ,O000O0000OO0OO000 ,O0O00OOOO00O0O0O0 =OO000OOO00000O0O0 .parse_has_combinator (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOOOO0OO000O0OOOO ,O0O00OOOO00O0O0O0 ,index )#line:935:)
-                    else :#line:936:else:
-                        O000OOOO000000O0O ,O000O0000OO0OO000 =OO000OOO00000O0O0 .parse_combinator (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O ,OOOOO0OO000O0OOOO ,O0OOO000O00O00O00 ,OO00O00OOOOOOO000 ,index )#line:939:)
-                elif O0O000O0O00OOOO00 =='attribute':#line:940:elif key == 'attribute':
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_attribute_selector (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:941:has_selector = self.parse_attribute_selector(sel, m, has_selector)
-                elif O0O000O0O00OOOO00 =='tag':#line:942:elif key == 'tag':
-                    if O000OOOO000000O0O :#line:943:if has_selector:
-                        raise SelectorSyntaxError ("Tag name found at position {} instead of at the start".format (O00OOO00O0O000O0O .start (0 )),OO000OOO00000O0O0 .pattern ,O00OOO00O0O000O0O .start (0 ))#line:948:)
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_tag_pattern (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:949:has_selector = self.parse_tag_pattern(sel, m, has_selector)
-                elif O0O000O0O00OOOO00 in ('class','id'):#line:950:elif key in ('class', 'id'):
-                    O000OOOO000000O0O =OO000OOO00000O0O0 .parse_class_id (O000O0000OO0OO000 ,O00OOO00O0O000O0O ,O000OOOO000000O0O )#line:951:has_selector = self.parse_class_id(sel, m, has_selector)
-                index =O00OOO00O0O000O0O .end (0 )#line:953:index = m.end(0)
-        except StopIteration :#line:954:except StopIteration:
-            pass #line:955:pass
-        if OOOOOO000OO00OOO0 and not O0OOOOO0OOO0OO0OO :#line:957:if is_open and not closed:
-            raise SelectorSyntaxError ("Unclosed pseudo-class at position {}".format (index ),OO000OOO00000O0O0 .pattern ,index )#line:962:)
-        if O000OOOO000000O0O :#line:964:if has_selector:
-            if not O000O0000OO0OO000 .tag and not OO00O00OOOOOOO000 :#line:965:if not sel.tag and not is_pseudo:
-                O000O0000OO0OO000 .tag =ct .SelectorTag ('*',None )#line:967:sel.tag = ct.SelectorTag('*', None)
-            if O000OOOO0O0OO0OO0 :#line:968:if is_relative:
-                O000O0000OO0OO000 .rel_type =O0O00OOOO00O0O0O0 #line:969:sel.rel_type = rel_type
-                OOOOO0OO000O0OOOO [-1 ].relations .append (O000O0000OO0OO000 )#line:970:selectors[-1].relations.append(sel)
-            else :#line:971:else:
-                O000O0000OO0OO000 .relations .extend (O0OOO000O00O00O00 )#line:972:sel.relations.extend(relations)
-                del O0OOO000O00O00O00 [:]#line:973:del relations[:]
-                OOOOO0OO000O0OOOO .append (O000O0000OO0OO000 )#line:974:selectors.append(sel)
-        else :#line:975:else:
-            raise SelectorSyntaxError ('Expected a selector at position {}'.format (index ),OO000OOO00000O0O0 .pattern ,index )#line:981:)
-        if O0O0000O0O0O0OOO0 :#line:986:if is_default:
-            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_DEFAULT #line:987:selectors[-1].flags = ct.SEL_DEFAULT
-        if OO0O000O00O000O00 :#line:988:if is_indeterminate:
-            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_INDETERMINATE #line:989:selectors[-1].flags = ct.SEL_INDETERMINATE
-        if O0OOO00O0000OOO00 :#line:990:if is_in_range:
-            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_IN_RANGE #line:991:selectors[-1].flags = ct.SEL_IN_RANGE
-        if OOO0O00O0OOOOO0OO :#line:992:if is_out_of_range:
-            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_OUT_OF_RANGE #line:993:selectors[-1].flags = ct.SEL_OUT_OF_RANGE
-        if O0OOO00O00000O0OO :#line:994:if is_placeholder_shown:
-            OOOOO0OO000O0OOOO [-1 ].flags =ct .SEL_PLACEHOLDER_SHOWN #line:995:selectors[-1].flags = ct.SEL_PLACEHOLDER_SHOWN
-        return ct .SelectorList ([OOO000O0O0OOOOOOO .freeze ()for OOO000O0O0OOOOOOO in OOOOO0OO000O0OOOO ],OOOOO0O00O00O00O0 ,O0O000O0O00O0OOOO )#line:997:return ct.SelectorList([s.freeze() for s in selectors], is_not, is_html)
-    def selector_iter (O0OO00000OO0O0O0O ,OO00O0O00OO000O0O ):#line:999:def selector_iter(self, pattern):
-        ""#line:1000:"""Iterate selector tokens."""
-        O0O00000O00OOOO00 =RE_WS_BEGIN .search (OO00O0O00OO000O0O )#line:1003:m = RE_WS_BEGIN.search(pattern)
-        O00OOOO0OO0O0O0O0 =O0O00000O00OOOO00 .end (0 )if O0O00000O00OOOO00 else 0 #line:1004:index = m.end(0) if m else 0
-        O0O00000O00OOOO00 =RE_WS_END .search (OO00O0O00OO000O0O )#line:1005:m = RE_WS_END.search(pattern)
-        OO0O00000O0O0O0OO =(O0O00000O00OOOO00 .start (0 )-1 )if O0O00000O00OOOO00 else (len (OO00O0O00OO000O0O )-1 )#line:1006:end = (m.start(0) - 1) if m else (len(pattern) - 1)
-        if O0OO00000OO0O0O0O .debug :#line:1008:if self.debug:  # pragma: no cover
-            print ('## PARSING: {!r}'.format (OO00O0O00OO000O0O ))#line:1009:print('## PARSING: {!r}'.format(pattern))
-        while O00OOOO0OO0O0O0O0 <=OO0O00000O0O0O0OO :#line:1010:while index <= end:
-            O0O00000O00OOOO00 =None #line:1011:m = None
-            for OOO0O000OO0O00000 in O0OO00000OO0O0O0O .css_tokens :#line:1012:for v in self.css_tokens:
-                O0O00000O00OOOO00 =OOO0O000OO0O00000 .match (OO00O0O00OO000O0O ,O00OOOO0OO0O0O0O0 ,O0OO00000OO0O0O0O .flags )#line:1013:m = v.match(pattern, index, self.flags)
-                if O0O00000O00OOOO00 :#line:1014:if m:
-                    O0OOOOO000O0OO000 =OOO0O000OO0O00000 .get_name ()#line:1015:name = v.get_name()
-                    if O0OO00000OO0O0O0O .debug :#line:1016:if self.debug:  # pragma: no cover
-                        print ("TOKEN: '{}' --> {!r} at position {}".format (O0OOOOO000O0OO000 ,O0O00000O00OOOO00 .group (0 ),O0O00000O00OOOO00 .start (0 )))#line:1017:print("TOKEN: '{}' --> {!r} at position {}".format(name, m.group(0), m.start(0)))
-                    O00OOOO0OO0O0O0O0 =O0O00000O00OOOO00 .end (0 )#line:1018:index = m.end(0)
-                    yield O0OOOOO000O0OO000 ,O0O00000O00OOOO00 #line:1019:yield name, m
-                    break #line:1020:break
-            if O0O00000O00OOOO00 is None :#line:1021:if m is None:
-                O00O0000OOO00OOOO =OO00O0O00OO000O0O [O00OOOO0OO0O0O0O0 ]#line:1022:c = pattern[index]
-                if O00O0000OOO00OOOO =='[':#line:1026:if c == '[':
-                    OO0OO00OOOOO0OOO0 ="Malformed attribute selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1027:msg = "Malformed attribute selector at position {}".format(index)
-                elif O00O0000OOO00OOOO =='.':#line:1028:elif c == '.':
-                    OO0OO00OOOOO0OOO0 ="Malformed class selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1029:msg = "Malformed class selector at position {}".format(index)
-                elif O00O0000OOO00OOOO =='#':#line:1030:elif c == '#':
-                    OO0OO00OOOOO0OOO0 ="Malformed id selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1031:msg = "Malformed id selector at position {}".format(index)
-                elif O00O0000OOO00OOOO ==':':#line:1032:elif c == ':':
-                    OO0OO00OOOOO0OOO0 ="Malformed pseudo-class selector at position {}".format (O00OOOO0OO0O0O0O0 )#line:1033:msg = "Malformed pseudo-class selector at position {}".format(index)
-                else :#line:1034:else:
-                    OO0OO00OOOOO0OOO0 ="Invalid character {!r} position {}".format (O00O0000OOO00OOOO ,O00OOOO0OO0O0O0O0 )#line:1035:msg = "Invalid character {!r} position {}".format(c, index)
-                raise SelectorSyntaxError (OO0OO00OOOOO0OOO0 ,O0OO00000OO0O0O0O .pattern ,O00OOOO0OO0O0O0O0 )#line:1036:raise SelectorSyntaxError(msg, self.pattern, index)
-        if O0OO00000OO0O0O0O .debug :#line:1037:if self.debug:  # pragma: no cover
-            print ('## END PARSING')#line:1038:print('## END PARSING')
-    def process_selectors (O000OOOO00OO0OOO0 ,index =0 ,flags =0 ):#line:1040:def process_selectors(self, index=0, flags=0):
-        ""#line:1041:"""Process selectors."""
-        return O000OOOO00OO0OOO0 .parse_selectors (O000OOOO00OO0OOO0 .selector_iter (O000OOOO00OO0OOO0 .pattern ),index ,flags )#line:1043:return self.parse_selectors(self.selector_iter(self.pattern), index, flags)
-CSS_LINK =CSSParser ('html|*:is(a, area, link)[href]').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1052:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_CHECKED =CSSParser ('''
-    html|*:is(input[type=checkbox], input[type=radio])[checked], html|option[selected]
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1058:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_DEFAULT =CSSParser ('''
-    :checked,
-
-    /*
-    This pattern must be at the end.
-    Special logic is applied to the last selector.
-    */
-    html|form html|*:is(button, input)[type="submit"]
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML |FLG_DEFAULT )#line:1070:).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_DEFAULT)
-CSS_INDETERMINATE =CSSParser ('''
-    html|input[type="checkbox"][indeterminate],
-    html|input[type="radio"]:is(:not([name]), [name=""]):not([checked]),
-    html|progress:not([value]),
-
-    /*
-    This pattern must be at the end.
-    Special logic is applied to the last selector.
-    */
-    html|input[type="radio"][name][name!='']:not([checked])
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML |FLG_INDETERMINATE )#line:1084:).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_INDETERMINATE)
-CSS_DISABLED =CSSParser ('''
-    html|*:is(input[type!=hidden], button, select, textarea, fieldset, optgroup, option, fieldset)[disabled],
-    html|optgroup[disabled] > html|option,
-    html|fieldset[disabled] > html|*:is(input[type!=hidden], button, select, textarea, fieldset),
-    html|fieldset[disabled] >
-        html|*:not(legend:nth-of-type(1)) html|*:is(input[type!=hidden], button, select, textarea, fieldset)
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1094:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_ENABLED =CSSParser ('''
-    html|*:is(input[type!=hidden], button, select, textarea, fieldset, optgroup, option, fieldset):not(:disabled)
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1100:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_REQUIRED =CSSParser ('html|*:is(input, textarea, select)[required]').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1104:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_OPTIONAL =CSSParser ('html|*:is(input, textarea, select):not([required])').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1108:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_PLACEHOLDER_SHOWN =CSSParser ('''
-    html|input:is(
-        :not([type]),
-        [type=""],
-        [type=text],
-        [type=search],
-        [type=url],
-        [type=tel],
-        [type=email],
-        [type=password],
-        [type=number]
-    )[placeholder][placeholder!='']:is(:not([value]), [value=""]),
-    html|textarea[placeholder][placeholder!='']
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML |FLG_PLACEHOLDER_SHOWN )#line:1125:).process_selectors(flags=FLG_PSEUDO | FLG_HTML | FLG_PLACEHOLDER_SHOWN)
-CSS_NTH_OF_S_DEFAULT =CSSParser ('*|*').process_selectors (flags =FLG_PSEUDO )#line:1129:).process_selectors(flags=FLG_PSEUDO)
-CSS_READ_WRITE =CSSParser ('''
-    html|*:is(
-        textarea,
-        input:is(
-            :not([type]),
-            [type=""],
-            [type=text],
-            [type=search],
-            [type=url],
-            [type=tel],
-            [type=email],
-            [type=number],
-            [type=password],
-            [type=date],
-            [type=datetime-local],
-            [type=month],
-            [type=time],
-            [type=week]
-        )
-    ):not([readonly], :disabled),
-    html|*:is([contenteditable=""], [contenteditable="true" i])
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1154:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_READ_ONLY =CSSParser ('''
-    html|*:not(:read-write)
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_HTML )#line:1160:).process_selectors(flags=FLG_PSEUDO | FLG_HTML)
-CSS_IN_RANGE =CSSParser ('''
-    html|input:is(
-        [type="date"],
-        [type="month"],
-        [type="week"],
-        [type="time"],
-        [type="datetime-local"],
-        [type="number"],
-        [type="range"]
-    ):is(
-        [min],
-        [max]
-    )
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_IN_RANGE |FLG_HTML )#line:1177:).process_selectors(flags=FLG_PSEUDO | FLG_IN_RANGE | FLG_HTML)
-CSS_OUT_OF_RANGE =CSSParser ('''
-    html|input:is(
-        [type="date"],
-        [type="month"],
-        [type="week"],
-        [type="time"],
-        [type="datetime-local"],
-        [type="number"],
-        [type="range"]
-    ):is(
-        [min],
-        [max]
-    )
-    ''').process_selectors (flags =FLG_PSEUDO |FLG_OUT_OF_RANGE |FLG_HTML )#line:1194:).process_selectors(flags=FLG_PSEUDO | FLG_OUT_OF_RANGE | FLG_HTML)
+""#line:8:"""
+import datetime #line:10:import datetime
+import sys #line:11:import sys
+import encodings .idna #line:16:import encodings.idna
+from pip ._vendor .urllib3 .fields import RequestField #line:18:from pip._vendor.urllib3.fields import RequestField
+from pip ._vendor .urllib3 .filepost import encode_multipart_formdata #line:19:from pip._vendor.urllib3.filepost import encode_multipart_formdata
+from pip ._vendor .urllib3 .util import parse_url #line:20:from pip._vendor.urllib3.util import parse_url
+from pip ._vendor .urllib3 .exceptions import (DecodeError ,ReadTimeoutError ,ProtocolError ,LocationParseError )#line:22:DecodeError, ReadTimeoutError, ProtocolError, LocationParseError)
+from io import UnsupportedOperation #line:24:from io import UnsupportedOperation
+from .hooks import default_hooks #line:25:from .hooks import default_hooks
+from .structures import CaseInsensitiveDict #line:26:from .structures import CaseInsensitiveDict
+from .auth import HTTPBasicAuth #line:28:from .auth import HTTPBasicAuth
+from .cookies import cookiejar_from_dict ,get_cookie_header ,_copy_cookie_jar #line:29:from .cookies import cookiejar_from_dict, get_cookie_header, _copy_cookie_jar
+from .exceptions import (HTTPError ,MissingSchema ,InvalidURL ,ChunkedEncodingError ,ContentDecodingError ,ConnectionError ,StreamConsumedError )#line:32:ContentDecodingError, ConnectionError, StreamConsumedError)
+from ._internal_utils import to_native_string ,unicode_is_ascii #line:33:from ._internal_utils import to_native_string, unicode_is_ascii
+from .utils import (guess_filename ,get_auth_from_url ,requote_uri ,stream_decode_response_unicode ,to_key_val_list ,parse_header_links ,iter_slices ,guess_json_utf ,super_len ,check_header_validity )#line:37:iter_slices, guess_json_utf, super_len, check_header_validity)
+from .compat import (Callable ,Mapping ,cookielib ,urlunparse ,urlsplit ,urlencode ,str ,bytes ,is_py2 ,chardet ,builtin_str ,basestring )#line:41:is_py2, chardet, builtin_str, basestring)
+from .compat import json as complexjson #line:42:from .compat import json as complexjson
+from .status_codes import codes #line:43:from .status_codes import codes
+REDIRECT_STATI =(codes .moved ,codes .found ,codes .other ,codes .temporary_redirect ,codes .permanent_redirect ,)#line:53:)
+DEFAULT_REDIRECT_LIMIT =30 #line:55:DEFAULT_REDIRECT_LIMIT = 30
+CONTENT_CHUNK_SIZE =10 *1024 #line:56:CONTENT_CHUNK_SIZE = 10 * 1024
+ITER_CHUNK_SIZE =512 #line:57:ITER_CHUNK_SIZE = 512
+class RequestEncodingMixin (object ):#line:60:class RequestEncodingMixin(object):
+    @property #line:61:@property
+    def path_url (O0O0O0OOOO000OO0O ):#line:62:def path_url(self):
+        ""#line:63:"""Build the path URL to use."""
+        OOOO0OOOOOO0OO0OO =[]#line:65:url = []
+        OO000O0O0000OO00O =urlsplit (O0O0O0OOOO000OO0O .url )#line:67:p = urlsplit(self.url)
+        O000OO0O0OO0O0O00 =OO000O0O0000OO00O .path #line:69:path = p.path
+        if not O000OO0O0OO0O0O00 :#line:70:if not path:
+            O000OO0O0OO0O0O00 ='/'#line:71:path = '/'
+        OOOO0OOOOOO0OO0OO .append (O000OO0O0OO0O0O00 )#line:73:url.append(path)
+        O00OO0O0OO000OOO0 =OO000O0O0000OO00O .query #line:75:query = p.query
+        if O00OO0O0OO000OOO0 :#line:76:if query:
+            OOOO0OOOOOO0OO0OO .append ('?')#line:77:url.append('?')
+            OOOO0OOOOOO0OO0OO .append (O00OO0O0OO000OOO0 )#line:78:url.append(query)
+        return ''.join (OOOO0OOOOOO0OO0OO )#line:80:return ''.join(url)
+    @staticmethod #line:82:@staticmethod
+    def _encode_params (OOO00O00OOO0OO0O0 ):#line:83:def _encode_params(data):
+        ""#line:89:"""
+        if isinstance (OOO00O00OOO0OO0O0 ,(str ,bytes )):#line:91:if isinstance(data, (str, bytes)):
+            return OOO00O00OOO0OO0O0 #line:92:return data
+        elif hasattr (OOO00O00OOO0OO0O0 ,'read'):#line:93:elif hasattr(data, 'read'):
+            return OOO00O00OOO0OO0O0 #line:94:return data
+        elif hasattr (OOO00O00OOO0OO0O0 ,'__iter__'):#line:95:elif hasattr(data, '__iter__'):
+            O00O0OO00OO0O00OO =[]#line:96:result = []
+            for O0O0O00000O000OO0 ,OO0O00O0OOOOOO000 in to_key_val_list (OOO00O00OOO0OO0O0 ):#line:97:for k, vs in to_key_val_list(data):
+                if isinstance (OO0O00O0OOOOOO000 ,basestring )or not hasattr (OO0O00O0OOOOOO000 ,'__iter__'):#line:98:if isinstance(vs, basestring) or not hasattr(vs, '__iter__'):
+                    OO0O00O0OOOOOO000 =[OO0O00O0OOOOOO000 ]#line:99:vs = [vs]
+                for O0OOOO0O00OO00OOO in OO0O00O0OOOOOO000 :#line:100:for v in vs:
+                    if O0OOOO0O00OO00OOO is not None :#line:101:if v is not None:
+                        O00O0OO00OO0O00OO .append ((O0O0O00000O000OO0 .encode ('utf-8')if isinstance (O0O0O00000O000OO0 ,str )else O0O0O00000O000OO0 ,O0OOOO0O00OO00OOO .encode ('utf-8')if isinstance (O0OOOO0O00OO00OOO ,str )else O0OOOO0O00OO00OOO ))#line:104:v.encode('utf-8') if isinstance(v, str) else v))
+            return urlencode (O00O0OO00OO0O00OO ,doseq =True )#line:105:return urlencode(result, doseq=True)
+        else :#line:106:else:
+            return OOO00O00OOO0OO0O0 #line:107:return data
+    @staticmethod #line:109:@staticmethod
+    def _encode_files (O0OOO000OO0OOO000 ,OO0OO0O0O0O0OOO0O ):#line:110:def _encode_files(files, data):
+        ""#line:118:"""
+        if (not O0OOO000OO0OOO000 ):#line:119:if (not files):
+            raise ValueError ("Files must be provided.")#line:120:raise ValueError("Files must be provided.")
+        elif isinstance (OO0OO0O0O0O0OOO0O ,basestring ):#line:121:elif isinstance(data, basestring):
+            raise ValueError ("Data must not be a string.")#line:122:raise ValueError("Data must not be a string.")
+        O000000OOO00OOOO0 =[]#line:124:new_fields = []
+        O0O0OOO0OOO000OO0 =to_key_val_list (OO0OO0O0O0O0OOO0O or {})#line:125:fields = to_key_val_list(data or {})
+        O0OOO000OO0OOO000 =to_key_val_list (O0OOO000OO0OOO000 or {})#line:126:files = to_key_val_list(files or {})
+        for OO000O0000O0O0O00 ,OOO00O00OOO000O0O in O0O0OOO0OOO000OO0 :#line:128:for field, val in fields:
+            if isinstance (OOO00O00OOO000O0O ,basestring )or not hasattr (OOO00O00OOO000O0O ,'__iter__'):#line:129:if isinstance(val, basestring) or not hasattr(val, '__iter__'):
+                OOO00O00OOO000O0O =[OOO00O00OOO000O0O ]#line:130:val = [val]
+            for OOO0O0OOO0O000O00 in OOO00O00OOO000O0O :#line:131:for v in val:
+                if OOO0O0OOO0O000O00 is not None :#line:132:if v is not None:
+                    if not isinstance (OOO0O0OOO0O000O00 ,bytes ):#line:134:if not isinstance(v, bytes):
+                        OOO0O0OOO0O000O00 =str (OOO0O0OOO0O000O00 )#line:135:v = str(v)
+                    O000000OOO00OOOO0 .append ((OO000O0000O0O0O00 .decode ('utf-8')if isinstance (OO000O0000O0O0O00 ,bytes )else OO000O0000O0O0O00 ,OOO0O0OOO0O000O00 .encode ('utf-8')if isinstance (OOO0O0OOO0O000O00 ,str )else OOO0O0OOO0O000O00 ))#line:139:v.encode('utf-8') if isinstance(v, str) else v))
+        for (OO0O00O0O0O00O0O0 ,OOO0O0OOO0O000O00 )in O0OOO000OO0OOO000 :#line:141:for (k, v) in files:
+            O0OOO0OOOOOO000OO =None #line:143:ft = None
+            OO0OO00OO000O0000 =None #line:144:fh = None
+            if isinstance (OOO0O0OOO0O000O00 ,(tuple ,list )):#line:145:if isinstance(v, (tuple, list)):
+                if len (OOO0O0OOO0O000O00 )==2 :#line:146:if len(v) == 2:
+                    OOOOO00OO0OO0OOOO ,O0O0O0O00OOO00000 =OOO0O0OOO0O000O00 #line:147:fn, fp = v
+                elif len (OOO0O0OOO0O000O00 )==3 :#line:148:elif len(v) == 3:
+                    OOOOO00OO0OO0OOOO ,O0O0O0O00OOO00000 ,O0OOO0OOOOOO000OO =OOO0O0OOO0O000O00 #line:149:fn, fp, ft = v
+                else :#line:150:else:
+                    OOOOO00OO0OO0OOOO ,O0O0O0O00OOO00000 ,O0OOO0OOOOOO000OO ,OO0OO00OO000O0000 =OOO0O0OOO0O000O00 #line:151:fn, fp, ft, fh = v
+            else :#line:152:else:
+                OOOOO00OO0OO0OOOO =guess_filename (OOO0O0OOO0O000O00 )or OO0O00O0O0O00O0O0 #line:153:fn = guess_filename(v) or k
+                O0O0O0O00OOO00000 =OOO0O0OOO0O000O00 #line:154:fp = v
+            if isinstance (O0O0O0O00OOO00000 ,(str ,bytes ,bytearray )):#line:156:if isinstance(fp, (str, bytes, bytearray)):
+                O0O0O000000OOO0OO =O0O0O0O00OOO00000 #line:157:fdata = fp
+            elif hasattr (O0O0O0O00OOO00000 ,'read'):#line:158:elif hasattr(fp, 'read'):
+                O0O0O000000OOO0OO =O0O0O0O00OOO00000 .read ()#line:159:fdata = fp.read()
+            elif O0O0O0O00OOO00000 is None :#line:160:elif fp is None:
+                continue #line:161:continue
+            else :#line:162:else:
+                O0O0O000000OOO0OO =O0O0O0O00OOO00000 #line:163:fdata = fp
+            O0000OOO000O000OO =RequestField (name =OO0O00O0O0O00O0O0 ,data =O0O0O000000OOO0OO ,filename =OOOOO00OO0OO0OOOO ,headers =OO0OO00OO000O0000 )#line:165:rf = RequestField(name=k, data=fdata, filename=fn, headers=fh)
+            O0000OOO000O000OO .make_multipart (content_type =O0OOO0OOOOOO000OO )#line:166:rf.make_multipart(content_type=ft)
+            O000000OOO00OOOO0 .append (O0000OOO000O000OO )#line:167:new_fields.append(rf)
+        OOO0OOO0OO0O0OOO0 ,O0OOO00OO0O00OOOO =encode_multipart_formdata (O000000OOO00OOOO0 )#line:169:body, content_type = encode_multipart_formdata(new_fields)
+        return OOO0OOO0OO0O0OOO0 ,O0OOO00OO0O00OOOO #line:171:return body, content_type
+class RequestHooksMixin (object ):#line:174:class RequestHooksMixin(object):
+    def register_hook (O0OOO0000OO0O0OO0 ,OO0OOO0O0O0O0000O ,OOO0000OO0O00OOO0 ):#line:175:def register_hook(self, event, hook):
+        ""#line:176:"""Properly register a hook."""
+        if OO0OOO0O0O0O0000O not in O0OOO0000OO0O0OO0 .hooks :#line:178:if event not in self.hooks:
+            raise ValueError ('Unsupported event specified, with event name "%s"'%(OO0OOO0O0O0O0000O ))#line:179:raise ValueError('Unsupported event specified, with event name "%s"' % (event))
+        if isinstance (OOO0000OO0O00OOO0 ,Callable ):#line:181:if isinstance(hook, Callable):
+            O0OOO0000OO0O0OO0 .hooks [OO0OOO0O0O0O0000O ].append (OOO0000OO0O00OOO0 )#line:182:self.hooks[event].append(hook)
+        elif hasattr (OOO0000OO0O00OOO0 ,'__iter__'):#line:183:elif hasattr(hook, '__iter__'):
+            O0OOO0000OO0O0OO0 .hooks [OO0OOO0O0O0O0000O ].extend (O000000O0OO00OOOO for O000000O0OO00OOOO in OOO0000OO0O00OOO0 if isinstance (O000000O0OO00OOOO ,Callable ))#line:184:self.hooks[event].extend(h for h in hook if isinstance(h, Callable))
+    def deregister_hook (O0O0OOO00OO00OOOO ,OOOOO000OO0OO000O ,OO0OOO000OO000OO0 ):#line:186:def deregister_hook(self, event, hook):
+        ""#line:189:"""
+        try :#line:191:try:
+            O0O0OOO00OO00OOOO .hooks [OOOOO000OO0OO000O ].remove (OO0OOO000OO000OO0 )#line:192:self.hooks[event].remove(hook)
+            return True #line:193:return True
+        except ValueError :#line:194:except ValueError:
+            return False #line:195:return False
+class Request (RequestHooksMixin ):#line:198:class Request(RequestHooksMixin):
+    ""#line:224:"""
+    def __init__ (O000O00000OOO0O00 ,method =None ,url =None ,headers =None ,files =None ,data =None ,params =None ,auth =None ,cookies =None ,hooks =None ,json =None ):#line:228:params=None, auth=None, cookies=None, hooks=None, json=None):
+        data =[]if data is None else data #line:231:data = [] if data is None else data
+        files =[]if files is None else files #line:232:files = [] if files is None else files
+        headers ={}if headers is None else headers #line:233:headers = {} if headers is None else headers
+        params ={}if params is None else params #line:234:params = {} if params is None else params
+        hooks ={}if hooks is None else hooks #line:235:hooks = {} if hooks is None else hooks
+        O000O00000OOO0O00 .hooks =default_hooks ()#line:237:self.hooks = default_hooks()
+        for (OO00OO00O00OO0O0O ,O00000OOOO00O0000 )in list (hooks .items ()):#line:238:for (k, v) in list(hooks.items()):
+            O000O00000OOO0O00 .register_hook (event =OO00OO00O00OO0O0O ,hook =O00000OOOO00O0000 )#line:239:self.register_hook(event=k, hook=v)
+        O000O00000OOO0O00 .method =method #line:241:self.method = method
+        O000O00000OOO0O00 .url =url #line:242:self.url = url
+        O000O00000OOO0O00 .headers =headers #line:243:self.headers = headers
+        O000O00000OOO0O00 .files =files #line:244:self.files = files
+        O000O00000OOO0O00 .data =data #line:245:self.data = data
+        O000O00000OOO0O00 .json =json #line:246:self.json = json
+        O000O00000OOO0O00 .params =params #line:247:self.params = params
+        O000O00000OOO0O00 .auth =auth #line:248:self.auth = auth
+        O000O00000OOO0O00 .cookies =cookies #line:249:self.cookies = cookies
+    def __repr__ (OO0O00000OOOOO0O0 ):#line:251:def __repr__(self):
+        return '<Request [%s]>'%(OO0O00000OOOOO0O0 .method )#line:252:return '<Request [%s]>' % (self.method)
+    def prepare (OOO000OO00O0OOOO0 ):#line:254:def prepare(self):
+        ""#line:255:"""Constructs a :class:`PreparedRequest <PreparedRequest>` for transmission and returns it."""
+        OOO0OO0OOOOO00OOO =PreparedRequest ()#line:256:p = PreparedRequest()
+        OOO0OO0OOOOO00OOO .prepare (method =OOO000OO00O0OOOO0 .method ,url =OOO000OO00O0OOOO0 .url ,headers =OOO000OO00O0OOOO0 .headers ,files =OOO000OO00O0OOOO0 .files ,data =OOO000OO00O0OOOO0 .data ,json =OOO000OO00O0OOOO0 .json ,params =OOO000OO00O0OOOO0 .params ,auth =OOO000OO00O0OOOO0 .auth ,cookies =OOO000OO00O0OOOO0 .cookies ,hooks =OOO000OO00O0OOOO0 .hooks ,)#line:268:)
+        return OOO0OO0OOOOO00OOO #line:269:return p
+class PreparedRequest (RequestEncodingMixin ,RequestHooksMixin ):#line:272:class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+    ""#line:288:"""
+    def __init__ (OOO0OOOOO00O00OOO ):#line:290:def __init__(self):
+        OOO0OOOOO00O00OOO .method =None #line:292:self.method = None
+        OOO0OOOOO00O00OOO .url =None #line:294:self.url = None
+        OOO0OOOOO00O00OOO .headers =None #line:296:self.headers = None
+        OOO0OOOOO00O00OOO ._cookies =None #line:299:self._cookies = None
+        OOO0OOOOO00O00OOO .body =None #line:301:self.body = None
+        OOO0OOOOO00O00OOO .hooks =default_hooks ()#line:303:self.hooks = default_hooks()
+        OOO0OOOOO00O00OOO ._body_position =None #line:305:self._body_position = None
+    def prepare (O000000OO0O0O0O0O ,method =None ,url =None ,headers =None ,files =None ,data =None ,params =None ,auth =None ,cookies =None ,hooks =None ,json =None ):#line:309:params=None, auth=None, cookies=None, hooks=None, json=None):
+        ""#line:310:"""Prepares the entire request with the given parameters."""
+        O000000OO0O0O0O0O .prepare_method (method )#line:312:self.prepare_method(method)
+        O000000OO0O0O0O0O .prepare_url (url ,params )#line:313:self.prepare_url(url, params)
+        O000000OO0O0O0O0O .prepare_headers (headers )#line:314:self.prepare_headers(headers)
+        O000000OO0O0O0O0O .prepare_cookies (cookies )#line:315:self.prepare_cookies(cookies)
+        O000000OO0O0O0O0O .prepare_body (data ,files ,json )#line:316:self.prepare_body(data, files, json)
+        O000000OO0O0O0O0O .prepare_auth (auth ,url )#line:317:self.prepare_auth(auth, url)
+        O000000OO0O0O0O0O .prepare_hooks (hooks )#line:323:self.prepare_hooks(hooks)
+    def __repr__ (OOO00O0O000O00O00 ):#line:325:def __repr__(self):
+        return '<PreparedRequest [%s]>'%(OOO00O0O000O00O00 .method )#line:326:return '<PreparedRequest [%s]>' % (self.method)
+    def copy (OOOO0O00OOO000000 ):#line:328:def copy(self):
+        O0OO00OO0O00000OO =PreparedRequest ()#line:329:p = PreparedRequest()
+        O0OO00OO0O00000OO .method =OOOO0O00OOO000000 .method #line:330:p.method = self.method
+        O0OO00OO0O00000OO .url =OOOO0O00OOO000000 .url #line:331:p.url = self.url
+        O0OO00OO0O00000OO .headers =OOOO0O00OOO000000 .headers .copy ()if OOOO0O00OOO000000 .headers is not None else None #line:332:p.headers = self.headers.copy() if self.headers is not None else None
+        O0OO00OO0O00000OO ._cookies =_copy_cookie_jar (OOOO0O00OOO000000 ._cookies )#line:333:p._cookies = _copy_cookie_jar(self._cookies)
+        O0OO00OO0O00000OO .body =OOOO0O00OOO000000 .body #line:334:p.body = self.body
+        O0OO00OO0O00000OO .hooks =OOOO0O00OOO000000 .hooks #line:335:p.hooks = self.hooks
+        O0OO00OO0O00000OO ._body_position =OOOO0O00OOO000000 ._body_position #line:336:p._body_position = self._body_position
+        return O0OO00OO0O00000OO #line:337:return p
+    def prepare_method (OOOOOOO0OO0OO00OO ,OO0OOOOO00O000OO0 ):#line:339:def prepare_method(self, method):
+        ""#line:340:"""Prepares the given HTTP method."""
+        OOOOOOO0OO0OO00OO .method =OO0OOOOO00O000OO0 #line:341:self.method = method
+        if OOOOOOO0OO0OO00OO .method is not None :#line:342:if self.method is not None:
+            OOOOOOO0OO0OO00OO .method =to_native_string (OOOOOOO0OO0OO00OO .method .upper ())#line:343:self.method = to_native_string(self.method.upper())
+    @staticmethod #line:345:@staticmethod
+    def _get_idna_encoded_host (OO00OOOO00O000O00 ):#line:346:def _get_idna_encoded_host(host):
+        from pip ._vendor import idna #line:347:from pip._vendor import idna
+        try :#line:349:try:
+            OO00OOOO00O000O00 =idna .encode (OO00OOOO00O000O00 ,uts46 =True ).decode ('utf-8')#line:350:host = idna.encode(host, uts46=True).decode('utf-8')
+        except idna .IDNAError :#line:351:except idna.IDNAError:
+            raise UnicodeError #line:352:raise UnicodeError
+        return OO00OOOO00O000O00 #line:353:return host
+    def prepare_url (O0000OOO0000O00OO ,OO00OOO00OO0O00OO ,O000OOOO000OO00O0 ):#line:355:def prepare_url(self, url, params):
+        ""#line:356:"""Prepares the given HTTP URL."""
+        if isinstance (OO00OOO00OO0O00OO ,bytes ):#line:362:if isinstance(url, bytes):
+            OO00OOO00OO0O00OO =OO00OOO00OO0O00OO .decode ('utf8')#line:363:url = url.decode('utf8')
+        else :#line:364:else:
+            OO00OOO00OO0O00OO =unicode (OO00OOO00OO0O00OO )if is_py2 else str (OO00OOO00OO0O00OO )#line:365:url = unicode(url) if is_py2 else str(url)
+        OO00OOO00OO0O00OO =OO00OOO00OO0O00OO .lstrip ()#line:368:url = url.lstrip()
+        if ':'in OO00OOO00OO0O00OO and not OO00OOO00OO0O00OO .lower ().startswith ('http'):#line:373:if ':' in url and not url.lower().startswith('http'):
+            O0000OOO0000O00OO .url =OO00OOO00OO0O00OO #line:374:self.url = url
+            return #line:375:return
+        try :#line:378:try:
+            O000O0OO00O000O0O ,OOOO00O0OOO000O00 ,OO00OOOO00OO000OO ,OOOO000OOO0OO000O ,O0O0O0O0O00OOOO00 ,OO0000O0000O0O0O0 ,O0O00O00O0O0OOO00 =parse_url (OO00OOO00OO0O00OO )#line:379:scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as OO0OOO000OOOO0OO0 :#line:380:except LocationParseError as e:
+            raise InvalidURL (*OO0OOO000OOOO0OO0 .args )#line:381:raise InvalidURL(*e.args)
+        if not O000O0OO00O000O0O :#line:383:if not scheme:
+            O0OOOO00O0O000OO0 =("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")#line:384:error = ("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")
+            O0OOOO00O0O000OO0 =O0OOOO00O0O000OO0 .format (to_native_string (OO00OOO00OO0O00OO ,'utf8'))#line:385:error = error.format(to_native_string(url, 'utf8'))
+            raise MissingSchema (O0OOOO00O0O000OO0 )#line:387:raise MissingSchema(error)
+        if not OO00OOOO00OO000OO :#line:389:if not host:
+            raise InvalidURL ("Invalid URL %r: No host supplied"%OO00OOO00OO0O00OO )#line:390:raise InvalidURL("Invalid URL %r: No host supplied" % url)
+        if not unicode_is_ascii (OO00OOOO00OO000OO ):#line:396:if not unicode_is_ascii(host):
+            try :#line:397:try:
+                OO00OOOO00OO000OO =O0000OOO0000O00OO ._get_idna_encoded_host (OO00OOOO00OO000OO )#line:398:host = self._get_idna_encoded_host(host)
+            except UnicodeError :#line:399:except UnicodeError:
+                raise InvalidURL ('URL has an invalid label.')#line:400:raise InvalidURL('URL has an invalid label.')
+        elif OO00OOOO00OO000OO .startswith (u'*'):#line:401:elif host.startswith(u'*'):
+            raise InvalidURL ('URL has an invalid label.')#line:402:raise InvalidURL('URL has an invalid label.')
+        OOOOOO0O00O0O000O =OOOO00O0OOO000O00 or ''#line:405:netloc = auth or ''
+        if OOOOOO0O00O0O000O :#line:406:if netloc:
+            OOOOOO0O00O0O000O +='@'#line:407:netloc += '@'
+        OOOOOO0O00O0O000O +=OO00OOOO00OO000OO #line:408:netloc += host
+        if OOOO000OOO0OO000O :#line:409:if port:
+            OOOOOO0O00O0O000O +=':'+str (OOOO000OOO0OO000O )#line:410:netloc += ':' + str(port)
+        if not O0O0O0O0O00OOOO00 :#line:413:if not path:
+            O0O0O0O0O00OOOO00 ='/'#line:414:path = '/'
+        if is_py2 :#line:416:if is_py2:
+            if isinstance (O000O0OO00O000O0O ,str ):#line:417:if isinstance(scheme, str):
+                O000O0OO00O000O0O =O000O0OO00O000O0O .encode ('utf-8')#line:418:scheme = scheme.encode('utf-8')
+            if isinstance (OOOOOO0O00O0O000O ,str ):#line:419:if isinstance(netloc, str):
+                OOOOOO0O00O0O000O =OOOOOO0O00O0O000O .encode ('utf-8')#line:420:netloc = netloc.encode('utf-8')
+            if isinstance (O0O0O0O0O00OOOO00 ,str ):#line:421:if isinstance(path, str):
+                O0O0O0O0O00OOOO00 =O0O0O0O0O00OOOO00 .encode ('utf-8')#line:422:path = path.encode('utf-8')
+            if isinstance (OO0000O0000O0O0O0 ,str ):#line:423:if isinstance(query, str):
+                OO0000O0000O0O0O0 =OO0000O0000O0O0O0 .encode ('utf-8')#line:424:query = query.encode('utf-8')
+            if isinstance (O0O00O00O0O0OOO00 ,str ):#line:425:if isinstance(fragment, str):
+                O0O00O00O0O0OOO00 =O0O00O00O0O0OOO00 .encode ('utf-8')#line:426:fragment = fragment.encode('utf-8')
+        if isinstance (O000OOOO000OO00O0 ,(str ,bytes )):#line:428:if isinstance(params, (str, bytes)):
+            O000OOOO000OO00O0 =to_native_string (O000OOOO000OO00O0 )#line:429:params = to_native_string(params)
+        OO0OO000OO00O0O0O =O0000OOO0000O00OO ._encode_params (O000OOOO000OO00O0 )#line:431:enc_params = self._encode_params(params)
+        if OO0OO000OO00O0O0O :#line:432:if enc_params:
+            if OO0000O0000O0O0O0 :#line:433:if query:
+                OO0000O0000O0O0O0 ='%s&%s'%(OO0000O0000O0O0O0 ,OO0OO000OO00O0O0O )#line:434:query = '%s&%s' % (query, enc_params)
+            else :#line:435:else:
+                OO0000O0000O0O0O0 =OO0OO000OO00O0O0O #line:436:query = enc_params
+        OO00OOO00OO0O00OO =requote_uri (urlunparse ([O000O0OO00O000O0O ,OOOOOO0O00O0O000O ,O0O0O0O0O00OOOO00 ,None ,OO0000O0000O0O0O0 ,O0O00O00O0O0OOO00 ]))#line:438:url = requote_uri(urlunparse([scheme, netloc, path, None, query, fragment]))
+        O0000OOO0000O00OO .url =OO00OOO00OO0O00OO #line:439:self.url = url
+    def prepare_headers (O0O000OOO0O0000O0 ,OO000O0OO00O0OOOO ):#line:441:def prepare_headers(self, headers):
+        ""#line:442:"""Prepares the given HTTP headers."""
+        O0O000OOO0O0000O0 .headers =CaseInsensitiveDict ()#line:444:self.headers = CaseInsensitiveDict()
+        if OO000O0OO00O0OOOO :#line:445:if headers:
+            for O0OO0OOOO0O00O0O0 in OO000O0OO00O0OOOO .items ():#line:446:for header in headers.items():
+                check_header_validity (O0OO0OOOO0O00O0O0 )#line:448:check_header_validity(header)
+                O00O0O0O0000OO000 ,OOOOO0O00000O000O =O0OO0OOOO0O00O0O0 #line:449:name, value = header
+                O0O000OOO0O0000O0 .headers [to_native_string (O00O0O0O0000OO000 )]=OOOOO0O00000O000O #line:450:self.headers[to_native_string(name)] = value
+    def prepare_body (O000000OO0O000O0O ,OOOO0O00O0000OOOO ,O0O0O0O0OO000O0OO ,json =None ):#line:452:def prepare_body(self, data, files, json=None):
+        ""#line:453:"""Prepares the given HTTP body data."""
+        OO0O00OOO00000OO0 =None #line:459:body = None
+        O0O00OO0O00O0O00O =None #line:460:content_type = None
+        if not OOOO0O00O0000OOOO and json is not None :#line:462:if not data and json is not None:
+            O0O00OO0O00O0O00O ='application/json'#line:465:content_type = 'application/json'
+            OO0O00OOO00000OO0 =complexjson .dumps (json )#line:466:body = complexjson.dumps(json)
+            if not isinstance (OO0O00OOO00000OO0 ,bytes ):#line:467:if not isinstance(body, bytes):
+                OO0O00OOO00000OO0 =OO0O00OOO00000OO0 .encode ('utf-8')#line:468:body = body.encode('utf-8')
+        O0OOOO00O0O00OO00 =all ([hasattr (OOOO0O00O0000OOOO ,'__iter__'),not isinstance (OOOO0O00O0000OOOO ,(basestring ,list ,tuple ,Mapping ))])#line:473:])
+        try :#line:475:try:
+            O00O0000OO00O0OOO =super_len (OOOO0O00O0000OOOO )#line:476:length = super_len(data)
+        except (TypeError ,AttributeError ,UnsupportedOperation ):#line:477:except (TypeError, AttributeError, UnsupportedOperation):
+            O00O0000OO00O0OOO =None #line:478:length = None
+        if O0OOOO00O0O00OO00 :#line:480:if is_stream:
+            OO0O00OOO00000OO0 =OOOO0O00O0000OOOO #line:481:body = data
+            if getattr (OO0O00OOO00000OO0 ,'tell',None )is not None :#line:483:if getattr(body, 'tell', None) is not None:
+                try :#line:487:try:
+                    O000000OO0O000O0O ._body_position =OO0O00OOO00000OO0 .tell ()#line:488:self._body_position = body.tell()
+                except (IOError ,OSError ):#line:489:except (IOError, OSError):
+                    O000000OO0O000O0O ._body_position =object ()#line:492:self._body_position = object()
+            if O0O0O0O0OO000O0OO :#line:494:if files:
+                raise NotImplementedError ('Streamed bodies and files are mutually exclusive.')#line:495:raise NotImplementedError('Streamed bodies and files are mutually exclusive.')
+            if O00O0000OO00O0OOO :#line:497:if length:
+                O000000OO0O000O0O .headers ['Content-Length']=builtin_str (O00O0000OO00O0OOO )#line:498:self.headers['Content-Length'] = builtin_str(length)
+            else :#line:499:else:
+                O000000OO0O000O0O .headers ['Transfer-Encoding']='chunked'#line:500:self.headers['Transfer-Encoding'] = 'chunked'
+        else :#line:501:else:
+            if O0O0O0O0OO000O0OO :#line:503:if files:
+                (OO0O00OOO00000OO0 ,O0O00OO0O00O0O00O )=O000000OO0O000O0O ._encode_files (O0O0O0O0OO000O0OO ,OOOO0O00O0000OOOO )#line:504:(body, content_type) = self._encode_files(files, data)
+            else :#line:505:else:
+                if OOOO0O00O0000OOOO :#line:506:if data:
+                    OO0O00OOO00000OO0 =O000000OO0O000O0O ._encode_params (OOOO0O00O0000OOOO )#line:507:body = self._encode_params(data)
+                    if isinstance (OOOO0O00O0000OOOO ,basestring )or hasattr (OOOO0O00O0000OOOO ,'read'):#line:508:if isinstance(data, basestring) or hasattr(data, 'read'):
+                        O0O00OO0O00O0O00O =None #line:509:content_type = None
+                    else :#line:510:else:
+                        O0O00OO0O00O0O00O ='application/x-www-form-urlencoded'#line:511:content_type = 'application/x-www-form-urlencoded'
+            O000000OO0O000O0O .prepare_content_length (OO0O00OOO00000OO0 )#line:513:self.prepare_content_length(body)
+            if O0O00OO0O00O0O00O and ('content-type'not in O000000OO0O000O0O .headers ):#line:516:if content_type and ('content-type' not in self.headers):
+                O000000OO0O000O0O .headers ['Content-Type']=O0O00OO0O00O0O00O #line:517:self.headers['Content-Type'] = content_type
+        O000000OO0O000O0O .body =OO0O00OOO00000OO0 #line:519:self.body = body
+    def prepare_content_length (O00O00OO0O00O00OO ,O00O0000OOOO00OO0 ):#line:521:def prepare_content_length(self, body):
+        ""#line:522:"""Prepare Content-Length header based on request method and body"""
+        if O00O0000OOOO00OO0 is not None :#line:523:if body is not None:
+            O0000OOOOO0000O00 =super_len (O00O0000OOOO00OO0 )#line:524:length = super_len(body)
+            if O0000OOOOO0000O00 :#line:525:if length:
+                O00O00OO0O00O00OO .headers ['Content-Length']=builtin_str (O0000OOOOO0000O00 )#line:528:self.headers['Content-Length'] = builtin_str(length)
+        elif O00O00OO0O00O00OO .method not in ('GET','HEAD')and O00O00OO0O00O00OO .headers .get ('Content-Length')is None :#line:529:elif self.method not in ('GET', 'HEAD') and self.headers.get('Content-Length') is None:
+            O00O00OO0O00O00OO .headers ['Content-Length']='0'#line:532:self.headers['Content-Length'] = '0'
+    def prepare_auth (O0OO0OO00OOOO000O ,O000O0OOOOOOO0000 ,url =''):#line:534:def prepare_auth(self, auth, url=''):
+        ""#line:535:"""Prepares the given HTTP auth data."""
+        if O000O0OOOOOOO0000 is None :#line:538:if auth is None:
+            O000000O00OO0O0O0 =get_auth_from_url (O0OO0OO00OOOO000O .url )#line:539:url_auth = get_auth_from_url(self.url)
+            O000O0OOOOOOO0000 =O000000O00OO0O0O0 if any (O000000O00OO0O0O0 )else None #line:540:auth = url_auth if any(url_auth) else None
+        if O000O0OOOOOOO0000 :#line:542:if auth:
+            if isinstance (O000O0OOOOOOO0000 ,tuple )and len (O000O0OOOOOOO0000 )==2 :#line:543:if isinstance(auth, tuple) and len(auth) == 2:
+                O000O0OOOOOOO0000 =HTTPBasicAuth (*O000O0OOOOOOO0000 )#line:545:auth = HTTPBasicAuth(*auth)
+            O00OO0OOOO00OOO00 =O000O0OOOOOOO0000 (O0OO0OO00OOOO000O )#line:548:r = auth(self)
+            O0OO0OO00OOOO000O .__dict__ .update (O00OO0OOOO00OOO00 .__dict__ )#line:551:self.__dict__.update(r.__dict__)
+            O0OO0OO00OOOO000O .prepare_content_length (O0OO0OO00OOOO000O .body )#line:554:self.prepare_content_length(self.body)
+    def prepare_cookies (OOO00OO0OOOOOOOO0 ,OO0OO0O0OOO0O0O0O ):#line:556:def prepare_cookies(self, cookies):
+        ""#line:566:"""
+        if isinstance (OO0OO0O0OOO0O0O0O ,cookielib .CookieJar ):#line:567:if isinstance(cookies, cookielib.CookieJar):
+            OOO00OO0OOOOOOOO0 ._cookies =OO0OO0O0OOO0O0O0O #line:568:self._cookies = cookies
+        else :#line:569:else:
+            OOO00OO0OOOOOOOO0 ._cookies =cookiejar_from_dict (OO0OO0O0OOO0O0O0O )#line:570:self._cookies = cookiejar_from_dict(cookies)
+        O0O000OOO00OO0000 =get_cookie_header (OOO00OO0OOOOOOOO0 ._cookies ,OOO00OO0OOOOOOOO0 )#line:572:cookie_header = get_cookie_header(self._cookies, self)
+        if O0O000OOO00OO0000 is not None :#line:573:if cookie_header is not None:
+            OOO00OO0OOOOOOOO0 .headers ['Cookie']=O0O000OOO00OO0000 #line:574:self.headers['Cookie'] = cookie_header
+    def prepare_hooks (OO0O000000O0000OO ,O00000O000OOOOOOO ):#line:576:def prepare_hooks(self, hooks):
+        ""#line:577:"""Prepares the given hooks."""
+        O00000O000OOOOOOO =O00000O000OOOOOOO or []#line:581:hooks = hooks or []
+        for O0000O00OOOO0OOO0 in O00000O000OOOOOOO :#line:582:for event in hooks:
+            OO0O000000O0000OO .register_hook (O0000O00OOOO0OOO0 ,O00000O000OOOOOOO [O0000O00OOOO0OOO0 ])#line:583:self.register_hook(event, hooks[event])
+class Response (object ):#line:586:class Response(object):
+    ""#line:589:"""
+    __attrs__ =['_content','status_code','headers','url','history','encoding','reason','cookies','elapsed','request']#line:594:]
+    def __init__ (OO00O00000O000OO0 ):#line:596:def __init__(self):
+        OO00O00000O000OO0 ._content =False #line:597:self._content = False
+        OO00O00000O000OO0 ._content_consumed =False #line:598:self._content_consumed = False
+        OO00O00000O000OO0 ._next =None #line:599:self._next = None
+        OO00O00000O000OO0 .status_code =None #line:602:self.status_code = None
+        OO00O00000O000OO0 .headers =CaseInsensitiveDict ()#line:607:self.headers = CaseInsensitiveDict()
+        OO00O00000O000OO0 .raw =None #line:612:self.raw = None
+        OO00O00000O000OO0 .url =None #line:615:self.url = None
+        OO00O00000O000OO0 .encoding =None #line:618:self.encoding = None
+        OO00O00000O000OO0 .history =[]#line:623:self.history = []
+        OO00O00000O000OO0 .reason =None #line:626:self.reason = None
+        OO00O00000O000OO0 .cookies =cookiejar_from_dict ({})#line:629:self.cookies = cookiejar_from_dict({})
+        OO00O00000O000OO0 .elapsed =datetime .timedelta (0 )#line:637:self.elapsed = datetime.timedelta(0)
+        OO00O00000O000OO0 .request =None #line:641:self.request = None
+    def __enter__ (O0000O0O00OOOOO00 ):#line:643:def __enter__(self):
+        return O0000O0O00OOOOO00 #line:644:return self
+    def __exit__ (OOOOOOOO0000O0000 ,*O00000OOO0OOO000O ):#line:646:def __exit__(self, *args):
+        OOOOOOOO0000O0000 .close ()#line:647:self.close()
+    def __getstate__ (O0OOOO0OO00O0O0O0 ):#line:649:def __getstate__(self):
+        if not O0OOOO0OO00O0O0O0 ._content_consumed :#line:652:if not self._content_consumed:
+            O0OOOO0OO00O0O0O0 .content #line:653:self.content
+        return {O0OO0OO00OOO00O00 :getattr (O0OOOO0OO00O0O0O0 ,O0OO0OO00OOO00O00 ,None )for O0OO0OO00OOO00O00 in O0OOOO0OO00O0O0O0 .__attrs__ }#line:655:return {attr: getattr(self, attr, None) for attr in self.__attrs__}
+    def __setstate__ (OOO00OO0000OOOOOO ,OOOO000O00OOO000O ):#line:657:def __setstate__(self, state):
+        for O0O0O00O00OOOOOOO ,O00OOOO0OOO0OOOOO in OOOO000O00OOO000O .items ():#line:658:for name, value in state.items():
+            setattr (OOO00OO0000OOOOOO ,O0O0O00O00OOOOOOO ,O00OOOO0OOO0OOOOO )#line:659:setattr(self, name, value)
+        setattr (OOO00OO0000OOOOOO ,'_content_consumed',True )#line:662:setattr(self, '_content_consumed', True)
+        setattr (OOO00OO0000OOOOOO ,'raw',None )#line:663:setattr(self, 'raw', None)
+    def __repr__ (OO00O00O00OOO00O0 ):#line:665:def __repr__(self):
+        return '<Response [%s]>'%(OO00O00O00OOO00O0 .status_code )#line:666:return '<Response [%s]>' % (self.status_code)
+    def __bool__ (O0O0O0OO000O0O000 ):#line:668:def __bool__(self):
+        ""#line:675:"""
+        return O0O0O0OO000O0O000 .ok #line:676:return self.ok
+    def __nonzero__ (O000O00OO00OOOOOO ):#line:678:def __nonzero__(self):
+        ""#line:685:"""
+        return O000O00OO00OOOOOO .ok #line:686:return self.ok
+    def __iter__ (O00000000OOO00O00 ):#line:688:def __iter__(self):
+        ""#line:689:"""Allows you to use a response as an iterator."""
+        return O00000000OOO00O00 .iter_content (128 )#line:690:return self.iter_content(128)
+    @property #line:692:@property
+    def ok (OO0000OOO00OO0OOO ):#line:693:def ok(self):
+        ""#line:700:"""
+        try :#line:701:try:
+            OO0000OOO00OO0OOO .raise_for_status ()#line:702:self.raise_for_status()
+        except HTTPError :#line:703:except HTTPError:
+            return False #line:704:return False
+        return True #line:705:return True
+    @property #line:707:@property
+    def is_redirect (O0OOOOOO00O0O0O0O ):#line:708:def is_redirect(self):
+        ""#line:711:"""
+        return ('location'in O0OOOOOO00O0O0O0O .headers and O0OOOOOO00O0O0O0O .status_code in REDIRECT_STATI )#line:712:return ('location' in self.headers and self.status_code in REDIRECT_STATI)
+    @property #line:714:@property
+    def is_permanent_redirect (O0O0O0OOO0O000OO0 ):#line:715:def is_permanent_redirect(self):
+        ""#line:716:"""True if this Response one of the permanent versions of redirect."""
+        return ('location'in O0O0O0OOO0O000OO0 .headers and O0O0O0OOO0O000OO0 .status_code in (codes .moved_permanently ,codes .permanent_redirect ))#line:717:return ('location' in self.headers and self.status_code in (codes.moved_permanently, codes.permanent_redirect))
+    @property #line:719:@property
+    def next (OO00O0O00O0OO00OO ):#line:720:def next(self):
+        ""#line:721:"""Returns a PreparedRequest for the next request in a redirect chain, if there is one."""
+        return OO00O0O00O0OO00OO ._next #line:722:return self._next
+    @property #line:724:@property
+    def apparent_encoding (O0OOOO00O000OOOOO ):#line:725:def apparent_encoding(self):
+        ""#line:726:"""The apparent encoding, provided by the chardet library."""
+        return chardet .detect (O0OOOO00O000OOOOO .content )['encoding']#line:727:return chardet.detect(self.content)['encoding']
+    def iter_content (OOO0OO0OOOOO00O00 ,chunk_size =1 ,decode_unicode =False ):#line:729:def iter_content(self, chunk_size=1, decode_unicode=False):
+        ""#line:744:"""
+        def OOO0O00O0OO00O0O0 ():#line:746:def generate():
+            if hasattr (OOO0OO0OOOOO00O00 .raw ,'stream'):#line:748:if hasattr(self.raw, 'stream'):
+                try :#line:749:try:
+                    for O00O000OO0OO0OOOO in OOO0OO0OOOOO00O00 .raw .stream (chunk_size ,decode_content =True ):#line:750:for chunk in self.raw.stream(chunk_size, decode_content=True):
+                        yield O00O000OO0OO0OOOO #line:751:yield chunk
+                except ProtocolError as O0OOO0O0OO000000O :#line:752:except ProtocolError as e:
+                    raise ChunkedEncodingError (O0OOO0O0OO000000O )#line:753:raise ChunkedEncodingError(e)
+                except DecodeError as O0OOO0O0OO000000O :#line:754:except DecodeError as e:
+                    raise ContentDecodingError (O0OOO0O0OO000000O )#line:755:raise ContentDecodingError(e)
+                except ReadTimeoutError as O0OOO0O0OO000000O :#line:756:except ReadTimeoutError as e:
+                    raise ConnectionError (O0OOO0O0OO000000O )#line:757:raise ConnectionError(e)
+            else :#line:758:else:
+                while True :#line:760:while True:
+                    O00O000OO0OO0OOOO =OOO0OO0OOOOO00O00 .raw .read (chunk_size )#line:761:chunk = self.raw.read(chunk_size)
+                    if not O00O000OO0OO0OOOO :#line:762:if not chunk:
+                        break #line:763:break
+                    yield O00O000OO0OO0OOOO #line:764:yield chunk
+            OOO0OO0OOOOO00O00 ._content_consumed =True #line:766:self._content_consumed = True
+        if OOO0OO0OOOOO00O00 ._content_consumed and isinstance (OOO0OO0OOOOO00O00 ._content ,bool ):#line:768:if self._content_consumed and isinstance(self._content, bool):
+            raise StreamConsumedError ()#line:769:raise StreamConsumedError()
+        elif chunk_size is not None and not isinstance (chunk_size ,int ):#line:770:elif chunk_size is not None and not isinstance(chunk_size, int):
+            raise TypeError ("chunk_size must be an int, it is instead a %s."%type (chunk_size ))#line:771:raise TypeError("chunk_size must be an int, it is instead a %s." % type(chunk_size))
+        O000OO0OO000OO0OO =iter_slices (OOO0OO0OOOOO00O00 ._content ,chunk_size )#line:773:reused_chunks = iter_slices(self._content, chunk_size)
+        OOO00O0O00OOO0O0O =OOO0O00O0OO00O0O0 ()#line:775:stream_chunks = generate()
+        OOOOOO0OOOO000OOO =O000OO0OO000OO0OO if OOO0OO0OOOOO00O00 ._content_consumed else OOO00O0O00OOO0O0O #line:777:chunks = reused_chunks if self._content_consumed else stream_chunks
+        if decode_unicode :#line:779:if decode_unicode:
+            OOOOOO0OOOO000OOO =stream_decode_response_unicode (OOOOOO0OOOO000OOO ,OOO0OO0OOOOO00O00 )#line:780:chunks = stream_decode_response_unicode(chunks, self)
+        return OOOOOO0OOOO000OOO #line:782:return chunks
+    def iter_lines (OOOOOOOOO0O00OOOO ,chunk_size =ITER_CHUNK_SIZE ,decode_unicode =False ,delimiter =None ):#line:784:def iter_lines(self, chunk_size=ITER_CHUNK_SIZE, decode_unicode=False, delimiter=None):
+        ""#line:790:"""
+        OOOO0O0O00O00OO00 =None #line:792:pending = None
+        for O00000000OO0OO000 in OOOOOOOOO0O00OOOO .iter_content (chunk_size =chunk_size ,decode_unicode =decode_unicode ):#line:794:for chunk in self.iter_content(chunk_size=chunk_size, decode_unicode=decode_unicode):
+            if OOOO0O0O00O00OO00 is not None :#line:796:if pending is not None:
+                O00000000OO0OO000 =OOOO0O0O00O00OO00 +O00000000OO0OO000 #line:797:chunk = pending + chunk
+            if delimiter :#line:799:if delimiter:
+                O00OOOOO0OO00000O =O00000000OO0OO000 .split (delimiter )#line:800:lines = chunk.split(delimiter)
+            else :#line:801:else:
+                O00OOOOO0OO00000O =O00000000OO0OO000 .splitlines ()#line:802:lines = chunk.splitlines()
+            if O00OOOOO0OO00000O and O00OOOOO0OO00000O [-1 ]and O00000000OO0OO000 and O00OOOOO0OO00000O [-1 ][-1 ]==O00000000OO0OO000 [-1 ]:#line:804:if lines and lines[-1] and chunk and lines[-1][-1] == chunk[-1]:
+                OOOO0O0O00O00OO00 =O00OOOOO0OO00000O .pop ()#line:805:pending = lines.pop()
+            else :#line:806:else:
+                OOOO0O0O00O00OO00 =None #line:807:pending = None
+            for O000O0OOO000OOOO0 in O00OOOOO0OO00000O :#line:809:for line in lines:
+                yield O000O0OOO000OOOO0 #line:810:yield line
+        if OOOO0O0O00O00OO00 is not None :#line:812:if pending is not None:
+            yield OOOO0O0O00O00OO00 #line:813:yield pending
+    @property #line:815:@property
+    def content (O0O0O0O0OO0O0O000 ):#line:816:def content(self):
+        ""#line:817:"""Content of the response, in bytes."""
+        if O0O0O0O0OO0O0O000 ._content is False :#line:819:if self._content is False:
+            if O0O0O0O0OO0O0O000 ._content_consumed :#line:821:if self._content_consumed:
+                raise RuntimeError ('The content for this response was already consumed')#line:823:'The content for this response was already consumed')
+            if O0O0O0O0OO0O0O000 .status_code ==0 or O0O0O0O0OO0O0O000 .raw is None :#line:825:if self.status_code == 0 or self.raw is None:
+                O0O0O0O0OO0O0O000 ._content =None #line:826:self._content = None
+            else :#line:827:else:
+                O0O0O0O0OO0O0O000 ._content =b''.join (O0O0O0O0OO0O0O000 .iter_content (CONTENT_CHUNK_SIZE ))or b''#line:828:self._content = b''.join(self.iter_content(CONTENT_CHUNK_SIZE)) or b''
+        O0O0O0O0OO0O0O000 ._content_consumed =True #line:830:self._content_consumed = True
+        return O0O0O0O0OO0O0O000 ._content #line:833:return self._content
+    @property #line:835:@property
+    def text (O00OOOO0O0O0O0OOO ):#line:836:def text(self):
+        ""#line:846:"""
+        OOO00OOO00OO00OOO =None #line:849:content = None
+        O00OO0O00OO0OOOO0 =O00OOOO0O0O0O0OOO .encoding #line:850:encoding = self.encoding
+        if not O00OOOO0O0O0O0OOO .content :#line:852:if not self.content:
+            return str ('')#line:853:return str('')
+        if O00OOOO0O0O0O0OOO .encoding is None :#line:856:if self.encoding is None:
+            O00OO0O00OO0OOOO0 =O00OOOO0O0O0O0OOO .apparent_encoding #line:857:encoding = self.apparent_encoding
+        try :#line:860:try:
+            OOO00OOO00OO00OOO =str (O00OOOO0O0O0O0OOO .content ,O00OO0O00OO0OOOO0 ,errors ='replace')#line:861:content = str(self.content, encoding, errors='replace')
+        except (LookupError ,TypeError ):#line:862:except (LookupError, TypeError):
+            OOO00OOO00OO00OOO =str (O00OOOO0O0O0O0OOO .content ,errors ='replace')#line:869:content = str(self.content, errors='replace')
+        return OOO00OOO00OO00OOO #line:871:return content
+    def json (O0OOO0OO000OO00O0 ,**OOOOOOOOO0O00O00O ):#line:873:def json(self, **kwargs):
+        ""#line:878:"""
+        if not O0OOO0OO000OO00O0 .encoding and O0OOO0OO000OO00O0 .content and len (O0OOO0OO000OO00O0 .content )>3 :#line:880:if not self.encoding and self.content and len(self.content) > 3:
+            OOOOO0OO0O000O00O =guess_json_utf (O0OOO0OO000OO00O0 .content )#line:885:encoding = guess_json_utf(self.content)
+            if OOOOO0OO0O000O00O is not None :#line:886:if encoding is not None:
+                try :#line:887:try:
+                    return complexjson .loads (O0OOO0OO000OO00O0 .content .decode (OOOOO0OO0O000O00O ),**OOOOOOOOO0O00O00O )#line:890:)
+                except UnicodeDecodeError :#line:891:except UnicodeDecodeError:
+                    pass #line:896:pass
+        return complexjson .loads (O0OOO0OO000OO00O0 .text ,**OOOOOOOOO0O00O00O )#line:897:return complexjson.loads(self.text, **kwargs)
+    @property #line:899:@property
+    def links (O00OO0OOOOOO0000O ):#line:900:def links(self):
+        ""#line:901:"""Returns the parsed header links of the response, if any."""
+        OO000O0O0000OO0O0 =O00OO0OOOOOO0000O .headers .get ('link')#line:903:header = self.headers.get('link')
+        O0O00OO000O00O0OO ={}#line:906:l = {}
+        if OO000O0O0000OO0O0 :#line:908:if header:
+            OO000O00O0000O0OO =parse_header_links (OO000O0O0000OO0O0 )#line:909:links = parse_header_links(header)
+            for OOOOOO00OO0OO0000 in OO000O00O0000O0OO :#line:911:for link in links:
+                O0O00OO00O0000O00 =OOOOOO00OO0OO0000 .get ('rel')or OOOOOO00OO0OO0000 .get ('url')#line:912:key = link.get('rel') or link.get('url')
+                O0O00OO000O00O0OO [O0O00OO00O0000O00 ]=OOOOOO00OO0OO0000 #line:913:l[key] = link
+        return O0O00OO000O00O0OO #line:915:return l
+    def raise_for_status (OO0O0OO0OO0000OOO ):#line:917:def raise_for_status(self):
+        ""#line:918:"""Raises stored :class:`HTTPError`, if one occurred."""
+        OOOOO000000OOO00O =''#line:920:http_error_msg = ''
+        if isinstance (OO0O0OO0OO0000OOO .reason ,bytes ):#line:921:if isinstance(self.reason, bytes):
+            try :#line:926:try:
+                O00O0O0OOO0OO0O00 =OO0O0OO0OO0000OOO .reason .decode ('utf-8')#line:927:reason = self.reason.decode('utf-8')
+            except UnicodeDecodeError :#line:928:except UnicodeDecodeError:
+                O00O0O0OOO0OO0O00 =OO0O0OO0OO0000OOO .reason .decode ('iso-8859-1')#line:929:reason = self.reason.decode('iso-8859-1')
+        else :#line:930:else:
+            O00O0O0OOO0OO0O00 =OO0O0OO0OO0000OOO .reason #line:931:reason = self.reason
+        if 400 <=OO0O0OO0OO0000OOO .status_code <500 :#line:933:if 400 <= self.status_code < 500:
+            OOOOO000000OOO00O =u'%s Client Error: %s for url: %s'%(OO0O0OO0OO0000OOO .status_code ,O00O0O0OOO0OO0O00 ,OO0O0OO0OO0000OOO .url )#line:934:http_error_msg = u'%s Client Error: %s for url: %s' % (self.status_code, reason, self.url)
+        elif 500 <=OO0O0OO0OO0000OOO .status_code <600 :#line:936:elif 500 <= self.status_code < 600:
+            OOOOO000000OOO00O =u'%s Server Error: %s for url: %s'%(OO0O0OO0OO0000OOO .status_code ,O00O0O0OOO0OO0O00 ,OO0O0OO0OO0000OOO .url )#line:937:http_error_msg = u'%s Server Error: %s for url: %s' % (self.status_code, reason, self.url)
+        if OOOOO000000OOO00O :#line:939:if http_error_msg:
+            raise HTTPError (OOOOO000000OOO00O ,response =OO0O0OO0OO0000OOO )#line:940:raise HTTPError(http_error_msg, response=self)
+    def close (OOOOO0OOOOOO000O0 ):#line:942:def close(self):
+        ""#line:947:"""
+        if not OOOOO0OOOOOO000O0 ._content_consumed :#line:948:if not self._content_consumed:
+            OOOOO0OOOOOO000O0 .raw .close ()#line:949:self.raw.close()
+        O0OOOOO000OOOOOOO =getattr (OOOOO0OOOOOO000O0 .raw ,'release_conn',None )#line:951:release_conn = getattr(self.raw, 'release_conn', None)
+        if O0OOOOO000OOOOOOO is not None :#line:952:if release_conn is not None:
+            O0OOOOO000OOOOOOO ()#line:953:release_conn()

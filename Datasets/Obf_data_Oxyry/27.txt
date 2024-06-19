@@ -1,338 +1,118 @@
-from tkinter import *#line:1:from tkinter import*
-import random #line:2:import random
-import os #line:3:import os
-from tkinter import messagebox #line:4:from tkinter import messagebox
-class Bill_App :#line:7:class Bill_App:
-    def __init__ (O0000OO000O0OOO00 ,OOOO000OOOO0OO0OO ):#line:8:def __init__(self, root):
-        O0000OO000O0OOO00 .root =OOOO000OOOO0OO0OO #line:9:self.root = root
-        O0000OO000O0OOO00 .root .geometry ("1350x700+0+0")#line:10:self.root.geometry("1350x700+0+0")
-        O0000OO000O0OOO00 .root .title ("Billing Software")#line:11:self.root.title("Billing Software")
-        OO000OOO0O000O0O0 ="#badc57"#line:12:bg_color = "#badc57"
-        OOOO0O00OOOO0O0OO =Label (O0000OO000O0OOO00 .root ,text ="Billing Software",font =('times new roman',30 ,'bold'),pady =2 ,bd =12 ,bg ="#badc57",fg ="Black",relief =GROOVE )#line:13:title = Label(self.root, text="Billing Software", font=('times new roman', 30, 'bold'), pady=2, bd=12, bg="#badc57", fg="Black", relief=GROOVE)
-        OOOO0O00OOOO0O0OO .pack (fill =X )#line:14:title.pack(fill=X)
-        O0000OO000O0OOO00 .sanitizer =IntVar ()#line:16:self.sanitizer = IntVar()
-        O0000OO000O0OOO00 .mask =IntVar ()#line:17:self.mask = IntVar()
-        O0000OO000O0OOO00 .hand_gloves =IntVar ()#line:18:self.hand_gloves = IntVar()
-        O0000OO000O0OOO00 .dettol =IntVar ()#line:19:self.dettol = IntVar()
-        O0000OO000O0OOO00 .newsprin =IntVar ()#line:20:self.newsprin = IntVar()
-        O0000OO000O0OOO00 .thermal_gun =IntVar ()#line:21:self.thermal_gun = IntVar()
-        O0000OO000O0OOO00 .rice =IntVar ()#line:23:self.rice = IntVar()
-        O0000OO000O0OOO00 .food_oil =IntVar ()#line:24:self.food_oil = IntVar()
-        O0000OO000O0OOO00 .wheat =IntVar ()#line:25:self.wheat = IntVar()
-        O0000OO000O0OOO00 .daal =IntVar ()#line:26:self.daal = IntVar()
-        O0000OO000O0OOO00 .flour =IntVar ()#line:27:self.flour = IntVar()
-        O0000OO000O0OOO00 .maggi =IntVar ()#line:28:self.maggi = IntVar()
-        O0000OO000O0OOO00 .sprite =IntVar ()#line:30:self.sprite = IntVar()
-        O0000OO000O0OOO00 .limka =IntVar ()#line:31:self.limka = IntVar()
-        O0000OO000O0OOO00 .mazza =IntVar ()#line:32:self.mazza = IntVar()
-        O0000OO000O0OOO00 .coke =IntVar ()#line:33:self.coke = IntVar()
-        O0000OO000O0OOO00 .fanta =IntVar ()#line:34:self.fanta = IntVar()
-        O0000OO000O0OOO00 .mountain_duo =IntVar ()#line:35:self.mountain_duo = IntVar()
-        O0000OO000O0OOO00 .medical_price =StringVar ()#line:37:self.medical_price = StringVar()
-        O0000OO000O0OOO00 .grocery_price =StringVar ()#line:38:self.grocery_price = StringVar()
-        O0000OO000O0OOO00 .cold_drinks_price =StringVar ()#line:39:self.cold_drinks_price = StringVar()
-        O0000OO000O0OOO00 .c_name =StringVar ()#line:41:self.c_name = StringVar()
-        O0000OO000O0OOO00 .c_phone =StringVar ()#line:42:self.c_phone = StringVar()
-        O0000OO000O0OOO00 .bill_no =StringVar ()#line:43:self.bill_no = StringVar()
-        OO0OOOOOO0OO0O0O0 =random .randint (1000 ,9999 )#line:44:x = random.randint(1000, 9999)
-        O0000OO000O0OOO00 .bill_no .set (str (OO0OOOOOO0OO0O0O0 ))#line:45:self.bill_no.set(str(x))
-        O0000OO000O0OOO00 .search_bill =StringVar ()#line:46:self.search_bill = StringVar()
-        O0000OO000O0OOO00 .medical_tax =StringVar ()#line:48:self.medical_tax = StringVar()
-        O0000OO000O0OOO00 .grocery_tax =StringVar ()#line:49:self.grocery_tax = StringVar()
-        O0000OO000O0OOO00 .cold_drinks_tax =StringVar ()#line:50:self.cold_drinks_tax = StringVar()
-        OO0O0O00O0O0O0000 =LabelFrame (O0000OO000O0OOO00 .root ,text ="Customer Details",font =('times new roman',15 ,'bold'),bd =10 ,fg ="Black",bg ="#badc57")#line:52:F1 = LabelFrame(self.root, text="Customer Details", font=('times new roman', 15, 'bold'), bd=10, fg="Black", bg="#badc57")
-        OO0O0O00O0O0O0000 .place (x =0 ,y =80 ,relwidth =1 )#line:53:F1.place(x=0, y=80, relwidth=1)
-        OOO0O0O0O0O00OOOO =Label (OO0O0O00O0O0O0000 ,text ="Customer Name:",bg =OO000OOO0O000O0O0 ,font =('times new roman',15 ,'bold'))#line:54:cname_lbl = Label(F1, text="Customer Name:", bg=bg_color, font=('times new roman', 15, 'bold'))
-        OOO0O0O0O0O00OOOO .grid (row =0 ,column =0 ,padx =20 ,pady =5 )#line:55:cname_lbl.grid(row=0, column=0, padx=20, pady=5)
-        O00O000O00OO0OOOO =Entry (OO0O0O00O0O0O0000 ,width =15 ,textvariable =O0000OO000O0OOO00 .c_name ,font ='arial 15',bd =7 ,relief =GROOVE )#line:56:cname_txt = Entry(F1, width=15, textvariable=self.c_name, font='arial 15', bd=7, relief=GROOVE)
-        O00O000O00OO0OOOO .grid (row =0 ,column =1 ,pady =5 ,padx =10 )#line:57:cname_txt.grid(row=0, column=1, pady=5, padx=10)
-        O0O0OOOOO0OOOOO00 =Label (OO0O0O00O0O0O0000 ,text ="Customer Phone:",bg ="#badc57",font =('times new roman',15 ,'bold'))#line:59:cphn_lbl = Label(F1, text="Customer Phone:", bg="#badc57", font=('times new roman', 15, 'bold'))
-        O0O0OOOOO0OOOOO00 .grid (row =0 ,column =2 ,padx =20 ,pady =5 )#line:60:cphn_lbl.grid(row=0, column=2, padx=20, pady=5)
-        OO00OO0O0O0O000OO =Entry (OO0O0O00O0O0O0000 ,width =15 ,textvariable =O0000OO000O0OOO00 .c_phone ,font ='arial 15',bd =7 ,relief =GROOVE )#line:61:cphn_txt = Entry(F1, width=15, textvariable=self.c_phone, font='arial 15', bd=7, relief=GROOVE)
-        OO00OO0O0O0O000OO .grid (row =0 ,column =3 ,pady =5 ,padx =10 )#line:62:cphn_txt.grid(row=0, column=3, pady=5, padx=10)
-        OOO0O0OOO0O0O000O =Label (OO0O0O00O0O0O0000 ,text ="Bill Number:",bg ="#badc57",font =('times new roman',15 ,'bold'))#line:64:c_bill_lbl = Label(F1, text="Bill Number:", bg="#badc57", font=('times new roman', 15, 'bold'))
-        OOO0O0OOO0O0O000O .grid (row =0 ,column =4 ,padx =20 ,pady =5 )#line:65:c_bill_lbl.grid(row=0, column=4, padx=20, pady=5)
-        OOO00OO00O0OO0O00 =Entry (OO0O0O00O0O0O0000 ,width =15 ,textvariable =O0000OO000O0OOO00 .search_bill ,font ='arial 15',bd =7 ,relief =GROOVE )#line:66:c_bill_txt = Entry(F1, width=15, textvariable=self.search_bill, font='arial 15', bd=7, relief=GROOVE)
-        OOO00OO00O0OO0O00 .grid (row =0 ,column =5 ,pady =5 ,padx =10 )#line:67:c_bill_txt.grid(row=0, column=5, pady=5, padx=10)
-        O00000O000OOO0O00 =Button (OO0O0O00O0O0O0000 ,text ="Search",command =O0000OO000O0OOO00 .find_bill ,width =10 ,bd =7 ,font =('arial',12 ,'bold'),relief =GROOVE )#line:69:bil_btn = Button(F1, text="Search", command=self.find_bill, width=10, bd=7, font=('arial', 12, 'bold'), relief=GROOVE)
-        O00000O000OOO0O00 .grid (row =0 ,column =6 ,pady =5 ,padx =10 )#line:70:bil_btn.grid(row=0, column=6, pady=5, padx=10)
-        O00O00OOO0OO0OO0O =LabelFrame (O0000OO000O0OOO00 .root ,text ="Medical Purpose",font =('times new roman',15 ,'bold'),bd =10 ,fg ="Black",bg ="#badc57")#line:73:F2 = LabelFrame(self.root, text="Medical Purpose", font=('times new roman', 15, 'bold'), bd=10, fg="Black", bg="#badc57")
-        O00O00OOO0OO0OO0O .place (x =5 ,y =180 ,width =325 ,height =380 )#line:74:F2.place(x=5, y=180, width=325, height=380)
-        OO00000O0OO0O0O0O =Label (O00O00OOO0OO0OO0O ,text ="Sanitizer",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:76:sanitizer_lbl = Label(F2, text="Sanitizer", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        OO00000O0OO0O0O0O .grid (row =0 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:77:sanitizer_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='W')
-        OO00000OOO00000O0 =Entry (O00O00OOO0OO0OO0O ,width =10 ,textvariable =O0000OO000O0OOO00 .sanitizer ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:78:sanitizer_txt = Entry(F2, width=10, textvariable=self.sanitizer, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO00000OOO00000O0 .grid (row =0 ,column =1 ,padx =10 ,pady =10 )#line:79:sanitizer_txt.grid(row=0, column=1, padx=10, pady=10)
-        OOO0O0000O0000OOO =Label (O00O00OOO0OO0OO0O ,text ="Mask",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:81:mask_lbl = Label(F2, text="Mask", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        OOO0O0000O0000OOO .grid (row =1 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:82:mask_lbl.grid(row=1, column=0, padx=10, pady=10, sticky='W')
-        O00000000000O0OO0 =Entry (O00O00OOO0OO0OO0O ,width =10 ,textvariable =O0000OO000O0OOO00 .mask ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:83:mask_txt = Entry(F2, width=10, textvariable=self.mask, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        O00000000000O0OO0 .grid (row =1 ,column =1 ,padx =10 ,pady =10 )#line:84:mask_txt.grid(row=1, column=1, padx=10, pady=10)
-        OO0OOOO00OO00O00O =Label (O00O00OOO0OO0OO0O ,text ="Hand Gloves",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:86:hand_gloves_lbl = Label(F2, text="Hand Gloves", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        OO0OOOO00OO00O00O .grid (row =2 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:87:hand_gloves_lbl.grid(row=2, column=0, padx=10, pady=10, sticky='W')
-        O0OO0O0OOOOO000OO =Entry (O00O00OOO0OO0OO0O ,width =10 ,textvariable =O0000OO000O0OOO00 .hand_gloves ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:88:hand_gloves_txt = Entry(F2, width=10, textvariable=self.hand_gloves, font=('times new roman', 16, 'bold'), bd=5, relief =GROOVE)
-        O0OO0O0OOOOO000OO .grid (row =2 ,column =1 ,padx =10 ,pady =10 )#line:89:hand_gloves_txt.grid(row=2, column=1, padx=10, pady=10)
-        O00OOOO0OO0O0O0O0 =Label (O00O00OOO0OO0OO0O ,text ="Dettol",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:91:dettol_lbl = Label(F2, text="Dettol", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O00OOOO0OO0O0O0O0 .grid (row =3 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:92:dettol_lbl.grid(row=3, column=0, padx=10, pady=10, sticky='W')
-        OOO0O00OOOOO0O00O =Entry (O00O00OOO0OO0OO0O ,width =10 ,textvariable =O0000OO000O0OOO00 .dettol ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:93:dettol_txt = Entry(F2, width=10, textvariable=self.dettol, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OOO0O00OOOOO0O00O .grid (row =3 ,column =1 ,padx =10 ,pady =10 )#line:94:dettol_txt.grid(row=3, column=1, padx=10, pady=10)
-        O0000O00OO00O0O00 =Label (O00O00OOO0OO0OO0O ,text ="Newsprin",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:96:newsprin_lbl = Label(F2, text="Newsprin", font =('times new roman', 16, 'bold'), bg = "#badc57", fg = "black")
-        O0000O00OO00O0O00 .grid (row =4 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:97:newsprin_lbl.grid(row=4, column=0, padx=10, pady=10, sticky='W')
-        O0000OOOO0000000O =Entry (O00O00OOO0OO0OO0O ,width =10 ,textvariable =O0000OO000O0OOO00 .newsprin ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:98:newsprin_txt = Entry(F2, width=10, textvariable=self.newsprin, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        O0000OOOO0000000O .grid (row =4 ,column =1 ,padx =10 ,pady =10 )#line:99:newsprin_txt.grid(row=4, column=1, padx=10, pady=10)
-        O0O0O0O0O00OOO0OO =Label (O00O00OOO0OO0OO0O ,text ="Thermal Gun",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:101:thermal_gun_lbl = Label(F2, text="Thermal Gun", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O0O0O0O0O00OOO0OO .grid (row =5 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:102:thermal_gun_lbl.grid(row=5, column=0, padx=10, pady=10, sticky='W')
-        O00O000OO0O0O0O0O =Entry (O00O00OOO0OO0OO0O ,width =10 ,textvariable =O0000OO000O0OOO00 .thermal_gun ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:103:thermal_gun_txt = Entry(F2, width=10, textvariable=self.thermal_gun, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        O00O000OO0O0O0O0O .grid (row =5 ,column =1 ,padx =10 ,pady =10 )#line:104:thermal_gun_txt.grid(row=5, column=1, padx=10, pady=10)
-        OOOO0O0OO0O00000O =LabelFrame (O0000OO000O0OOO00 .root ,text ="Grocery Items",font =('times new roman',15 ,'bold'),bd =10 ,fg ="Black",bg ="#badc57")#line:107:F3 = LabelFrame(self.root, text="Grocery Items", font=('times new roman', 15, 'bold'), bd=10, fg="Black", bg="#badc57")
-        OOOO0O0OO0O00000O .place (x =340 ,y =180 ,width =325 ,height =380 )#line:108:F3.place(x=340, y=180, width=325, height=380)
-        O0000OO0OO00O00O0 =Label (OOOO0O0OO0O00000O ,text ="Rice",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:110:rice_lbl = Label(F3, text="Rice", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O0000OO0OO00O00O0 .grid (row =0 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:111:rice_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='W')
-        O0O0OOOO0O0OO0OO0 =Entry (OOOO0O0OO0O00000O ,width =10 ,textvariable =O0000OO000O0OOO00 .rice ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:112:rice_txt = Entry(F3, width=10, textvariable=self.rice, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        O0O0OOOO0O0OO0OO0 .grid (row =0 ,column =1 ,padx =10 ,pady =10 )#line:113:rice_txt.grid(row=0, column=1, padx=10, pady=10)
-        O00OO0OO00OO0O0O0 =Label (OOOO0O0OO0O00000O ,text ="Food Oil",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:115:food_oil_lbl = Label(F3, text="Food Oil", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O00OO0OO00OO0O0O0 .grid (row =1 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:116:food_oil_lbl.grid(row=1, column=0, padx=10, pady=10, sticky='W')
-        OOOOOO0OO0O00O00O =Entry (OOOO0O0OO0O00000O ,width =10 ,textvariable =O0000OO000O0OOO00 .food_oil ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:117:food_oil_txt = Entry(F3, width=10, textvariable=self.food_oil, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OOOOOO0OO0O00O00O .grid (row =1 ,column =1 ,padx =10 ,pady =10 )#line:118:food_oil_txt.grid(row=1, column=1, padx=10, pady=10)
-        OO000O0OOOOOO0OO0 =Label (OOOO0O0OO0O00000O ,text ="Wheat",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:120:wheat_lbl = Label(F3, text="Wheat", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        OO000O0OOOOOO0OO0 .grid (row =2 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:121:wheat_lbl.grid(row=2, column=0, padx=10, pady=10, sticky='W')
-        OO000O00O00OOOOO0 =Entry (OOOO0O0OO0O00000O ,width =10 ,textvariable =O0000OO000O0OOO00 .wheat ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:122:wheat_txt = Entry(F3, width=10, textvariable=self.wheat, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO000O00O00OOOOO0 .grid (row =2 ,column =1 ,padx =10 ,pady =10 )#line:123:wheat_txt.grid(row=2, column=1, padx=10, pady=10)
-        O00OO000000O0OOO0 =Label (OOOO0O0OO0O00000O ,text ="Daal",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:125:daal_lbl = Label(F3, text="Daal", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O00OO000000O0OOO0 .grid (row =3 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:126:daal_lbl.grid(row=3, column=0, padx=10, pady=10, sticky='W')
-        OO0OOOO0O00O00OOO =Entry (OOOO0O0OO0O00000O ,width =10 ,textvariable =O0000OO000O0OOO00 .daal ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:127:daal_txt = Entry(F3, width=10, textvariable=self.daal, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO0OOOO0O00O00OOO .grid (row =3 ,column =1 ,padx =10 ,pady =10 )#line:128:daal_txt.grid(row=3, column=1, padx=10, pady=10)
-        O000O00OO0O00000O =Label (OOOO0O0OO0O00000O ,text ="Flour",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:130:flour_lbl = Label(F3, text="Flour", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O000O00OO0O00000O .grid (row =4 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:131:flour_lbl.grid(row=4, column=0, padx=10, pady=10, sticky='W')
-        O000OOO0OO0O0O0OO =Entry (OOOO0O0OO0O00000O ,width =10 ,textvariable =O0000OO000O0OOO00 .flour ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:132:flour_txt = Entry(F3, width=10, textvariable=self.flour, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        O000OOO0OO0O0O0OO .grid (row =4 ,column =1 ,padx =10 ,pady =10 )#line:133:flour_txt.grid(row=4, column=1, padx=10, pady=10)
-        O000OO00OOO00OOOO =Label (OOOO0O0OO0O00000O ,text ="Maggi",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:135:maggi_lbl = Label(F3, text="Maggi", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O000OO00OOO00OOOO .grid (row =5 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:136:maggi_lbl.grid(row=5, column=0, padx=10, pady=10, sticky='W')
-        OO0OOOOOOO000OOO0 =Entry (OOOO0O0OO0O00000O ,width =10 ,textvariable =O0000OO000O0OOO00 .maggi ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:137:maggi_txt = Entry(F3, width=10, textvariable=self.maggi, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO0OOOOOOO000OOO0 .grid (row =5 ,column =1 ,padx =10 ,pady =10 )#line:138:maggi_txt.grid(row=5, column=1, padx=10, pady=10)
-        OO00000O0O0O0O00O =LabelFrame (O0000OO000O0OOO00 .root ,text ="Cold Drinks",font =('times new roman',15 ,'bold'),bd =10 ,fg ="Black",bg ="#badc57")#line:141:F4 = LabelFrame(self.root, text="Cold Drinks", font=('times new roman', 15, 'bold'), bd=10, fg="Black", bg="#badc57")
-        OO00000O0O0O0O00O .place (x =670 ,y =180 ,width =325 ,height =380 )#line:142:F4.place(x=670, y=180, width=325, height=380)
-        OOOOO00O00O0OOOOO =Label (OO00000O0O0O0O00O ,text ="Sprite",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:144:sprite_lbl = Label(F4, text="Sprite", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        OOOOO00O00O0OOOOO .grid (row =0 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:145:sprite_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='W')
-        OO00O0000OOO0OO00 =Entry (OO00000O0O0O0O00O ,width =10 ,textvariable =O0000OO000O0OOO00 .sprite ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:146:sprite_txt = Entry(F4, width=10, textvariable=self.sprite, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO00O0000OOO0OO00 .grid (row =0 ,column =1 ,padx =10 ,pady =10 )#line:147:sprite_txt.grid(row=0, column=1, padx=10, pady=10)
-        OO0000OOOO0OO0OOO =Label (OO00000O0O0O0O00O ,text ="Limka",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:149:limka_lbl = Label(F4, text="Limka", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        OO0000OOOO0OO0OOO .grid (row =1 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:150:limka_lbl.grid(row=1, column=0, padx=10, pady=10, sticky='W')
-        OO0O0OOO000OOO0OO =Entry (OO00000O0O0O0O00O ,width =10 ,textvariable =O0000OO000O0OOO00 .limka ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:151:limka_txt = Entry(F4, width=10, textvariable=self.limka, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO0O0OOO000OOO0OO .grid (row =1 ,column =1 ,padx =10 ,pady =10 )#line:152:limka_txt.grid(row=1, column=1, padx=10, pady=10)
-        O00OOO00O0OOO00O0 =Label (OO00000O0O0O0O00O ,text ="Mazza",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:154:mazza_lbl = Label(F4, text="Mazza", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O00OOO00O0OOO00O0 .grid (row =2 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:155:mazza_lbl.grid(row=2, column=0, padx=10, pady=10, sticky='W')
-        OO000O00O00OOOOO0 =Entry (OO00000O0O0O0O00O ,width =10 ,textvariable =O0000OO000O0OOO00 .mazza ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:156:wheat_txt = Entry(F4, width=10, textvariable=self.mazza, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO000O00O00OOOOO0 .grid (row =2 ,column =1 ,padx =10 ,pady =10 )#line:157:wheat_txt.grid(row=2, column=1, padx=10, pady=10)
-        O0O00OO000OOOO000 =Label (OO00000O0O0O0O00O ,text ="Coke",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:159:coke_lbl = Label(F4, text="Coke", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O0O00OO000OOOO000 .grid (row =3 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:160:coke_lbl.grid(row=3, column=0, padx=10, pady=10, sticky='W')
-        OOOOO0O00000O00O0 =Entry (OO00000O0O0O0O00O ,width =10 ,textvariable =O0000OO000O0OOO00 .coke ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:161:coke_txt = Entry(F4, width=10, textvariable=self.coke, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OOOOO0O00000O00O0 .grid (row =3 ,column =1 ,padx =10 ,pady =10 )#line:162:coke_txt.grid(row=3, column=1, padx=10, pady=10)
-        O0OOOOO00O000000O =Label (OO00000O0O0O0O00O ,text ="Fanta",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:164:fanta_lbl = Label(F4, text="Fanta", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O0OOOOO00O000000O .grid (row =4 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:165:fanta_lbl.grid(row=4, column=0, padx=10, pady=10, sticky='W')
-        OO000OO000O000O00 =Entry (OO00000O0O0O0O00O ,width =10 ,textvariable =O0000OO000O0OOO00 .fanta ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:166:fanta_txt = Entry(F4, width=10, textvariable=self.fanta, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        OO000OO000O000O00 .grid (row =4 ,column =1 ,padx =10 ,pady =10 )#line:167:fanta_txt.grid(row=4, column=1, padx=10, pady=10)
-        O0O0OO0OOO00OO0OO =Label (OO00000O0O0O0O00O ,text ="Mountain Duo",font =('times new roman',16 ,'bold'),bg ="#badc57",fg ="black")#line:169:mountain_duo_lbl = Label(F4, text="Mountain Duo", font=('times new roman', 16, 'bold'), bg="#badc57", fg="black")
-        O0O0OO0OOO00OO0OO .grid (row =5 ,column =0 ,padx =10 ,pady =10 ,sticky ='W')#line:170:mountain_duo_lbl.grid(row=5, column=0, padx=10, pady=10, sticky='W')
-        O0OO0O000OO0O00OO =Entry (OO00000O0O0O0O00O ,width =10 ,textvariable =O0000OO000O0OOO00 .mountain_duo ,font =('times new roman',16 ,'bold'),bd =5 ,relief =GROOVE )#line:171:mountain_duo_txt = Entry(F4, width=10, textvariable=self.mountain_duo, font=('times new roman', 16, 'bold'), bd=5, relief=GROOVE)
-        O0OO0O000OO0O00OO .grid (row =5 ,column =1 ,padx =10 ,pady =10 )#line:172:mountain_duo_txt.grid(row=5, column=1, padx=10, pady=10)
-        OO00OO000OOOO0OO0 =Frame (O0000OO000O0OOO00 .root ,bd =10 ,relief =GROOVE )#line:175:F5 = Frame(self.root, bd=10, relief=GROOVE)
-        OO00OO000OOOO0OO0 .place (x =1010 ,y =180 ,width =350 ,height =380 )#line:176:F5.place(x=1010, y=180, width=350, height=380)
-        O0O0O00000OO00000 =Label (OO00OO000OOOO0OO0 ,text ="Bill Area",font ='arial 15 bold',bd =7 ,relief =GROOVE )#line:178:bill_title = Label(F5, text="Bill Area", font='arial 15 bold', bd=7, relief=GROOVE)
-        O0O0O00000OO00000 .pack (fill =X )#line:179:bill_title.pack(fill=X)
-        O00O00OOOOOOOOOO0 =Scrollbar (OO00OO000OOOO0OO0 ,orient =VERTICAL )#line:180:scroll_y = Scrollbar(F5, orient=VERTICAL)
-        O0000OO000O0OOO00 .txtarea =Text (OO00OO000OOOO0OO0 ,yscrollcommand =O00O00OOOOOOOOOO0 .set )#line:181:self.txtarea = Text(F5, yscrollcommand=scroll_y.set)
-        O00O00OOOOOOOOOO0 .pack (side =RIGHT ,fill =Y )#line:182:scroll_y.pack(side=RIGHT, fill=Y)
-        O00O00OOOOOOOOOO0 .config (command =O0000OO000O0OOO00 .txtarea .yview )#line:183:scroll_y.config(command=self.txtarea.yview)
-        O0000OO000O0OOO00 .txtarea .pack (fill =BOTH ,expand =1 )#line:184:self.txtarea.pack(fill=BOTH, expand=1)
-        OOO0OOOO00OOO0000 =LabelFrame (O0000OO000O0OOO00 .root ,text ="Bill Area",font =('times new roman',14 ,'bold'),bd =10 ,fg ="Black",bg ="#badc57")#line:187:F6 = LabelFrame(self.root, text="Bill Area", font=('times new roman', 14, 'bold'), bd=10, fg="Black", bg="#badc57")
-        OOO0OOOO00OOO0000 .place (x =0 ,y =560 ,relwidth =1 ,height =140 )#line:188:F6.place(x=0, y=560, relwidth=1, height=140)
-        O0OOOO00O0OO0OO0O =Label (OOO0OOOO00OOO0000 ,text ="Total Medical Price",font =('times new roman',14 ,'bold'),bg ="#badc57",fg ="black")#line:190:m1_lbl = Label(F6, text="Total Medical Price", font=('times new roman', 14, 'bold'), bg="#badc57", fg="black")
-        O0OOOO00O0OO0OO0O .grid (row =0 ,column =0 ,padx =20 ,pady =1 ,sticky ='W')#line:191:m1_lbl.grid(row=0, column=0, padx=20, pady=1, sticky='W')
-        OOO0OOO00O0O0O00O =Entry (OOO0OOOO00OOO0000 ,width =18 ,textvariable =O0000OO000O0OOO00 .medical_price ,font ='arial 10 bold',bd =7 ,relief =GROOVE )#line:192:m1_txt = Entry(F6, width=18, textvariable=self.medical_price, font='arial 10 bold', bd=7, relief=GROOVE)
-        OOO0OOO00O0O0O00O .grid (row =0 ,column =1 ,padx =18 ,pady =1 )#line:193:m1_txt.grid(row=0, column=1, padx=18, pady=1)
-        OOO00OOOOOOOOOOO0 =Label (OOO0OOOO00OOO0000 ,text ="Total Grocery Price",font =('times new roman',14 ,'bold'),bg ="#badc57",fg ="black")#line:195:m2_lbl = Label(F6, text="Total Grocery Price", font=('times new roman', 14, 'bold'), bg="#badc57", fg="black")
-        OOO00OOOOOOOOOOO0 .grid (row =1 ,column =0 ,padx =20 ,pady =1 ,sticky ='W')#line:196:m2_lbl.grid(row=1, column=0, padx=20, pady=1, sticky='W')
-        O000OOOOO0O0O0000 =Entry (OOO0OOOO00OOO0000 ,width =18 ,textvariable =O0000OO000O0OOO00 .grocery_price ,font ='arial 10 bold',bd =7 ,relief =GROOVE )#line:197:m2_txt = Entry(F6, width=18, textvariable=self.grocery_price, font='arial 10 bold', bd=7, relief=GROOVE)
-        O000OOOOO0O0O0000 .grid (row =1 ,column =1 ,padx =18 ,pady =1 )#line:198:m2_txt.grid(row=1, column=1, padx=18, pady=1)
-        O000OOO00OOO00O00 =Label (OOO0OOOO00OOO0000 ,text ="Total Cold Drinks Price",font =('times new roman',14 ,'bold'),bg ="#badc57",fg ="black")#line:200:m3_lbl = Label(F6, text="Total Cold Drinks Price", font=('times new roman', 14, 'bold'), bg="#badc57", fg="black")
-        O000OOO00OOO00O00 .grid (row =2 ,column =0 ,padx =20 ,pady =1 ,sticky ='W')#line:201:m3_lbl.grid(row=2, column=0, padx=20, pady=1, sticky='W')
-        O0OO00OO0OO0OOO0O =Entry (OOO0OOOO00OOO0000 ,width =18 ,textvariable =O0000OO000O0OOO00 .cold_drinks_price ,font ='arial 10 bold',bd =7 ,relief =GROOVE )#line:202:m3_txt = Entry(F6, width=18, textvariable=self.cold_drinks_price, font='arial 10 bold', bd=7, relief=GROOVE)
-        O0OO00OO0OO0OOO0O .grid (row =2 ,column =1 ,padx =18 ,pady =1 )#line:203:m3_txt.grid(row=2, column=1, padx=18, pady=1)
-        OO0OOO000O0O0O00O =Label (OOO0OOOO00OOO0000 ,text ="Medical Tax",font =('times new roman',14 ,'bold'),bg ="#badc57",fg ="black")#line:205:m4_lbl = Label(F6, text="Medical Tax", font=('times new roman', 14, 'bold'), bg="#badc57", fg="black")
-        OO0OOO000O0O0O00O .grid (row =0 ,column =2 ,padx =20 ,pady =1 ,sticky ='W')#line:206:m4_lbl.grid(row=0, column=2, padx=20, pady=1, sticky='W')
-        O0OO0O0OO00000OO0 =Entry (OOO0OOOO00OOO0000 ,width =18 ,textvariable =O0000OO000O0OOO00 .medical_tax ,font ='arial 10 bold',bd =7 ,relief =GROOVE )#line:207:m4_txt = Entry(F6, width=18, textvariable=self.medical_tax, font='arial 10 bold', bd=7, relief=GROOVE)
-        O0OO0O0OO00000OO0 .grid (row =0 ,column =3 ,padx =18 ,pady =1 )#line:208:m4_txt.grid(row=0, column=3, padx=18, pady=1)
-        O0O000OOOO0O0OO00 =Label (OOO0OOOO00OOO0000 ,text ="Grocery Tax",font =('times new roman',14 ,'bold'),bg ="#badc57",fg ="black")#line:210:m5_lbl = Label(F6, text="Grocery Tax", font=('times new roman', 14, 'bold'), bg="#badc57", fg="black")
-        O0O000OOOO0O0OO00 .grid (row =1 ,column =2 ,padx =20 ,pady =1 ,sticky ='W')#line:211:m5_lbl.grid(row=1, column=2, padx=20, pady=1, sticky='W')
-        OOO00O00OO0OOOOO0 =Entry (OOO0OOOO00OOO0000 ,width =18 ,textvariable =O0000OO000O0OOO00 .grocery_tax ,font ='arial 10 bold',bd =7 ,relief =GROOVE )#line:212:m5_txt = Entry(F6, width=18, textvariable=self.grocery_tax, font='arial 10 bold', bd=7, relief=GROOVE)
-        OOO00O00OO0OOOOO0 .grid (row =1 ,column =3 ,padx =18 ,pady =1 )#line:213:m5_txt.grid(row=1, column=3, padx=18, pady=1)
-        O00OOOOO000O0O0O0 =Label (OOO0OOOO00OOO0000 ,text ="Cold Drinks Tax",font =('times new roman',14 ,'bold'),bg ="#badc57",fg ="black")#line:215:m6_lbl = Label(F6, text="Cold Drinks Tax", font=('times new roman', 14, 'bold'), bg="#badc57", fg="black")
-        O00OOOOO000O0O0O0 .grid (row =2 ,column =2 ,padx =20 ,pady =1 ,sticky ='W')#line:216:m6_lbl.grid(row=2, column=2, padx=20, pady=1, sticky='W')
-        O000O0OOOO00O00OO =Entry (OOO0OOOO00OOO0000 ,width =18 ,textvariable =O0000OO000O0OOO00 .cold_drinks_tax ,font ='arial 10 bold',bd =7 ,relief =GROOVE )#line:217:m6_txt = Entry(F6, width=18, textvariable=self.cold_drinks_tax, font='arial 10 bold', bd=7, relief=GROOVE)
-        O000O0OOOO00O00OO .grid (row =2 ,column =3 ,padx =18 ,pady =1 )#line:218:m6_txt.grid(row=2, column=3, padx=18, pady=1)
-        O0OO00O000O00O000 =Frame (OOO0OOOO00OOO0000 ,bd =7 ,relief =GROOVE )#line:221:btn_f = Frame(F6, bd=7, relief=GROOVE)
-        O0OO00O000O00O000 .place (x =760 ,width =580 ,height =105 )#line:222:btn_f.place(x=760, width=580, height=105)
-        O00000OO0OOO00O0O =Button (O0OO00O000O00O000 ,command =O0000OO000O0OOO00 .total ,text ="Total",bg ="#535C68",bd =2 ,fg ="white",pady =15 ,width =12 ,font ='arial 13 bold')#line:224:total_btn = Button(btn_f, command=self.total, text="Total", bg="#535C68", bd=2, fg="white", pady=15, width=12, font='arial 13 bold')
-        O00000OO0OOO00O0O .grid (row =0 ,column =0 ,padx =5 ,pady =5 )#line:225:total_btn.grid(row=0, column=0, padx=5, pady=5)
-        O00O000000OO0000O =Button (O0OO00O000O00O000 ,command =O0000OO000O0OOO00 .bill_area ,text ="Generate Bill",bd =2 ,bg ="#535C68",fg ="white",pady =12 ,width =12 ,font ='arial 13 bold')#line:227:generateBill_btn = Button(btn_f, command=self.bill_area, text="Generate Bill", bd=2, bg="#535C68", fg="white", pady=12, width=12, font='arial 13 bold')
-        O00O000000OO0000O .grid (row =0 ,column =1 ,padx =5 ,pady =5 )#line:228:generateBill_btn.grid(row=0, column=1, padx=5, pady=5)
-        O0O0OO0O0OO00000O =Button (O0OO00O000O00O000 ,command =O0000OO000O0OOO00 .clear_data ,text ="Clear",bg ="#535C68",bd =2 ,fg ="white",pady =15 ,width =12 ,font ='arial 13 bold')#line:230:clear_btn = Button(btn_f, command=self.clear_data, text="Clear", bg="#535C68", bd=2, fg="white", pady=15, width=12, font='arial 13 bold')
-        O0O0OO0O0OO00000O .grid (row =0 ,column =2 ,padx =5 ,pady =5 )#line:231:clear_btn.grid(row=0, column=2, padx=5, pady=5)
-        OO00OOOO0OO00OOOO =Button (O0OO00O000O00O000 ,command =O0000OO000O0OOO00 .exit_app ,text ="Exit",bd =2 ,bg ="#535C68",fg ="white",pady =15 ,width =12 ,font ='arial 13 bold')#line:233:exit_btn = Button(btn_f, command=self.exit_app, text="Exit", bd=2, bg="#535C68", fg="white", pady=15, width=12, font='arial 13 bold')
-        OO00OOOO0OO00OOOO .grid (row =0 ,column =3 ,padx =5 ,pady =5 )#line:234:exit_btn.grid(row=0, column=3, padx=5, pady=5)
-        O0000OO000O0OOO00 .welcome_bill ()#line:235:self.welcome_bill()
-    def total (O0OOO0O000O0O0O0O ):#line:238:def total(self):
-        O0OOO0O000O0O0O0O .m_h_g_p =O0OOO0O000O0O0O0O .hand_gloves .get ()*12 #line:239:self.m_h_g_p = self.hand_gloves.get()*12
-        O0OOO0O000O0O0O0O .m_s_p =O0OOO0O000O0O0O0O .sanitizer .get ()*2 #line:240:self.m_s_p = self.sanitizer.get()*2
-        O0OOO0O000O0O0O0O .m_m_p =O0OOO0O000O0O0O0O .mask .get ()*5 #line:241:self.m_m_p = self.mask.get()*5
-        O0OOO0O000O0O0O0O .m_d_p =O0OOO0O000O0O0O0O .dettol .get ()*30 #line:242:self.m_d_p = self.dettol.get()*30
-        O0OOO0O000O0O0O0O .m_n_p =O0OOO0O000O0O0O0O .newsprin .get ()*5 #line:243:self.m_n_p = self.newsprin.get()*5
-        O0OOO0O000O0O0O0O .m_t_g_p =O0OOO0O000O0O0O0O .thermal_gun .get ()*15 #line:244:self.m_t_g_p = self.thermal_gun.get()*15
-        O0OOO0O000O0O0O0O .total_medical_price =float (O0OOO0O000O0O0O0O .m_m_p +O0OOO0O000O0O0O0O .m_h_g_p +O0OOO0O000O0O0O0O .m_d_p +O0OOO0O000O0O0O0O .m_n_p +O0OOO0O000O0O0O0O .m_t_g_p +O0OOO0O000O0O0O0O .m_s_p )#line:245:self.total_medical_price = float(self.m_m_p+self.m_h_g_p+self.m_d_p+self.m_n_p+self.m_t_g_p+self.m_s_p)
-        O0OOO0O000O0O0O0O .medical_price .set ("Rs. "+str (O0OOO0O000O0O0O0O .total_medical_price ))#line:247:self.medical_price.set("Rs. "+str(self.total_medical_price))
-        O0OOO0O000O0O0O0O .c_tax =round ((O0OOO0O000O0O0O0O .total_medical_price *0.05 ),2 )#line:248:self.c_tax = round((self.total_medical_price*0.05), 2)
-        O0OOO0O000O0O0O0O .medical_tax .set ("Rs. "+str (O0OOO0O000O0O0O0O .c_tax ))#line:249:self.medical_tax.set("Rs. "+str(self.c_tax))
-        O0OOO0O000O0O0O0O .g_r_p =O0OOO0O000O0O0O0O .rice .get ()*10 #line:251:self.g_r_p = self.rice.get()*10
-        O0OOO0O000O0O0O0O .g_f_o_p =O0OOO0O000O0O0O0O .food_oil .get ()*10 #line:252:self.g_f_o_p = self.food_oil.get()*10
-        O0OOO0O000O0O0O0O .g_w_p =O0OOO0O000O0O0O0O .wheat .get ()*10 #line:253:self.g_w_p = self.wheat.get()*10
-        O0OOO0O000O0O0O0O .g_d_p =O0OOO0O000O0O0O0O .daal .get ()*6 #line:254:self.g_d_p = self.daal.get()*6
-        O0OOO0O000O0O0O0O .g_f_p =O0OOO0O000O0O0O0O .flour .get ()*8 #line:255:self.g_f_p = self.flour.get()*8
-        O0OOO0O000O0O0O0O .g_m_p =O0OOO0O000O0O0O0O .maggi .get ()*5 #line:256:self.g_m_p = self.maggi.get()*5
-        O0OOO0O000O0O0O0O .total_grocery_price =float (O0OOO0O000O0O0O0O .g_r_p +O0OOO0O000O0O0O0O .g_f_o_p +O0OOO0O000O0O0O0O .g_w_p +O0OOO0O000O0O0O0O .g_d_p +O0OOO0O000O0O0O0O .g_f_p +O0OOO0O000O0O0O0O .g_m_p )#line:257:self.total_grocery_price = float(self.g_r_p+self.g_f_o_p+self.g_w_p+self.g_d_p+self.g_f_p+self.g_m_p)
-        O0OOO0O000O0O0O0O .grocery_price .set ("Rs. "+str (O0OOO0O000O0O0O0O .total_grocery_price ))#line:259:self.grocery_price.set("Rs. " + str(self.total_grocery_price))
-        O0OOO0O000O0O0O0O .g_tax =round ((O0OOO0O000O0O0O0O .total_grocery_price *5 ),2 )#line:260:self.g_tax = round((self.total_grocery_price*5), 2)
-        O0OOO0O000O0O0O0O .grocery_tax .set ("Rs. "+str (O0OOO0O000O0O0O0O .g_tax ))#line:261:self.grocery_tax.set("Rs. " + str(self.g_tax))
-        O0OOO0O000O0O0O0O .c_d_s_p =O0OOO0O000O0O0O0O .sprite .get ()*10 #line:263:self.c_d_s_p = self.sprite.get()*10
-        O0OOO0O000O0O0O0O .c_d_l_p =O0OOO0O000O0O0O0O .limka .get ()*10 #line:264:self.c_d_l_p = self.limka.get()*10
-        O0OOO0O000O0O0O0O .c_d_m_p =O0OOO0O000O0O0O0O .mazza .get ()*10 #line:265:self.c_d_m_p = self.mazza.get()*10
-        O0OOO0O000O0O0O0O .c_d_c_p =O0OOO0O000O0O0O0O .coke .get ()*10 #line:266:self.c_d_c_p = self.coke.get()*10
-        O0OOO0O000O0O0O0O .c_d_f_p =O0OOO0O000O0O0O0O .fanta .get ()*10 #line:267:self.c_d_f_p = self.fanta.get()*10
-        O0OOO0O000O0O0O0O .c_m_d =O0OOO0O000O0O0O0O .mountain_duo .get ()*10 #line:268:self.c_m_d = self.mountain_duo.get()*10
-        O0OOO0O000O0O0O0O .total_cold_drinks_price =float (O0OOO0O000O0O0O0O .c_d_s_p +O0OOO0O000O0O0O0O .c_d_l_p +O0OOO0O000O0O0O0O .c_d_m_p +O0OOO0O000O0O0O0O .c_d_c_p +O0OOO0O000O0O0O0O .c_d_f_p +O0OOO0O000O0O0O0O .c_m_d )#line:269:self.total_cold_drinks_price = float(self.c_d_s_p+self.c_d_l_p+self.c_d_m_p+self.c_d_c_p+self.c_d_f_p+self.c_m_d)
-        O0OOO0O000O0O0O0O .cold_drinks_price .set ("Rs. "+str (O0OOO0O000O0O0O0O .total_cold_drinks_price ))#line:271:self.cold_drinks_price.set("Rs. "+str(self.total_cold_drinks_price))
-        O0OOO0O000O0O0O0O .c_d_tax =round ((O0OOO0O000O0O0O0O .total_cold_drinks_price *0.1 ),2 )#line:272:self.c_d_tax = round((self.total_cold_drinks_price * 0.1), 2)
-        O0OOO0O000O0O0O0O .cold_drinks_tax .set ("Rs. "+str (O0OOO0O000O0O0O0O .c_d_tax ))#line:273:self.cold_drinks_tax.set("Rs. "+str(self.c_d_tax))
-        O0OOO0O000O0O0O0O .total_bill =float (O0OOO0O000O0O0O0O .total_medical_price +O0OOO0O000O0O0O0O .total_grocery_price +O0OOO0O000O0O0O0O .total_cold_drinks_price +O0OOO0O000O0O0O0O .c_tax +O0OOO0O000O0O0O0O .g_tax +O0OOO0O000O0O0O0O .c_d_tax )#line:275:self.total_bill = float(self.total_medical_price+self.total_grocery_price+self.total_cold_drinks_price+self.c_tax+self.g_tax+self.c_d_tax)
-    def welcome_bill (O000O0O0OO000000O ):#line:278:def welcome_bill(self):
-        O000O0O0OO000000O .txtarea .delete ('1.0',END )#line:279:self.txtarea.delete('1.0', END)
-        O000O0O0OO000000O .txtarea .insert (END ,"\tWelcome Webcode Retail")#line:280:self.txtarea.insert(END, "\tWelcome Webcode Retail")
-        O000O0O0OO000000O .txtarea .insert (END ,f"\n Bill Number:{O000O0O0OO000000O.bill_no.get()}")#line:281:self.txtarea.insert(END, f"\n Bill Number:{self.bill_no.get()}")
-        O000O0O0OO000000O .txtarea .insert (END ,f"\nCustomer Name:{O000O0O0OO000000O.c_name.get()}")#line:282:self.txtarea.insert(END, f"\nCustomer Name:{self.c_name.get()}")
-        O000O0O0OO000000O .txtarea .insert (END ,f"\nPhone Number{O000O0O0OO000000O.c_phone.get()}")#line:283:self.txtarea.insert(END, f"\nPhone Number{self.c_phone.get()}")
-        O000O0O0OO000000O .txtarea .insert (END ,f"\n================================")#line:284:self.txtarea.insert(END, f"\n================================")
-        O000O0O0OO000000O .txtarea .insert (END ,f"\nProducts\t\tQTY\t\tPrice")#line:285:self.txtarea.insert(END, f"\nProducts\t\tQTY\t\tPrice")
-    def bill_area (O000000OO00O0O000 ):#line:288:def bill_area(self):
-        if O000000OO00O0O000 .c_name .get ()==" "or O000000OO00O0O000 .c_phone .get ()==" ":#line:289:if self.c_name.get() == " " or self.c_phone.get() == " ":
-            messagebox .showerror ("Error","Customer Details Are Must")#line:290:messagebox.showerror("Error", "Customer Details Are Must")
-        elif O000000OO00O0O000 .medical_price .get ()=="Rs. 0.0"and O000000OO00O0O000 .grocery_price .get ()=="Rs. 0.0"and O000000OO00O0O000 .cold_drinks_price .get ()=="Rs. 0.0":#line:291:elif self.medical_price.get() == "Rs. 0.0" and self.grocery_price.get() == "Rs. 0.0" and self.cold_drinks_price.get()=="Rs. 0.0":
-            messagebox .showerror ("Error","No Product Purchased")#line:292:messagebox.showerror("Error", "No Product Purchased")
-        else :#line:293:else:
-            O000000OO00O0O000 .welcome_bill ()#line:294:self.welcome_bill()
-        if O000000OO00O0O000 .sanitizer .get ()!=0 :#line:296:if self.sanitizer.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Sanitizer\t\t{O000000OO00O0O000.sanitizer.get()}\t\t{O000000OO00O0O000.m_s_p}")#line:297:self.txtarea.insert(END, f"\n Sanitizer\t\t{self.sanitizer.get()}\t\t{self.m_s_p}")
-        if O000000OO00O0O000 .mask .get ()!=0 :#line:298:if self.mask.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Sanitizer\t\t{O000000OO00O0O000.mask.get()}\t\t{O000000OO00O0O000.m_m_p}")#line:299:self.txtarea.insert(END, f"\n Sanitizer\t\t{self.mask.get()}\t\t{self.m_m_p}")
-        if O000000OO00O0O000 .hand_gloves .get ()!=0 :#line:300:if self.hand_gloves.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Hand Gloves\t\t{O000000OO00O0O000.hand_gloves.get()}\t\t{O000000OO00O0O000.m_h_g_p}")#line:301:self.txtarea.insert(END, f"\n Hand Gloves\t\t{self.hand_gloves.get()}\t\t{self.m_h_g_p}")
-        if O000000OO00O0O000 .dettol .get ()!=0 :#line:302:if self.dettol.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Dettol\t\t{O000000OO00O0O000.dettol.get()}\t\t{O000000OO00O0O000.m_d_p}")#line:303:self.txtarea.insert(END, f"\n Dettol\t\t{self.dettol.get()}\t\t{self.m_d_p}")
-        if O000000OO00O0O000 .newsprin .get ()!=0 :#line:304:if self.newsprin.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Newsprin\t\t{O000000OO00O0O000.newsprin.get()}\t\t{O000000OO00O0O000.m_n_p}")#line:305:self.txtarea.insert(END, f"\n Newsprin\t\t{self.newsprin.get()}\t\t{self.m_n_p}")
-        if O000000OO00O0O000 .thermal_gun .get ()!=0 :#line:306:if self.thermal_gun.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Thermal Gun\t\t{O000000OO00O0O000.sanitizer.get()}\t\t{O000000OO00O0O000.m_t_g_p}")#line:307:self.txtarea.insert(END , f"\n Thermal Gun\t\t{self.sanitizer.get()}\t\t{self.m_t_g_p}")
-        if O000000OO00O0O000 .rice .get ()!=0 :#line:309:if self.rice.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Rice\t\t{O000000OO00O0O000.rice.get()}\t\t{O000000OO00O0O000.g_r_p}")#line:310:self.txtarea.insert(END, f"\n Rice\t\t{self.rice.get()}\t\t{self.g_r_p}")
-        if O000000OO00O0O000 .food_oil .get ()!=0 :#line:311:if self.food_oil.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Food Oil\t\t{O000000OO00O0O000.food_oil.get()}\t\t{O000000OO00O0O000.g_f_o_p}")#line:312:self.txtarea.insert(END, f"\n Food Oil\t\t{self.food_oil.get()}\t\t{self.g_f_o_p}")
-        if O000000OO00O0O000 .wheat .get ()!=0 :#line:313:if self.wheat.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Wheat\t\t{O000000OO00O0O000.wheat.get()}\t\t{O000000OO00O0O000.g_w_p}")#line:314:self.txtarea.insert(END, f"\n Wheat\t\t{self.wheat.get()}\t\t{self.g_w_p}")
-        if O000000OO00O0O000 .daal .get ()!=0 :#line:315:if self.daal.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Daal\t\t{O000000OO00O0O000.daal.get()}\t\t{O000000OO00O0O000.g_d_p}")#line:316:self.txtarea.insert(END, f"\n Daal\t\t{self.daal.get()}\t\t{self.g_d_p}")
-        if O000000OO00O0O000 .flour .get ()!=0 :#line:317:if self.flour.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Flour\t\t{O000000OO00O0O000.flour.get()}\t\t{O000000OO00O0O000.g_f_p}")#line:318:self.txtarea.insert(END, f"\n Flour\t\t{self.flour.get()}\t\t{self.g_f_p}")
-        if O000000OO00O0O000 .maggi .get ()!=0 :#line:319:if self.maggi.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Maggi\t\t{O000000OO00O0O000.maggi.get()}\t\t{O000000OO00O0O000.g_m_p}")#line:320:self.txtarea.insert(END, f"\n Maggi\t\t{self.maggi.get()}\t\t{self.g_m_p}")
-        if O000000OO00O0O000 .sprite .get ()!=0 :#line:322:if self.sprite.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Sprite\t\t{O000000OO00O0O000.sprite.get()}\t\t{O000000OO00O0O000.c_d_s_p}")#line:323:self.txtarea.insert(END, f"\n Sprite\t\t{self.sprite.get()}\t\t{self.c_d_s_p}")
-        if O000000OO00O0O000 .limka .get ()!=0 :#line:324:if self.limka.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Sanitizer\t\t{O000000OO00O0O000.limka.get()}\t\t{O000000OO00O0O000.c_d_l_p}")#line:325:self.txtarea.insert(END, f"\n Sanitizer\t\t{self.limka.get()}\t\t{self.c_d_l_p}")
-        if O000000OO00O0O000 .mazza .get ()!=0 :#line:326:if self.mazza.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Mazza\t\t{O000000OO00O0O000.mazza.get()}\t\t{O000000OO00O0O000.c_d_m_p}")#line:327:self.txtarea.insert(END, f"\n Mazza\t\t{self.mazza.get()}\t\t{self.c_d_m_p}")
-        if O000000OO00O0O000 .coke .get ()!=0 :#line:328:if self.coke.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Dettol\t\t{O000000OO00O0O000.coke.get()}\t\t{O000000OO00O0O000.c_d_c_p}")#line:329:self.txtarea.insert(END, f"\n Dettol\t\t{self.coke.get()}\t\t{self.c_d_c_p}")
-        if O000000OO00O0O000 .fanta .get ()!=0 :#line:330:if self.fanta.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Fanta\t\t{O000000OO00O0O000.newsprin.get()}\t\t{O000000OO00O0O000.c_d_f_p}")#line:331:self.txtarea.insert(END, f"\n Fanta\t\t{self.newsprin.get()}\t\t{self.c_d_f_p}")
-        if O000000OO00O0O000 .mountain_duo .get ()!=0 :#line:332:if self.mountain_duo.get() != 0:
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Mountain Duo\t\t{O000000OO00O0O000.sanitizer.get()}\t\t{O000000OO00O0O000.c_m_d}")#line:333:self.txtarea.insert(END, f"\n Mountain Duo\t\t{self.sanitizer.get()}\t\t{self.c_m_d}")
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n--------------------------------")#line:334:self.txtarea.insert(END, f"\n--------------------------------")
-        if O000000OO00O0O000 .medical_tax .get ()!='0.0':#line:336:if self.medical_tax.get() != '0.0':
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Medical Tax\t\t\t{O000000OO00O0O000.medical_tax.get()}")#line:337:self.txtarea.insert(END, f"\n Medical Tax\t\t\t{self.medical_tax.get()}")
-        if O000000OO00O0O000 .grocery_tax .get ()!='0.0':#line:338:if self.grocery_tax.get() != '0.0':
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Grocery Tax\t\t\t{O000000OO00O0O000.grocery_tax.get()}")#line:339:self.txtarea.insert(END, f"\n Grocery Tax\t\t\t{self.grocery_tax.get()}")
-        if O000000OO00O0O000 .cold_drinks_tax .get ()!='0.0':#line:340:if self.cold_drinks_tax.get() != '0.0':
-            O000000OO00O0O000 .txtarea .insert (END ,f"\n Cold Drinks Tax\t\t\t{O000000OO00O0O000.cold_drinks_tax.get()}")#line:341:self.txtarea.insert(END, f"\n Cold Drinks Tax\t\t\t{self.cold_drinks_tax.get()}")
-        O000000OO00O0O000 .txtarea .insert (END ,f"\n Total Bil:\t\t\t Rs.{O000000OO00O0O000.total_bill}")#line:343:self.txtarea.insert(END, f"\n Total Bil:\t\t\t Rs.{self.total_bill}")
-        O000000OO00O0O000 .txtarea .insert (END ,f"\n--------------------------------")#line:344:self.txtarea.insert(END, f"\n--------------------------------")
-        O000000OO00O0O000 .save_bill ()#line:345:self.save_bill()
-    def save_bill (O00OOOO00000O000O ):#line:348:def save_bill(self):
-        O0O0OO000OOO0OO00 =messagebox .askyesno ("Save Bill","Do you want to save the bill?")#line:349:op = messagebox.askyesno("Save Bill", "Do you want to save the bill?")
-        if O0O0OO000OOO0OO00 >0 :#line:350:if op > 0:
-            O00OOOO00000O000O .bill_data =O00OOOO00000O000O .txtarea .get ('1.0',END )#line:351:self.bill_data = self.txtarea.get('1.0', END)
-            O0OO0O0OOOOO00O0O =open ("bills/"+str (O00OOOO00000O000O .bill_no .get ())+".txt","w")#line:352:f1 = open("bills/"+str(self.bill_no.get())+".txt", "w")
-            O0OO0O0OOOOO00O0O .write (O00OOOO00000O000O .bill_data )#line:353:f1.write(self.bill_data)
-            O0OO0O0OOOOO00O0O .close ()#line:354:f1.close()
-            messagebox .showinfo ("Saved",f"Bill no:{O00OOOO00000O000O.bill_no.get()} Saved Successfully")#line:355:messagebox.showinfo("Saved", f"Bill no:{self.bill_no.get()} Saved Successfully")
-        else :#line:356:else:
-           return #line:357:return
-    def find_bill (O00000OOO0000O0OO ):#line:360:def find_bill(self):
-        O0OOOOOO000OO0OO0 ="no"#line:361:present = "no"
-        for OOO0O0OOOO00OOOO0 in os .listdir ("bills/"):#line:362:for i in os.listdir("bills/"):
-            if OOO0O0OOOO00OOOO0 .split ('.')[0 ]==O00000OOO0000O0OO .search_bill .get ():#line:363:if i.split('.')[0] == self.search_bill.get():
-                OO0O00OO0OOOOOOO0 =open (f"bills/{OOO0O0OOOO00OOOO0}","r")#line:364:f1 = open(f"bills/{i}", "r")
-                O00000OOO0000O0OO .txtarea .delete ("1.0",END )#line:365:self.txtarea.delete("1.0", END)
-                for OO0O00OO0OOO0O0OO in OO0O00OO0OOOOOOO0 :#line:366:for d in f1:
-                    O00000OOO0000O0OO .txtarea .insert (END ,OO0O00OO0OOO0O0OO )#line:367:self.txtarea.insert(END, d)
-                    OO0O00OO0OOOOOOO0 .close ()#line:368:f1.close()
-                O0OOOOOO000OO0OO0 ="yes"#line:369:present = "yes"
-        if O0OOOOOO000OO0OO0 =="no":#line:370:if present == "no":
-            messagebox .showerror ("Error","Invalid Bill No")#line:371:messagebox.showerror("Error", "Invalid Bill No")
-    def clear_data (O00O0000OO0OOO0OO ):#line:374:def clear_data(self):
-        OOOOOO0OOO0OOO00O =messagebox .askyesno ("Clear","Do you really want to Clear?")#line:375:op = messagebox.askyesno("Clear", "Do you really want to Clear?")
-        if OOOOOO0OOO0OOO00O >0 :#line:376:if op > 0:
-            O00O0000OO0OOO0OO .sanitizer .set (0 )#line:377:self.sanitizer.set(0)
-            O00O0000OO0OOO0OO .mask .set (0 )#line:378:self.mask.set(0)
-            O00O0000OO0OOO0OO .hand_gloves .set (0 )#line:379:self.hand_gloves.set(0)
-            O00O0000OO0OOO0OO .dettol .set (0 )#line:380:self.dettol.set(0)
-            O00O0000OO0OOO0OO .newsprin .set (0 )#line:381:self.newsprin.set(0)
-            O00O0000OO0OOO0OO .thermal_gun .set (0 )#line:382:self.thermal_gun.set(0)
-            O00O0000OO0OOO0OO .rice .set (0 )#line:384:self.rice.set(0)
-            O00O0000OO0OOO0OO .food_oil .set (0 )#line:385:self.food_oil.set(0)
-            O00O0000OO0OOO0OO .wheat .set (0 )#line:386:self.wheat.set(0)
-            O00O0000OO0OOO0OO .daal .set (0 )#line:387:self.daal.set(0)
-            O00O0000OO0OOO0OO .flour .set (0 )#line:388:self.flour.set(0)
-            O00O0000OO0OOO0OO .maggi .set (0 )#line:389:self.maggi.set(0)
-            O00O0000OO0OOO0OO .sprite .set (0 )#line:391:self.sprite.set(0)
-            O00O0000OO0OOO0OO .limka .set (0 )#line:392:self.limka.set(0)
-            O00O0000OO0OOO0OO .mazza .set (0 )#line:393:self.mazza.set(0)
-            O00O0000OO0OOO0OO .coke .set (0 )#line:394:self.coke.set(0)
-            O00O0000OO0OOO0OO .fanta .set (0 )#line:395:self.fanta.set(0)
-            O00O0000OO0OOO0OO .mountain_duo .set (0 )#line:396:self.mountain_duo.set(0)
-            O00O0000OO0OOO0OO .medical_price .set ("")#line:398:self.medical_price.set("")
-            O00O0000OO0OOO0OO .grocery_price .set ("")#line:399:self.grocery_price.set("")
-            O00O0000OO0OOO0OO .cold_drinks_price .set ("")#line:400:self.cold_drinks_price.set("")
-            O00O0000OO0OOO0OO .medical_tax .set ("")#line:402:self.medical_tax.set("")
-            O00O0000OO0OOO0OO .grocery_tax .set ("")#line:403:self.grocery_tax.set("")
-            O00O0000OO0OOO0OO .cold_drinks_tax .set ("")#line:404:self.cold_drinks_tax.set("")
-            O00O0000OO0OOO0OO .c_name .set ("")#line:406:self.c_name.set("")
-            O00O0000OO0OOO0OO .c_phone .set ("")#line:407:self.c_phone.set("")
-            O00O0000OO0OOO0OO .bill_no .set ("")#line:409:self.bill_no.set("")
-            OO0O00OOO0O0000O0 =random .randint (1000 ,9999 )#line:410:x = random.randint(1000, 9999)
-            O00O0000OO0OOO0OO .bill_no .set (str (OO0O00OOO0O0000O0 ))#line:411:self.bill_no.set(str(x))
-            O00O0000OO0OOO0OO .search_bill .set ("")#line:413:self.search_bill.set("")
-            O00O0000OO0OOO0OO .welcome_bill ()#line:414:self.welcome_bill()
-    def exit_app (O0O0OOOOOO00O0OOO ):#line:417:def exit_app(self):
-        OO00O000O0OO000OO =messagebox .askyesno ("Exit","Do you really want to exit?")#line:418:op = messagebox.askyesno("Exit", "Do you really want to exit?")
-        if OO00O000O0OO000OO >0 :#line:419:if op > 0:
-            O0O0OOOOOO00O0OOO .root .destroy ()#line:420:self.root.destroy()
-root =Tk ()#line:423:root = Tk()
-obj =Bill_App (root )#line:424:obj = Bill_App(root)
-root .mainloop ()#line:425:root.mainloop()
+from __future__ import absolute_import ,division ,unicode_literals #line:1
+from xml .dom import Node #line:3
+from ..constants import namespaces ,voidElements ,spaceCharacters #line:4
+__all__ =["DOCUMENT","DOCTYPE","TEXT","ELEMENT","COMMENT","ENTITY","UNKNOWN","TreeWalker","NonRecursiveTreeWalker"]#line:7
+DOCUMENT =Node .DOCUMENT_NODE #line:9
+DOCTYPE =Node .DOCUMENT_TYPE_NODE #line:10
+TEXT =Node .TEXT_NODE #line:11
+ELEMENT =Node .ELEMENT_NODE #line:12
+COMMENT =Node .COMMENT_NODE #line:13
+ENTITY =Node .ENTITY_NODE #line:14
+UNKNOWN ="<#UNKNOWN#>"#line:15
+spaceCharacters ="".join (spaceCharacters )#line:17
+class TreeWalker (object ):#line:20
+    ""#line:26
+    def __init__ (OOO0OO0OOOO0OOO0O ,O0000OOO0OOO00O00 ):#line:27
+        ""#line:32
+        OOO0OO0OOOO0OOO0O .tree =O0000OOO0OOO00O00 #line:33
+    def __iter__ (O0OOOOOO0O00OOO00 ):#line:35
+        raise NotImplementedError #line:36
+    def error (O0000OOO0O0OOO00O ,OOO0O0O0OO000000O ):#line:38
+        ""#line:45
+        return {"type":"SerializeError","data":OOO0O0O0OO000000O }#line:46
+    def emptyTag (O0O00000O000OOOOO ,OOO0000OOOO00O0OO ,O0O000OO0O0O0O0O0 ,OOO000O0O00000O00 ,hasChildren =False ):#line:48
+        ""#line:62
+        yield {"type":"EmptyTag","name":O0O000OO0O0O0O0O0 ,"namespace":OOO0000OOOO00O0OO ,"data":OOO000O0O00000O00 }#line:65
+        if hasChildren :#line:66
+            yield O0O00000O000OOOOO .error ("Void element has children")#line:67
+    def startTag (O00OOOO0OO0O000OO ,O0000OO0OOO00O0OO ,OOOOOOO0OOO0O0000 ,OO000OO00O0OOO000 ):#line:69
+        ""#line:80
+        return {"type":"StartTag","name":OOOOOOO0OOO0O0000 ,"namespace":O0000OO0OOO00O0OO ,"data":OO000OO00O0OOO000 }#line:84
+    def endTag (OO0O0O000O00O0OO0 ,OO00O00OOOOO00O0O ,OO00OO000OO0OOOOO ):#line:86
+        ""#line:95
+        return {"type":"EndTag","name":OO00OO000OO0OOOOO ,"namespace":OO00O00OOOOO00O0O }#line:98
+    def text (O000O00OOO0000OO0 ,O00OO00OO00OOOO00 ):#line:100
+        ""#line:124
+        O00OO00OO00OOOO00 =O00OO00OO00OOOO00 #line:125
+        OOOO0O0O000OO0O0O =O00OO00OO00OOOO00 .lstrip (spaceCharacters )#line:126
+        OO0O0O00OO00O00OO =O00OO00OO00OOOO00 [:len (O00OO00OO00OOOO00 )-len (OOOO0O0O000OO0O0O )]#line:127
+        if OO0O0O00OO00O00OO :#line:128
+            yield {"type":"SpaceCharacters","data":OO0O0O00OO00O00OO }#line:129
+        O00OO00OO00OOOO00 =OOOO0O0O000OO0O0O #line:130
+        OOOO0O0O000OO0O0O =O00OO00OO00OOOO00 .rstrip (spaceCharacters )#line:131
+        OOO00O000OO000O00 =O00OO00OO00OOOO00 [len (OOOO0O0O000OO0O0O ):]#line:132
+        if OOOO0O0O000OO0O0O :#line:133
+            yield {"type":"Characters","data":OOOO0O0O000OO0O0O }#line:134
+        if OOO00O000OO000O00 :#line:135
+            yield {"type":"SpaceCharacters","data":OOO00O000OO000O00 }#line:136
+    def comment (OO00O0O00OOOO00OO ,OOO0OO0O00000O000 ):#line:138
+        ""#line:145
+        return {"type":"Comment","data":OOO0OO0O00000O000 }#line:146
+    def doctype (OOOO0O00O0O0000O0 ,OOOO0OOO0OOO0O0O0 ,publicId =None ,systemId =None ):#line:148
+        ""#line:159
+        return {"type":"Doctype","name":OOOO0OOO0OOO0O0O0 ,"publicId":publicId ,"systemId":systemId }#line:163
+    def entity (OOOO00OO0O0000000 ,OOO00OOO000O000O0 ):#line:165
+        ""#line:172
+        return {"type":"Entity","name":OOO00OOO000O000O0 }#line:173
+    def unknown (O00O0O00O0O00O000 ,O0O00OOOOO00OOO00 ):#line:175
+        ""#line:176
+        return O00O0O00O0O00O000 .error ("Unknown node type: "+O0O00OOOOO00OOO00 )#line:177
+class NonRecursiveTreeWalker (TreeWalker ):#line:180
+    def getNodeDetails (O000O00000OOOOOO0 ,O00O0OOOO00000O00 ):#line:181
+        raise NotImplementedError #line:182
+    def getFirstChild (OOO000O000000OO0O ,O0O000O0O0O00O000 ):#line:184
+        raise NotImplementedError #line:185
+    def getNextSibling (OOOOO0OO0000O0OO0 ,OOO00O00OO000O0O0 ):#line:187
+        raise NotImplementedError #line:188
+    def getParentNode (OOOO0OO0O0OO00000 ,OOO0O0000O000OOOO ):#line:190
+        raise NotImplementedError #line:191
+    def __iter__ (O0O00O0000O0OO0OO ):#line:193
+        OOOOOOOOO0OOO00O0 =O0O00O0000O0OO0OO .tree #line:194
+        while OOOOOOOOO0OOO00O0 is not None :#line:195
+            O00OO0OO0O0000O00 =O0O00O0000O0OO0OO .getNodeDetails (OOOOOOOOO0OOO00O0 )#line:196
+            OOOOOOOOO0OOO0OOO ,O00OO0OO0O0000O00 =O00OO0OO0O0000O00 [0 ],O00OO0OO0O0000O00 [1 :]#line:197
+            O0O0O0OO000OOO0OO =False #line:198
+            if OOOOOOOOO0OOO0OOO ==DOCTYPE :#line:200
+                yield O0O00O0000O0OO0OO .doctype (*O00OO0OO0O0000O00 )#line:201
+            elif OOOOOOOOO0OOO0OOO ==TEXT :#line:203
+                for OOO00OOO0O0OOO000 in O0O00O0000O0OO0OO .text (*O00OO0OO0O0000O00 ):#line:204
+                    yield OOO00OOO0O0OOO000 #line:205
+            elif OOOOOOOOO0OOO0OOO ==ELEMENT :#line:207
+                OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 ,O0O0O0OO000OOO0OO =O00OO0OO0O0000O00 #line:208
+                if (not OOOO0O00000OO0O0O or OOOO0O00000OO0O0O ==namespaces ["html"])and O00OOO000O0O00OO0 in voidElements :#line:209
+                    for OOO00OOO0O0OOO000 in O0O00O0000O0OO0OO .emptyTag (OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 ,O0O0O0OO000OOO0OO ):#line:211
+                        yield OOO00OOO0O0OOO000 #line:212
+                    O0O0O0OO000OOO0OO =False #line:213
+                else :#line:214
+                    yield O0O00O0000O0OO0OO .startTag (OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 )#line:215
+            elif OOOOOOOOO0OOO0OOO ==COMMENT :#line:217
+                yield O0O00O0000O0OO0OO .comment (O00OO0OO0O0000O00 [0 ])#line:218
+            elif OOOOOOOOO0OOO0OOO ==ENTITY :#line:220
+                yield O0O00O0000O0OO0OO .entity (O00OO0OO0O0000O00 [0 ])#line:221
+            elif OOOOOOOOO0OOO0OOO ==DOCUMENT :#line:223
+                O0O0O0OO000OOO0OO =True #line:224
+            else :#line:226
+                yield O0O00O0000O0OO0OO .unknown (O00OO0OO0O0000O00 [0 ])#line:227
+            if O0O0O0OO000OOO0OO :#line:229
+                OOOO000OOO0OO000O =O0O00O0000O0OO0OO .getFirstChild (OOOOOOOOO0OOO00O0 )#line:230
+            else :#line:231
+                OOOO000OOO0OO000O =None #line:232
+            if OOOO000OOO0OO000O is not None :#line:234
+                OOOOOOOOO0OOO00O0 =OOOO000OOO0OO000O #line:235
+            else :#line:236
+                while OOOOOOOOO0OOO00O0 is not None :#line:237
+                    O00OO0OO0O0000O00 =O0O00O0000O0OO0OO .getNodeDetails (OOOOOOOOO0OOO00O0 )#line:238
+                    OOOOOOOOO0OOO0OOO ,O00OO0OO0O0000O00 =O00OO0OO0O0000O00 [0 ],O00OO0OO0O0000O00 [1 :]#line:239
+                    if OOOOOOOOO0OOO0OOO ==ELEMENT :#line:240
+                        OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 ,O0O0O0OO000OOO0OO =O00OO0OO0O0000O00 #line:241
+                        if (OOOO0O00000OO0O0O and OOOO0O00000OO0O0O !=namespaces ["html"])or O00OOO000O0O00OO0 not in voidElements :#line:242
+                            yield O0O00O0000O0OO0OO .endTag (OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 )#line:243
+                    if O0O00O0000O0OO0OO .tree is OOOOOOOOO0OOO00O0 :#line:244
+                        OOOOOOOOO0OOO00O0 =None #line:245
+                        break #line:246
+                    OOO00OO00O00O0000 =O0O00O0000O0OO0OO .getNextSibling (OOOOOOOOO0OOO00O0 )#line:247
+                    if OOO00OO00O00O0000 is not None :#line:248
+                        OOOOOOOOO0OOO00O0 =OOO00OO00O00O0000 #line:249
+                        break #line:250
+                    else :#line:251
+                        OOOOOOOOO0OOO00O0 =O0O00O0000O0OO0OO .getParentNode (OOOOOOOOO0OOO00O0 )#line:252

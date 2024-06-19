@@ -1,169 +1,137 @@
-""#line:11:"""
-import logging #line:13:import logging
-from collections import defaultdict #line:14:from collections import defaultdict
-from itertools import chain #line:15:from itertools import chain
-from pip ._internal .exceptions import (BestVersionAlreadyInstalled ,DistributionNotFound ,HashError ,HashErrors ,UnsupportedPythonVersion ,)#line:20:)
-from pip ._internal .req .constructors import install_req_from_req_string #line:21:from pip._internal.req.constructors import install_req_from_req_string
-from pip ._internal .utils .logging import indent_log #line:22:from pip._internal.utils.logging import indent_log
-from pip ._internal .utils .misc import dist_in_usersite ,ensure_dir #line:23:from pip._internal.utils.misc import dist_in_usersite, ensure_dir
-from pip ._internal .utils .packaging import check_dist_requires_python #line:24:from pip._internal.utils.packaging import check_dist_requires_python
-from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:25:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-if MYPY_CHECK_RUNNING :#line:27:if MYPY_CHECK_RUNNING:
-    from typing import Optional ,DefaultDict ,List ,Set #line:28:from typing import Optional, DefaultDict, List, Set  # noqa: F401
-    from pip ._internal .download import PipSession #line:29:from pip._internal.download import PipSession  # noqa: F401
-    from pip ._internal .req .req_install import InstallRequirement #line:30:from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from pip ._internal .index import PackageFinder #line:31:from pip._internal.index import PackageFinder  # noqa: F401
-    from pip ._internal .req .req_set import RequirementSet #line:32:from pip._internal.req.req_set import RequirementSet  # noqa: F401
-    from pip ._internal .operations .prepare import (DistAbstraction ,RequirementPreparer )#line:35:)
-    from pip ._internal .cache import WheelCache #line:36:from pip._internal.cache import WheelCache  # noqa: F401
-logger =logging .getLogger (__name__ )#line:38:logger = logging.getLogger(__name__)
-class Resolver (object ):#line:41:class Resolver(object):
-    ""#line:44:"""
-    _allowed_strategies ={"eager","only-if-needed","to-satisfy-only"}#line:46:_allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
-    def __init__ (O0O0OOOO0OOOOOOO0 ,OO0OO0OO00OOOO000 ,OO0O0O0O00OO00OO0 ,O0OO0O00O00O0O000 ,OOOOOO000OO00O0O0 ,O00OOOO00OO0O0OOO ,O0O0O000OOO0OOOO0 ,O0OO0O00000OOOO00 ,OOO00OOO0000OOOO0 ,OOO0O000O0OOOO0OO ,OOO00O0O0O00O0O00 ,OOOO00000000000O0 ,use_pep517 =None ):#line:62:):
-        super (Resolver ,O0O0OOOO0OOOOOOO0 ).__init__ ()#line:64:super(Resolver, self).__init__()
-        assert OOOO00000000000O0 in O0O0OOOO0OOOOOOO0 ._allowed_strategies #line:65:assert upgrade_strategy in self._allowed_strategies
-        O0O0OOOO0OOOOOOO0 .preparer =OO0OO0OO00OOOO000 #line:67:self.preparer = preparer
-        O0O0OOOO0OOOOOOO0 .finder =O0OO0O00O00O0O000 #line:68:self.finder = finder
-        O0O0OOOO0OOOOOOO0 .session =OO0O0O0O00OO00OO0 #line:69:self.session = session
-        O0O0OOOO0OOOOOOO0 .wheel_cache =OOOOOO000OO00O0O0 #line:73:self.wheel_cache = wheel_cache
-        O0O0OOOO0OOOOOOO0 .require_hashes =None #line:76:self.require_hashes = None  # type: Optional[bool]
-        O0O0OOOO0OOOOOOO0 .upgrade_strategy =OOOO00000000000O0 #line:78:self.upgrade_strategy = upgrade_strategy
-        O0O0OOOO0OOOOOOO0 .force_reinstall =OOO0O000O0OOOO0OO #line:79:self.force_reinstall = force_reinstall
-        O0O0OOOO0OOOOOOO0 .isolated =OOO00O0O0O00O0O00 #line:80:self.isolated = isolated
-        O0O0OOOO0OOOOOOO0 .ignore_dependencies =O0O0O000OOO0OOOO0 #line:81:self.ignore_dependencies = ignore_dependencies
-        O0O0OOOO0OOOOOOO0 .ignore_installed =O0OO0O00000OOOO00 #line:82:self.ignore_installed = ignore_installed
-        O0O0OOOO0OOOOOOO0 .ignore_requires_python =OOO00OOO0000OOOO0 #line:83:self.ignore_requires_python = ignore_requires_python
-        O0O0OOOO0OOOOOOO0 .use_user_site =O00OOOO00OO0O0OOO #line:84:self.use_user_site = use_user_site
-        O0O0OOOO0OOOOOOO0 .use_pep517 =use_pep517 #line:85:self.use_pep517 = use_pep517
-        O0O0OOOO0OOOOOOO0 ._discovered_dependencies =defaultdict (list )#line:88:defaultdict(list)  # type: DefaultDict[str, List]
-    def resolve (OOOO0OOO0OOO00O00 ,OOO00O00O0O00O000 ):#line:90:def resolve(self, requirement_set):
-        ""#line:101:"""
-        if OOOO0OOO0OOO00O00 .preparer .wheel_download_dir :#line:103:if self.preparer.wheel_download_dir:
-            ensure_dir (OOOO0OOO0OOO00O00 .preparer .wheel_download_dir )#line:104:ensure_dir(self.preparer.wheel_download_dir)
-        O0OOOO0O0O0OOOOO0 =(OOO00O00O0O00O000 .unnamed_requirements +list (OOO00O00O0O00O000 .requirements .values ()))#line:111:)
-        OOOO0OOO0OOO00O00 .require_hashes =(OOO00O00O0O00O000 .require_hashes or any (O000OO000OO0OOOO0 .has_hash_options for O000OO000OO0OOOO0 in O0OOOO0O0O0OOOOO0 ))#line:115:)
-        OO0OOO000000OOOO0 =OOOO0OOO0OOO00O00 .finder .get_formatted_locations ()#line:118:locations = self.finder.get_formatted_locations()
-        if OO0OOO000000OOOO0 :#line:119:if locations:
-            logger .info (OO0OOO000000OOOO0 )#line:120:logger.info(locations)
-        OOO00OO0O0O0OO0O0 =[]#line:126:discovered_reqs = []  # type: List[InstallRequirement]
-        OO000O0000000OO0O =HashErrors ()#line:127:hash_errors = HashErrors()
-        for O0000OO00O00000OO in chain (O0OOOO0O0O0OOOOO0 ,OOO00OO0O0O0OO0O0 ):#line:128:for req in chain(root_reqs, discovered_reqs):
-            try :#line:129:try:
-                OOO00OO0O0O0OO0O0 .extend (OOOO0OOO0OOO00O00 ._resolve_one (OOO00O00O0O00O000 ,O0000OO00O00000OO ))#line:132:)
-            except HashError as O0O00000O0OOOOOO0 :#line:133:except HashError as exc:
-                O0O00000O0OOOOOO0 .req =O0000OO00O00000OO #line:134:exc.req = req
-                OO000O0000000OO0O .append (O0O00000O0OOOOOO0 )#line:135:hash_errors.append(exc)
-        if OO000O0000000OO0O :#line:137:if hash_errors:
-            raise OO000O0000000OO0O #line:138:raise hash_errors
-    def _is_upgrade_allowed (OO0O0OO0OOOO00O00 ,O0OO0OO0O00O00O00 ):#line:140:def _is_upgrade_allowed(self, req):
-        if OO0O0OO0OOOO00O00 .upgrade_strategy =="to-satisfy-only":#line:142:if self.upgrade_strategy == "to-satisfy-only":
-            return False #line:143:return False
-        elif OO0O0OO0OOOO00O00 .upgrade_strategy =="eager":#line:144:elif self.upgrade_strategy == "eager":
-            return True #line:145:return True
-        else :#line:146:else:
-            assert OO0O0OO0OOOO00O00 .upgrade_strategy =="only-if-needed"#line:147:assert self.upgrade_strategy == "only-if-needed"
-            return O0OO0OO0O00O00O00 .is_direct #line:148:return req.is_direct
-    def _set_req_to_reinstall (O0O00OOO0OOO0OO0O ,OO00000OOO00OO0O0 ):#line:150:def _set_req_to_reinstall(self, req):
-        ""#line:154:"""
-        if not O0O00OOO0OOO0OO0O .use_user_site or dist_in_usersite (OO00000OOO00OO0O0 .satisfied_by ):#line:157:if not self.use_user_site or dist_in_usersite(req.satisfied_by):
-            OO00000OOO00OO0O0 .conflicts_with =OO00000OOO00OO0O0 .satisfied_by #line:158:req.conflicts_with = req.satisfied_by
-        OO00000OOO00OO0O0 .satisfied_by =None #line:159:req.satisfied_by = None
-    def _check_skip_installed (O0000O00OOOOO0O00 ,OO00O000OO00O0OOO ):#line:162:def _check_skip_installed(self, req_to_install):
-        ""#line:180:"""
-        if O0000O00OOOOO0O00 .ignore_installed :#line:181:if self.ignore_installed:
-            return None #line:182:return None
-        OO00O000OO00O0OOO .check_if_exists (O0000O00OOOOO0O00 .use_user_site )#line:184:req_to_install.check_if_exists(self.use_user_site)
-        if not OO00O000OO00O0OOO .satisfied_by :#line:185:if not req_to_install.satisfied_by:
-            return None #line:186:return None
-        if O0000O00OOOOO0O00 .force_reinstall :#line:188:if self.force_reinstall:
-            O0000O00OOOOO0O00 ._set_req_to_reinstall (OO00O000OO00O0OOO )#line:189:self._set_req_to_reinstall(req_to_install)
-            return None #line:190:return None
-        if not O0000O00OOOOO0O00 ._is_upgrade_allowed (OO00O000OO00O0OOO ):#line:192:if not self._is_upgrade_allowed(req_to_install):
-            if O0000O00OOOOO0O00 .upgrade_strategy =="only-if-needed":#line:193:if self.upgrade_strategy == "only-if-needed":
-                return 'already satisfied, skipping upgrade'#line:194:return 'already satisfied, skipping upgrade'
-            return 'already satisfied'#line:195:return 'already satisfied'
-        if not OO00O000OO00O0OOO .link :#line:200:if not req_to_install.link:
-            try :#line:201:try:
-                O0000O00OOOOO0O00 .finder .find_requirement (OO00O000OO00O0OOO ,upgrade =True )#line:202:self.finder.find_requirement(req_to_install, upgrade=True)
-            except BestVersionAlreadyInstalled :#line:203:except BestVersionAlreadyInstalled:
-                return 'already up-to-date'#line:205:return 'already up-to-date'
-            except DistributionNotFound :#line:206:except DistributionNotFound:
-                pass #line:210:pass
-        O0000O00OOOOO0O00 ._set_req_to_reinstall (OO00O000OO00O0OOO )#line:212:self._set_req_to_reinstall(req_to_install)
-        return None #line:213:return None
-    def _get_abstract_dist_for (O0O0OO000000O0000 ,O0OO0OO000OO0OO00 ):#line:215:def _get_abstract_dist_for(self, req):
-        ""#line:219:"""
-        assert O0O0OO000000O0000 .require_hashes is not None ,("require_hashes should have been set in Resolver.resolve()")#line:222:)
-        if O0OO0OO000OO0OO00 .editable :#line:224:if req.editable:
-            return O0O0OO000000O0000 .preparer .prepare_editable_requirement (O0OO0OO000OO0OO00 ,O0O0OO000000O0000 .require_hashes ,O0O0OO000000O0000 .use_user_site ,O0O0OO000000O0000 .finder ,)#line:227:)
-        assert O0OO0OO000OO0OO00 .satisfied_by is None #line:231:assert req.satisfied_by is None
-        OOO00O0OOO00OO0OO =O0O0OO000000O0000 ._check_skip_installed (O0OO0OO000OO0OO00 )#line:232:skip_reason = self._check_skip_installed(req)
-        if O0OO0OO000OO0OO00 .satisfied_by :#line:234:if req.satisfied_by:
-            return O0O0OO000000O0000 .preparer .prepare_installed_requirement (O0OO0OO000OO0OO00 ,O0O0OO000000O0000 .require_hashes ,OOO00O0OOO00OO0OO )#line:237:)
-        OO000O00O00O0O0O0 =O0O0OO000000O0000 ._is_upgrade_allowed (O0OO0OO000OO0OO00 )#line:239:upgrade_allowed = self._is_upgrade_allowed(req)
-        O0OOOO00OO0OO0OOO =O0O0OO000000O0000 .preparer .prepare_linked_requirement (O0OO0OO000OO0OO00 ,O0O0OO000000O0000 .session ,O0O0OO000000O0000 .finder ,OO000O00O00O0O0O0 ,O0O0OO000000O0000 .require_hashes )#line:243:)
-        if not O0O0OO000000O0000 .ignore_installed :#line:253:if not self.ignore_installed:
-            O0OO0OO000OO0OO00 .check_if_exists (O0O0OO000000O0000 .use_user_site )#line:254:req.check_if_exists(self.use_user_site)
-        if O0OO0OO000OO0OO00 .satisfied_by :#line:256:if req.satisfied_by:
-            O000O00000O0O000O =(O0O0OO000000O0000 .upgrade_strategy !="to-satisfy-only"or O0O0OO000000O0000 .force_reinstall or O0O0OO000000O0000 .ignore_installed or O0OO0OO000OO0OO00 .link .scheme =='file')#line:262:)
-            if O000O00000O0O000O :#line:263:if should_modify:
-                O0O0OO000000O0000 ._set_req_to_reinstall (O0OO0OO000OO0OO00 )#line:264:self._set_req_to_reinstall(req)
-            else :#line:265:else:
-                logger .info ('Requirement already satisfied (use --upgrade to upgrade):' ' %s',O0OO0OO000OO0OO00 ,)#line:269:)
-        return O0OOOO00OO0OO0OOO #line:271:return abstract_dist
-    def _resolve_one (O00O0OOOOOO0O00O0 ,OO0000000OOO0OOOO ,OO000000OOO0O0OOO ):#line:277:):
-        ""#line:282:"""
-        if OO000000OOO0O0OOO .constraint or OO000000OOO0O0OOO .prepared :#line:286:if req_to_install.constraint or req_to_install.prepared:
-            return []#line:287:return []
-        OO000000OOO0O0OOO .prepared =True #line:289:req_to_install.prepared = True
-        OO0000000OOO0OOOO .reqs_to_cleanup .append (OO000000OOO0O0OOO )#line:292:requirement_set.reqs_to_cleanup.append(req_to_install)
-        OOOOOOOOO0O00OO0O =O00O0OOOOOO0O00O0 ._get_abstract_dist_for (OO000000OOO0O0OOO )#line:294:abstract_dist = self._get_abstract_dist_for(req_to_install)
-        OO0O000O0OO00000O =OOOOOOOOO0O00OO0O .dist ()#line:297:dist = abstract_dist.dist()
-        try :#line:298:try:
-            check_dist_requires_python (OO0O000O0OO00000O )#line:299:check_dist_requires_python(dist)
-        except UnsupportedPythonVersion as OO0OOO000O00OO000 :#line:300:except UnsupportedPythonVersion as err:
-            if O00O0OOOOOO0O00O0 .ignore_requires_python :#line:301:if self.ignore_requires_python:
-                logger .warning (OO0OOO000O00OO000 .args [0 ])#line:302:logger.warning(err.args[0])
-            else :#line:303:else:
-                raise #line:304:raise
-        O0O0000O000O00OO0 =[]#line:306:more_reqs = []  # type: List[InstallRequirement]
-        def O00O0OO000OO00000 (OOOOO0OO0000OOOO0 ,O0O00O0OOO0O00O0O ):#line:308:def add_req(subreq, extras_requested):
-            OO0OOOO00OO0000OO =install_req_from_req_string (str (OOOOO0OO0000OOOO0 ),OO000000OOO0O0OOO ,isolated =O00O0OOOOOO0O00O0 .isolated ,wheel_cache =O00O0OOOOOO0O00O0 .wheel_cache ,use_pep517 =O00O0OOOOOO0O00O0 .use_pep517 )#line:315:)
-            O0O00OO0O0OO00OOO =OO000000OOO0O0OOO .name #line:316:parent_req_name = req_to_install.name
-            OO00OO00O000OOOOO ,OOO0O0000000O000O =OO0000000OOO0OOOO .add_requirement (OO0OOOO00OO0000OO ,parent_req_name =O0O00OO0O0OO00OOO ,extras_requested =O0O00O0OOO0O00O0O ,)#line:321:)
-            if O0O00OO0O0OO00OOO and OOO0O0000000O000O :#line:322:if parent_req_name and add_to_parent:
-                O00O0OOOOOO0O00O0 ._discovered_dependencies [O0O00OO0O0OO00OOO ].append (OOO0O0000000O000O )#line:325:)
-            O0O0000O000O00OO0 .extend (OO00OO00O000OOOOO )#line:326:more_reqs.extend(to_scan_again)
-        with indent_log ():#line:328:with indent_log():
-            if not OO0000000OOO0OOOO .has_requirement (OO000000OOO0O0OOO .name ):#line:331:if not requirement_set.has_requirement(req_to_install.name):
-                OO000000OOO0O0OOO .is_direct =True #line:333:req_to_install.is_direct = True
-                OO0000000OOO0OOOO .add_requirement (OO000000OOO0O0OOO ,parent_req_name =None ,)#line:336:)
-            if not O00O0OOOOOO0O00O0 .ignore_dependencies :#line:338:if not self.ignore_dependencies:
-                if OO000000OOO0O0OOO .extras :#line:339:if req_to_install.extras:
-                    logger .debug ("Installing extra requirements: %r",','.join (OO000000OOO0O0OOO .extras ),)#line:343:)
-                O0O0O0OOO00OOOOO0 =sorted (set (OO000000OOO0O0OOO .extras )-set (OO0O000O0OO00000O .extras ))#line:346:)
-                for OOOO0OO00O000OOO0 in O0O0O0OOO00OOOOO0 :#line:347:for missing in missing_requested:
-                    logger .warning ('%s does not provide the extra \'%s\'',OO0O000O0OO00000O ,OOOO0OO00O000OOO0 )#line:351:)
-                OOOO0OOO00O00OO0O =sorted (set (OO0O000O0OO00000O .extras )&set (OO000000OOO0O0OOO .extras ))#line:355:)
-                for OO0OO0O0OO0O00OOO in OO0O000O0OO00000O .requires (OOOO0OOO00O00OO0O ):#line:356:for subreq in dist.requires(available_requested):
-                    O00O0OO000OO00000 (OO0OO0O0OO0O00OOO ,extras_requested =OOOO0OOO00O00OO0O )#line:357:add_req(subreq, extras_requested=available_requested)
-            if not OO000000OOO0O0OOO .editable and not OO000000OOO0O0OOO .satisfied_by :#line:359:if not req_to_install.editable and not req_to_install.satisfied_by:
-                OO0000000OOO0OOOO .successfully_downloaded .append (OO000000OOO0O0OOO )#line:363:requirement_set.successfully_downloaded.append(req_to_install)
-        return O0O0000O000O00OO0 #line:365:return more_reqs
-    def get_installation_order (OOOOOO0OOOOO0O00O ,O0O00000OO0OO00OO ):#line:367:def get_installation_order(self, req_set):
-        ""#line:374:"""
-        OO0000OOO0O000O0O =[]#line:378:order = []
-        OO0O0O0OOOOOO0O00 =set ()#line:379:ordered_reqs = set()  # type: Set[InstallRequirement]
-        def OO0OOO0OOOO00O00O (O00O0O0000O0O0OOO ):#line:381:def schedule(req):
-            if O00O0O0000O0O0OOO .satisfied_by or O00O0O0000O0O0OOO in OO0O0O0OOOOOO0O00 :#line:382:if req.satisfied_by or req in ordered_reqs:
-                return #line:383:return
-            if O00O0O0000O0O0OOO .constraint :#line:384:if req.constraint:
-                return #line:385:return
-            OO0O0O0OOOOOO0O00 .add (O00O0O0000O0O0OOO )#line:386:ordered_reqs.add(req)
-            for O0OOO0OOO00OOOO00 in OOOOOO0OOOOO0O00O ._discovered_dependencies [O00O0O0000O0O0OOO .name ]:#line:387:for dep in self._discovered_dependencies[req.name]:
-                OO0OOO0OOOO00O00O (O0OOO0OOO00OOOO00 )#line:388:schedule(dep)
-            OO0000OOO0O000O0O .append (O00O0O0000O0O0OOO )#line:389:order.append(req)
-        for O0O00O0OO0O0O0OOO in O0O00000OO0OO00OO .requirements .values ():#line:391:for install_req in req_set.requirements.values():
-            OO0OOO0OOOO00O00O (O0O00O0OO0O0O0OOO )#line:392:schedule(install_req)
-        return OO0000OOO0O000O0O #line:393:return order
+#!/usr/bin/env python
+from tkinter import *#line:23
+import math as m #line:24
+root =Tk ()#line:25
+root .title ("Simple Calculator")#line:27
+e =Entry (root ,width =50 ,borderwidth =5 ,relief =RIDGE ,fg ="White",bg ="Black")#line:28
+e .grid (row =0 ,column =0 ,columnspan =5 ,padx =10 ,pady =15 )#line:29
+def click (OOOOO00000OO0O00O ):#line:32
+	O00OOOO0OO0OOO000 =e .get ()#line:33
+	e .delete (0 ,END )#line:34
+	e .insert (0 ,O00OOOO0OO0OOO000 +OOOOO00000OO0O00O )#line:35
+	return #line:36
+def sc (O00O000OO00OO0O00 ):#line:38
+	OOOO000O0O00OO000 =O00O000OO00OO0O00 .widget #line:39
+	O0O0O0O000000OOOO =OOOO000O0O00OO000 ['text']#line:40
+	OOO000O00O0O0O0O0 =e .get ()#line:41
+	OOO0OOOOOOO0O00OO =''#line:42
+	if O0O0O0O000000OOOO =='deg':#line:43
+		OOO0OOOOOOO0O00OO =str (m .degrees (float (OOO000O00O0O0O0O0 )))#line:44
+	if O0O0O0O000000OOOO =='sin':#line:45
+		OOO0OOOOOOO0O00OO =str (m .sin (float (OOO000O00O0O0O0O0 )))#line:46
+	if O0O0O0O000000OOOO =='cos':#line:47
+		OOO0OOOOOOO0O00OO =str (m .cos (float (OOO000O00O0O0O0O0 )))#line:48
+	if O0O0O0O000000OOOO =='tan':#line:49
+		OOO0OOOOOOO0O00OO =str (m .tan (float (OOO000O00O0O0O0O0 )))#line:50
+	if O0O0O0O000000OOOO =='lg':#line:51
+		OOO0OOOOOOO0O00OO =str (m .log10 (float (OOO000O00O0O0O0O0 )))#line:52
+	if O0O0O0O000000OOOO =='ln':#line:53
+		OOO0OOOOOOO0O00OO =str (m .log (float (OOO000O00O0O0O0O0 )))#line:54
+	if O0O0O0O000000OOOO =='Sqrt':#line:55
+		OOO0OOOOOOO0O00OO =str (m .sqrt (float (OOO000O00O0O0O0O0 )))#line:56
+	if O0O0O0O000000OOOO =='x!':#line:57
+		OOO0OOOOOOO0O00OO =str (m .factorial (float (OOO000O00O0O0O0O0 )))#line:58
+	if O0O0O0O000000OOOO =='1/x':#line:59
+		OOO0OOOOOOO0O00OO =str (1 /(float (OOO000O00O0O0O0O0 )))#line:60
+	if O0O0O0O000000OOOO =='pi':#line:61
+		if OOO000O00O0O0O0O0 =="":#line:62
+			OOO0OOOOOOO0O00OO =str (m .pi )#line:63
+		else :#line:64
+			OOO0OOOOOOO0O00OO =str (float (OOO000O00O0O0O0O0 )*m .pi )#line:65
+	if O0O0O0O000000OOOO =='e':#line:66
+		if OOO000O00O0O0O0O0 =="":#line:67
+			OOO0OOOOOOO0O00OO =str (m .e )#line:68
+		else :#line:69
+			OOO0OOOOOOO0O00OO =str (m .e **float (OOO000O00O0O0O0O0 ))#line:70
+	e .delete (0 ,END )#line:72
+	e .insert (0 ,OOO0OOOOOOO0O00OO )#line:73
+def clear ():#line:76
+	e .delete (0 ,END )#line:77
+	return #line:78
+def bksps ():#line:81
+	OOO0000O0OOOOOOO0 =e .get ()#line:82
+	OO0000OOOO0OO0O0O =len (OOO0000O0OOOOOOO0 )-1 #line:83
+	e .delete (OO0000OOOO0OO0O0O ,END )#line:84
+def evaluate ():#line:87
+	OO0O0OO0O00O00000 =e .get ()#line:88
+	OO0O0OO0O00O00000 =eval (OO0O0OO0O00O00000 )#line:89
+	e .delete (0 ,END )#line:90
+	e .insert (0 ,OO0O0OO0O00O00000 )#line:91
+lg =Button (root ,text ="log",padx =24 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:94
+lg .bind ("<Button-1>",sc )#line:95
+ln =Button (root ,text ="ln",padx =28 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:96
+ln .bind ("<Button-1>",sc )#line:97
+par1st =Button (root ,text ="(",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click ("("))#line:98
+par2nd =Button (root ,text =")",padx =30 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click (")"))#line:99
+dot =Button (root ,text =".",padx =29 ,pady =10 ,relief =RAISED ,bg ="Green",fg ="Black",command =lambda :click ("."))#line:100
+exp =Button (root ,text ="^",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click ("**"))#line:102
+degb =Button (root ,text ="deg",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:104
+degb .bind ("<Button-1>",sc )#line:105
+sinb =Button (root ,text ="sin",padx =24 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",)#line:106
+sinb .bind ("<Button-1>",sc )#line:107
+cosb =Button (root ,text ="cos",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:108
+cosb .bind ("<Button-1>",sc )#line:109
+tanb =Button (root ,text ="tan",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:110
+tanb .bind ("<Button-1>",sc )#line:111
+sqrtm =Button (root ,text ="Sqrt",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:114
+sqrtm .bind ("<Button-1>",sc )#line:115
+ac =Button (root ,text ="C",padx =29 ,pady =10 ,relief =RAISED ,bg ="Dark Red",fg ="White",command =lambda :clear ())#line:116
+bksp =Button (root ,text ="DEL",padx =24 ,pady =10 ,relief =RAISED ,bg ="Dark Red",fg ="White",command =lambda :bksps ())#line:117
+mod =Button (root ,text =" % ",padx =24 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click ("%"))#line:118
+div =Button (root ,text ="/",padx =29 ,pady =10 ,relief =RAISED ,bg ="yellow",fg ="Black",command =lambda :click ("/"))#line:119
+fact =Button (root ,text ="x!",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:121
+fact .bind ("<Button-1>",sc )#line:122
+seven =Button (root ,text ="7",padx =30 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("7"))#line:123
+eight =Button (root ,text ="8",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("8"))#line:124
+nine =Button (root ,text ="9",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("9"))#line:125
+mult =Button (root ,text ="X",padx =29 ,pady =10 ,relief =RAISED ,bg ="Yellow",fg ="Black",command =lambda :click ("*"))#line:126
+frac =Button (root ,text ="1/x",padx =25 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:128
+frac .bind ("<Button-1>",sc )#line:129
+four =Button (root ,text ="4",padx =30 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("4"))#line:130
+five =Button (root ,text ="5",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("5"))#line:131
+six =Button (root ,text ="6",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("6"))#line:132
+minus =Button (root ,text ="-",padx =29 ,pady =10 ,relief =RAISED ,bg ="Yellow",fg ="Black",command =lambda :click ("-"))#line:133
+pib =Button (root ,text ="pi",padx =28 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:135
+pib .bind ("<Button-1>",sc )#line:136
+one =Button (root ,text ="1",padx =30 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("1"))#line:137
+two =Button (root ,text ="2",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("2"))#line:138
+three =Button (root ,text ="3",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("3"))#line:139
+plus =Button (root ,text ="+",padx =29 ,pady =10 ,relief =RAISED ,bg ="Yellow",fg ="Black",command =lambda :click ("+"))#line:140
+e_b =Button (root ,text ="e",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:142
+e_b .bind ("<Button-1>",sc )#line:143
+zero =Button (root ,text ="0",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("0"))#line:144
+equal =Button (root ,text ="=",padx =29 ,pady =10 ,relief =RAISED ,bg ="Dark Orange",fg ="Black",command =lambda :evaluate ())#line:145
+bksp .grid (row =1 ,column =0 )#line:148
+ln .grid (row =1 ,column =1 )#line:149
+par1st .grid (row =1 ,column =2 )#line:150
+par2nd .grid (row =1 ,column =3 )#line:151
+ac .grid (row =1 ,column =4 )#line:152
+lg .grid (row =2 ,column =0 )#line:154
+degb .grid (row =2 ,column =1 )#line:155
+sinb .grid (row =2 ,column =2 )#line:156
+cosb .grid (row =2 ,column =3 )#line:157
+tanb .grid (row =2 ,column =4 )#line:158
+sqrtm .grid (row =3 ,column =0 )#line:160
+e_b .grid (row =3 ,column =1 )#line:161
+exp .grid (row =3 ,column =2 )#line:162
+mod .grid (row =3 ,column =3 )#line:163
+div .grid (row =3 ,column =4 )#line:164
+fact .grid (row =4 ,column =0 )#line:166
+seven .grid (row =4 ,column =1 )#line:167
+eight .grid (row =4 ,column =2 )#line:168
+nine .grid (row =4 ,column =3 )#line:169
+mult .grid (row =4 ,column =4 )#line:170
+frac .grid (row =5 ,column =0 )#line:172
+four .grid (row =5 ,column =1 )#line:173
+five .grid (row =5 ,column =2 )#line:174
+six .grid (row =5 ,column =3 )#line:175
+minus .grid (row =5 ,column =4 )#line:176
+pib .grid (row =6 ,column =0 )#line:178
+one .grid (row =6 ,column =1 )#line:179
+two .grid (row =6 ,column =2 )#line:180
+three .grid (row =6 ,column =3 )#line:181
+plus .grid (row =6 ,column =4 )#line:182
+dot .grid (row =7 ,column =1 )#line:184
+zero .grid (row =7 ,column =2 )#line:185
+equal .grid (row =7 ,column =3 )#line:186
+root .mainloop ()#line:188

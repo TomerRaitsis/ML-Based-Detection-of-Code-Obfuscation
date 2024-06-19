@@ -1,54 +1,20 @@
-from __future__ import absolute_import #line:1
-import io #line:3
-import os #line:4
-import sys #line:5
-from pip ._vendor import pytoml ,six #line:7
-from pip ._internal .exceptions import InstallationError #line:9
-from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:10
-if MYPY_CHECK_RUNNING :#line:12
-    from typing import Any ,Tuple ,Optional ,List #line:13
-def _O0O0OOOO000OO0O00 (O0O00O0OO00OO00OO ):#line:16
-    return (isinstance (O0O00O0OO00OO00OO ,list )and all (isinstance (O0OOOO000O00O0OO0 ,six .string_types )for O0OOOO000O00O0OO0 in O0O00O0OO00OO00OO ))#line:21
-def make_pyproject_path (O000000O000O00O00 ):#line:24
-    OOOOO00O0O0OOO0O0 =os .path .join (O000000O000O00O00 ,'pyproject.toml')#line:26
-    if six .PY2 and isinstance (OOOOO00O0O0OOO0O0 ,six .text_type ):#line:29
-        OOOOO00O0O0OOO0O0 =OOOOO00O0O0OOO0O0 .encode (sys .getfilesystemencoding ())#line:30
-    return OOOOO00O0O0OOO0O0 #line:32
-def load_pyproject_toml (OOOO00OO0OOO000OO ,O00000O0000OO0O0O ,OOO0000O00OOO0000 ,OOOOO0O0O000OOO0O ):#line:40
-    ""#line:60
-    O00O000O0O0OO0OO0 =os .path .isfile (O00000O0000OO0O0O )#line:61
-    OOO00O00OO0O0O0OO =os .path .isfile (OOO0000O00OOO0000 )#line:62
-    if O00O000O0O0OO0OO0 :#line:64
-        with io .open (O00000O0000OO0O0O ,encoding ="utf-8")as O0O00OO000000000O :#line:65
-            OO0OOOOOOO0O000OO =pytoml .load (O0O00OO000000000O )#line:66
-        OO00OO0OO000OOO0O =OO0OOOOOOO0O000OO .get ("build-system")#line:67
-    else :#line:68
-        OO00OO0OO000OOO0O =None #line:69
-    if O00O000O0O0OO0OO0 and not OOO00O00OO0O0O0OO :#line:77
-        if OOOO00OO0OOO000OO is not None and not OOOO00OO0OOO000OO :#line:78
-            raise InstallationError ("Disabling PEP 517 processing is invalid: " "project does not have a setup.py")#line:82
-        OOOO00OO0OOO000OO =True #line:83
-    elif OO00OO0OO000OOO0O and "build-backend"in OO00OO0OO000OOO0O :#line:84
-        if OOOO00OO0OOO000OO is not None and not OOOO00OO0OOO000OO :#line:85
-            raise InstallationError ("Disabling PEP 517 processing is invalid: " "project specifies a build backend of {} " "in pyproject.toml".format (OO00OO0OO000OOO0O ["build-backend"]))#line:92
-        OOOO00OO0OOO000OO =True #line:93
-    elif OOOO00OO0OOO000OO is None :#line:98
-        OOOO00OO0OOO000OO =O00O000O0O0OO0OO0 #line:99
-    assert OOOO00OO0OOO000OO is not None #line:102
-    if not OOOO00OO0OOO000OO :#line:106
-        return None #line:107
-    if OO00OO0OO000OOO0O is None :#line:109
-        OO00OO0OO000OOO0O ={"requires":["setuptools>=40.8.0","wheel"],"build-backend":"setuptools.build_meta:__legacy__",}#line:121
-    assert OO00OO0OO000OOO0O is not None #line:127
-    O0O0OOO00OOO0O000 =("{package} has a pyproject.toml file that does not comply " "with PEP 518: {reason}")#line:134
-    if "requires"not in OO00OO0OO000OOO0O :#line:137
-        raise InstallationError (O0O0OOO00OOO0O000 .format (package =OOOOO0O0O000OOO0O ,reason =("it has a 'build-system' table but not " "'build-system.requires' which is mandatory in the table")))#line:143
-    OOOOOOO00OOO000O0 =OO00OO0OO000OOO0O ["requires"]#line:146
-    if not _O0O0OOOO000OO0O00 (OOOOOOO00OOO000O0 ):#line:147
-        raise InstallationError (O0O0OOO00OOO0O000 .format (package =OOOOO0O0O000OOO0O ,reason ="'build-system.requires' is not a list of strings.",))#line:151
-    OOO0OO0O00O00OOOO =OO00OO0OO000OOO0O .get ("build-backend")#line:153
-    O00OOO0OOO0O0OO00 =[]#line:154
-    if OOO0OO0O00O00OOOO is None :#line:155
-        OOO0OO0O00O00OOOO ="setuptools.build_meta:__legacy__"#line:168
-        O00OOO0OOO0O0OO00 =["setuptools>=40.8.0","wheel"]#line:169
-    return (OOOOOOO00OOO000O0 ,OOO0OO0O00O00OOOO ,O00OOO0OOO0O0OO00 )#line:171
+from openai import OpenAI #line:1
+from dotenv import load_dotenv #line:2
+import os #line:3
+load_dotenv (override =True )#line:5
+gpt_api_key =os .getenv ("GPT_API_KEY")#line:7
+def gpt (O0OO0O000000O0OOO :str ,OO000O0OO0OOOO0OO :str ,OOOOO0O00O000O0OO :str ,OOOOOOOOOOOO00000 :float ):#line:10
+    O00O00O0000O0O0OO =OpenAI (api_key =gpt_api_key )#line:11
+    O00O0O000O0000000 =O00O00O0000O0O0OO .chat .completions .create (model =O0OO0O000000O0OOO ,messages =[{"role":"system","content":OOOOO0O00O000O0OO },{"role":"user","content":OO000O0OO0OOOO0OO },],temperature =OOOOOOOOOOOO00000 ,top_p =1 ,)#line:21
+    OOO000OO0OOOOO0OO =O00O0O000O0000000 .choices [0 ].message .content .strip ()#line:22
+    return OOO000OO0OOOOO0OO #line:23
+def dalle3 (O000000OOO0OOO000 :str ,O00O0000O00O0O000 :str ,O0O000O00O00OO0O0 :str ,OO00O000000O0O00O :str ):#line:26
+    O0O00O0O0000OO0O0 =OpenAI (api_key =gpt_api_key )#line:27
+    O0OOOO0O00OO0OO0O =O0O00O0O0000OO0O0 .images .generate (model ="dall-e-3",prompt =O000000OOO0OOO000 ,size =O0O000O00O00OO0O0 ,quality =O00O0000O00O0O000 ,style =OO00O000000O0O00O ,n =1 ,)#line:35
+    O00O0OO00OO000O00 =O0OOOO0O00OO0OO0O .data [0 ].url #line:36
+    return O00O0OO00OO000O00 #line:37
+def dalle2 (OO0OO0OO0000OO0O0 :str ,OOOOO000O0O0OOO0O :str ):#line:40
+    OOOOO00000000OOOO =OpenAI (api_key =gpt_api_key )#line:41
+    O0000OOO00OOOOOOO =OOOOO00000000OOOO .images .generate (model ="dall-e-2",prompt =OO0OO0OO0000OO0O0 ,size =OOOOO000O0O0OOO0O ,n =1 ,)#line:47
+    OOO000O0O0O0O0O0O =O0000OOO00OOOOOOO .data [0 ].url #line:48
+    return OOO000O0O0O0O0O0O #line:49

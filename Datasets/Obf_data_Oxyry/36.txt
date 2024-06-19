@@ -1,278 +1,767 @@
-""#line:10:"""
-import copy #line:12:import copy
-import time #line:13:import time
-import calendar #line:14:import calendar
-from ._internal_utils import to_native_string #line:16:from ._internal_utils import to_native_string
-from .compat import cookielib ,urlparse ,urlunparse ,Morsel ,MutableMapping #line:17:from .compat import cookielib, urlparse, urlunparse, Morsel, MutableMapping
-try :#line:19:try:
-    import threading #line:20:import threading
-except ImportError :#line:21:except ImportError:
-    import dummy_threading as threading #line:22:import dummy_threading as threading
-class MockRequest (object ):#line:25:class MockRequest(object):
-    ""#line:35:"""
-    def __init__ (OOO0O00O0OO0O00OO ,OO00000OOOO0OO000 ):#line:37:def __init__(self, request):
-        OOO0O00O0OO0O00OO ._r =OO00000OOOO0OO000 #line:38:self._r = request
-        OOO0O00O0OO0O00OO ._new_headers ={}#line:39:self._new_headers = {}
-        OOO0O00O0OO0O00OO .type =urlparse (OOO0O00O0OO0O00OO ._r .url ).scheme #line:40:self.type = urlparse(self._r.url).scheme
-    def get_type (OOO000O000OOO0OOO ):#line:42:def get_type(self):
-        return OOO000O000OOO0OOO .type #line:43:return self.type
-    def get_host (O0O00O0O0O0OO000O ):#line:45:def get_host(self):
-        return urlparse (O0O00O0O0O0OO000O ._r .url ).netloc #line:46:return urlparse(self._r.url).netloc
-    def get_origin_req_host (O0OO0O0OO00000O0O ):#line:48:def get_origin_req_host(self):
-        return O0OO0O0OO00000O0O .get_host ()#line:49:return self.get_host()
-    def get_full_url (O00OO0OOO0000000O ):#line:51:def get_full_url(self):
-        if not O00OO0OOO0000000O ._r .headers .get ('Host'):#line:54:if not self._r.headers.get('Host'):
-            return O00OO0OOO0000000O ._r .url #line:55:return self._r.url
-        O00O00O00O0O0O00O =to_native_string (O00OO0OOO0000000O ._r .headers ['Host'],encoding ='utf-8')#line:57:host = to_native_string(self._r.headers['Host'], encoding='utf-8')
-        O00O000OOOOO0O0O0 =urlparse (O00OO0OOO0000000O ._r .url )#line:58:parsed = urlparse(self._r.url)
-        return urlunparse ([O00O000OOOOO0O0O0 .scheme ,O00O00O00O0O0O00O ,O00O000OOOOO0O0O0 .path ,O00O000OOOOO0O0O0 .params ,O00O000OOOOO0O0O0 .query ,O00O000OOOOO0O0O0 .fragment ])#line:63:])
-    def is_unverifiable (OOO00000OO0O0OOO0 ):#line:65:def is_unverifiable(self):
-        return True #line:66:return True
-    def has_header (O0000000O0OO0OO00 ,O000O000OOO0O0000 ):#line:68:def has_header(self, name):
-        return O000O000OOO0O0000 in O0000000O0OO0OO00 ._r .headers or O000O000OOO0O0000 in O0000000O0OO0OO00 ._new_headers #line:69:return name in self._r.headers or name in self._new_headers
-    def get_header (OOO0O00O0O000OO00 ,O00OO00OOOOO0O00O ,default =None ):#line:71:def get_header(self, name, default=None):
-        return OOO0O00O0O000OO00 ._r .headers .get (O00OO00OOOOO0O00O ,OOO0O00O0O000OO00 ._new_headers .get (O00OO00OOOOO0O00O ,default ))#line:72:return self._r.headers.get(name, self._new_headers.get(name, default))
-    def add_header (O0O00OO0000000OOO ,O00000OO0000000O0 ,O0OOO0O0OOOO000OO ):#line:74:def add_header(self, key, val):
-        ""#line:75:"""cookielib has no legitimate use for this method; add it back if you find one."""
-        raise NotImplementedError ("Cookie headers should be added with add_unredirected_header()")#line:76:raise NotImplementedError("Cookie headers should be added with add_unredirected_header()")
-    def add_unredirected_header (O0O0OO0O000OO0O00 ,OOOO0000O0000OOO0 ,O00OOO000O00O00OO ):#line:78:def add_unredirected_header(self, name, value):
-        O0O0OO0O000OO0O00 ._new_headers [OOOO0000O0000OOO0 ]=O00OOO000O00O00OO #line:79:self._new_headers[name] = value
-    def get_new_headers (OOO00OOO0OO0O000O ):#line:81:def get_new_headers(self):
-        return OOO00OOO0OO0O000O ._new_headers #line:82:return self._new_headers
-    @property #line:84:@property
-    def unverifiable (OOOOOO0OOO0O0O0OO ):#line:85:def unverifiable(self):
-        return OOOOOO0OOO0O0O0OO .is_unverifiable ()#line:86:return self.is_unverifiable()
-    @property #line:88:@property
-    def origin_req_host (OOO0OOOOOOOOOO000 ):#line:89:def origin_req_host(self):
-        return OOO0OOOOOOOOOO000 .get_origin_req_host ()#line:90:return self.get_origin_req_host()
-    @property #line:92:@property
-    def host (O00000O0O00OOO00O ):#line:93:def host(self):
-        return O00000O0O00OOO00O .get_host ()#line:94:return self.get_host()
-class MockResponse (object ):#line:97:class MockResponse(object):
-    ""#line:102:"""
-    def __init__ (OOO000OOOO0OO0OOO ,OO0OOOO00O0OOO0OO ):#line:104:def __init__(self, headers):
-        ""#line:108:"""
-        OOO000OOOO0OO0OOO ._headers =OO0OOOO00O0OOO0OO #line:109:self._headers = headers
-    def info (O0OO0O00O0O0O00OO ):#line:111:def info(self):
-        return O0OO0O00O0O0O00OO ._headers #line:112:return self._headers
-    def getheaders (OOOOO00O0000OO000 ,OOOOO0O000O00O000 ):#line:114:def getheaders(self, name):
-        OOOOO00O0000OO000 ._headers .getheaders (OOOOO0O000O00O000 )#line:115:self._headers.getheaders(name)
-def extract_cookies_to_jar (O0OOOOO00OOO00O0O ,OO00O00OO0OOOO000 ,O0O0000000O00000O ):#line:118:def extract_cookies_to_jar(jar, request, response):
-    ""#line:124:"""
-    if not (hasattr (O0O0000000O00000O ,'_original_response')and O0O0000000O00000O ._original_response ):#line:126:response._original_response):
-        return #line:127:return
-    OO0OO000000O000O0 =MockRequest (OO00O00OO0OOOO000 )#line:129:req = MockRequest(request)
-    OOOO000OO0O00OOO0 =MockResponse (O0O0000000O00000O ._original_response .msg )#line:131:res = MockResponse(response._original_response.msg)
-    O0OOOOO00OOO00O0O .extract_cookies (OOOO000OO0O00OOO0 ,OO0OO000000O000O0 )#line:132:jar.extract_cookies(res, req)
-def get_cookie_header (OOO000O00000OO000 ,OO00O0O0O0O0OO0OO ):#line:135:def get_cookie_header(jar, request):
-    ""#line:140:"""
-    O0000OOOO0OOO000O =MockRequest (OO00O0O0O0O0OO0OO )#line:141:r = MockRequest(request)
-    OOO000O00000OO000 .add_cookie_header (O0000OOOO0OOO000O )#line:142:jar.add_cookie_header(r)
-    return O0000OOOO0OOO000O .get_new_headers ().get ('Cookie')#line:143:return r.get_new_headers().get('Cookie')
-def remove_cookie_by_name (O000O0OO0OOO0OO00 ,OOOO0OO0000O0O000 ,domain =None ,path =None ):#line:146:def remove_cookie_by_name(cookiejar, name, domain=None, path=None):
-    ""#line:150:"""
-    O0O00O0OOO0O000O0 =[]#line:151:clearables = []
-    for OOOO00O0OOOO0OOO0 in O000O0OO0OOO0OO00 :#line:152:for cookie in cookiejar:
-        if OOOO00O0OOOO0OOO0 .name !=OOOO0OO0000O0O000 :#line:153:if cookie.name != name:
-            continue #line:154:continue
-        if domain is not None and domain !=OOOO00O0OOOO0OOO0 .domain :#line:155:if domain is not None and domain != cookie.domain:
-            continue #line:156:continue
-        if path is not None and path !=OOOO00O0OOOO0OOO0 .path :#line:157:if path is not None and path != cookie.path:
-            continue #line:158:continue
-        O0O00O0OOO0O000O0 .append ((OOOO00O0OOOO0OOO0 .domain ,OOOO00O0OOOO0OOO0 .path ,OOOO00O0OOOO0OOO0 .name ))#line:159:clearables.append((cookie.domain, cookie.path, cookie.name))
-    for domain ,path ,OOOO0OO0000O0O000 in O0O00O0OOO0O000O0 :#line:161:for domain, path, name in clearables:
-        O000O0OO0OOO0OO00 .clear (domain ,path ,OOOO0OO0000O0O000 )#line:162:cookiejar.clear(domain, path, name)
-class CookieConflictError (RuntimeError ):#line:165:class CookieConflictError(RuntimeError):
-    ""#line:168:"""
-class RequestsCookieJar (cookielib .CookieJar ,MutableMapping ):#line:171:class RequestsCookieJar(cookielib.CookieJar, MutableMapping):
-    ""#line:187:"""
-    def get (O00O0000O0OOOO0OO ,O00O0O00OO0O00OO0 ,default =None ,domain =None ,path =None ):#line:189:def get(self, name, default=None, domain=None, path=None):
-        ""#line:195:"""
-        try :#line:196:try:
-            return O00O0000O0OOOO0OO ._find_no_duplicates (O00O0O00OO0O00OO0 ,domain ,path )#line:197:return self._find_no_duplicates(name, domain, path)
-        except KeyError :#line:198:except KeyError:
-            return default #line:199:return default
-    def set (O00OOO0OOO000OO00 ,OOOO0OO0O0000O0O0 ,O000000O0OO0OOOO0 ,**OO0O00O00OOO000O0 ):#line:201:def set(self, name, value, **kwargs):
-        ""#line:205:"""
-        if O000000O0OO0OOOO0 is None :#line:207:if value is None:
-            remove_cookie_by_name (O00OOO0OOO000OO00 ,OOOO0OO0O0000O0O0 ,domain =OO0O00O00OOO000O0 .get ('domain'),path =OO0O00O00OOO000O0 .get ('path'))#line:208:remove_cookie_by_name(self, name, domain=kwargs.get('domain'), path=kwargs.get('path'))
-            return #line:209:return
-        if isinstance (O000000O0OO0OOOO0 ,Morsel ):#line:211:if isinstance(value, Morsel):
-            O0000OOO00O0O0O00 =morsel_to_cookie (O000000O0OO0OOOO0 )#line:212:c = morsel_to_cookie(value)
-        else :#line:213:else:
-            O0000OOO00O0O0O00 =create_cookie (OOOO0OO0O0000O0O0 ,O000000O0OO0OOOO0 ,**OO0O00O00OOO000O0 )#line:214:c = create_cookie(name, value, **kwargs)
-        O00OOO0OOO000OO00 .set_cookie (O0000OOO00O0O0O00 )#line:215:self.set_cookie(c)
-        return O0000OOO00O0O0O00 #line:216:return c
-    def iterkeys (O0OOO0O0O0OO0OO0O ):#line:218:def iterkeys(self):
-        ""#line:223:"""
-        for OO000OO00O0000OOO in iter (O0OOO0O0O0OO0OO0O ):#line:224:for cookie in iter(self):
-            yield OO000OO00O0000OOO .name #line:225:yield cookie.name
-    def keys (O0OO00O0OOO0000O0 ):#line:227:def keys(self):
-        ""#line:232:"""
-        return list (O0OO00O0OOO0000O0 .iterkeys ())#line:233:return list(self.iterkeys())
-    def itervalues (O0OO00O0OOO000O00 ):#line:235:def itervalues(self):
-        ""#line:240:"""
-        for O00OO000OOOOO0OO0 in iter (O0OO00O0OOO000O00 ):#line:241:for cookie in iter(self):
-            yield O00OO000OOOOO0OO0 .value #line:242:yield cookie.value
-    def values (O000OOOO00O00000O ):#line:244:def values(self):
-        ""#line:249:"""
-        return list (O000OOOO00O00000O .itervalues ())#line:250:return list(self.itervalues())
-    def iteritems (OO000000O0O0O0O00 ):#line:252:def iteritems(self):
-        ""#line:257:"""
-        for OOO0OO0O00OO000O0 in iter (OO000000O0O0O0O00 ):#line:258:for cookie in iter(self):
-            yield OOO0OO0O00OO000O0 .name ,OOO0OO0O00OO000O0 .value #line:259:yield cookie.name, cookie.value
-    def items (O00OOOO0000OO00O0 ):#line:261:def items(self):
-        ""#line:267:"""
-        return list (O00OOOO0000OO00O0 .iteritems ())#line:268:return list(self.iteritems())
-    def list_domains (OO00OOO000000O000 ):#line:270:def list_domains(self):
-        ""#line:271:"""Utility method to list all the domains in the jar."""
-        OO0OOOO00O0O0O0O0 =[]#line:272:domains = []
-        for OOOO0O000OOO0O0OO in iter (OO00OOO000000O000 ):#line:273:for cookie in iter(self):
-            if OOOO0O000OOO0O0OO .domain not in OO0OOOO00O0O0O0O0 :#line:274:if cookie.domain not in domains:
-                OO0OOOO00O0O0O0O0 .append (OOOO0O000OOO0O0OO .domain )#line:275:domains.append(cookie.domain)
-        return OO0OOOO00O0O0O0O0 #line:276:return domains
-    def list_paths (OO00000O0O0O00000 ):#line:278:def list_paths(self):
-        ""#line:279:"""Utility method to list all the paths in the jar."""
-        O00OO00000OOOOO0O =[]#line:280:paths = []
-        for O00O0O0O0OO0OOO0O in iter (OO00000O0O0O00000 ):#line:281:for cookie in iter(self):
-            if O00O0O0O0OO0OOO0O .path not in O00OO00000OOOOO0O :#line:282:if cookie.path not in paths:
-                O00OO00000OOOOO0O .append (O00O0O0O0OO0OOO0O .path )#line:283:paths.append(cookie.path)
-        return O00OO00000OOOOO0O #line:284:return paths
-    def multiple_domains (O0O0OO00O00OOO000 ):#line:286:def multiple_domains(self):
-        ""#line:291:"""
-        OO0OO0OO00O00O0OO =[]#line:292:domains = []
-        for O0OO0O0O0OO0000OO in iter (O0O0OO00O00OOO000 ):#line:293:for cookie in iter(self):
-            if O0OO0O0O0OO0000OO .domain is not None and O0OO0O0O0OO0000OO .domain in OO0OO0OO00O00O0OO :#line:294:if cookie.domain is not None and cookie.domain in domains:
-                return True #line:295:return True
-            OO0OO0OO00O00O0OO .append (O0OO0O0O0OO0000OO .domain )#line:296:domains.append(cookie.domain)
-        return False #line:297:return False  # there is only one domain in jar
-    def get_dict (O000OO000OOO0O000 ,domain =None ,path =None ):#line:299:def get_dict(self, domain=None, path=None):
-        ""#line:305:"""
-        O0000O00OOOOO0OOO ={}#line:306:dictionary = {}
-        for O000OO00OOO0OOOO0 in iter (O000OO000OOO0O000 ):#line:307:for cookie in iter(self):
-            if ((domain is None or O000OO00OOO0OOOO0 .domain ==domain )and (path is None or O000OO00OOO0OOOO0 .path ==path )):#line:311:):
-                O0000O00OOOOO0OOO [O000OO00OOO0OOOO0 .name ]=O000OO00OOO0OOOO0 .value #line:312:dictionary[cookie.name] = cookie.value
-        return O0000O00OOOOO0OOO #line:313:return dictionary
-    def __contains__ (O0O0OOO0OOO0OO00O ,OOO00O0OO00OO0OOO ):#line:315:def __contains__(self, name):
-        try :#line:316:try:
-            return super (RequestsCookieJar ,O0O0OOO0OOO0OO00O ).__contains__ (OOO00O0OO00OO0OOO )#line:317:return super(RequestsCookieJar, self).__contains__(name)
-        except CookieConflictError :#line:318:except CookieConflictError:
-            return True #line:319:return True
-    def __getitem__ (OO00000OO0O00OOOO ,O000O0O00OO000O0O ):#line:321:def __getitem__(self, name):
-        ""#line:327:"""
-        return OO00000OO0O00OOOO ._find_no_duplicates (O000O0O00OO000O0O )#line:328:return self._find_no_duplicates(name)
-    def __setitem__ (O0OO0000O0OOOO000 ,OOOOOOO0000OO0000 ,O0OOO0000O000O0OO ):#line:330:def __setitem__(self, name, value):
-        ""#line:334:"""
-        O0OO0000O0OOOO000 .set (OOOOOOO0000OO0000 ,O0OOO0000O000O0OO )#line:335:self.set(name, value)
-    def __delitem__ (OO0OOO00OOO000000 ,OO0000OOO00OO0OO0 ):#line:337:def __delitem__(self, name):
-        ""#line:340:"""
-        remove_cookie_by_name (OO0OOO00OOO000000 ,OO0000OOO00OO0OO0 )#line:341:remove_cookie_by_name(self, name)
-    def set_cookie (OO0O00O0OOO00OO00 ,O0O000O0000O0OO0O ,*O0OO00OO0O000O000 ,**OO000OOO0OOO0O000 ):#line:343:def set_cookie(self, cookie, *args, **kwargs):
-        if hasattr (O0O000O0000O0OO0O .value ,'startswith')and O0O000O0000O0OO0O .value .startswith ('"')and O0O000O0000O0OO0O .value .endswith ('"'):#line:344:if hasattr(cookie.value, 'startswith') and cookie.value.startswith('"') and cookie.value.endswith('"'):
-            O0O000O0000O0OO0O .value =O0O000O0000O0OO0O .value .replace ('\\"','')#line:345:cookie.value = cookie.value.replace('\\"', '')
-        return super (RequestsCookieJar ,OO0O00O0OOO00OO00 ).set_cookie (O0O000O0000O0OO0O ,*O0OO00OO0O000O000 ,**OO000OOO0OOO0O000 )#line:346:return super(RequestsCookieJar, self).set_cookie(cookie, *args, **kwargs)
-    def update (O0000000O000000O0 ,O0OOOOO00O000000O ):#line:348:def update(self, other):
-        ""#line:349:"""Updates this jar with cookies from another CookieJar or dict-like"""
-        if isinstance (O0OOOOO00O000000O ,cookielib .CookieJar ):#line:350:if isinstance(other, cookielib.CookieJar):
-            for O00O000O00OOOO0O0 in O0OOOOO00O000000O :#line:351:for cookie in other:
-                O0000000O000000O0 .set_cookie (copy .copy (O00O000O00OOOO0O0 ))#line:352:self.set_cookie(copy.copy(cookie))
-        else :#line:353:else:
-            super (RequestsCookieJar ,O0000000O000000O0 ).update (O0OOOOO00O000000O )#line:354:super(RequestsCookieJar, self).update(other)
-    def _find (O0O00OO0000O000O0 ,O0O000OOOOO0OO0O0 ,domain =None ,path =None ):#line:356:def _find(self, name, domain=None, path=None):
-        ""#line:367:"""
-        for OO00000OO00000O00 in iter (O0O00OO0000O000O0 ):#line:368:for cookie in iter(self):
-            if OO00000OO00000O00 .name ==O0O000OOOOO0OO0O0 :#line:369:if cookie.name == name:
-                if domain is None or OO00000OO00000O00 .domain ==domain :#line:370:if domain is None or cookie.domain == domain:
-                    if path is None or OO00000OO00000O00 .path ==path :#line:371:if path is None or cookie.path == path:
-                        return OO00000OO00000O00 .value #line:372:return cookie.value
-        raise KeyError ('name=%r, domain=%r, path=%r'%(O0O000OOOOO0OO0O0 ,domain ,path ))#line:374:raise KeyError('name=%r, domain=%r, path=%r' % (name, domain, path))
-    def _find_no_duplicates (O0OOO0OO0O0OOOOO0 ,OOO0O0O000O0000O0 ,domain =None ,path =None ):#line:376:def _find_no_duplicates(self, name, domain=None, path=None):
-        ""#line:387:"""
-        OO0O00OOOO000OO00 =None #line:388:toReturn = None
-        for O00OO0OOOO0OOO00O in iter (O0OOO0OO0O0OOOOO0 ):#line:389:for cookie in iter(self):
-            if O00OO0OOOO0OOO00O .name ==OOO0O0O000O0000O0 :#line:390:if cookie.name == name:
-                if domain is None or O00OO0OOOO0OOO00O .domain ==domain :#line:391:if domain is None or cookie.domain == domain:
-                    if path is None or O00OO0OOOO0OOO00O .path ==path :#line:392:if path is None or cookie.path == path:
-                        if OO0O00OOOO000OO00 is not None :#line:393:if toReturn is not None:  # if there are multiple cookies that meet passed in criteria
-                            raise CookieConflictError ('There are multiple cookies with name, %r'%(OOO0O0O000O0000O0 ))#line:394:raise CookieConflictError('There are multiple cookies with name, %r' % (name))
-                        OO0O00OOOO000OO00 =O00OO0OOOO0OOO00O .value #line:395:toReturn = cookie.value  # we will eventually return this as long as no cookie conflict
-        if OO0O00OOOO000OO00 :#line:397:if toReturn:
-            return OO0O00OOOO000OO00 #line:398:return toReturn
-        raise KeyError ('name=%r, domain=%r, path=%r'%(OOO0O0O000O0000O0 ,domain ,path ))#line:399:raise KeyError('name=%r, domain=%r, path=%r' % (name, domain, path))
-    def __getstate__ (OOOO0OO0OOO0OOO0O ):#line:401:def __getstate__(self):
-        ""#line:402:"""Unlike a normal CookieJar, this class is pickleable."""
-        O0OO0OO0000O0OOOO =OOOO0OO0OOO0OOO0O .__dict__ .copy ()#line:403:state = self.__dict__.copy()
-        O0OO0OO0000O0OOOO .pop ('_cookies_lock')#line:405:state.pop('_cookies_lock')
-        return O0OO0OO0000O0OOOO #line:406:return state
-    def __setstate__ (OOOOO0OO00O0000O0 ,O000OO0OO0000O000 ):#line:408:def __setstate__(self, state):
-        ""#line:409:"""Unlike a normal CookieJar, this class is pickleable."""
-        OOOOO0OO00O0000O0 .__dict__ .update (O000OO0OO0000O000 )#line:410:self.__dict__.update(state)
-        if '_cookies_lock'not in OOOOO0OO00O0000O0 .__dict__ :#line:411:if '_cookies_lock' not in self.__dict__:
-            OOOOO0OO00O0000O0 ._cookies_lock =threading .RLock ()#line:412:self._cookies_lock = threading.RLock()
-    def copy (O0OOOO00OOO0OO0O0 ):#line:414:def copy(self):
-        ""#line:415:"""Return a copy of this RequestsCookieJar."""
-        O000O0OOO0O0O0OOO =RequestsCookieJar ()#line:416:new_cj = RequestsCookieJar()
-        O000O0OOO0O0O0OOO .set_policy (O0OOOO00OOO0OO0O0 .get_policy ())#line:417:new_cj.set_policy(self.get_policy())
-        O000O0OOO0O0O0OOO .update (O0OOOO00OOO0OO0O0 )#line:418:new_cj.update(self)
-        return O000O0OOO0O0O0OOO #line:419:return new_cj
-    def get_policy (OOO0OO00000000OO0 ):#line:421:def get_policy(self):
-        ""#line:422:"""Return the CookiePolicy instance used."""
-        return OOO0OO00000000OO0 ._policy #line:423:return self._policy
-def _O0OO0O0O000O0OO00 (OO0O00O00OO00OO0O ):#line:426:def _copy_cookie_jar(jar):
-    if OO0O00O00OO00OO0O is None :#line:427:if jar is None:
-        return None #line:428:return None
-    if hasattr (OO0O00O00OO00OO0O ,'copy'):#line:430:if hasattr(jar, 'copy'):
-        return OO0O00O00OO00OO0O .copy ()#line:432:return jar.copy()
-    OOO00OO0OO0OO0000 =copy .copy (OO0O00O00OO00OO0O )#line:434:new_jar = copy.copy(jar)
-    OOO00OO0OO0OO0000 .clear ()#line:435:new_jar.clear()
-    for OOOO0OO000OOO00O0 in OO0O00O00OO00OO0O :#line:436:for cookie in jar:
-        OOO00OO0OO0OO0000 .set_cookie (copy .copy (OOOO0OO000OOO00O0 ))#line:437:new_jar.set_cookie(copy.copy(cookie))
-    return OOO00OO0OO0OO0000 #line:438:return new_jar
-def create_cookie (O0OO0000O00OOO0OO ,O00000O000O00O0OO ,**OO0OO000OO0O0000O ):#line:441:def create_cookie(name, value, **kwargs):
-    ""#line:446:"""
-    OO000OO000OO00OOO ={'version':0 ,'name':O0OO0000O00OOO0OO ,'value':O00000O000O00O0OO ,'port':None ,'domain':'','path':'/','secure':False ,'expires':None ,'discard':True ,'comment':None ,'comment_url':None ,'rest':{'HttpOnly':None },'rfc2109':False ,}#line:461:}
-    O0000O0O000OO0OO0 =set (OO0OO000OO0O0000O )-set (OO000OO000OO00OOO )#line:463:badargs = set(kwargs) - set(result)
-    if O0000O0O000OO0OO0 :#line:464:if badargs:
-        OOOOO0O0O000OOOOO ='create_cookie() got unexpected keyword arguments: %s'#line:465:err = 'create_cookie() got unexpected keyword arguments: %s'
-        raise TypeError (OOOOO0O0O000OOOOO %list (O0000O0O000OO0OO0 ))#line:466:raise TypeError(err % list(badargs))
-    OO000OO000OO00OOO .update (OO0OO000OO0O0000O )#line:468:result.update(kwargs)
-    OO000OO000OO00OOO ['port_specified']=bool (OO000OO000OO00OOO ['port'])#line:469:result['port_specified'] = bool(result['port'])
-    OO000OO000OO00OOO ['domain_specified']=bool (OO000OO000OO00OOO ['domain'])#line:470:result['domain_specified'] = bool(result['domain'])
-    OO000OO000OO00OOO ['domain_initial_dot']=OO000OO000OO00OOO ['domain'].startswith ('.')#line:471:result['domain_initial_dot'] = result['domain'].startswith('.')
-    OO000OO000OO00OOO ['path_specified']=bool (OO000OO000OO00OOO ['path'])#line:472:result['path_specified'] = bool(result['path'])
-    return cookielib .Cookie (**OO000OO000OO00OOO )#line:474:return cookielib.Cookie(**result)
-def morsel_to_cookie (OOOO0O00000O0OO0O ):#line:477:def morsel_to_cookie(morsel):
-    ""#line:478:"""Convert a Morsel object into a Cookie containing the one k/v pair."""
-    O0OOO0O0O000OOO0O =None #line:480:expires = None
-    if OOOO0O00000O0OO0O ['max-age']:#line:481:if morsel['max-age']:
-        try :#line:482:try:
-            O0OOO0O0O000OOO0O =int (time .time ()+int (OOOO0O00000O0OO0O ['max-age']))#line:483:expires = int(time.time() + int(morsel['max-age']))
-        except ValueError :#line:484:except ValueError:
-            raise TypeError ('max-age: %s must be integer'%OOOO0O00000O0OO0O ['max-age'])#line:485:raise TypeError('max-age: %s must be integer' % morsel['max-age'])
-    elif OOOO0O00000O0OO0O ['expires']:#line:486:elif morsel['expires']:
-        O0OO0OO0O0OOOO0OO ='%a, %d-%b-%Y %H:%M:%S GMT'#line:487:time_template = '%a, %d-%b-%Y %H:%M:%S GMT'
-        O0OOO0O0O000OOO0O =calendar .timegm (time .strptime (OOOO0O00000O0OO0O ['expires'],O0OO0OO0O0OOOO0OO ))#line:490:)
-    return create_cookie (comment =OOOO0O00000O0OO0O ['comment'],comment_url =bool (OOOO0O00000O0OO0O ['comment']),discard =False ,domain =OOOO0O00000O0OO0O ['domain'],expires =O0OOO0O0O000OOO0O ,name =OOOO0O00000O0OO0O .key ,path =OOOO0O00000O0OO0O ['path'],port =None ,rest ={'HttpOnly':OOOO0O00000O0OO0O ['httponly']},rfc2109 =False ,secure =bool (OOOO0O00000O0OO0O ['secure']),value =OOOO0O00000O0OO0O .value ,version =OOOO0O00000O0OO0O ['version']or 0 ,)#line:505:)
-def cookiejar_from_dict (O0O0O00O0O00OO0OO ,cookiejar =None ,overwrite =True ):#line:508:def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):
-    ""#line:516:"""
-    if cookiejar is None :#line:517:if cookiejar is None:
-        cookiejar =RequestsCookieJar ()#line:518:cookiejar = RequestsCookieJar()
-    if O0O0O00O0O00OO0OO is not None :#line:520:if cookie_dict is not None:
-        OOOOOO0OOO00O0O00 =[O00OO000O0OOO0O00 .name for O00OO000O0OOO0O00 in cookiejar ]#line:521:names_from_jar = [cookie.name for cookie in cookiejar]
-        for OO0OOOOOOO000O0O0 in O0O0O00O0O00OO0OO :#line:522:for name in cookie_dict:
-            if overwrite or (OO0OOOOOOO000O0O0 not in OOOOOO0OOO00O0O00 ):#line:523:if overwrite or (name not in names_from_jar):
-                cookiejar .set_cookie (create_cookie (OO0OOOOOOO000O0O0 ,O0O0O00O0O00OO0OO [OO0OOOOOOO000O0O0 ]))#line:524:cookiejar.set_cookie(create_cookie(name, cookie_dict[name]))
-    return cookiejar #line:526:return cookiejar
-def merge_cookies (OO00000O00O0OOOO0 ,O0OO0O0O00OOOO00O ):#line:529:def merge_cookies(cookiejar, cookies):
-    ""#line:535:"""
-    if not isinstance (OO00000O00O0OOOO0 ,cookielib .CookieJar ):#line:536:if not isinstance(cookiejar, cookielib.CookieJar):
-        raise ValueError ('You can only merge into CookieJar')#line:537:raise ValueError('You can only merge into CookieJar')
-    if isinstance (O0OO0O0O00OOOO00O ,dict ):#line:539:if isinstance(cookies, dict):
-        OO00000O00O0OOOO0 =cookiejar_from_dict (O0OO0O0O00OOOO00O ,cookiejar =OO00000O00O0OOOO0 ,overwrite =False )#line:541:cookies, cookiejar=cookiejar, overwrite=False)
-    elif isinstance (O0OO0O0O00OOOO00O ,cookielib .CookieJar ):#line:542:elif isinstance(cookies, cookielib.CookieJar):
-        try :#line:543:try:
-            OO00000O00O0OOOO0 .update (O0OO0O0O00OOOO00O )#line:544:cookiejar.update(cookies)
-        except AttributeError :#line:545:except AttributeError:
-            for OO0O0OOOOOOOO0OO0 in O0OO0O0O00OOOO00O :#line:546:for cookie_in_jar in cookies:
-                OO00000O00O0OOOO0 .set_cookie (OO0O0OOOOOOOO0OO0 )#line:547:cookiejar.set_cookie(cookie_in_jar)
-    return OO00000O00O0OOOO0 #line:549:return cookiejar
+from __future__ import unicode_literals #line:7:from __future__ import unicode_literals
+import base64 #line:9:import base64
+import codecs #line:10:import codecs
+import datetime #line:11:import datetime
+import distutils .util #line:12:import distutils.util
+from email import message_from_file #line:13:from email import message_from_file
+import hashlib #line:14:import hashlib
+import imp #line:15:import imp
+import json #line:16:import json
+import logging #line:17:import logging
+import os #line:18:import os
+import posixpath #line:19:import posixpath
+import re #line:20:import re
+import shutil #line:21:import shutil
+import sys #line:22:import sys
+import tempfile #line:23:import tempfile
+import zipfile #line:24:import zipfile
+from .import __version__ ,DistlibException #line:26:from . import __version__, DistlibException
+from .compat import sysconfig ,ZipFile ,fsdecode ,text_type ,filter #line:27:from .compat import sysconfig, ZipFile, fsdecode, text_type, filter
+from .database import InstalledDistribution #line:28:from .database import InstalledDistribution
+from .metadata import Metadata ,METADATA_FILENAME ,WHEEL_METADATA_FILENAME #line:29:from .metadata import Metadata, METADATA_FILENAME, WHEEL_METADATA_FILENAME
+from .util import (FileOperator ,convert_path ,CSVReader ,CSVWriter ,Cache ,cached_property ,get_cache_base ,read_exports ,tempdir )#line:31:cached_property, get_cache_base, read_exports, tempdir)
+from .version import NormalizedVersion ,UnsupportedVersionError #line:32:from .version import NormalizedVersion, UnsupportedVersionError
+logger =logging .getLogger (__name__ )#line:34:logger = logging.getLogger(__name__)
+cache =None #line:36:cache = None    # created when needed
+if hasattr (sys ,'pypy_version_info'):#line:38:if hasattr(sys, 'pypy_version_info'):  # pragma: no cover
+    IMP_PREFIX ='pp'#line:39:IMP_PREFIX = 'pp'
+elif sys .platform .startswith ('java'):#line:40:elif sys.platform.startswith('java'):  # pragma: no cover
+    IMP_PREFIX ='jy'#line:41:IMP_PREFIX = 'jy'
+elif sys .platform =='cli':#line:42:elif sys.platform == 'cli':  # pragma: no cover
+    IMP_PREFIX ='ip'#line:43:IMP_PREFIX = 'ip'
+else :#line:44:else:
+    IMP_PREFIX ='cp'#line:45:IMP_PREFIX = 'cp'
+VER_SUFFIX =sysconfig .get_config_var ('py_version_nodot')#line:47:VER_SUFFIX = sysconfig.get_config_var('py_version_nodot')
+if not VER_SUFFIX :#line:48:if not VER_SUFFIX:   # pragma: no cover
+    VER_SUFFIX ='%s%s'%sys .version_info [:2 ]#line:49:VER_SUFFIX = '%s%s' % sys.version_info[:2]
+PYVER ='py'+VER_SUFFIX #line:50:PYVER = 'py' + VER_SUFFIX
+IMPVER =IMP_PREFIX +VER_SUFFIX #line:51:IMPVER = IMP_PREFIX + VER_SUFFIX
+ARCH =distutils .util .get_platform ().replace ('-','_').replace ('.','_')#line:53:ARCH = distutils.util.get_platform().replace('-', '_').replace('.', '_')
+ABI =sysconfig .get_config_var ('SOABI')#line:55:ABI = sysconfig.get_config_var('SOABI')
+if ABI and ABI .startswith ('cpython-'):#line:56:if ABI and ABI.startswith('cpython-'):
+    ABI =ABI .replace ('cpython-','cp')#line:57:ABI = ABI.replace('cpython-', 'cp')
+else :#line:58:else:
+    def _O0OO0OO0O00OO0000 ():#line:59:def _derive_abi():
+        O00O00O0OOO00O0OO =['cp',VER_SUFFIX ]#line:60:parts = ['cp', VER_SUFFIX]
+        if sysconfig .get_config_var ('Py_DEBUG'):#line:61:if sysconfig.get_config_var('Py_DEBUG'):
+            O00O00O0OOO00O0OO .append ('d')#line:62:parts.append('d')
+        if sysconfig .get_config_var ('WITH_PYMALLOC'):#line:63:if sysconfig.get_config_var('WITH_PYMALLOC'):
+            O00O00O0OOO00O0OO .append ('m')#line:64:parts.append('m')
+        if sysconfig .get_config_var ('Py_UNICODE_SIZE')==4 :#line:65:if sysconfig.get_config_var('Py_UNICODE_SIZE') == 4:
+            O00O00O0OOO00O0OO .append ('u')#line:66:parts.append('u')
+        return ''.join (O00O00O0OOO00O0OO )#line:67:return ''.join(parts)
+    ABI =_O0OO0OO0O00OO0000 ()#line:68:ABI = _derive_abi()
+    del _O0OO0OO0O00OO0000 #line:69:del _derive_abi
+FILENAME_RE =re .compile (r'''
+(?P<nm>[^-]+)
+-(?P<vn>\d+[^-]*)
+(-(?P<bn>\d+[^-]*))?
+-(?P<py>\w+\d+(\.\w+\d+)*)
+-(?P<bi>\w+)
+-(?P<ar>\w+(\.\w+)*)
+\.whl$
+''',re .IGNORECASE |re .VERBOSE )#line:79:''', re.IGNORECASE | re.VERBOSE)
+NAME_VERSION_RE =re .compile (r'''
+(?P<nm>[^-]+)
+-(?P<vn>\d+[^-]*)
+(-(?P<bn>\d+[^-]*))?$
+''',re .IGNORECASE |re .VERBOSE )#line:85:''', re.IGNORECASE | re.VERBOSE)
+SHEBANG_RE =re .compile (br'\s*#![^\r\n]*')#line:87:SHEBANG_RE = re.compile(br'\s*#![^\r\n]*')
+SHEBANG_DETAIL_RE =re .compile (br'^(\s*#!("[^"]+"|\S+))\s+(.*)$')#line:88:SHEBANG_DETAIL_RE = re.compile(br'^(\s*#!("[^"]+"|\S+))\s+(.*)$')
+SHEBANG_PYTHON =b'#!python'#line:89:SHEBANG_PYTHON = b'#!python'
+SHEBANG_PYTHONW =b'#!pythonw'#line:90:SHEBANG_PYTHONW = b'#!pythonw'
+if os .sep =='/':#line:92:if os.sep == '/':
+    to_posix =lambda O0OO0OO0O0OOO00OO :O0OO0OO0O0OOO00OO #line:93:to_posix = lambda o: o
+else :#line:94:else:
+    to_posix =lambda O00O0O0O000O000O0 :O00O0O0O000O000O0 .replace (os .sep ,'/')#line:95:to_posix = lambda o: o.replace(os.sep, '/')
+class Mounter (object ):#line:98:class Mounter(object):
+    def __init__ (OO0OOOO0O0000OO00 ):#line:99:def __init__(self):
+        OO0OOOO0O0000OO00 .impure_wheels ={}#line:100:self.impure_wheels = {}
+        OO0OOOO0O0000OO00 .libs ={}#line:101:self.libs = {}
+    def add (O00O00O0O0000OOO0 ,OOOOOO00OOOO0O0O0 ,O00OO00OOO0OOOOOO ):#line:103:def add(self, pathname, extensions):
+        O00O00O0O0000OOO0 .impure_wheels [OOOOOO00OOOO0O0O0 ]=O00OO00OOO0OOOOOO #line:104:self.impure_wheels[pathname] = extensions
+        O00O00O0O0000OOO0 .libs .update (O00OO00OOO0OOOOOO )#line:105:self.libs.update(extensions)
+    def remove (O0OOOOOOOOOO0OO00 ,O0OO0O0OOO0O00O0O ):#line:107:def remove(self, pathname):
+        OOO000O0OOOOO0O00 =O0OOOOOOOOOO0OO00 .impure_wheels .pop (O0OO0O0OOO0O00O0O )#line:108:extensions = self.impure_wheels.pop(pathname)
+        for OOOO0000O0000OO00 ,OOOOOO0O0OO00OO0O in OOO000O0OOOOO0O00 :#line:109:for k, v in extensions:
+            if OOOO0000O0000OO00 in O0OOOOOOOOOO0OO00 .libs :#line:110:if k in self.libs:
+                del O0OOOOOOOOOO0OO00 .libs [OOOO0000O0000OO00 ]#line:111:del self.libs[k]
+    def find_module (OOO000O0O0OO0OO0O ,O00OO0000OO000000 ,path =None ):#line:113:def find_module(self, fullname, path=None):
+        if O00OO0000OO000000 in OOO000O0O0OO0OO0O .libs :#line:114:if fullname in self.libs:
+            O00O00000OOO000OO =OOO000O0O0OO0OO0O #line:115:result = self
+        else :#line:116:else:
+            O00O00000OOO000OO =None #line:117:result = None
+        return O00O00000OOO000OO #line:118:return result
+    def load_module (O000000O000000OO0 ,O000O0O00OO00OOO0 ):#line:120:def load_module(self, fullname):
+        if O000O0O00OO00OOO0 in sys .modules :#line:121:if fullname in sys.modules:
+            OOOOOO0OO0O0OOOOO =sys .modules [O000O0O00OO00OOO0 ]#line:122:result = sys.modules[fullname]
+        else :#line:123:else:
+            if O000O0O00OO00OOO0 not in O000000O000000OO0 .libs :#line:124:if fullname not in self.libs:
+                raise ImportError ('unable to find extension for %s'%O000O0O00OO00OOO0 )#line:125:raise ImportError('unable to find extension for %s' % fullname)
+            OOOOOO0OO0O0OOOOO =imp .load_dynamic (O000O0O00OO00OOO0 ,O000000O000000OO0 .libs [O000O0O00OO00OOO0 ])#line:126:result = imp.load_dynamic(fullname, self.libs[fullname])
+            OOOOOO0OO0O0OOOOO .__loader__ =O000000O000000OO0 #line:127:result.__loader__ = self
+            OOOO00O0OOOO0OO00 =O000O0O00OO00OOO0 .rsplit ('.',1 )#line:128:parts = fullname.rsplit('.', 1)
+            if len (OOOO00O0OOOO0OO00 )>1 :#line:129:if len(parts) > 1:
+                OOOOOO0OO0O0OOOOO .__package__ =OOOO00O0OOOO0OO00 [0 ]#line:130:result.__package__ = parts[0]
+        return OOOOOO0OO0O0OOOOO #line:131:return result
+_OOO00OOOOO0OOO000 =Mounter ()#line:133:_hook = Mounter()
+class Wheel (object ):#line:136:class Wheel(object):
+    ""#line:139:"""
+    wheel_version =(1 ,1 )#line:141:wheel_version = (1, 1)
+    hash_kind ='sha256'#line:142:hash_kind = 'sha256'
+    def __init__ (O0O0O0O0O00OOO0OO ,filename =None ,sign =False ,verify =False ):#line:144:def __init__(self, filename=None, sign=False, verify=False):
+        ""#line:147:"""
+        O0O0O0O0O00OOO0OO .sign =sign #line:148:self.sign = sign
+        O0O0O0O0O00OOO0OO .should_verify =verify #line:149:self.should_verify = verify
+        O0O0O0O0O00OOO0OO .buildver =''#line:150:self.buildver = ''
+        O0O0O0O0O00OOO0OO .pyver =[PYVER ]#line:151:self.pyver = [PYVER]
+        O0O0O0O0O00OOO0OO .abi =['none']#line:152:self.abi = ['none']
+        O0O0O0O0O00OOO0OO .arch =['any']#line:153:self.arch = ['any']
+        O0O0O0O0O00OOO0OO .dirname =os .getcwd ()#line:154:self.dirname = os.getcwd()
+        if filename is None :#line:155:if filename is None:
+            O0O0O0O0O00OOO0OO .name ='dummy'#line:156:self.name = 'dummy'
+            O0O0O0O0O00OOO0OO .version ='0.1'#line:157:self.version = '0.1'
+            O0O0O0O0O00OOO0OO ._filename =O0O0O0O0O00OOO0OO .filename #line:158:self._filename = self.filename
+        else :#line:159:else:
+            OOOOOOOO0O0O0O0OO =NAME_VERSION_RE .match (filename )#line:160:m = NAME_VERSION_RE.match(filename)
+            if OOOOOOOO0O0O0O0OO :#line:161:if m:
+                O0O00O0O00OOO00O0 =OOOOOOOO0O0O0O0OO .groupdict ('')#line:162:info = m.groupdict('')
+                O0O0O0O0O00OOO0OO .name =O0O00O0O00OOO00O0 ['nm']#line:163:self.name = info['nm']
+                O0O0O0O0O00OOO0OO .version =O0O00O0O00OOO00O0 ['vn'].replace ('_','-')#line:165:self.version = info['vn'].replace('_', '-')
+                O0O0O0O0O00OOO0OO .buildver =O0O00O0O00OOO00O0 ['bn']#line:166:self.buildver = info['bn']
+                O0O0O0O0O00OOO0OO ._filename =O0O0O0O0O00OOO0OO .filename #line:167:self._filename = self.filename
+            else :#line:168:else:
+                O00000O0OOO0O00O0 ,filename =os .path .split (filename )#line:169:dirname, filename = os.path.split(filename)
+                OOOOOOOO0O0O0O0OO =FILENAME_RE .match (filename )#line:170:m = FILENAME_RE.match(filename)
+                if not OOOOOOOO0O0O0O0OO :#line:171:if not m:
+                    raise DistlibException ('Invalid name or ' 'filename: %r'%filename )#line:173:'filename: %r' % filename)
+                if O00000O0OOO0O00O0 :#line:174:if dirname:
+                    O0O0O0O0O00OOO0OO .dirname =os .path .abspath (O00000O0OOO0O00O0 )#line:175:self.dirname = os.path.abspath(dirname)
+                O0O0O0O0O00OOO0OO ._filename =filename #line:176:self._filename = filename
+                O0O00O0O00OOO00O0 =OOOOOOOO0O0O0O0OO .groupdict ('')#line:177:info = m.groupdict('')
+                O0O0O0O0O00OOO0OO .name =O0O00O0O00OOO00O0 ['nm']#line:178:self.name = info['nm']
+                O0O0O0O0O00OOO0OO .version =O0O00O0O00OOO00O0 ['vn']#line:179:self.version = info['vn']
+                O0O0O0O0O00OOO0OO .buildver =O0O00O0O00OOO00O0 ['bn']#line:180:self.buildver = info['bn']
+                O0O0O0O0O00OOO0OO .pyver =O0O00O0O00OOO00O0 ['py'].split ('.')#line:181:self.pyver = info['py'].split('.')
+                O0O0O0O0O00OOO0OO .abi =O0O00O0O00OOO00O0 ['bi'].split ('.')#line:182:self.abi = info['bi'].split('.')
+                O0O0O0O0O00OOO0OO .arch =O0O00O0O00OOO00O0 ['ar'].split ('.')#line:183:self.arch = info['ar'].split('.')
+    @property #line:185:@property
+    def filename (OO00OOOO0O0O0OOOO ):#line:186:def filename(self):
+        ""#line:189:"""
+        if OO00OOOO0O0O0OOOO .buildver :#line:190:if self.buildver:
+            OOOO0OOO0000O0O00 ='-'+OO00OOOO0O0O0OOOO .buildver #line:191:buildver = '-' + self.buildver
+        else :#line:192:else:
+            OOOO0OOO0000O0O00 =''#line:193:buildver = ''
+        O0O0OOO0O000O0000 ='.'.join (OO00OOOO0O0O0OOOO .pyver )#line:194:pyver = '.'.join(self.pyver)
+        OO0OOO00O0OOOOOOO ='.'.join (OO00OOOO0O0O0OOOO .abi )#line:195:abi = '.'.join(self.abi)
+        OOO0OO0OO0OOOOOOO ='.'.join (OO00OOOO0O0O0OOOO .arch )#line:196:arch = '.'.join(self.arch)
+        OOOOO0O0OOOOO0OOO =OO00OOOO0O0O0OOOO .version .replace ('-','_')#line:198:version = self.version.replace('-', '_')
+        return '%s-%s%s-%s-%s-%s.whl'%(OO00OOOO0O0O0OOOO .name ,OOOOO0O0OOOOO0OOO ,OOOO0OOO0000O0O00 ,O0O0OOO0O000O0000 ,OO0OOO00O0OOOOOOO ,OOO0OO0OO0OOOOOOO )#line:200:pyver, abi, arch)
+    @property #line:202:@property
+    def exists (O00O00OO0OO0OO0O0 ):#line:203:def exists(self):
+        O00O0000O000OOO0O =os .path .join (O00O00OO0OO0OO0O0 .dirname ,O00O00OO0OO0OO0O0 .filename )#line:204:path = os.path.join(self.dirname, self.filename)
+        return os .path .isfile (O00O0000O000OOO0O )#line:205:return os.path.isfile(path)
+    @property #line:207:@property
+    def tags (O0O000O00OOO00OOO ):#line:208:def tags(self):
+        for O0OOO0OO0O0O0OOOO in O0O000O00OOO00OOO .pyver :#line:209:for pyver in self.pyver:
+            for OOOO0OO00O0OOO00O in O0O000O00OOO00OOO .abi :#line:210:for abi in self.abi:
+                for O00OOOO0000OOO000 in O0O000O00OOO00OOO .arch :#line:211:for arch in self.arch:
+                    yield O0OOO0OO0O0O0OOOO ,OOOO0OO00O0OOO00O ,O00OOOO0000OOO000 #line:212:yield pyver, abi, arch
+    @cached_property #line:214:@cached_property
+    def metadata (OO0OO000O00OOO000 ):#line:215:def metadata(self):
+        OO00O00OOO0O00O00 =os .path .join (OO0OO000O00OOO000 .dirname ,OO0OO000O00OOO000 .filename )#line:216:pathname = os.path.join(self.dirname, self.filename)
+        O00O0O0O0O00O0OO0 ='%s-%s'%(OO0OO000O00OOO000 .name ,OO0OO000O00OOO000 .version )#line:217:name_ver = '%s-%s' % (self.name, self.version)
+        O0OOOO0OOO0000000 ='%s.dist-info'%O00O0O0O0O00O0OO0 #line:218:info_dir = '%s.dist-info' % name_ver
+        O00O0000000O0000O =codecs .getreader ('utf-8')#line:219:wrapper = codecs.getreader('utf-8')
+        with ZipFile (OO00O00OOO0O00O00 ,'r')as OOOOO00OO0OOO000O :#line:220:with ZipFile(pathname, 'r') as zf:
+            OO0O00OOOOOOOOOO0 =OO0OO000O00OOO000 .get_wheel_metadata (OOOOO00OO0OOO000O )#line:221:wheel_metadata = self.get_wheel_metadata(zf)
+            OO000O00O000O00O0 =OO0O00OOOOOOOOOO0 ['Wheel-Version'].split ('.',1 )#line:222:wv = wheel_metadata['Wheel-Version'].split('.', 1)
+            O0O000OOOOO00OOOO =tuple ([int (O000O00O00OO0OOOO )for O000O00O00OO0OOOO in OO000O00O000O00O0 ])#line:223:file_version = tuple([int(i) for i in wv])
+            if O0O000OOOOO00OOOO <(1 ,1 ):#line:224:if file_version < (1, 1):
+                O000O00O0O00OO0OO =[WHEEL_METADATA_FILENAME ,METADATA_FILENAME ,'METADATA']#line:225:fns = [WHEEL_METADATA_FILENAME, METADATA_FILENAME, 'METADATA']
+            else :#line:226:else:
+                O000O00O0O00OO0OO =[WHEEL_METADATA_FILENAME ,METADATA_FILENAME ]#line:227:fns = [WHEEL_METADATA_FILENAME, METADATA_FILENAME]
+            OOOOO000O00O000OO =None #line:228:result = None
+            for OOO0OO0OO0000O000 in O000O00O0O00OO0OO :#line:229:for fn in fns:
+                try :#line:230:try:
+                    O0O000OO0O00O0O0O =posixpath .join (O0OOOO0OOO0000000 ,OOO0OO0OO0000O000 )#line:231:metadata_filename = posixpath.join(info_dir, fn)
+                    with OOOOO00OO0OOO000O .open (O0O000OO0O00O0O0O )as OOOOOOO00O0000OO0 :#line:232:with zf.open(metadata_filename) as bf:
+                        OOO0O0OOO000O0O00 =O00O0000000O0000O (OOOOOOO00O0000OO0 )#line:233:wf = wrapper(bf)
+                        OOOOO000O00O000OO =Metadata (fileobj =OOO0O0OOO000O0O00 )#line:234:result = Metadata(fileobj=wf)
+                        if OOOOO000O00O000OO :#line:235:if result:
+                            break #line:236:break
+                except KeyError :#line:237:except KeyError:
+                    pass #line:238:pass
+            if not OOOOO000O00O000OO :#line:239:if not result:
+                raise ValueError ('Invalid wheel, because metadata is ' 'missing: looked in %s'%', '.join (O000O00O0O00OO0OO ))#line:241:'missing: looked in %s' % ', '.join(fns))
+        return OOOOO000O00O000OO #line:242:return result
+    def get_wheel_metadata (O00OO00OO000O0000 ,O0O0000O00OOOO00O ):#line:244:def get_wheel_metadata(self, zf):
+        OO0O0O0OOOO00OO00 ='%s-%s'%(O00OO00OO000O0000 .name ,O00OO00OO000O0000 .version )#line:245:name_ver = '%s-%s' % (self.name, self.version)
+        OOO0O0O00O0000OOO ='%s.dist-info'%OO0O0O0OOOO00OO00 #line:246:info_dir = '%s.dist-info' % name_ver
+        O0O0OO0000OO0000O =posixpath .join (OOO0O0O00O0000OOO ,'WHEEL')#line:247:metadata_filename = posixpath.join(info_dir, 'WHEEL')
+        with O0O0000O00OOOO00O .open (O0O0OO0000OO0000O )as O00OO0OO000OOOO0O :#line:248:with zf.open(metadata_filename) as bf:
+            O0OOOOO0000OOO0O0 =codecs .getreader ('utf-8')(O00OO0OO000OOOO0O )#line:249:wf = codecs.getreader('utf-8')(bf)
+            O0O0O0000O0O0O0O0 =message_from_file (O0OOOOO0000OOO0O0 )#line:250:message = message_from_file(wf)
+        return dict (O0O0O0000O0O0O0O0 )#line:251:return dict(message)
+    @cached_property #line:253:@cached_property
+    def info (O0OOOO0O00OOOO0OO ):#line:254:def info(self):
+        O0000O0O0O000000O =os .path .join (O0OOOO0O00OOOO0OO .dirname ,O0OOOO0O00OOOO0OO .filename )#line:255:pathname = os.path.join(self.dirname, self.filename)
+        with ZipFile (O0000O0O0O000000O ,'r')as OOOOO00OO0OOOO0OO :#line:256:with ZipFile(pathname, 'r') as zf:
+            O0O000O00OOO00000 =O0OOOO0O00OOOO0OO .get_wheel_metadata (OOOOO00OO0OOOO0OO )#line:257:result = self.get_wheel_metadata(zf)
+        return O0O000O00OOO00000 #line:258:return result
+    def process_shebang (O0O0OOOOO0OOOOOOO ,OO000O00O000O0OO0 ):#line:260:def process_shebang(self, data):
+        O0O00O000OOO0000O =SHEBANG_RE .match (OO000O00O000O0OO0 )#line:261:m = SHEBANG_RE.match(data)
+        if O0O00O000OOO0000O :#line:262:if m:
+            O0O0O0O0OO0000OOO =O0O00O000OOO0000O .end ()#line:263:end = m.end()
+            OOO00OO0OOO0O00O0 ,OOOO0OO000OO0O0O0 =OO000O00O000O0OO0 [:O0O0O0O0OO0000OOO ],OO000O00O000O0OO0 [O0O0O0O0OO0000OOO :]#line:264:shebang, data_after_shebang = data[:end], data[end:]
+            if b'pythonw'in OOO00OO0OOO0O00O0 .lower ():#line:266:if b'pythonw' in shebang.lower():
+                O00O0O00000OOOO00 =SHEBANG_PYTHONW #line:267:shebang_python = SHEBANG_PYTHONW
+            else :#line:268:else:
+                O00O0O00000OOOO00 =SHEBANG_PYTHON #line:269:shebang_python = SHEBANG_PYTHON
+            O0O00O000OOO0000O =SHEBANG_DETAIL_RE .match (OOO00OO0OOO0O00O0 )#line:270:m = SHEBANG_DETAIL_RE.match(shebang)
+            if O0O00O000OOO0000O :#line:271:if m:
+                O0OOOO0OOO0O00OOO =b' '+O0O00O000OOO0000O .groups ()[-1 ]#line:272:args = b' ' + m.groups()[-1]
+            else :#line:273:else:
+                O0OOOO0OOO0O00OOO =b''#line:274:args = b''
+            OOO00OO0OOO0O00O0 =O00O0O00000OOOO00 +O0OOOO0OOO0O00OOO #line:275:shebang = shebang_python + args
+            OO000O00O000O0OO0 =OOO00OO0OOO0O00O0 +OOOO0OO000OO0O0O0 #line:276:data = shebang + data_after_shebang
+        else :#line:277:else:
+            O0OO00OO0O0O0OOOO =OO000O00O000O0OO0 .find (b'\r')#line:278:cr = data.find(b'\r')
+            OO0000000OOOO00O0 =OO000O00O000O0OO0 .find (b'\n')#line:279:lf = data.find(b'\n')
+            if O0OO00OO0O0O0OOOO <0 or O0OO00OO0O0O0OOOO >OO0000000OOOO00O0 :#line:280:if cr < 0 or cr > lf:
+                O00000O000OOO0000 =b'\n'#line:281:term = b'\n'
+            else :#line:282:else:
+                if OO000O00O000O0OO0 [O0OO00OO0O0O0OOOO :O0OO00OO0O0O0OOOO +2 ]==b'\r\n':#line:283:if data[cr:cr + 2] == b'\r\n':
+                    O00000O000OOO0000 =b'\r\n'#line:284:term = b'\r\n'
+                else :#line:285:else:
+                    O00000O000OOO0000 =b'\r'#line:286:term = b'\r'
+            OO000O00O000O0OO0 =SHEBANG_PYTHON +O00000O000OOO0000 +OO000O00O000O0OO0 #line:287:data = SHEBANG_PYTHON + term + data
+        return OO000O00O000O0OO0 #line:288:return data
+    def get_hash (O0OO0O0000O00OOOO ,O0O0OOO00O0O00O00 ,hash_kind =None ):#line:290:def get_hash(self, data, hash_kind=None):
+        if hash_kind is None :#line:291:if hash_kind is None:
+            hash_kind =O0OO0O0000O00OOOO .hash_kind #line:292:hash_kind = self.hash_kind
+        try :#line:293:try:
+            O0O000000OOOOO00O =getattr (hashlib ,hash_kind )#line:294:hasher = getattr(hashlib, hash_kind)
+        except AttributeError :#line:295:except AttributeError:
+            raise DistlibException ('Unsupported hash algorithm: %r'%hash_kind )#line:296:raise DistlibException('Unsupported hash algorithm: %r' % hash_kind)
+        OOOO0OOOOO0O000OO =O0O000000OOOOO00O (O0O0OOO00O0O00O00 ).digest ()#line:297:result = hasher(data).digest()
+        OOOO0OOOOO0O000OO =base64 .urlsafe_b64encode (OOOO0OOOOO0O000OO ).rstrip (b'=').decode ('ascii')#line:298:result = base64.urlsafe_b64encode(result).rstrip(b'=').decode('ascii')
+        return hash_kind ,OOOO0OOOOO0O000OO #line:299:return hash_kind, result
+    def write_record (OO0O0OO000000OO00 ,O00000OO0O00OO0O0 ,OO000O00000000OO0 ,O00O0O0OOO00O0OO0 ):#line:301:def write_record(self, records, record_path, base):
+        O00000OO0O00OO0O0 =list (O00000OO0O00OO0O0 )#line:302:records = list(records) # make a copy for sorting
+        OOOO0O0O00O0OOOO0 =to_posix (os .path .relpath (OO000O00000000OO0 ,O00O0O0OOO00O0OO0 ))#line:303:p = to_posix(os.path.relpath(record_path, base))
+        O00000OO0O00OO0O0 .append ((OOOO0O0O00O0OOOO0 ,'',''))#line:304:records.append((p, '', ''))
+        O00000OO0O00OO0O0 .sort ()#line:305:records.sort()
+        with CSVWriter (OO000O00000000OO0 )as O00O0O00O0O0OOO00 :#line:306:with CSVWriter(record_path) as writer:
+            for O0OO000OOO0OOOOO0 in O00000OO0O00OO0O0 :#line:307:for row in records:
+                O00O0O00O0O0OOO00 .writerow (O0OO000OOO0OOOOO0 )#line:308:writer.writerow(row)
+    def write_records (OO0O0OOOOOO00O00O ,OOO0OOOOOO000OOOO ,OO00O000O000O000O ,O0000OO0OO00OO0O0 ):#line:310:def write_records(self, info, libdir, archive_paths):
+        OOOOO000000OO0OO0 =[]#line:311:records = []
+        O0OOOO0OO0OOO0OO0 ,O0O0OOOOOO0O0OO0O =OOO0OOOOOO000OOOO #line:312:distinfo, info_dir = info
+        O00O00O00O0O0000O =getattr (hashlib ,OO0O0OOOOOO00O00O .hash_kind )#line:313:hasher = getattr(hashlib, self.hash_kind)
+        for OOOOO0O00OOOO00OO ,O00OO0O00OO0OOOOO in O0000OO0OO00OO0O0 :#line:314:for ap, p in archive_paths:
+            with open (O00OO0O00OO0OOOOO ,'rb')as OOOO00OO0OO00O00O :#line:315:with open(p, 'rb') as f:
+                O0O00O0OO00OO0OO0 =OOOO00OO0OO00O00O .read ()#line:316:data = f.read()
+            OOOOO00OOOO00O0OO ='%s=%s'%OO0O0OOOOOO00O00O .get_hash (O0O00O0OO00OO0OO0 )#line:317:digest = '%s=%s' % self.get_hash(data)
+            O0OO0O00OO0O000O0 =os .path .getsize (O00OO0O00OO0OOOOO )#line:318:size = os.path.getsize(p)
+            OOOOO000000OO0OO0 .append ((OOOOO0O00OOOO00OO ,OOOOO00OOOO00O0OO ,O0OO0O00OO0O000O0 ))#line:319:records.append((ap, digest, size))
+        O00OO0O00OO0OOOOO =os .path .join (O0OOOO0OO0OOO0OO0 ,'RECORD')#line:321:p = os.path.join(distinfo, 'RECORD')
+        OO0O0OOOOOO00O00O .write_record (OOOOO000000OO0OO0 ,O00OO0O00OO0OOOOO ,OO00O000O000O000O )#line:322:self.write_record(records, p, libdir)
+        OOOOO0O00OOOO00OO =to_posix (os .path .join (O0O0OOOOOO0O0OO0O ,'RECORD'))#line:323:ap = to_posix(os.path.join(info_dir, 'RECORD'))
+        O0000OO0OO00OO0O0 .append ((OOOOO0O00OOOO00OO ,O00OO0O00OO0OOOOO ))#line:324:archive_paths.append((ap, p))
+    def build_zip (OOOO0O00OO000OOO0 ,OO0OOOOOOOO00O0OO ,O0OOOO0O0OO000O0O ):#line:326:def build_zip(self, pathname, archive_paths):
+        with ZipFile (OO0OOOOOOOO00O0OO ,'w',zipfile .ZIP_DEFLATED )as OOO0OO00O0OOOOOOO :#line:327:with ZipFile(pathname, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for O00O000OOOOO0OOOO ,O0OOOO000O000OO00 in O0OOOO0O0OO000O0O :#line:328:for ap, p in archive_paths:
+                logger .debug ('Wrote %s to %s in wheel',O0OOOO000O000OO00 ,O00O000OOOOO0OOOO )#line:329:logger.debug('Wrote %s to %s in wheel', p, ap)
+                OOO0OO00O0OOOOOOO .write (O0OOOO000O000OO00 ,O00O000OOOOO0OOOO )#line:330:zf.write(p, ap)
+    def build (OOO0OOO0OO0OOOO00 ,OO0O0OOO0OOO000O0 ,tags =None ,wheel_version =None ):#line:332:def build(self, paths, tags=None, wheel_version=None):
+        ""#line:336:"""
+        if tags is None :#line:337:if tags is None:
+            tags ={}#line:338:tags = {}
+        O0OO00O0O0O00O000 =list (filter (lambda OOO00OOOOOO00O0O0 :OOO00OOOOOO00O0O0 in OO0O0OOO0OOO000O0 ,('purelib','platlib')))[0 ]#line:340:libkey = list(filter(lambda o: o in paths, ('purelib', 'platlib')))[0]
+        if O0OO00O0O0O00O000 =='platlib':#line:341:if libkey == 'platlib':
+            OOO0O000OOO00O0OO ='false'#line:342:is_pure = 'false'
+            OOO0000O0O00O0OO0 =[IMPVER ]#line:343:default_pyver = [IMPVER]
+            O0OO000O00O0O00O0 =[ABI ]#line:344:default_abi = [ABI]
+            O00O00000OO00O00O =[ARCH ]#line:345:default_arch = [ARCH]
+        else :#line:346:else:
+            OOO0O000OOO00O0OO ='true'#line:347:is_pure = 'true'
+            OOO0000O0O00O0OO0 =[PYVER ]#line:348:default_pyver = [PYVER]
+            O0OO000O00O0O00O0 =['none']#line:349:default_abi = ['none']
+            O00O00000OO00O00O =['any']#line:350:default_arch = ['any']
+        OOO0OOO0OO0OOOO00 .pyver =tags .get ('pyver',OOO0000O0O00O0OO0 )#line:352:self.pyver = tags.get('pyver', default_pyver)
+        OOO0OOO0OO0OOOO00 .abi =tags .get ('abi',O0OO000O00O0O00O0 )#line:353:self.abi = tags.get('abi', default_abi)
+        OOO0OOO0OO0OOOO00 .arch =tags .get ('arch',O00O00000OO00O00O )#line:354:self.arch = tags.get('arch', default_arch)
+        O0O000O00O00OOOOO =OO0O0OOO0OOO000O0 [O0OO00O0O0O00O000 ]#line:356:libdir = paths[libkey]
+        O000OOOO0O00O0O0O ='%s-%s'%(OOO0OOO0OO0OOOO00 .name ,OOO0OOO0OO0OOOO00 .version )#line:358:name_ver = '%s-%s' % (self.name, self.version)
+        O0O0OOOO0OO0OO0O0 ='%s.data'%O000OOOO0O00O0O0O #line:359:data_dir = '%s.data' % name_ver
+        O0O0OO00OO000000O ='%s.dist-info'%O000OOOO0O00O0O0O #line:360:info_dir = '%s.dist-info' % name_ver
+        O000O0OO00OO000OO =[]#line:362:archive_paths = []
+        for OO0O000000OO0OOO0 in ('data','headers','scripts'):#line:365:for key in ('data', 'headers', 'scripts'):
+            if OO0O000000OO0OOO0 not in OO0O0OOO0OOO000O0 :#line:366:if key not in paths:
+                continue #line:367:continue
+            OO0OOOOOOOOO00OO0 =OO0O0OOO0OOO000O0 [OO0O000000OO0OOO0 ]#line:368:path = paths[key]
+            if os .path .isdir (OO0OOOOOOOOO00OO0 ):#line:369:if os.path.isdir(path):
+                for O00000OOO000O000O ,OOOOOO0OO000O00OO ,O0O0O000OOO0000OO in os .walk (OO0OOOOOOOOO00OO0 ):#line:370:for root, dirs, files in os.walk(path):
+                    for O0O0OOOOOO0000000 in O0O0O000OOO0000OO :#line:371:for fn in files:
+                        OOO0OOO000O00000O =fsdecode (os .path .join (O00000OOO000O000O ,O0O0OOOOOO0000000 ))#line:372:p = fsdecode(os.path.join(root, fn))
+                        O0OOO0O00O00O0OOO =os .path .relpath (OOO0OOO000O00000O ,OO0OOOOOOOOO00OO0 )#line:373:rp = os.path.relpath(p, path)
+                        O0O000O0O0O00OOOO =to_posix (os .path .join (O0O0OOOO0OO0OO0O0 ,OO0O000000OO0OOO0 ,O0OOO0O00O00O0OOO ))#line:374:ap = to_posix(os.path.join(data_dir, key, rp))
+                        O000O0OO00OO000OO .append ((O0O000O0O0O00OOOO ,OOO0OOO000O00000O ))#line:375:archive_paths.append((ap, p))
+                        if OO0O000000OO0OOO0 =='scripts'and not OOO0OOO000O00000O .endswith ('.exe'):#line:376:if key == 'scripts' and not p.endswith('.exe'):
+                            with open (OOO0OOO000O00000O ,'rb')as O000OOOO00OO00OO0 :#line:377:with open(p, 'rb') as f:
+                                O0O0000OO0OO0O000 =O000OOOO00OO00OO0 .read ()#line:378:data = f.read()
+                            O0O0000OO0OO0O000 =OOO0OOO0OO0OOOO00 .process_shebang (O0O0000OO0OO0O000 )#line:379:data = self.process_shebang(data)
+                            with open (OOO0OOO000O00000O ,'wb')as O000OOOO00OO00OO0 :#line:380:with open(p, 'wb') as f:
+                                O000OOOO00OO00OO0 .write (O0O0000OO0OO0O000 )#line:381:f.write(data)
+        OO0OOOOOOOOO00OO0 =O0O000O00O00OOOOO #line:385:path = libdir
+        OOO0O000O000O0O0O =None #line:386:distinfo = None
+        for O00000OOO000O000O ,OOOOOO0OO000O00OO ,O0O0O000OOO0000OO in os .walk (OO0OOOOOOOOO00OO0 ):#line:387:for root, dirs, files in os.walk(path):
+            if O00000OOO000O000O ==OO0OOOOOOOOO00OO0 :#line:388:if root == path:
+                for OO000OOO00OOOO0O0 ,OO0OOO0OO00O0O00O in enumerate (OOOOOO0OO000O00OO ):#line:391:for i, dn in enumerate(dirs):
+                    OO0OOO0OO00O0O00O =fsdecode (OO0OOO0OO00O0O00O )#line:392:dn = fsdecode(dn)
+                    if OO0OOO0OO00O0O00O .endswith ('.dist-info'):#line:393:if dn.endswith('.dist-info'):
+                        OOO0O000O000O0O0O =os .path .join (O00000OOO000O000O ,OO0OOO0OO00O0O00O )#line:394:distinfo = os.path.join(root, dn)
+                        del OOOOOO0OO000O00OO [OO000OOO00OOOO0O0 ]#line:395:del dirs[i]
+                        break #line:396:break
+                assert OOO0O000O000O0O0O ,'.dist-info directory expected, not found'#line:397:assert distinfo, '.dist-info directory expected, not found'
+            for O0O0OOOOOO0000000 in O0O0O000OOO0000OO :#line:399:for fn in files:
+                if fsdecode (O0O0OOOOOO0000000 ).endswith (('.pyc','.pyo')):#line:401:if fsdecode(fn).endswith(('.pyc', '.pyo')):
+                    continue #line:402:continue
+                OOO0OOO000O00000O =os .path .join (O00000OOO000O000O ,O0O0OOOOOO0000000 )#line:403:p = os.path.join(root, fn)
+                O0OOO0O00O00O0OOO =to_posix (os .path .relpath (OOO0OOO000O00000O ,OO0OOOOOOOOO00OO0 ))#line:404:rp = to_posix(os.path.relpath(p, path))
+                O000O0OO00OO000OO .append ((O0OOO0O00O00O0OOO ,OOO0OOO000O00000O ))#line:405:archive_paths.append((rp, p))
+        O0O0O000OOO0000OO =os .listdir (OOO0O000O000O0O0O )#line:408:files = os.listdir(distinfo)
+        for O0O0OOOOOO0000000 in O0O0O000OOO0000OO :#line:409:for fn in files:
+            if O0O0OOOOOO0000000 not in ('RECORD','INSTALLER','SHARED','WHEEL'):#line:410:if fn not in ('RECORD', 'INSTALLER', 'SHARED', 'WHEEL'):
+                OOO0OOO000O00000O =fsdecode (os .path .join (OOO0O000O000O0O0O ,O0O0OOOOOO0000000 ))#line:411:p = fsdecode(os.path.join(distinfo, fn))
+                O0O000O0O0O00OOOO =to_posix (os .path .join (O0O0OO00OO000000O ,O0O0OOOOOO0000000 ))#line:412:ap = to_posix(os.path.join(info_dir, fn))
+                O000O0OO00OO000OO .append ((O0O000O0O0O00OOOO ,OOO0OOO000O00000O ))#line:413:archive_paths.append((ap, p))
+        O00O00000O0O0OO0O =['Wheel-Version: %d.%d'%(wheel_version or OOO0OOO0OO0OOOO00 .wheel_version ),'Generator: distlib %s'%__version__ ,'Root-Is-Purelib: %s'%OOO0O000OOO00O0OO ,]#line:419:]
+        for OO0000OO00O000O00 ,OOO0OO00O00OOOOOO ,OOOO000O0OOO0OOO0 in OOO0OOO0OO0OOOO00 .tags :#line:420:for pyver, abi, arch in self.tags:
+            O00O00000O0O0OO0O .append ('Tag: %s-%s-%s'%(OO0000OO00O000O00 ,OOO0OO00O00OOOOOO ,OOOO000O0OOO0OOO0 ))#line:421:wheel_metadata.append('Tag: %s-%s-%s' % (pyver, abi, arch))
+        OOO0OOO000O00000O =os .path .join (OOO0O000O000O0O0O ,'WHEEL')#line:422:p = os.path.join(distinfo, 'WHEEL')
+        with open (OOO0OOO000O00000O ,'w')as O000OOOO00OO00OO0 :#line:423:with open(p, 'w') as f:
+            O000OOOO00OO00OO0 .write ('\n'.join (O00O00000O0O0OO0O ))#line:424:f.write('\n'.join(wheel_metadata))
+        O0O000O0O0O00OOOO =to_posix (os .path .join (O0O0OO00OO000000O ,'WHEEL'))#line:425:ap = to_posix(os.path.join(info_dir, 'WHEEL'))
+        O000O0OO00OO000OO .append ((O0O000O0O0O00OOOO ,OOO0OOO000O00000O ))#line:426:archive_paths.append((ap, p))
+        OOO0OOO0OO0OOOO00 .write_records ((OOO0O000O000O0O0O ,O0O0OO00OO000000O ),O0O000O00O00OOOOO ,O000O0OO00OO000OO )#line:430:self.write_records((distinfo, info_dir), libdir, archive_paths)
+        OOO0O0000OO00O0O0 =os .path .join (OOO0OOO0OO0OOOO00 .dirname ,OOO0OOO0OO0OOOO00 .filename )#line:432:pathname = os.path.join(self.dirname, self.filename)
+        OOO0OOO0OO0OOOO00 .build_zip (OOO0O0000OO00O0O0 ,O000O0OO00OO000OO )#line:433:self.build_zip(pathname, archive_paths)
+        return OOO0O0000OO00O0O0 #line:434:return pathname
+    def install (O000000O0OO0O0O0O ,OO00O00OO0O00O0OO ,OOOOOO0O0000O0O00 ,**OOO0O00000OO0O00O ):#line:436:def install(self, paths, maker, **kwargs):
+        ""#line:451:"""
+        OO00O0OOO00OOOO00 =OOOOOO0O0000O0O00 .dry_run #line:453:dry_run = maker.dry_run
+        OO0O0O000OO0O0O00 =OOO0O00000OO0O00O .get ('warner')#line:454:warner = kwargs.get('warner')
+        O000O00O0OOOO00OO =OOO0O00000OO0O00O .get ('lib_only',False )#line:455:lib_only = kwargs.get('lib_only', False)
+        OO0OO0O0O0OO0OO00 =OOO0O00000OO0O00O .get ('bytecode_hashed_invalidation',False )#line:456:bc_hashed_invalidation = kwargs.get('bytecode_hashed_invalidation', False)
+        OOO00OOOO00000OOO =os .path .join (O000000O0OO0O0O0O .dirname ,O000000O0OO0O0O0O .filename )#line:458:pathname = os.path.join(self.dirname, self.filename)
+        OOO000O0O000OO0O0 ='%s-%s'%(O000000O0OO0O0O0O .name ,O000000O0OO0O0O0O .version )#line:459:name_ver = '%s-%s' % (self.name, self.version)
+        OO00O00O0O0O0O0OO ='%s.data'%OOO000O0O000OO0O0 #line:460:data_dir = '%s.data' % name_ver
+        O0OOO0000OOOOOOO0 ='%s.dist-info'%OOO000O0O000OO0O0 #line:461:info_dir = '%s.dist-info' % name_ver
+        O00O0O000O00000OO =posixpath .join (O0OOO0000OOOOOOO0 ,METADATA_FILENAME )#line:463:metadata_name = posixpath.join(info_dir, METADATA_FILENAME)
+        OO00OO0OO0OO00O0O =posixpath .join (O0OOO0000OOOOOOO0 ,'WHEEL')#line:464:wheel_metadata_name = posixpath.join(info_dir, 'WHEEL')
+        OOOOOO00000OO00O0 =posixpath .join (O0OOO0000OOOOOOO0 ,'RECORD')#line:465:record_name = posixpath.join(info_dir, 'RECORD')
+        O0OO000O00000OO0O =codecs .getreader ('utf-8')#line:467:wrapper = codecs.getreader('utf-8')
+        with ZipFile (OOO00OOOO00000OOO ,'r')as OOO00OO0OOOOO0OO0 :#line:469:with ZipFile(pathname, 'r') as zf:
+            with OOO00OO0OOOOO0OO0 .open (OO00OO0OO0OO00O0O )as OOO0O00OO0OOOOOOO :#line:470:with zf.open(wheel_metadata_name) as bwf:
+                O0O00OO0OO0000000 =O0OO000O00000OO0O (OOO0O00OO0OOOOOOO )#line:471:wf = wrapper(bwf)
+                OOOO00O0000O0OOO0 =message_from_file (O0O00OO0OO0000000 )#line:472:message = message_from_file(wf)
+            OOO00O0OOO0OO0OO0 =OOOO00O0000O0OOO0 ['Wheel-Version'].split ('.',1 )#line:473:wv = message['Wheel-Version'].split('.', 1)
+            O0O00O0O00OOOOOO0 =tuple ([int (OOO0O0OO0O00000O0 )for OOO0O0OO0O00000O0 in OOO00O0OOO0OO0OO0 ])#line:474:file_version = tuple([int(i) for i in wv])
+            if (O0O00O0O00OOOOOO0 !=O000000O0OO0O0O0O .wheel_version )and OO0O0O000OO0O0O00 :#line:475:if (file_version != self.wheel_version) and warner:
+                OO0O0O000OO0O0O00 (O000000O0OO0O0O0O .wheel_version ,O0O00O0O00OOOOOO0 )#line:476:warner(self.wheel_version, file_version)
+            if OOOO00O0000O0OOO0 ['Root-Is-Purelib']=='true':#line:478:if message['Root-Is-Purelib'] == 'true':
+                O0O000O00O000O0O0 =OO00O00OO0O00O0OO ['purelib']#line:479:libdir = paths['purelib']
+            else :#line:480:else:
+                O0O000O00O000O0O0 =OO00O00OO0O00O0OO ['platlib']#line:481:libdir = paths['platlib']
+            OOO0OO0OOOO00O0OO ={}#line:483:records = {}
+            with OOO00OO0OOOOO0OO0 .open (OOOOOO00000OO00O0 )as O000O00000OO0000O :#line:484:with zf.open(record_name) as bf:
+                with CSVReader (stream =O000O00000OO0000O )as OOOO0OOOO0OO0OO00 :#line:485:with CSVReader(stream=bf) as reader:
+                    for OO0O0O0OO00O0O000 in OOOO0OOOO0OO0OO00 :#line:486:for row in reader:
+                        OOOO0OOOOOOOO0O0O =OO0O0O0OO00O0O000 [0 ]#line:487:p = row[0]
+                        OOO0OO0OOOO00O0OO [OOOO0OOOOOOOO0O0O ]=OO0O0O0OO00O0O000 #line:488:records[p] = row
+            OOOOO0OOO000O0O00 =posixpath .join (OO00O00O0O0O0O0OO ,'')#line:490:data_pfx = posixpath.join(data_dir, '')
+            OOO0O0OO00O00OOO0 =posixpath .join (O0OOO0000OOOOOOO0 ,'')#line:491:info_pfx = posixpath.join(info_dir, '')
+            OOO0OO0O00O0O0000 =posixpath .join (OO00O00O0O0O0O0OO ,'scripts','')#line:492:script_pfx = posixpath.join(data_dir, 'scripts', '')
+            O0OOOOO000O00OOO0 =FileOperator (dry_run =OO00O0OOO00OOOO00 )#line:496:fileop = FileOperator(dry_run=dry_run)
+            O0OOOOO000O00OOO0 .record =True #line:497:fileop.record = True    # so we can rollback if needed
+            O00000OO0O0O0000O =not sys .dont_write_bytecode #line:499:bc = not sys.dont_write_bytecode    # Double negatives. Lovely!
+            OOOOO0OOOO0OO0O00 =[]#line:501:outfiles = []   # for RECORD writing
+            OOO0O00OOOOOOO00O =tempfile .mkdtemp ()#line:504:workdir = tempfile.mkdtemp()
+            OOOOOO0O0000O0O00 .source_dir =OOO0O00OOOOOOO00O #line:508:maker.source_dir = workdir
+            OOOOOO0O0000O0O00 .target_dir =None #line:509:maker.target_dir = None
+            try :#line:510:try:
+                for O0000OO00OOO0OOO0 in OOO00OO0OOOOO0OO0 .infolist ():#line:511:for zinfo in zf.infolist():
+                    O0O00O00000O00OO0 =O0000OO00OOO0OOO0 .filename #line:512:arcname = zinfo.filename
+                    if isinstance (O0O00O00000O00OO0 ,text_type ):#line:513:if isinstance(arcname, text_type):
+                        OOOO00O00OOO0OOO0 =O0O00O00000O00OO0 #line:514:u_arcname = arcname
+                    else :#line:515:else:
+                        OOOO00O00OOO0OOO0 =O0O00O00000O00OO0 .decode ('utf-8')#line:516:u_arcname = arcname.decode('utf-8')
+                    if OOOO00O00OOO0OOO0 .endswith ('/RECORD.jws'):#line:519:if u_arcname.endswith('/RECORD.jws'):
+                        continue #line:520:continue
+                    OO0O0O0OO00O0O000 =OOO0OO0OOOO00O0OO [OOOO00O00OOO0OOO0 ]#line:521:row = records[u_arcname]
+                    if OO0O0O0OO00O0O000 [2 ]and str (O0000OO00OOO0OOO0 .file_size )!=OO0O0O0OO00O0O000 [2 ]:#line:522:if row[2] and str(zinfo.file_size) != row[2]:
+                        raise DistlibException ('size mismatch for ' '%s'%OOOO00O00OOO0OOO0 )#line:524:'%s' % u_arcname)
+                    if OO0O0O0OO00O0O000 [1 ]:#line:525:if row[1]:
+                        OO0OOOOOOOO0OO000 ,OOO00000O0OO0O0OO =OO0O0O0OO00O0O000 [1 ].split ('=',1 )#line:526:kind, value = row[1].split('=', 1)
+                        with OOO00OO0OOOOO0OO0 .open (O0O00O00000O00OO0 )as O000O00000OO0000O :#line:527:with zf.open(arcname) as bf:
+                            OO0O00OOO00O000O0 =O000O00000OO0000O .read ()#line:528:data = bf.read()
+                        _O000000OOOOO00000 ,O0OOOO0OOO0000O00 =O000000O0OO0O0O0O .get_hash (OO0O00OOO00O000O0 ,OO0OOOOOOOO0OO000 )#line:529:_, digest = self.get_hash(data, kind)
+                        if O0OOOO0OOO0000O00 !=OOO00000O0OO0O0OO :#line:530:if digest != value:
+                            raise DistlibException ('digest mismatch for ' '%s'%O0O00O00000O00OO0 )#line:532:'%s' % arcname)
+                    if O000O00O0OOOO00OO and OOOO00O00OOO0OOO0 .startswith ((OOO0O0OO00O00OOO0 ,OOOOO0OOO000O0O00 )):#line:534:if lib_only and u_arcname.startswith((info_pfx, data_pfx)):
+                        logger .debug ('lib_only: skipping %s',OOOO00O00OOO0OOO0 )#line:535:logger.debug('lib_only: skipping %s', u_arcname)
+                        continue #line:536:continue
+                    O0OOO00O0OO000OO0 =(OOOO00O00OOO0OOO0 .startswith (OOO0OO0O00O0O0000 )and not OOOO00O00OOO0OOO0 .endswith ('.exe'))#line:538:and not u_arcname.endswith('.exe'))
+                    if OOOO00O00OOO0OOO0 .startswith (OOOOO0OOO000O0O00 ):#line:540:if u_arcname.startswith(data_pfx):
+                        _O000000OOOOO00000 ,O0OOO0OOO0O0O0O00 ,O0OO000O0OO0OOOO0 =OOOO00O00OOO0OOO0 .split ('/',2 )#line:541:_, where, rp = u_arcname.split('/', 2)
+                        O00OOOOO00OOO0000 =os .path .join (OO00O00OO0O00O0OO [O0OOO0OOO0O0O0O00 ],convert_path (O0OO000O0OO0OOOO0 ))#line:542:outfile = os.path.join(paths[where], convert_path(rp))
+                    else :#line:543:else:
+                        if OOOO00O00OOO0OOO0 in (OO00OO0OO0OO00O0O ,OOOOOO00000OO00O0 ):#line:545:if u_arcname in (wheel_metadata_name, record_name):
+                            continue #line:546:continue
+                        O00OOOOO00OOO0000 =os .path .join (O0O000O00O000O0O0 ,convert_path (OOOO00O00OOO0OOO0 ))#line:547:outfile = os.path.join(libdir, convert_path(u_arcname))
+                    if not O0OOO00O0OO000OO0 :#line:548:if not is_script:
+                        with OOO00OO0OOOOO0OO0 .open (O0O00O00000O00OO0 )as O000O00000OO0000O :#line:549:with zf.open(arcname) as bf:
+                            O0OOOOO000O00OOO0 .copy_stream (O000O00000OO0000O ,O00OOOOO00OOO0000 )#line:550:fileop.copy_stream(bf, outfile)
+                        OOOOO0OOOO0OO0O00 .append (O00OOOOO00OOO0000 )#line:551:outfiles.append(outfile)
+                        if not OO00O0OOO00OOOO00 and OO0O0O0OO00O0O000 [1 ]:#line:553:if not dry_run and row[1]:
+                            with open (O00OOOOO00OOO0000 ,'rb')as O000O00000OO0000O :#line:554:with open(outfile, 'rb') as bf:
+                                OO0O00OOO00O000O0 =O000O00000OO0000O .read ()#line:555:data = bf.read()
+                                _O000000OOOOO00000 ,O0OO0O000O0OO0O00 =O000000O0OO0O0O0O .get_hash (OO0O00OOO00O000O0 ,OO0OOOOOOOO0OO000 )#line:556:_, newdigest = self.get_hash(data, kind)
+                                if O0OO0O000O0OO0O00 !=O0OOOO0OOO0000O00 :#line:557:if newdigest != digest:
+                                    raise DistlibException ('digest mismatch ' 'on write for ' '%s'%O00OOOOO00OOO0000 )#line:560:'%s' % outfile)
+                        if O00000OO0O0O0000O and O00OOOOO00OOO0000 .endswith ('.py'):#line:561:if bc and outfile.endswith('.py'):
+                            try :#line:562:try:
+                                OO0O0O0O00000O00O =O0OOOOO000O00OOO0 .byte_compile (O00OOOOO00OOO0000 ,hashed_invalidation =OO0OO0O0O0OO0OO00 )#line:564:hashed_invalidation=bc_hashed_invalidation)
+                                OOOOO0OOOO0OO0O00 .append (OO0O0O0O00000O00O )#line:565:outfiles.append(pyc)
+                            except Exception :#line:566:except Exception:
+                                logger .warning ('Byte-compilation failed',exc_info =True )#line:570:exc_info=True)
+                    else :#line:571:else:
+                        OO0000O00O00OOOO0 =os .path .basename (convert_path (O0O00O00000O00OO0 ))#line:572:fn = os.path.basename(convert_path(arcname))
+                        OOOO0O0O0OO000O00 =os .path .join (OOO0O00OOOOOOO00O ,OO0000O00O00OOOO0 )#line:573:workname = os.path.join(workdir, fn)
+                        with OOO00OO0OOOOO0OO0 .open (O0O00O00000O00OO0 )as O000O00000OO0000O :#line:574:with zf.open(arcname) as bf:
+                            O0OOOOO000O00OOO0 .copy_stream (O000O00000OO0000O ,OOOO0O0O0OO000O00 )#line:575:fileop.copy_stream(bf, workname)
+                        OOO000O0OO0O0OO0O ,OO0000O00O00OOOO0 =os .path .split (O00OOOOO00OOO0000 )#line:577:dn, fn = os.path.split(outfile)
+                        OOOOOO0O0000O0O00 .target_dir =OOO000O0OO0O0OO0O #line:578:maker.target_dir = dn
+                        OO0O0OOOOO0000OOO =OOOOOO0O0000O0O00 .make (OO0000O00O00OOOO0 )#line:579:filenames = maker.make(fn)
+                        O0OOOOO000O00OOO0 .set_executable_mode (OO0O0OOOOO0000OOO )#line:580:fileop.set_executable_mode(filenames)
+                        OOOOO0OOOO0OO0O00 .extend (OO0O0OOOOO0000OOO )#line:581:outfiles.extend(filenames)
+                if O000O00O0OOOO00OO :#line:583:if lib_only:
+                    logger .debug ('lib_only: returning None')#line:584:logger.debug('lib_only: returning None')
+                    OO00O00000OO0000O =None #line:585:dist = None
+                else :#line:586:else:
+                    O000OO0000O00O0OO =None #line:592:commands = None
+                    O0O00O0O00OOOOOO0 =O000000O0OO0O0O0O .info ['Wheel-Version']#line:593:file_version = self.info['Wheel-Version']
+                    if O0O00O0O00OOOOOO0 =='1.0':#line:594:if file_version == '1.0':
+                        OOOO0OO0OO00000O0 =posixpath .join (O0OOO0000OOOOOOO0 ,'entry_points.txt')#line:596:ep = posixpath.join(info_dir, 'entry_points.txt')
+                        try :#line:597:try:
+                            with OOO00OO0OOOOO0OO0 .open (OOOO0OO0OO00000O0 )as OOO0O00OO0OOOOOOO :#line:598:with zf.open(ep) as bwf:
+                                OOO0O000OOO0O0O00 =read_exports (OOO0O00OO0OOOOOOO )#line:599:epdata = read_exports(bwf)
+                            O000OO0000O00O0OO ={}#line:600:commands = {}
+                            for OOO0O0OO000O0O0O0 in ('console','gui'):#line:601:for key in ('console', 'gui'):
+                                O000O0O0OOOOO0OO0 ='%s_scripts'%OOO0O0OO000O0O0O0 #line:602:k = '%s_scripts' % key
+                                if O000O0O0OOOOO0OO0 in OOO0O000OOO0O0O00 :#line:603:if k in epdata:
+                                    O000OO0000O00O0OO ['wrap_%s'%OOO0O0OO000O0O0O0 ]=O0OOOO0O0O000OOO0 ={}#line:604:commands['wrap_%s' % key] = d = {}
+                                    for OO0OOOOO0OO0000OO in OOO0O000OOO0O0O00 [O000O0O0OOOOO0OO0 ].values ():#line:605:for v in epdata[k].values():
+                                        O0OO0OOO00O0OO000 ='%s:%s'%(OO0OOOOO0OO0000OO .prefix ,OO0OOOOO0OO0000OO .suffix )#line:606:s = '%s:%s' % (v.prefix, v.suffix)
+                                        if OO0OOOOO0OO0000OO .flags :#line:607:if v.flags:
+                                            O0OO0OOO00O0OO000 +=' %s'%OO0OOOOO0OO0000OO .flags #line:608:s += ' %s' % v.flags
+                                        O0OOOO0O0O000OOO0 [OO0OOOOO0OO0000OO .name ]=O0OO0OOO00O0OO000 #line:609:d[v.name] = s
+                        except Exception :#line:610:except Exception:
+                            logger .warning ('Unable to read legacy script ' 'metadata, so cannot generate ' 'scripts')#line:613:'scripts')
+                    else :#line:614:else:
+                        try :#line:615:try:
+                            with OOO00OO0OOOOO0OO0 .open (O00O0O000O00000OO )as OOO0O00OO0OOOOOOO :#line:616:with zf.open(metadata_name) as bwf:
+                                O0O00OO0OO0000000 =O0OO000O00000OO0O (OOO0O00OO0OOOOOOO )#line:617:wf = wrapper(bwf)
+                                O000OO0000O00O0OO =json .load (O0O00OO0OO0000000 ).get ('extensions')#line:618:commands = json.load(wf).get('extensions')
+                                if O000OO0000O00O0OO :#line:619:if commands:
+                                    O000OO0000O00O0OO =O000OO0000O00O0OO .get ('python.commands')#line:620:commands = commands.get('python.commands')
+                        except Exception :#line:621:except Exception:
+                            logger .warning ('Unable to read JSON metadata, so ' 'cannot generate scripts')#line:623:'cannot generate scripts')
+                    if O000OO0000O00O0OO :#line:624:if commands:
+                        O0O0OOOO0O00O00OO =O000OO0000O00O0OO .get ('wrap_console',{})#line:625:console_scripts = commands.get('wrap_console', {})
+                        O0000OOO0O000OOOO =O000OO0000O00O0OO .get ('wrap_gui',{})#line:626:gui_scripts = commands.get('wrap_gui', {})
+                        if O0O0OOOO0O00O00OO or O0000OOO0O000OOOO :#line:627:if console_scripts or gui_scripts:
+                            O0O0OOO0OO00O0O0O =OO00O00OO0O00O0OO .get ('scripts','')#line:628:script_dir = paths.get('scripts', '')
+                            if not os .path .isdir (O0O0OOO0OO00O0O0O ):#line:629:if not os.path.isdir(script_dir):
+                                raise ValueError ('Valid script path not ' 'specified')#line:631:'specified')
+                            OOOOOO0O0000O0O00 .target_dir =O0O0OOO0OO00O0O0O #line:632:maker.target_dir = script_dir
+                            for O000O0O0OOOOO0OO0 ,OO0OOOOO0OO0000OO in O0O0OOOO0O00O00OO .items ():#line:633:for k, v in console_scripts.items():
+                                O0O0O00O000OOOO00 ='%s = %s'%(O000O0O0OOOOO0OO0 ,OO0OOOOO0OO0000OO )#line:634:script = '%s = %s' % (k, v)
+                                OO0O0OOOOO0000OOO =OOOOOO0O0000O0O00 .make (O0O0O00O000OOOO00 )#line:635:filenames = maker.make(script)
+                                O0OOOOO000O00OOO0 .set_executable_mode (OO0O0OOOOO0000OOO )#line:636:fileop.set_executable_mode(filenames)
+                            if O0000OOO0O000OOOO :#line:638:if gui_scripts:
+                                OOO0OO0O000OO0OOO ={'gui':True }#line:639:options = {'gui': True }
+                                for O000O0O0OOOOO0OO0 ,OO0OOOOO0OO0000OO in O0000OOO0O000OOOO .items ():#line:640:for k, v in gui_scripts.items():
+                                    O0O0O00O000OOOO00 ='%s = %s'%(O000O0O0OOOOO0OO0 ,OO0OOOOO0OO0000OO )#line:641:script = '%s = %s' % (k, v)
+                                    OO0O0OOOOO0000OOO =OOOOOO0O0000O0O00 .make (O0O0O00O000OOOO00 ,OOO0OO0O000OO0OOO )#line:642:filenames = maker.make(script, options)
+                                    O0OOOOO000O00OOO0 .set_executable_mode (OO0O0OOOOO0000OOO )#line:643:fileop.set_executable_mode(filenames)
+                    OOOO0OOOOOOOO0O0O =os .path .join (O0O000O00O000O0O0 ,O0OOO0000OOOOOOO0 )#line:645:p = os.path.join(libdir, info_dir)
+                    OO00O00000OO0000O =InstalledDistribution (OOOO0OOOOOOOO0O0O )#line:646:dist = InstalledDistribution(p)
+                    OO00O00OO0O00O0OO =dict (OO00O00OO0O00O0OO )#line:649:paths = dict(paths)     # don't change passed in dict
+                    del OO00O00OO0O00O0OO ['purelib']#line:650:del paths['purelib']
+                    del OO00O00OO0O00O0OO ['platlib']#line:651:del paths['platlib']
+                    OO00O00OO0O00O0OO ['lib']=O0O000O00O000O0O0 #line:652:paths['lib'] = libdir
+                    OOOO0OOOOOOOO0O0O =OO00O00000OO0000O .write_shared_locations (OO00O00OO0O00O0OO ,OO00O0OOO00OOOO00 )#line:653:p = dist.write_shared_locations(paths, dry_run)
+                    if OOOO0OOOOOOOO0O0O :#line:654:if p:
+                        OOOOO0OOOO0OO0O00 .append (OOOO0OOOOOOOO0O0O )#line:655:outfiles.append(p)
+                    OO00O00000OO0000O .write_installed_files (OOOOO0OOOO0OO0O00 ,OO00O00OO0O00O0OO ['prefix'],OO00O0OOO00OOOO00 )#line:659:dry_run)
+                return OO00O00000OO0000O #line:660:return dist
+            except Exception :#line:661:except Exception:  # pragma: no cover
+                logger .exception ('installation failed.')#line:662:logger.exception('installation failed.')
+                O0OOOOO000O00OOO0 .rollback ()#line:663:fileop.rollback()
+                raise #line:664:raise
+            finally :#line:665:finally:
+                shutil .rmtree (OOO0O00OOOOOOO00O )#line:666:shutil.rmtree(workdir)
+    def _get_dylib_cache (OOO0OOO00O0O000O0 ):#line:668:def _get_dylib_cache(self):
+        global cache #line:669:global cache
+        if cache is None :#line:670:if cache is None:
+            O0OO0OOO00OO0OO0O =os .path .join (get_cache_base (),str ('dylib-cache'),sys .version [:3 ])#line:673:sys.version[:3])
+            cache =Cache (O0OO0OOO00OO0OO0O )#line:674:cache = Cache(base)
+        return cache #line:675:return cache
+    def _get_extensions (O0OO000OO0O000OO0 ):#line:677:def _get_extensions(self):
+        OO0O0OOOO0O000OO0 =os .path .join (O0OO000OO0O000OO0 .dirname ,O0OO000OO0O000OO0 .filename )#line:678:pathname = os.path.join(self.dirname, self.filename)
+        O00O0OO000OOOOO00 ='%s-%s'%(O0OO000OO0O000OO0 .name ,O0OO000OO0O000OO0 .version )#line:679:name_ver = '%s-%s' % (self.name, self.version)
+        O0O0OOOO0O0O0OO0O ='%s.dist-info'%O00O0OO000OOOOO00 #line:680:info_dir = '%s.dist-info' % name_ver
+        O00O00OO00O0O00O0 =posixpath .join (O0O0OOOO0O0O0OO0O ,'EXTENSIONS')#line:681:arcname = posixpath.join(info_dir, 'EXTENSIONS')
+        O0OOO0OOOOOO0OO0O =codecs .getreader ('utf-8')#line:682:wrapper = codecs.getreader('utf-8')
+        O00O0O0000OO000OO =[]#line:683:result = []
+        with ZipFile (OO0O0OOOO0O000OO0 ,'r')as OO0O00O0OO00OOO00 :#line:684:with ZipFile(pathname, 'r') as zf:
+            try :#line:685:try:
+                with OO0O00O0OO00OOO00 .open (O00O00OO00O0O00O0 )as O0O0O0O000OOO0OOO :#line:686:with zf.open(arcname) as bf:
+                    O00O0O0000O00O0O0 =O0OOO0OOOOOO0OO0O (O0O0O0O000OOO0OOO )#line:687:wf = wrapper(bf)
+                    OO00000OOO0OOO00O =json .load (O00O0O0000O00O0O0 )#line:688:extensions = json.load(wf)
+                    O00OO0OO0O0OOOO00 =O0OO000OO0O000OO0 ._get_dylib_cache ()#line:689:cache = self._get_dylib_cache()
+                    O0OO0OO00O0OOOO00 =O00OO0OO0O0OOOO00 .prefix_to_dir (OO0O0OOOO0O000OO0 )#line:690:prefix = cache.prefix_to_dir(pathname)
+                    O00OOO0O000O000O0 =os .path .join (O00OO0OO0O0OOOO00 .base ,O0OO0OO00O0OOOO00 )#line:691:cache_base = os.path.join(cache.base, prefix)
+                    if not os .path .isdir (O00OOO0O000O000O0 ):#line:692:if not os.path.isdir(cache_base):
+                        os .makedirs (O00OOO0O000O000O0 )#line:693:os.makedirs(cache_base)
+                    for OO000O0OO0OO0O00O ,O0000O0OOOO000OO0 in OO00000OOO0OOO00O .items ():#line:694:for name, relpath in extensions.items():
+                        O000O0OOO0OOO00OO =os .path .join (O00OOO0O000O000O0 ,convert_path (O0000O0OOOO000OO0 ))#line:695:dest = os.path.join(cache_base, convert_path(relpath))
+                        if not os .path .exists (O000O0OOO0OOO00OO ):#line:696:if not os.path.exists(dest):
+                            OOOOOOO0O0O0000OO =True #line:697:extract = True
+                        else :#line:698:else:
+                            O0OO00000O0OO0OO0 =os .stat (O000O0OOO0OOO00OO ).st_mtime #line:699:file_time = os.stat(dest).st_mtime
+                            O0OO00000O0OO0OO0 =datetime .datetime .fromtimestamp (O0OO00000O0OO0OO0 )#line:700:file_time = datetime.datetime.fromtimestamp(file_time)
+                            O0O00O0O000000000 =OO0O00O0OO00OOO00 .getinfo (O0000O0OOOO000OO0 )#line:701:info = zf.getinfo(relpath)
+                            OOOOOOOOO00OOO00O =datetime .datetime (*O0O00O0O000000000 .date_time )#line:702:wheel_time = datetime.datetime(*info.date_time)
+                            OOOOOOO0O0O0000OO =OOOOOOOOO00OOO00O >O0OO00000O0OO0OO0 #line:703:extract = wheel_time > file_time
+                        if OOOOOOO0O0O0000OO :#line:704:if extract:
+                            OO0O00O0OO00OOO00 .extract (O0000O0OOOO000OO0 ,O00OOO0O000O000O0 )#line:705:zf.extract(relpath, cache_base)
+                        O00O0O0000OO000OO .append ((OO000O0OO0OO0O00O ,O000O0OOO0OOO00OO ))#line:706:result.append((name, dest))
+            except KeyError :#line:707:except KeyError:
+                pass #line:708:pass
+        return O00O0O0000OO000OO #line:709:return result
+    def is_compatible (O00O0O0OOOO0O00O0 ):#line:711:def is_compatible(self):
+        ""#line:714:"""
+        return is_compatible (O00O0O0OOOO0O00O0 )#line:715:return is_compatible(self)
+    def is_mountable (OOOO0O0OOO0OOO0OO ):#line:717:def is_mountable(self):
+        ""#line:720:"""
+        return True #line:721:return True # for now - metadata details TBD
+    def mount (O00000OOOO00OO0OO ,append =False ):#line:723:def mount(self, append=False):
+        O000O0O00O0OO0000 =os .path .abspath (os .path .join (O00000OOOO00OO0OO .dirname ,O00000OOOO00OO0OO .filename ))#line:724:pathname = os.path.abspath(os.path.join(self.dirname, self.filename))
+        if not O00000OOOO00OO0OO .is_compatible ():#line:725:if not self.is_compatible():
+            OO00O0O0000000OO0 ='Wheel %s not compatible with this Python.'%O000O0O00O0OO0000 #line:726:msg = 'Wheel %s not compatible with this Python.' % pathname
+            raise DistlibException (OO00O0O0000000OO0 )#line:727:raise DistlibException(msg)
+        if not O00000OOOO00OO0OO .is_mountable ():#line:728:if not self.is_mountable():
+            OO00O0O0000000OO0 ='Wheel %s is marked as not mountable.'%O000O0O00O0OO0000 #line:729:msg = 'Wheel %s is marked as not mountable.' % pathname
+            raise DistlibException (OO00O0O0000000OO0 )#line:730:raise DistlibException(msg)
+        if O000O0O00O0OO0000 in sys .path :#line:731:if pathname in sys.path:
+            logger .debug ('%s already in path',O000O0O00O0OO0000 )#line:732:logger.debug('%s already in path', pathname)
+        else :#line:733:else:
+            if append :#line:734:if append:
+                sys .path .append (O000O0O00O0OO0000 )#line:735:sys.path.append(pathname)
+            else :#line:736:else:
+                sys .path .insert (0 ,O000O0O00O0OO0000 )#line:737:sys.path.insert(0, pathname)
+            O00O00OOOOOO00OOO =O00000OOOO00OO0OO ._get_extensions ()#line:738:extensions = self._get_extensions()
+            if O00O00OOOOOO00OOO :#line:739:if extensions:
+                if _OOO00OOOOO0OOO000 not in sys .meta_path :#line:740:if _hook not in sys.meta_path:
+                    sys .meta_path .append (_OOO00OOOOO0OOO000 )#line:741:sys.meta_path.append(_hook)
+                _OOO00OOOOO0OOO000 .add (O000O0O00O0OO0000 ,O00O00OOOOOO00OOO )#line:742:_hook.add(pathname, extensions)
+    def unmount (OOOO0000OO00O00O0 ):#line:744:def unmount(self):
+        O000OOO000000OO0O =os .path .abspath (os .path .join (OOOO0000OO00O00O0 .dirname ,OOOO0000OO00O00O0 .filename ))#line:745:pathname = os.path.abspath(os.path.join(self.dirname, self.filename))
+        if O000OOO000000OO0O not in sys .path :#line:746:if pathname not in sys.path:
+            logger .debug ('%s not in path',O000OOO000000OO0O )#line:747:logger.debug('%s not in path', pathname)
+        else :#line:748:else:
+            sys .path .remove (O000OOO000000OO0O )#line:749:sys.path.remove(pathname)
+            if O000OOO000000OO0O in _OOO00OOOOO0OOO000 .impure_wheels :#line:750:if pathname in _hook.impure_wheels:
+                _OOO00OOOOO0OOO000 .remove (O000OOO000000OO0O )#line:751:_hook.remove(pathname)
+            if not _OOO00OOOOO0OOO000 .impure_wheels :#line:752:if not _hook.impure_wheels:
+                if _OOO00OOOOO0OOO000 in sys .meta_path :#line:753:if _hook in sys.meta_path:
+                    sys .meta_path .remove (_OOO00OOOOO0OOO000 )#line:754:sys.meta_path.remove(_hook)
+    def verify (O00OOO0O0OO00OOOO ):#line:756:def verify(self):
+        OO00OO0OOO0O0O0OO =os .path .join (O00OOO0O0OO00OOOO .dirname ,O00OOO0O0OO00OOOO .filename )#line:757:pathname = os.path.join(self.dirname, self.filename)
+        OOOOOOOO0O0OOO0O0 ='%s-%s'%(O00OOO0O0OO00OOOO .name ,O00OOO0O0OO00OOOO .version )#line:758:name_ver = '%s-%s' % (self.name, self.version)
+        OO000O0OOOOO0O0OO ='%s.data'%OOOOOOOO0O0OOO0O0 #line:759:data_dir = '%s.data' % name_ver
+        OOOO00OOOOO0O0000 ='%s.dist-info'%OOOOOOOO0O0OOO0O0 #line:760:info_dir = '%s.dist-info' % name_ver
+        O00O0O0O0O00O00OO =posixpath .join (OOOO00OOOOO0O0000 ,METADATA_FILENAME )#line:762:metadata_name = posixpath.join(info_dir, METADATA_FILENAME)
+        O00OO0O000O0OO00O =posixpath .join (OOOO00OOOOO0O0000 ,'WHEEL')#line:763:wheel_metadata_name = posixpath.join(info_dir, 'WHEEL')
+        O0OOO00OOOO00OOO0 =posixpath .join (OOOO00OOOOO0O0000 ,'RECORD')#line:764:record_name = posixpath.join(info_dir, 'RECORD')
+        O000000OOO0O000O0 =codecs .getreader ('utf-8')#line:766:wrapper = codecs.getreader('utf-8')
+        with ZipFile (OO00OO0OOO0O0O0OO ,'r')as OO0OO00O0OO0O0OOO :#line:768:with ZipFile(pathname, 'r') as zf:
+            with OO0OO00O0OO0O0OOO .open (O00OO0O000O0OO00O )as O00OO0O0OOO0OOO00 :#line:769:with zf.open(wheel_metadata_name) as bwf:
+                O00O00000O0OO0O0O =O000000OOO0O000O0 (O00OO0O0OOO0OOO00 )#line:770:wf = wrapper(bwf)
+                OO0O0OOO0OO0O0OO0 =message_from_file (O00O00000O0OO0O0O )#line:771:message = message_from_file(wf)
+            O0OOOO0OOOO0O0O00 =OO0O0OOO0OO0O0OO0 ['Wheel-Version'].split ('.',1 )#line:772:wv = message['Wheel-Version'].split('.', 1)
+            O000OOO000OO00OO0 =tuple ([int (OOOOOOO00O0O000O0 )for OOOOOOO00O0O000O0 in O0OOOO0OOOO0O0O00 ])#line:773:file_version = tuple([int(i) for i in wv])
+            O00O0O0OO0OO00O00 ={}#line:776:records = {}
+            with OO0OO00O0OO0O0OOO .open (O0OOO00OOOO00OOO0 )as O0OO00OOOOO0O0OOO :#line:777:with zf.open(record_name) as bf:
+                with CSVReader (stream =O0OO00OOOOO0O0OOO )as OOO000OO0OOO00OOO :#line:778:with CSVReader(stream=bf) as reader:
+                    for OOOO000OO0OOOOOO0 in OOO000OO0OOO00OOO :#line:779:for row in reader:
+                        OO0OOO0O0O00OO0OO =OOOO000OO0OOOOOO0 [0 ]#line:780:p = row[0]
+                        O00O0O0OO0OO00O00 [OO0OOO0O0O00OO0OO ]=OOOO000OO0OOOOOO0 #line:781:records[p] = row
+            for OOOO0000OO0000OO0 in OO0OO00O0OO0O0OOO .infolist ():#line:783:for zinfo in zf.infolist():
+                O0O0OO00000O000OO =OOOO0000OO0000OO0 .filename #line:784:arcname = zinfo.filename
+                if isinstance (O0O0OO00000O000OO ,text_type ):#line:785:if isinstance(arcname, text_type):
+                    OO0O00OOOO00O0OO0 =O0O0OO00000O000OO #line:786:u_arcname = arcname
+                else :#line:787:else:
+                    OO0O00OOOO00O0OO0 =O0O0OO00000O000OO .decode ('utf-8')#line:788:u_arcname = arcname.decode('utf-8')
+                if '..'in OO0O00OOOO00O0OO0 :#line:789:if '..' in u_arcname:
+                    raise DistlibException ('invalid entry in ' 'wheel: %r'%OO0O00OOOO00O0OO0 )#line:791:'wheel: %r' % u_arcname)
+                if OO0O00OOOO00O0OO0 .endswith ('/RECORD.jws'):#line:795:if u_arcname.endswith('/RECORD.jws'):
+                    continue #line:796:continue
+                OOOO000OO0OOOOOO0 =O00O0O0OO0OO00O00 [OO0O00OOOO00O0OO0 ]#line:797:row = records[u_arcname]
+                if OOOO000OO0OOOOOO0 [2 ]and str (OOOO0000OO0000OO0 .file_size )!=OOOO000OO0OOOOOO0 [2 ]:#line:798:if row[2] and str(zinfo.file_size) != row[2]:
+                    raise DistlibException ('size mismatch for ' '%s'%OO0O00OOOO00O0OO0 )#line:800:'%s' % u_arcname)
+                if OOOO000OO0OOOOOO0 [1 ]:#line:801:if row[1]:
+                    OO0OO00O0O0O0OOOO ,O0000OOOOOO0O0O0O =OOOO000OO0OOOOOO0 [1 ].split ('=',1 )#line:802:kind, value = row[1].split('=', 1)
+                    with OO0OO00O0OO0O0OOO .open (O0O0OO00000O000OO )as O0OO00OOOOO0O0OOO :#line:803:with zf.open(arcname) as bf:
+                        O0O0000O0OO000O00 =O0OO00OOOOO0O0OOO .read ()#line:804:data = bf.read()
+                    _O00OOO0O0OO0O0O0O ,O0OOO0O00O0OO00OO =O00OOO0O0OO00OOOO .get_hash (O0O0000O0OO000O00 ,OO0OO00O0O0O0OOOO )#line:805:_, digest = self.get_hash(data, kind)
+                    if O0OOO0O00O0OO00OO !=O0000OOOOOO0O0O0O :#line:806:if digest != value:
+                        raise DistlibException ('digest mismatch for ' '%s'%O0O0OO00000O000OO )#line:808:'%s' % arcname)
+    def update (O0O00OOO0O0O0OOO0 ,OO0OO0OO0000O0OO0 ,dest_dir =None ,**OOOO0O0OO00OOOO00 ):#line:810:def update(self, modifier, dest_dir=None, **kwargs):
+        ""#line:825:"""
+        def OOO0000OO0O0OO00O (OO00000000OOO00O0 ,OOOOO00O00OOOO00O ):#line:827:def get_version(path_map, info_dir):
+            OOOOO0O000OO0O0OO =OO00O0OOOO0OO000O =None #line:828:version = path = None
+            O0O000O00OOOO0000 ='%s/%s'%(OOOOO00O00OOOO00O ,METADATA_FILENAME )#line:829:key = '%s/%s' % (info_dir, METADATA_FILENAME)
+            if O0O000O00OOOO0000 not in OO00000000OOO00O0 :#line:830:if key not in path_map:
+                O0O000O00OOOO0000 ='%s/PKG-INFO'%OOOOO00O00OOOO00O #line:831:key = '%s/PKG-INFO' % info_dir
+            if O0O000O00OOOO0000 in OO00000000OOO00O0 :#line:832:if key in path_map:
+                OO00O0OOOO0OO000O =OO00000000OOO00O0 [O0O000O00OOOO0000 ]#line:833:path = path_map[key]
+                OOOOO0O000OO0O0OO =Metadata (path =OO00O0OOOO0OO000O ).version #line:834:version = Metadata(path=path).version
+            return OOOOO0O000OO0O0OO ,OO00O0OOOO0OO000O #line:835:return version, path
+        def OO0OO0O0O00O0OO00 (O000O0O00OOO00OOO ,O00OO0O0O00O0000O ):#line:837:def update_version(version, path):
+            OOO00OOO00OOOOO0O =None #line:838:updated = None
+            try :#line:839:try:
+                OOO0000OO0O000O00 =NormalizedVersion (O000O0O00OOO00OOO )#line:840:v = NormalizedVersion(version)
+                OO0000O0O00OO000O =O000O0O00OOO00OOO .find ('-')#line:841:i = version.find('-')
+                if OO0000O0O00OO000O <0 :#line:842:if i < 0:
+                    OOO00OOO00OOOOO0O ='%s+1'%O000O0O00OOO00OOO #line:843:updated = '%s+1' % version
+                else :#line:844:else:
+                    OO00OOO0OOOO0O0OO =[int (O00OO0O00OO0OO000 )for O00OO0O00OO0OO000 in O000O0O00OOO00OOO [OO0000O0O00OO000O +1 :].split ('.')]#line:845:parts = [int(s) for s in version[i + 1:].split('.')]
+                    OO00OOO0OOOO0O0OO [-1 ]+=1 #line:846:parts[-1] += 1
+                    OOO00OOO00OOOOO0O ='%s+%s'%(O000O0O00OOO00OOO [:OO0000O0O00OO000O ],'.'.join (str (OOOO0O0000O00O0OO )for OOOO0O0000O00O0OO in OO00OOO0OOOO0O0OO ))#line:848:'.'.join(str(i) for i in parts))
+            except UnsupportedVersionError :#line:849:except UnsupportedVersionError:
+                logger .debug ('Cannot update non-compliant (PEP-440) ' 'version %r',O000O0O00OOO00OOO )#line:851:'version %r', version)
+            if OOO00OOO00OOOOO0O :#line:852:if updated:
+                O000OO0O00O00O0OO =Metadata (path =O00OO0O0O00O0000O )#line:853:md = Metadata(path=path)
+                O000OO0O00O00O0OO .version =OOO00OOO00OOOOO0O #line:854:md.version = updated
+                OO000OOOOO00OO0OO =not O00OO0O0O00O0000O .endswith (METADATA_FILENAME )#line:855:legacy = not path.endswith(METADATA_FILENAME)
+                O000OO0O00O00O0OO .write (path =O00OO0O0O00O0000O ,legacy =OO000OOOOO00OO0OO )#line:856:md.write(path=path, legacy=legacy)
+                logger .debug ('Version updated from %r to %r',O000O0O00OOO00OOO ,OOO00OOO00OOOOO0O )#line:858:updated)
+        O0O00OO0OO000O0O0 =os .path .join (O0O00OOO0O0O0OOO0 .dirname ,O0O00OOO0O0O0OOO0 .filename )#line:860:pathname = os.path.join(self.dirname, self.filename)
+        O000O000OO0000OO0 ='%s-%s'%(O0O00OOO0O0O0OOO0 .name ,O0O00OOO0O0O0OOO0 .version )#line:861:name_ver = '%s-%s' % (self.name, self.version)
+        OOOO0000OO0OOO00O ='%s.dist-info'%O000O000OO0000OO0 #line:862:info_dir = '%s.dist-info' % name_ver
+        O0O0OOO0OO000OO00 =posixpath .join (OOOO0000OO0OOO00O ,'RECORD')#line:863:record_name = posixpath.join(info_dir, 'RECORD')
+        with tempdir ()as O00OOOO0O00OOO0O0 :#line:864:with tempdir() as workdir:
+            with ZipFile (O0O00OO0OO000O0O0 ,'r')as OOO0O000O00OOOO00 :#line:865:with ZipFile(pathname, 'r') as zf:
+                O0000O0OO0OO00O00 ={}#line:866:path_map = {}
+                for O00O0OO000OO0O0OO in OOO0O000O00OOOO00 .infolist ():#line:867:for zinfo in zf.infolist():
+                    OO000OOO0OO00O0OO =O00O0OO000OO0O0OO .filename #line:868:arcname = zinfo.filename
+                    if isinstance (OO000OOO0OO00O0OO ,text_type ):#line:869:if isinstance(arcname, text_type):
+                        OOO000O00O0O0OOOO =OO000OOO0OO00O0OO #line:870:u_arcname = arcname
+                    else :#line:871:else:
+                        OOO000O00O0O0OOOO =OO000OOO0OO00O0OO .decode ('utf-8')#line:872:u_arcname = arcname.decode('utf-8')
+                    if OOO000O00O0O0OOOO ==O0O0OOO0OO000OO00 :#line:873:if u_arcname == record_name:
+                        continue #line:874:continue
+                    if '..'in OOO000O00O0O0OOOO :#line:875:if '..' in u_arcname:
+                        raise DistlibException ('invalid entry in ' 'wheel: %r'%OOO000O00O0O0OOOO )#line:877:'wheel: %r' % u_arcname)
+                    OOO0O000O00OOOO00 .extract (O00O0OO000OO0O0OO ,O00OOOO0O00OOO0O0 )#line:878:zf.extract(zinfo, workdir)
+                    O0OOO0O0OO00O0O00 =os .path .join (O00OOOO0O00OOO0O0 ,convert_path (OOO000O00O0O0OOOO ))#line:879:path = os.path.join(workdir, convert_path(u_arcname))
+                    O0000O0OO0OO00O00 [OOO000O00O0O0OOOO ]=O0OOO0O0OO00O0O00 #line:880:path_map[u_arcname] = path
+            OO00OOOOOOOO0000O ,_O000OO0OO0OOOO00O =OOO0000OO0O0OO00O (O0000O0OO0OO00O00 ,OOOO0000OO0OOO00O )#line:883:original_version, _ = get_version(path_map, info_dir)
+            O0O0OO00OOO000OO0 =OO0OO0OO0000O0OO0 (O0000O0OO0OO00O00 ,**OOOO0O0OO00OOOO00 )#line:885:modified = modifier(path_map, **kwargs)
+            if O0O0OO00OOO000OO0 :#line:886:if modified:
+                OOO0O00O0O0O000OO ,O0OOO0O0OO00O0O00 =OOO0000OO0O0OO00O (O0000O0OO0OO00O00 ,OOOO0000OO0OOO00O )#line:888:current_version, path = get_version(path_map, info_dir)
+                if OOO0O00O0O0O000OO and (OOO0O00O0O0O000OO ==OO00OOOOOOOO0000O ):#line:889:if current_version and (current_version == original_version):
+                    OO0OO0O0O00O0OO00 (OOO0O00O0O0O000OO ,O0OOO0O0OO00O0O00 )#line:891:update_version(current_version, path)
+                if dest_dir is None :#line:893:if dest_dir is None:
+                    OOOOOOO00OO00OOO0 ,O0000OOO0O00OOOO0 =tempfile .mkstemp (suffix ='.whl',prefix ='wheel-update-',dir =O00OOOO0O00OOO0O0 )#line:896:dir=workdir)
+                    os .close (OOOOOOO00OO00OOO0 )#line:897:os.close(fd)
+                else :#line:898:else:
+                    if not os .path .isdir (dest_dir ):#line:899:if not os.path.isdir(dest_dir):
+                        raise DistlibException ('Not a directory: %r'%dest_dir )#line:900:raise DistlibException('Not a directory: %r' % dest_dir)
+                    O0000OOO0O00OOOO0 =os .path .join (dest_dir ,O0O00OOO0O0O0OOO0 .filename )#line:901:newpath = os.path.join(dest_dir, self.filename)
+                OO0OO0O000OOOOO00 =list (O0000O0OO0OO00O00 .items ())#line:902:archive_paths = list(path_map.items())
+                OO00OOO0O000O00O0 =os .path .join (O00OOOO0O00OOO0O0 ,OOOO0000OO0OOO00O )#line:903:distinfo = os.path.join(workdir, info_dir)
+                O0OOOOOO0O0O00O00 =OO00OOO0O000O00O0 ,OOOO0000OO0OOO00O #line:904:info = distinfo, info_dir
+                O0O00OOO0O0O0OOO0 .write_records (O0OOOOOO0O0O00O00 ,O00OOOO0O00OOO0O0 ,OO0OO0O000OOOOO00 )#line:905:self.write_records(info, workdir, archive_paths)
+                O0O00OOO0O0O0OOO0 .build_zip (O0000OOO0O00OOOO0 ,OO0OO0O000OOOOO00 )#line:906:self.build_zip(newpath, archive_paths)
+                if dest_dir is None :#line:907:if dest_dir is None:
+                    shutil .copyfile (O0000OOO0O00OOOO0 ,O0O00OO0OO000O0O0 )#line:908:shutil.copyfile(newpath, pathname)
+        return O0O0OO00OOO000OO0 #line:909:return modified
+def compatible_tags ():#line:911:def compatible_tags():
+    ""#line:914:"""
+    OO00O00O000000OO0 =[VER_SUFFIX ]#line:915:versions = [VER_SUFFIX]
+    O0O00OOO0OO000OOO =VER_SUFFIX [0 ]#line:916:major = VER_SUFFIX[0]
+    for O0OO00O0OO0O000O0 in range (sys .version_info [1 ]-1 ,-1 ,-1 ):#line:917:for minor in range(sys.version_info[1] - 1, - 1, -1):
+        OO00O00O000000OO0 .append (''.join ([O0O00OOO0OO000OOO ,str (O0OO00O0OO0O000O0 )]))#line:918:versions.append(''.join([major, str(minor)]))
+    O000O0O00OO0OOO0O =[]#line:920:abis = []
+    for OOOOOOOOO0OO0O0O0 ,_OOOOOOO000000O0OO ,_OOOOOOO000000O0OO in imp .get_suffixes ():#line:921:for suffix, _, _ in imp.get_suffixes():
+        if OOOOOOOOO0OO0O0O0 .startswith ('.abi'):#line:922:if suffix.startswith('.abi'):
+            O000O0O00OO0OOO0O .append (OOOOOOOOO0OO0O0O0 .split ('.',2 )[1 ])#line:923:abis.append(suffix.split('.', 2)[1])
+    O000O0O00OO0OOO0O .sort ()#line:924:abis.sort()
+    if ABI !='none':#line:925:if ABI != 'none':
+        O000O0O00OO0OOO0O .insert (0 ,ABI )#line:926:abis.insert(0, ABI)
+    O000O0O00OO0OOO0O .append ('none')#line:927:abis.append('none')
+    O0OOOO0OOO0OO0O00 =[]#line:928:result = []
+    O00OOOO00O000OOO0 =[ARCH ]#line:930:arches = [ARCH]
+    if sys .platform =='darwin':#line:931:if sys.platform == 'darwin':
+        O0O0OOO0O0O0000O0 =re .match (r'(\w+)_(\d+)_(\d+)_(\w+)$',ARCH )#line:932:m = re.match(r'(\w+)_(\d+)_(\d+)_(\w+)$', ARCH)
+        if O0O0OOO0O0O0000O0 :#line:933:if m:
+            OO00OO0O0OO0OO00O ,O0O00OOO0OO000OOO ,O0OO00O0OO0O000O0 ,OOO0000OO00OO0OOO =O0O0OOO0O0O0000O0 .groups ()#line:934:name, major, minor, arch = m.groups()
+            O0OO00O0OO0O000O0 =int (O0OO00O0OO0O000O0 )#line:935:minor = int(minor)
+            OO0O000OO0OO00OOO =[OOO0000OO00OO0OOO ]#line:936:matches = [arch]
+            if OOO0000OO00OO0OOO in ('i386','ppc'):#line:937:if arch in ('i386', 'ppc'):
+                OO0O000OO0OO00OOO .append ('fat')#line:938:matches.append('fat')
+            if OOO0000OO00OO0OOO in ('i386','ppc','x86_64'):#line:939:if arch in ('i386', 'ppc', 'x86_64'):
+                OO0O000OO0OO00OOO .append ('fat3')#line:940:matches.append('fat3')
+            if OOO0000OO00OO0OOO in ('ppc64','x86_64'):#line:941:if arch in ('ppc64', 'x86_64'):
+                OO0O000OO0OO00OOO .append ('fat64')#line:942:matches.append('fat64')
+            if OOO0000OO00OO0OOO in ('i386','x86_64'):#line:943:if arch in ('i386', 'x86_64'):
+                OO0O000OO0OO00OOO .append ('intel')#line:944:matches.append('intel')
+            if OOO0000OO00OO0OOO in ('i386','x86_64','intel','ppc','ppc64'):#line:945:if arch in ('i386', 'x86_64', 'intel', 'ppc', 'ppc64'):
+                OO0O000OO0OO00OOO .append ('universal')#line:946:matches.append('universal')
+            while O0OO00O0OO0O000O0 >=0 :#line:947:while minor >= 0:
+                for OOO0OOOO00O00OOOO in OO0O000OO0OO00OOO :#line:948:for match in matches:
+                    O0000OOO0O00OOOOO ='%s_%s_%s_%s'%(OO00OO0O0OO0OO00O ,O0O00OOO0OO000OOO ,O0OO00O0OO0O000O0 ,OOO0OOOO00O00OOOO )#line:949:s = '%s_%s_%s_%s' % (name, major, minor, match)
+                    if O0000OOO0O00OOOOO !=ARCH :#line:950:if s != ARCH:   # already there
+                        O00OOOO00O000OOO0 .append (O0000OOO0O00OOOOO )#line:951:arches.append(s)
+                O0OO00O0OO0O000O0 -=1 #line:952:minor -= 1
+    for OO0OO0OOOO0O0000O in O000O0O00OO0OOO0O :#line:955:for abi in abis:
+        for OOO0000OO00OO0OOO in O00OOOO00O000OOO0 :#line:956:for arch in arches:
+            O0OOOO0OOO0OO0O00 .append ((''.join ((IMP_PREFIX ,OO00O00O000000OO0 [0 ])),OO0OO0OOOO0O0000O ,OOO0000OO00OO0OOO ))#line:957:result.append((''.join((IMP_PREFIX, versions[0])), abi, arch))
+    for O0OOOOO0O0O000OO0 ,O000000O00OOO0OO0 in enumerate (OO00O00O000000OO0 ):#line:960:for i, version in enumerate(versions):
+        O0OOOO0OOO0OO0O00 .append ((''.join ((IMP_PREFIX ,O000000O00OOO0OO0 )),'none','any'))#line:961:result.append((''.join((IMP_PREFIX, version)), 'none', 'any'))
+        if O0OOOOO0O0O000OO0 ==0 :#line:962:if i == 0:
+            O0OOOO0OOO0OO0O00 .append ((''.join ((IMP_PREFIX ,O000000O00OOO0OO0 [0 ])),'none','any'))#line:963:result.append((''.join((IMP_PREFIX, version[0])), 'none', 'any'))
+    for O0OOOOO0O0O000OO0 ,O000000O00OOO0OO0 in enumerate (OO00O00O000000OO0 ):#line:966:for i, version in enumerate(versions):
+        O0OOOO0OOO0OO0O00 .append ((''.join (('py',O000000O00OOO0OO0 )),'none','any'))#line:967:result.append((''.join(('py', version)), 'none', 'any'))
+        if O0OOOOO0O0O000OO0 ==0 :#line:968:if i == 0:
+            O0OOOO0OOO0OO0O00 .append ((''.join (('py',O000000O00OOO0OO0 [0 ])),'none','any'))#line:969:result.append((''.join(('py', version[0])), 'none', 'any'))
+    return set (O0OOOO0OOO0OO0O00 )#line:970:return set(result)
+COMPATIBLE_TAGS =compatible_tags ()#line:973:COMPATIBLE_TAGS = compatible_tags()
+del compatible_tags #line:975:del compatible_tags
+def is_compatible (OO0O00000OOO00OO0 ,tags =None ):#line:978:def is_compatible(wheel, tags=None):
+    if not isinstance (OO0O00000OOO00OO0 ,Wheel ):#line:979:if not isinstance(wheel, Wheel):
+        OO0O00000OOO00OO0 =Wheel (OO0O00000OOO00OO0 )#line:980:wheel = Wheel(wheel)    # assume it's a filename
+    O0OOO00OOO0OOOO00 =False #line:981:result = False
+    if tags is None :#line:982:if tags is None:
+        tags =COMPATIBLE_TAGS #line:983:tags = COMPATIBLE_TAGS
+    for OOOO0OOO00000OO0O ,O000OO0O0000OOO0O ,O0O0O00000OOO0OO0 in tags :#line:984:for ver, abi, arch in tags:
+        if OOOO0OOO00000OO0O in OO0O00000OOO00OO0 .pyver and O000OO0O0000OOO0O in OO0O00000OOO00OO0 .abi and O0O0O00000OOO0OO0 in OO0O00000OOO00OO0 .arch :#line:985:if ver in wheel.pyver and abi in wheel.abi and arch in wheel.arch:
+            O0OOO00OOO0OOOO00 =True #line:986:result = True
+            break #line:987:break
+    return O0OOO00OOO0OOOO00 #line:988:return result

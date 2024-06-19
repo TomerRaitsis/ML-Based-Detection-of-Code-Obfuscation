@@ -1,824 +1,116 @@
-import gzip #line:8:import gzip
-from io import BytesIO #line:9:from io import BytesIO
-import json #line:10:import json
-import logging #line:11:import logging
-import os #line:12:import os
-import posixpath #line:13:import posixpath
-import re #line:14:import re
-try :#line:15:try:
-    import threading #line:16:import threading
-except ImportError :#line:17:except ImportError:  # pragma: no cover
-    import dummy_threading as threading #line:18:import dummy_threading as threading
-import zlib #line:19:import zlib
-from .import DistlibException #line:21:from . import DistlibException
-from .compat import (urljoin ,urlparse ,urlunparse ,url2pathname ,pathname2url ,queue ,quote ,unescape ,string_types ,build_opener ,HTTPRedirectHandler as BaseRedirectHandler ,text_type ,Request ,HTTPError ,URLError )#line:25:Request, HTTPError, URLError)
-from .database import Distribution ,DistributionPath ,make_dist #line:26:from .database import Distribution, DistributionPath, make_dist
-from .metadata import Metadata ,MetadataInvalidError #line:27:from .metadata import Metadata, MetadataInvalidError
-from .util import (cached_property ,parse_credentials ,ensure_slash ,split_filename ,get_project_data ,parse_requirement ,parse_name_and_version ,ServerProxy ,normalize_name )#line:30:parse_name_and_version, ServerProxy, normalize_name)
-from .version import get_scheme ,UnsupportedVersionError #line:31:from .version import get_scheme, UnsupportedVersionError
-from .wheel import Wheel ,is_compatible #line:32:from .wheel import Wheel, is_compatible
-logger =logging .getLogger (__name__ )#line:34:logger = logging.getLogger(__name__)
-HASHER_HASH =re .compile (r'^(\w+)=([a-f0-9]+)')#line:36:HASHER_HASH = re.compile(r'^(\w+)=([a-f0-9]+)')
-CHARSET =re .compile (r';\s*charset\s*=\s*(.*)\s*$',re .I )#line:37:CHARSET = re.compile(r';\s*charset\s*=\s*(.*)\s*$', re.I)
-HTML_CONTENT_TYPE =re .compile ('text/html|application/x(ht)?ml')#line:38:HTML_CONTENT_TYPE = re.compile('text/html|application/x(ht)?ml')
-DEFAULT_INDEX ='https://pypi.python.org/pypi'#line:39:DEFAULT_INDEX = 'https://pypi.python.org/pypi'
-def get_all_distribution_names (url =None ):#line:41:def get_all_distribution_names(url=None):
-    ""#line:46:"""
-    if url is None :#line:47:if url is None:
-        url =DEFAULT_INDEX #line:48:url = DEFAULT_INDEX
-    OOO00O0O00OOO00O0 =ServerProxy (url ,timeout =3.0 )#line:49:client = ServerProxy(url, timeout=3.0)
-    try :#line:50:try:
-        return OOO00O0O00OOO00O0 .list_packages ()#line:51:return client.list_packages()
-    finally :#line:52:finally:
-        OOO00O0O00OOO00O0 ('close')()#line:53:client('close')()
-class RedirectHandler (BaseRedirectHandler ):#line:55:class RedirectHandler(BaseRedirectHandler):
-    ""#line:58:"""
-    def http_error_302 (OO0OOO0OOO00OOO0O ,O000O000OO0O0000O ,O0OO00O0OOOOOOO0O ,O00OOO0O00OO0000O ,OOO000O000O0O0O00 ,OOOO000000O00O00O ):#line:64:def http_error_302(self, req, fp, code, msg, headers):
-        OOO00O0OOO0OO0OOO =None #line:67:newurl = None
-        for OO0OOOO00OO0OO0OO in ('location','uri'):#line:68:for key in ('location', 'uri'):
-            if OO0OOOO00OO0OO0OO in OOOO000000O00O00O :#line:69:if key in headers:
-                OOO00O0OOO0OO0OOO =OOOO000000O00O00O [OO0OOOO00OO0OO0OO ]#line:70:newurl = headers[key]
-                break #line:71:break
-        if OOO00O0OOO0OO0OOO is None :#line:72:if newurl is None:  # pragma: no cover
-            return #line:73:return
-        OO0O0O00000O00000 =urlparse (OOO00O0OOO0OO0OOO )#line:74:urlparts = urlparse(newurl)
-        if OO0O0O00000O00000 .scheme =='':#line:75:if urlparts.scheme == '':
-            OOO00O0OOO0OO0OOO =urljoin (O000O000OO0O0000O .get_full_url (),OOO00O0OOO0OO0OOO )#line:76:newurl = urljoin(req.get_full_url(), newurl)
-            if hasattr (OOOO000000O00O00O ,'replace_header'):#line:77:if hasattr(headers, 'replace_header'):
-                OOOO000000O00O00O .replace_header (OO0OOOO00OO0OO0OO ,OOO00O0OOO0OO0OOO )#line:78:headers.replace_header(key, newurl)
-            else :#line:79:else:
-                OOOO000000O00O00O [OO0OOOO00OO0OO0OO ]=OOO00O0OOO0OO0OOO #line:80:headers[key] = newurl
-        return BaseRedirectHandler .http_error_302 (OO0OOO0OOO00OOO0O ,O000O000OO0O0000O ,O0OO00O0OOOOOOO0O ,O00OOO0O00OO0000O ,OOO000O000O0O0O00 ,OOOO000000O00O00O )#line:82:headers)
-    http_error_301 =http_error_303 =http_error_307 =http_error_302 #line:84:http_error_301 = http_error_303 = http_error_307 = http_error_302
-class Locator (object ):#line:86:class Locator(object):
-    ""#line:89:"""
-    source_extensions =('.tar.gz','.tar.bz2','.tar','.zip','.tgz','.tbz')#line:90:source_extensions = ('.tar.gz', '.tar.bz2', '.tar', '.zip', '.tgz', '.tbz')
-    binary_extensions =('.egg','.exe','.whl')#line:91:binary_extensions = ('.egg', '.exe', '.whl')
-    excluded_extensions =('.pdf',)#line:92:excluded_extensions = ('.pdf',)
-    wheel_tags =None #line:98:wheel_tags = None
-    downloadable_extensions =source_extensions +('.whl',)#line:100:downloadable_extensions = source_extensions + ('.whl',)
-    def __init__ (O0O000O0OO0O000OO ,scheme ='default'):#line:102:def __init__(self, scheme='default'):
-        ""#line:109:"""
-        O0O000O0OO0O000OO ._cache ={}#line:110:self._cache = {}
-        O0O000O0OO0O000OO .scheme =scheme #line:111:self.scheme = scheme
-        O0O000O0OO0O000OO .opener =build_opener (RedirectHandler ())#line:114:self.opener = build_opener(RedirectHandler())
-        O0O000O0OO0O000OO .matcher =None #line:118:self.matcher = None
-        O0O000O0OO0O000OO .errors =queue .Queue ()#line:119:self.errors = queue.Queue()
-    def get_errors (OOOOO0O0O0OO00OOO ):#line:121:def get_errors(self):
-        ""#line:124:"""
-        O0O0OOOOOOO000000 =[]#line:125:result = []
-        while not OOOOO0O0O0OO00OOO .errors .empty ():#line:126:while not self.errors.empty():  # pragma: no cover
-            try :#line:127:try:
-                OOO000O00O0O0OOO0 =OOOOO0O0O0OO00OOO .errors .get (False )#line:128:e = self.errors.get(False)
-                O0O0OOOOOOO000000 .append (OOO000O00O0O0OOO0 )#line:129:result.append(e)
-            except OOOOO0O0O0OO00OOO .errors .Empty :#line:130:except self.errors.Empty:
-                continue #line:131:continue
-            OOOOO0O0O0OO00OOO .errors .task_done ()#line:132:self.errors.task_done()
-        return O0O0OOOOOOO000000 #line:133:return result
-    def clear_errors (OOO00O0O0O00O0O00 ):#line:135:def clear_errors(self):
-        ""#line:138:"""
-        OOO00O0O0O00O0O00 .get_errors ()#line:140:self.get_errors()
-    def clear_cache (OOOOO00000OOO0O00 ):#line:142:def clear_cache(self):
-        OOOOO00000OOO0O00 ._cache .clear ()#line:143:self._cache.clear()
-    def _get_scheme (OO0OO00O000O0OOOO ):#line:145:def _get_scheme(self):
-        return OO0OO00O000O0OOOO ._scheme #line:146:return self._scheme
-    def _set_scheme (OO0OOO0O00O0000OO ,OO000OOO0OO0OO00O ):#line:148:def _set_scheme(self, value):
-        OO0OOO0O00O0000OO ._scheme =OO000OOO0OO0OO00O #line:149:self._scheme = value
-    scheme =property (_get_scheme ,_set_scheme )#line:151:scheme = property(_get_scheme, _set_scheme)
-    def _get_project (OO00OO0OOOO0OOOO0 ,OOOOO000OO0OOOOOO ):#line:153:def _get_project(self, name):
-        ""#line:162:"""
-        raise NotImplementedError ('Please implement in the subclass')#line:163:raise NotImplementedError('Please implement in the subclass')
-    def get_distribution_names (O0OOOOOO000000000 ):#line:165:def get_distribution_names(self):
-        ""#line:168:"""
-        raise NotImplementedError ('Please implement in the subclass')#line:169:raise NotImplementedError('Please implement in the subclass')
-    def get_project (O00O0OOO000O00O0O ,OO000OO0O0000OO00 ):#line:171:def get_project(self, name):
-        ""#line:177:"""
-        if O00O0OOO000O00O0O ._cache is None :#line:178:if self._cache is None:  # pragma: no cover
-            OO00OO0OO0O00000O =O00O0OOO000O00O0O ._get_project (OO000OO0O0000OO00 )#line:179:result = self._get_project(name)
-        elif OO000OO0O0000OO00 in O00O0OOO000O00O0O ._cache :#line:180:elif name in self._cache:
-            OO00OO0OO0O00000O =O00O0OOO000O00O0O ._cache [OO000OO0O0000OO00 ]#line:181:result = self._cache[name]
-        else :#line:182:else:
-            O00O0OOO000O00O0O .clear_errors ()#line:183:self.clear_errors()
-            OO00OO0OO0O00000O =O00O0OOO000O00O0O ._get_project (OO000OO0O0000OO00 )#line:184:result = self._get_project(name)
-            O00O0OOO000O00O0O ._cache [OO000OO0O0000OO00 ]=OO00OO0OO0O00000O #line:185:self._cache[name] = result
-        return OO00OO0OO0O00000O #line:186:return result
-    def score_url (OO0O0OOO000O00OO0 ,OOOOOO0O000O0OOO0 ):#line:188:def score_url(self, url):
-        ""#line:192:"""
-        OOO0OO00OO00OOO0O =urlparse (OOOOOO0O000O0OOO0 )#line:193:t = urlparse(url)
-        O0OOO0OOOOO000O00 =posixpath .basename (OOO0OO00OO00OOO0O .path )#line:194:basename = posixpath.basename(t.path)
-        OOO0OOOO0O00OO0O0 =True #line:195:compatible = True
-        OO00000000O0O0OOO =O0OOO0OOOOO000O00 .endswith ('.whl')#line:196:is_wheel = basename.endswith('.whl')
-        O00O0O00OO000OO00 =O0OOO0OOOOO000O00 .endswith (OO0O0OOO000O00OO0 .downloadable_extensions )#line:197:is_downloadable = basename.endswith(self.downloadable_extensions)
-        if OO00000000O0O0OOO :#line:198:if is_wheel:
-            OOO0OOOO0O00OO0O0 =is_compatible (Wheel (O0OOO0OOOOO000O00 ),OO0O0OOO000O00OO0 .wheel_tags )#line:199:compatible = is_compatible(Wheel(basename), self.wheel_tags)
-        return (OOO0OO00OO00OOO0O .scheme =='https','pypi.python.org'in OOO0OO00OO00OOO0O .netloc ,O00O0O00OO000OO00 ,OO00000000O0O0OOO ,OOO0OOOO0O00OO0O0 ,O0OOO0OOOOO000O00 )#line:201:is_downloadable, is_wheel, compatible, basename)
-    def prefer_url (OOO000OOOO000OOO0 ,OOOO0O00O00O0OOOO ,OO000OOO00O0O00O0 ):#line:203:def prefer_url(self, url1, url2):
-        ""#line:212:"""
-        OOO0O00000O0OOO0O =OO000OOO00O0O00O0 #line:213:result = url2
-        if OOOO0O00O00O0OOOO :#line:214:if url1:
-            OO00O00O0000O00O0 =OOO000OOOO000OOO0 .score_url (OOOO0O00O00O0OOOO )#line:215:s1 = self.score_url(url1)
-            O0O0000OO0O000OO0 =OOO000OOOO000OOO0 .score_url (OO000OOO00O0O00O0 )#line:216:s2 = self.score_url(url2)
-            if OO00O00O0000O00O0 >O0O0000OO0O000OO0 :#line:217:if s1 > s2:
-                OOO0O00000O0OOO0O =OOOO0O00O00O0OOOO #line:218:result = url1
-            if OOO0O00000O0OOO0O !=OO000OOO00O0O00O0 :#line:219:if result != url2:
-                logger .debug ('Not replacing %r with %r',OOOO0O00O00O0OOOO ,OO000OOO00O0O00O0 )#line:220:logger.debug('Not replacing %r with %r', url1, url2)
-            else :#line:221:else:
-                logger .debug ('Replacing %r with %r',OOOO0O00O00O0OOOO ,OO000OOO00O0O00O0 )#line:222:logger.debug('Replacing %r with %r', url1, url2)
-        return OOO0O00000O0OOO0O #line:223:return result
-    def split_filename (O0O0O00000O0O0O00 ,OOOO0O0O00OOO0OO0 ,O00O00OOOO00O0OOO ):#line:225:def split_filename(self, filename, project_name):
-        ""#line:228:"""
-        return split_filename (OOOO0O0O00OOO0OO0 ,O00O00OOOO00O0OOO )#line:229:return split_filename(filename, project_name)
-    def convert_url_to_download_info (O00O000OO0000O0O0 ,O0OO0OOO0O00OO0OO ,OO0OO00000OO00O0O ):#line:231:def convert_url_to_download_info(self, url, project_name):
-        ""#line:238:"""
-        def O00OO0OO0OOO00000 (O0OO0OO00OOO0OOO0 ,OO0O00000OOO00O0O ):#line:239:def same_project(name1, name2):
-            return normalize_name (O0OO0OO00OOO0OOO0 )==normalize_name (OO0O00000OOO00O0O )#line:240:return normalize_name(name1) == normalize_name(name2)
-        OO000OO00OO00OO0O =None #line:242:result = None
-        O000OO00OO0O0O0OO ,OO000OOOO000O00OO ,O00OOOO00O00OOOOO ,O0O0OO00OO00OO0O0 ,O0OOOOOOO0OOOO0OO ,OOOO00O0OOOOOO00O =urlparse (O0OO0OOO0O00OO0OO )#line:243:scheme, netloc, path, params, query, frag = urlparse(url)
-        if OOOO00O0OOOOOO00O .lower ().startswith ('egg='):#line:244:if frag.lower().startswith('egg='):  # pragma: no cover
-            logger .debug ('%s: version hint in fragment: %r',OO0OO00000OO00O0O ,OOOO00O0OOOOOO00O )#line:246:project_name, frag)
-        OO0OOO0O0OO0OOOOO =HASHER_HASH .match (OOOO00O0OOOOOO00O )#line:247:m = HASHER_HASH.match(frag)
-        if OO0OOO0O0OO0OOOOO :#line:248:if m:
-            O0O0OO0O0OOO0O000 ,O00OOO0OOOOO00000 =OO0OOO0O0OO0OOOOO .groups ()#line:249:algo, digest = m.groups()
-        else :#line:250:else:
-            O0O0OO0O0OOO0O000 ,O00OOO0OOOOO00000 =None ,None #line:251:algo, digest = None, None
-        OO0OO0OO0OOO0O0OO =O00OOOO00O00OOOOO #line:252:origpath = path
-        if O00OOOO00O00OOOOO and O00OOOO00O00OOOOO [-1 ]=='/':#line:253:if path and path[-1] == '/':  # pragma: no cover
-            O00OOOO00O00OOOOO =O00OOOO00O00OOOOO [:-1 ]#line:254:path = path[:-1]
-        if O00OOOO00O00OOOOO .endswith ('.whl'):#line:255:if path.endswith('.whl'):
-            try :#line:256:try:
-                OO0000OO0OO0O000O =Wheel (O00OOOO00O00OOOOO )#line:257:wheel = Wheel(path)
-                if not is_compatible (OO0000OO0OO0O000O ,O00O000OO0000O0O0 .wheel_tags ):#line:258:if not is_compatible(wheel, self.wheel_tags):
-                    logger .debug ('Wheel not compatible: %s',O00OOOO00O00OOOOO )#line:259:logger.debug('Wheel not compatible: %s', path)
-                else :#line:260:else:
-                    if OO0OO00000OO00O0O is None :#line:261:if project_name is None:
-                        O0OOO0000OOO00OOO =True #line:262:include = True
-                    else :#line:263:else:
-                        O0OOO0000OOO00OOO =O00OO0OO0OOO00000 (OO0000OO0OO0O000O .name ,OO0OO00000OO00O0O )#line:264:include = same_project(wheel.name, project_name)
-                    if O0OOO0000OOO00OOO :#line:265:if include:
-                        OO000OO00OO00OO0O ={'name':OO0000OO0OO0O000O .name ,'version':OO0000OO0OO0O000O .version ,'filename':OO0000OO0OO0O000O .filename ,'url':urlunparse ((O000OO00OO0O0O0OO ,OO000OOOO000O00OO ,OO0OO0OO0OOO0O0OO ,O0O0OO00OO00OO0O0 ,O0OOOOOOO0OOOO0OO ,'')),'python-version':', '.join (['.'.join (list (O0OO00O00000OO000 [2 :]))for O0OO00O00000OO000 in OO0000OO0OO0O000O .pyver ]),}#line:274:}
-            except Exception as OO00O00O00O0O0O0O :#line:275:except Exception as e:  # pragma: no cover
-                logger .warning ('invalid path for wheel: %s',O00OOOO00O00OOOOO )#line:276:logger.warning('invalid path for wheel: %s', path)
-        elif not O00OOOO00O00OOOOO .endswith (O00O000OO0000O0O0 .downloadable_extensions ):#line:277:elif not path.endswith(self.downloadable_extensions):  # pragma: no cover
-            logger .debug ('Not downloadable: %s',O00OOOO00O00OOOOO )#line:278:logger.debug('Not downloadable: %s', path)
-        else :#line:279:else:  # downloadable extension
-            O00OOOO00O00OOOOO =OOOO00OO0O0O0O0O0 =posixpath .basename (O00OOOO00O00OOOOO )#line:280:path = filename = posixpath.basename(path)
-            for OO0O0000O0O000OO0 in O00O000OO0000O0O0 .downloadable_extensions :#line:281:for ext in self.downloadable_extensions:
-                if O00OOOO00O00OOOOO .endswith (OO0O0000O0O000OO0 ):#line:282:if path.endswith(ext):
-                    O00OOOO00O00OOOOO =O00OOOO00O00OOOOO [:-len (OO0O0000O0O000OO0 )]#line:283:path = path[:-len(ext)]
-                    O00000OOO0O0000O0 =O00O000OO0000O0O0 .split_filename (O00OOOO00O00OOOOO ,OO0OO00000OO00O0O )#line:284:t = self.split_filename(path, project_name)
-                    if not O00000OOO0O0000O0 :#line:285:if not t:  # pragma: no cover
-                        logger .debug ('No match for project/version: %s',O00OOOO00O00OOOOO )#line:286:logger.debug('No match for project/version: %s', path)
-                    else :#line:287:else:
-                        OOOO0OOO00OOOO00O ,O00OOOOO0OOOOO000 ,O00O0O0OOOOO0O00O =O00000OOO0O0000O0 #line:288:name, version, pyver = t
-                        if not OO0OO00000OO00O0O or O00OO0OO0OOO00000 (OO0OO00000OO00O0O ,OOOO0OOO00OOOO00O ):#line:289:if not project_name or same_project(project_name, name):
-                            OO000OO00OO00OO0O ={'name':OOOO0OOO00OOOO00O ,'version':O00OOOOO0OOOOO000 ,'filename':OOOO00OO0O0O0O0O0 ,'url':urlunparse ((O000OO00OO0O0O0OO ,OO000OOOO000O00OO ,OO0OO0OO0OOO0O0OO ,O0O0OO00OO00OO0O0 ,O0OOOOOOO0OOOO0OO ,'')),}#line:297:}
-                            if O00O0O0OOOOO0O00O :#line:298:if pyver:  # pragma: no cover
-                                OO000OO00OO00OO0O ['python-version']=O00O0O0OOOOO0O00O #line:299:result['python-version'] = pyver
-                    break #line:300:break
-        if OO000OO00OO00OO0O and O0O0OO0O0OOO0O000 :#line:301:if result and algo:
-            OO000OO00OO00OO0O ['%s_digest'%O0O0OO0O0OOO0O000 ]=O00OOO0OOOOO00000 #line:302:result['%s_digest' % algo] = digest
-        return OO000OO00OO00OO0O #line:303:return result
-    def _get_digest (OO000O00OOOOO0OOO ,OO0OOOOOOO0O000OO ):#line:305:def _get_digest(self, info):
-        ""#line:312:"""
-        OO00O0OOOOO00000O =None #line:313:result = None
-        for O00O0O0O00O0O0O00 in ('sha256','md5'):#line:314:for algo in ('sha256', 'md5'):
-            OOOOOO0O0O0OO00OO ='%s_digest'%O00O0O0O00O0O0O00 #line:315:key = '%s_digest' % algo
-            if OOOOOO0O0O0OO00OO in OO0OOOOOOO0O000OO :#line:316:if key in info:
-                OO00O0OOOOO00000O =(O00O0O0O00O0O0O00 ,OO0OOOOOOO0O000OO [OOOOOO0O0O0OO00OO ])#line:317:result = (algo, info[key])
-                break #line:318:break
-        return OO00O0OOOOO00000O #line:319:return result
-    def _update_version_data (OO0O0O0O0O0000OOO ,OOO0OOOO0OOOOO00O ,OO00OOO0OO0OO0O0O ):#line:321:def _update_version_data(self, result, info):
-        ""#line:326:"""
-        O0000O000000OOOOO =OO00OOO0OO0OO0O0O .pop ('name')#line:327:name = info.pop('name')
-        OO0O000O00O0O00OO =OO00OOO0OO0OO0O0O .pop ('version')#line:328:version = info.pop('version')
-        if OO0O000O00O0O00OO in OOO0OOOO0OOOOO00O :#line:329:if version in result:
-            O0OOOOOOOO00O000O =OOO0OOOO0OOOOO00O [OO0O000O00O0O00OO ]#line:330:dist = result[version]
-            O0O0O0OO00O0OOOO0 =O0OOOOOOOO00O000O .metadata #line:331:md = dist.metadata
-        else :#line:332:else:
-            O0OOOOOOOO00O000O =make_dist (O0000O000000OOOOO ,OO0O000O00O0O00OO ,scheme =OO0O0O0O0O0000OOO .scheme )#line:333:dist = make_dist(name, version, scheme=self.scheme)
-            O0O0O0OO00O0OOOO0 =O0OOOOOOOO00O000O .metadata #line:334:md = dist.metadata
-        O0OOOOOOOO00O000O .digest =O00OOO00OO0O0O000 =OO0O0O0O0O0000OOO ._get_digest (OO00OOO0OO0OO0O0O )#line:335:dist.digest = digest = self._get_digest(info)
-        O0OO0O000OOO0OOOO =OO00OOO0OO0OO0O0O ['url']#line:336:url = info['url']
-        OOO0OOOO0OOOOO00O ['digests'][O0OO0O000OOO0OOOO ]=O00OOO00OO0O0O000 #line:337:result['digests'][url] = digest
-        if O0O0O0OO00O0OOOO0 .source_url !=OO00OOO0OO0OO0O0O ['url']:#line:338:if md.source_url != info['url']:
-            O0O0O0OO00O0OOOO0 .source_url =OO0O0O0O0O0000OOO .prefer_url (O0O0O0OO00O0OOOO0 .source_url ,O0OO0O000OOO0OOOO )#line:339:md.source_url = self.prefer_url(md.source_url, url)
-            OOO0OOOO0OOOOO00O ['urls'].setdefault (OO0O000O00O0O00OO ,set ()).add (O0OO0O000OOO0OOOO )#line:340:result['urls'].setdefault(version, set()).add(url)
-        O0OOOOOOOO00O000O .locator =OO0O0O0O0O0000OOO #line:341:dist.locator = self
-        OOO0OOOO0OOOOO00O [OO0O000O00O0O00OO ]=O0OOOOOOOO00O000O #line:342:result[version] = dist
-    def locate (O00O00OOOO0O0O0OO ,OOO0O00OO000OO0O0 ,prereleases =False ):#line:344:def locate(self, requirement, prereleases=False):
-        ""#line:356:"""
-        OO0O0O00O000OO00O =None #line:357:result = None
-        O00OO0OO0OO0O000O =parse_requirement (OOO0O00OO000OO0O0 )#line:358:r = parse_requirement(requirement)
-        if O00OO0OO0OO0O000O is None :#line:359:if r is None:  # pragma: no cover
-            raise DistlibException ('Not a valid requirement: %r'%OOO0O00OO000OO0O0 )#line:360:raise DistlibException('Not a valid requirement: %r' % requirement)
-        O00O00O000OO0OOO0 =get_scheme (O00O00OOOO0O0O0OO .scheme )#line:361:scheme = get_scheme(self.scheme)
-        O00O00OOOO0O0O0OO .matcher =O0O0000OOOOO000OO =O00O00O000OO0OOO0 .matcher (O00OO0OO0OO0O000O .requirement )#line:362:self.matcher = matcher = scheme.matcher(r.requirement)
-        logger .debug ('matcher: %s (%s)',O0O0000OOOOO000OO ,type (O0O0000OOOOO000OO ).__name__ )#line:363:logger.debug('matcher: %s (%s)', matcher, type(matcher).__name__)
-        OO0O0OO0OOO00O000 =O00O00OOOO0O0O0OO .get_project (O00OO0OO0OO0O000O .name )#line:364:versions = self.get_project(r.name)
-        if len (OO0O0OO0OOO00O000 )>2 :#line:365:if len(versions) > 2:   # urls and digests keys are present
-            OO0O0O00O0OO0OO0O =[]#line:367:slist = []
-            O00OO00O0OO0000O0 =O0O0000OOOOO000OO .version_class #line:368:vcls = matcher.version_class
-            for OO000OOOOO0O0OO00 in OO0O0OO0OOO00O000 :#line:369:for k in versions:
-                if OO000OOOOO0O0OO00 in ('urls','digests'):#line:370:if k in ('urls', 'digests'):
-                    continue #line:371:continue
-                try :#line:372:try:
-                    if not O0O0000OOOOO000OO .match (OO000OOOOO0O0OO00 ):#line:373:if not matcher.match(k):
-                        logger .debug ('%s did not match %r',O0O0000OOOOO000OO ,OO000OOOOO0O0OO00 )#line:374:logger.debug('%s did not match %r', matcher, k)
-                    else :#line:375:else:
-                        if prereleases or not O00OO00O0OO0000O0 (OO000OOOOO0O0OO00 ).is_prerelease :#line:376:if prereleases or not vcls(k).is_prerelease:
-                            OO0O0O00O0OO0OO0O .append (OO000OOOOO0O0OO00 )#line:377:slist.append(k)
-                        else :#line:378:else:
-                            logger .debug ('skipping pre-release ' 'version %s of %s',OO000OOOOO0O0OO00 ,O0O0000OOOOO000OO .name )#line:380:'version %s of %s', k, matcher.name)
-                except Exception :#line:381:except Exception:  # pragma: no cover
-                    logger .warning ('error matching %s with %r',O0O0000OOOOO000OO ,OO000OOOOO0O0OO00 )#line:382:logger.warning('error matching %s with %r', matcher, k)
-                    pass #line:383:pass # slist.append(k)
-            if len (OO0O0O00O0OO0OO0O )>1 :#line:384:if len(slist) > 1:
-                OO0O0O00O0OO0OO0O =sorted (OO0O0O00O0OO0OO0O ,key =O00O00O000OO0OOO0 .key )#line:385:slist = sorted(slist, key=scheme.key)
-            if OO0O0O00O0OO0OO0O :#line:386:if slist:
-                logger .debug ('sorted list: %s',OO0O0O00O0OO0OO0O )#line:387:logger.debug('sorted list: %s', slist)
-                OOOO00O00O0OO0O0O =OO0O0O00O0OO0OO0O [-1 ]#line:388:version = slist[-1]
-                OO0O0O00O000OO00O =OO0O0OO0OOO00O000 [OOOO00O00O0OO0O0O ]#line:389:result = versions[version]
-        if OO0O0O00O000OO00O :#line:390:if result:
-            if O00OO0OO0OO0O000O .extras :#line:391:if r.extras:
-                OO0O0O00O000OO00O .extras =O00OO0OO0OO0O000O .extras #line:392:result.extras = r.extras
-            OO0O0O00O000OO00O .download_urls =OO0O0OO0OOO00O000 .get ('urls',{}).get (OOOO00O00O0OO0O0O ,set ())#line:393:result.download_urls = versions.get('urls', {}).get(version, set())
-            OOOOOOOO0000O0000 ={}#line:394:d = {}
-            O0OO0O00OO00O00O0 =OO0O0OO0OOO00O000 .get ('digests',{})#line:395:sd = versions.get('digests', {})
-            for OOO0OOOO000OO00O0 in OO0O0O00O000OO00O .download_urls :#line:396:for url in result.download_urls:
-                if OOO0OOOO000OO00O0 in O0OO0O00OO00O00O0 :#line:397:if url in sd:  # pragma: no cover
-                    OOOOOOOO0000O0000 [OOO0OOOO000OO00O0 ]=O0OO0O00OO00O00O0 [OOO0OOOO000OO00O0 ]#line:398:d[url] = sd[url]
-            OO0O0O00O000OO00O .digests =OOOOOOOO0000O0000 #line:399:result.digests = d
-        O00O00OOOO0O0O0OO .matcher =None #line:400:self.matcher = None
-        return OO0O0O00O000OO00O #line:401:return result
-class PyPIRPCLocator (Locator ):#line:404:class PyPIRPCLocator(Locator):
-    ""#line:408:"""
-    def __init__ (O00OOO0O0OO00OOOO ,OOOOO0OO0O0OOOOOO ,**O0OOO00O0OOO0O000 ):#line:409:def __init__(self, url, **kwargs):
-        ""#line:415:"""
-        super (PyPIRPCLocator ,O00OOO0O0OO00OOOO ).__init__ (**O0OOO00O0OOO0O000 )#line:416:super(PyPIRPCLocator, self).__init__(**kwargs)
-        O00OOO0O0OO00OOOO .base_url =OOOOO0OO0O0OOOOOO #line:417:self.base_url = url
-        O00OOO0O0OO00OOOO .client =ServerProxy (OOOOO0OO0O0OOOOOO ,timeout =3.0 )#line:418:self.client = ServerProxy(url, timeout=3.0)
-    def get_distribution_names (O0OO0OO000O00O0OO ):#line:420:def get_distribution_names(self):
-        ""#line:423:"""
-        return set (O0OO0OO000O00O0OO .client .list_packages ())#line:424:return set(self.client.list_packages())
-    def _get_project (OO00OO0O0O0O0OO0O ,OO0OOO00O0O00OO0O ):#line:426:def _get_project(self, name):
-        OOO00OOO0OO0OO0O0 ={'urls':{},'digests':{}}#line:427:result = {'urls': {}, 'digests': {}}
-        OO0OO00OO000O000O =OO00OO0O0O0O0OO0O .client .package_releases (OO0OOO00O0O00OO0O ,True )#line:428:versions = self.client.package_releases(name, True)
-        for OO000000OOO000000 in OO0OO00OO000O000O :#line:429:for v in versions:
-            O0O00OO0O000OO000 =OO00OO0O0O0O0OO0O .client .release_urls (OO0OOO00O0O00OO0O ,OO000000OOO000000 )#line:430:urls = self.client.release_urls(name, v)
-            O0O00OOO00000O0OO =OO00OO0O0O0O0OO0O .client .release_data (OO0OOO00O0O00OO0O ,OO000000OOO000000 )#line:431:data = self.client.release_data(name, v)
-            O0O000O00000OOO0O =Metadata (scheme =OO00OO0O0O0O0OO0O .scheme )#line:432:metadata = Metadata(scheme=self.scheme)
-            O0O000O00000OOO0O .name =O0O00OOO00000O0OO ['name']#line:433:metadata.name = data['name']
-            O0O000O00000OOO0O .version =O0O00OOO00000O0OO ['version']#line:434:metadata.version = data['version']
-            O0O000O00000OOO0O .license =O0O00OOO00000O0OO .get ('license')#line:435:metadata.license = data.get('license')
-            O0O000O00000OOO0O .keywords =O0O00OOO00000O0OO .get ('keywords',[])#line:436:metadata.keywords = data.get('keywords', [])
-            O0O000O00000OOO0O .summary =O0O00OOO00000O0OO .get ('summary')#line:437:metadata.summary = data.get('summary')
-            OO0O0OOO0OOOO0O0O =Distribution (O0O000O00000OOO0O )#line:438:dist = Distribution(metadata)
-            if O0O00OO0O000OO000 :#line:439:if urls:
-                OOO0000O0OO0O000O =O0O00OO0O000OO000 [0 ]#line:440:info = urls[0]
-                O0O000O00000OOO0O .source_url =OOO0000O0OO0O000O ['url']#line:441:metadata.source_url = info['url']
-                OO0O0OOO0OOOO0O0O .digest =OO00OO0O0O0O0OO0O ._get_digest (OOO0000O0OO0O000O )#line:442:dist.digest = self._get_digest(info)
-                OO0O0OOO0OOOO0O0O .locator =OO00OO0O0O0O0OO0O #line:443:dist.locator = self
-                OOO00OOO0OO0OO0O0 [OO000000OOO000000 ]=OO0O0OOO0OOOO0O0O #line:444:result[v] = dist
-                for OOO0000O0OO0O000O in O0O00OO0O000OO000 :#line:445:for info in urls:
-                    OO0O00OO00O0000O0 =OOO0000O0OO0O000O ['url']#line:446:url = info['url']
-                    OO0OO00O00OO000OO =OO00OO0O0O0O0OO0O ._get_digest (OOO0000O0OO0O000O )#line:447:digest = self._get_digest(info)
-                    OOO00OOO0OO0OO0O0 ['urls'].setdefault (OO000000OOO000000 ,set ()).add (OO0O00OO00O0000O0 )#line:448:result['urls'].setdefault(v, set()).add(url)
-                    OOO00OOO0OO0OO0O0 ['digests'][OO0O00OO00O0000O0 ]=OO0OO00O00OO000OO #line:449:result['digests'][url] = digest
-        return OOO00OOO0OO0OO0O0 #line:450:return result
-class PyPIJSONLocator (Locator ):#line:452:class PyPIJSONLocator(Locator):
-    ""#line:456:"""
-    def __init__ (O0O0O00O000O00O0O ,OO00O00000O00OO00 ,**O000OOO0O0OOOOO0O ):#line:457:def __init__(self, url, **kwargs):
-        super (PyPIJSONLocator ,O0O0O00O000O00O0O ).__init__ (**O000OOO0O0OOOOO0O )#line:458:super(PyPIJSONLocator, self).__init__(**kwargs)
-        O0O0O00O000O00O0O .base_url =ensure_slash (OO00O00000O00OO00 )#line:459:self.base_url = ensure_slash(url)
-    def get_distribution_names (O0O0O0000O0000000 ):#line:461:def get_distribution_names(self):
-        ""#line:464:"""
-        raise NotImplementedError ('Not available from this locator')#line:465:raise NotImplementedError('Not available from this locator')
-    def _get_project (O0OO0000O0000O0OO ,O0O00O00OOO0OO0O0 ):#line:467:def _get_project(self, name):
-        OOO000O0O0OO00000 ={'urls':{},'digests':{}}#line:468:result = {'urls': {}, 'digests': {}}
-        O00O0OO0000000OO0 =urljoin (O0OO0000O0000O0OO .base_url ,'%s/json'%quote (O0O00O00OOO0OO0O0 ))#line:469:url = urljoin(self.base_url, '%s/json' % quote(name))
-        try :#line:470:try:
-            O0O0O000O0OOOOO00 =O0OO0000O0000O0OO .opener .open (O00O0OO0000000OO0 )#line:471:resp = self.opener.open(url)
-            O00O0OOO0OO00O00O =O0O0O000O0OOOOO00 .read ().decode ()#line:472:data = resp.read().decode() # for now
-            O0OOO0O0O00OOOO00 =json .loads (O00O0OOO0OO00O00O )#line:473:d = json.loads(data)
-            OOO0OO0OO0OOO0OOO =Metadata (scheme =O0OO0000O0000O0OO .scheme )#line:474:md = Metadata(scheme=self.scheme)
-            O00O0OOO0OO00O00O =O0OOO0O0O00OOOO00 ['info']#line:475:data = d['info']
-            OOO0OO0OO0OOO0OOO .name =O00O0OOO0OO00O00O ['name']#line:476:md.name = data['name']
-            OOO0OO0OO0OOO0OOO .version =O00O0OOO0OO00O00O ['version']#line:477:md.version = data['version']
-            OOO0OO0OO0OOO0OOO .license =O00O0OOO0OO00O00O .get ('license')#line:478:md.license = data.get('license')
-            OOO0OO0OO0OOO0OOO .keywords =O00O0OOO0OO00O00O .get ('keywords',[])#line:479:md.keywords = data.get('keywords', [])
-            OOO0OO0OO0OOO0OOO .summary =O00O0OOO0OO00O00O .get ('summary')#line:480:md.summary = data.get('summary')
-            O0OO0O0O0O0OOO00O =Distribution (OOO0OO0OO0OOO0OOO )#line:481:dist = Distribution(md)
-            O0OO0O0O0O0OOO00O .locator =O0OO0000O0000O0OO #line:482:dist.locator = self
-            O0O000O0O0000O000 =O0OOO0O0O00OOOO00 ['urls']#line:483:urls = d['urls']
-            OOO000O0O0OO00000 [OOO0OO0OO0OOO0OOO .version ]=O0OO0O0O0O0OOO00O #line:484:result[md.version] = dist
-            for OOOOOO0000OO0OOOO in O0OOO0O0O00OOOO00 ['urls']:#line:485:for info in d['urls']:
-                O00O0OO0000000OO0 =OOOOOO0000OO0OOOO ['url']#line:486:url = info['url']
-                O0OO0O0O0O0OOO00O .download_urls .add (O00O0OO0000000OO0 )#line:487:dist.download_urls.add(url)
-                O0OO0O0O0O0OOO00O .digests [O00O0OO0000000OO0 ]=O0OO0000O0000O0OO ._get_digest (OOOOOO0000OO0OOOO )#line:488:dist.digests[url] = self._get_digest(info)
-                OOO000O0O0OO00000 ['urls'].setdefault (OOO0OO0OO0OOO0OOO .version ,set ()).add (O00O0OO0000000OO0 )#line:489:result['urls'].setdefault(md.version, set()).add(url)
-                OOO000O0O0OO00000 ['digests'][O00O0OO0000000OO0 ]=O0OO0000O0000O0OO ._get_digest (OOOOOO0000OO0OOOO )#line:490:result['digests'][url] = self._get_digest(info)
-            for O0O0OOO0OO000OO0O ,OOOOO000OOOOOOO0O in O0OOO0O0O00OOOO00 ['releases'].items ():#line:492:for version, infos in d['releases'].items():
-                if O0O0OOO0OO000OO0O ==OOO0OO0OO0OOO0OOO .version :#line:493:if version == md.version:
-                    continue #line:494:continue    # already done
-                OOOO000OOO000O0OO =Metadata (scheme =O0OO0000O0000O0OO .scheme )#line:495:omd = Metadata(scheme=self.scheme)
-                OOOO000OOO000O0OO .name =OOO0OO0OO0OOO0OOO .name #line:496:omd.name = md.name
-                OOOO000OOO000O0OO .version =O0O0OOO0OO000OO0O #line:497:omd.version = version
-                O000O0O0O0OOO0OOO =Distribution (OOOO000OOO000O0OO )#line:498:odist = Distribution(omd)
-                O000O0O0O0OOO0OOO .locator =O0OO0000O0000O0OO #line:499:odist.locator = self
-                OOO000O0O0OO00000 [O0O0OOO0OO000OO0O ]=O000O0O0O0OOO0OOO #line:500:result[version] = odist
-                for OOOOOO0000OO0OOOO in OOOOO000OOOOOOO0O :#line:501:for info in infos:
-                    O00O0OO0000000OO0 =OOOOOO0000OO0OOOO ['url']#line:502:url = info['url']
-                    O000O0O0O0OOO0OOO .download_urls .add (O00O0OO0000000OO0 )#line:503:odist.download_urls.add(url)
-                    O000O0O0O0OOO0OOO .digests [O00O0OO0000000OO0 ]=O0OO0000O0000O0OO ._get_digest (OOOOOO0000OO0OOOO )#line:504:odist.digests[url] = self._get_digest(info)
-                    OOO000O0O0OO00000 ['urls'].setdefault (O0O0OOO0OO000OO0O ,set ()).add (O00O0OO0000000OO0 )#line:505:result['urls'].setdefault(version, set()).add(url)
-                    OOO000O0O0OO00000 ['digests'][O00O0OO0000000OO0 ]=O0OO0000O0000O0OO ._get_digest (OOOOOO0000OO0OOOO )#line:506:result['digests'][url] = self._get_digest(info)
-        except Exception as O0O0OOOOOOO0OO0OO :#line:515:except Exception as e:
-            O0OO0000O0000O0OO .errors .put (text_type (O0O0OOOOOOO0OO0OO ))#line:516:self.errors.put(text_type(e))
-            logger .exception ('JSON fetch failed: %s',O0O0OOOOOOO0OO0OO )#line:517:logger.exception('JSON fetch failed: %s', e)
-        return OOO000O0O0OO00000 #line:518:return result
-class Page (object ):#line:521:class Page(object):
-    ""#line:524:"""
-    _href =re .compile ("""
-(rel\\s*=\\s*(?:"(?P<rel1>[^"]*)"|'(?P<rel2>[^']*)'|(?P<rel3>[^>\\s\n]*))\\s+)?
-href\\s*=\\s*(?:"(?P<url1>[^"]*)"|'(?P<url2>[^']*)'|(?P<url3>[^>\\s\n]*))
-(\\s+rel\\s*=\\s*(?:"(?P<rel4>[^"]*)"|'(?P<rel5>[^']*)'|(?P<rel6>[^>\\s\n]*)))?
-""",re .I |re .S |re .X )#line:534:""", re.I | re.S | re.X)
-    _base =re .compile (r"""<base\s+href\s*=\s*['"]?([^'">]+)""",re .I |re .S )#line:535:_base = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I | re.S)
-    def __init__ (OO000O00OO00000O0 ,OO000OOOOO00OO0O0 ,O000OOOOOO0OO0OOO ):#line:537:def __init__(self, data, url):
-        ""#line:541:"""
-        OO000O00OO00000O0 .data =OO000OOOOO00OO0O0 #line:542:self.data = data
-        OO000O00OO00000O0 .base_url =OO000O00OO00000O0 .url =O000OOOOOO0OO0OOO #line:543:self.base_url = self.url = url
-        O0O00O000O0O0OO0O =OO000O00OO00000O0 ._base .search (OO000O00OO00000O0 .data )#line:544:m = self._base.search(self.data)
-        if O0O00O000O0O0OO0O :#line:545:if m:
-            OO000O00OO00000O0 .base_url =O0O00O000O0O0OO0O .group (1 )#line:546:self.base_url = m.group(1)
-    _clean_re =re .compile (r'[^a-z0-9$&+,/:;=?@.#%_\\|-]',re .I )#line:548:_clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
-    @cached_property #line:550:@cached_property
-    def links (OOO0OOOO0OOOO00O0 ):#line:551:def links(self):
-        ""#line:556:"""
-        def O00OOO0OO0OOOO00O (O0O00OOO0000O0OO0 ):#line:557:def clean(url):
-            ""#line:558:"Tidy up an URL."
-            OO000O0OOOO00000O ,O0000000OO000O0OO ,O0OOOOOO0000O0O0O ,OO0O00O00000O0O0O ,O0000OOOOO0OOOOO0 ,OOO00O00O0O00OO00 =urlparse (O0O00OOO0000O0OO0 )#line:559:scheme, netloc, path, params, query, frag = urlparse(url)
-            return urlunparse ((OO000O0OOOO00000O ,O0000000OO000O0OO ,quote (O0OOOOOO0000O0O0O ),OO0O00O00000O0O0O ,O0000OOOOO0OOOOO0 ,OOO00O00O0O00OO00 ))#line:561:params, query, frag))
-        OO0O0000O000O0OO0 =set ()#line:563:result = set()
-        for OOO00O0O0OO0O0OOO in OOO0OOOO0OOOO00O0 ._href .finditer (OOO0OOOO0OOOO00O0 .data ):#line:564:for match in self._href.finditer(self.data):
-            O000OOOO0OOOO0OO0 =OOO00O0O0OO0O0OOO .groupdict ('')#line:565:d = match.groupdict('')
-            OO0OOOOO0O0O00OOO =(O000OOOO0OOOO0OO0 ['rel1']or O000OOOO0OOOO0OO0 ['rel2']or O000OOOO0OOOO0OO0 ['rel3']or O000OOOO0OOOO0OO0 ['rel4']or O000OOOO0OOOO0OO0 ['rel5']or O000OOOO0OOOO0OO0 ['rel6'])#line:567:d['rel4'] or d['rel5'] or d['rel6'])
-            O000O00O0O0O0O000 =O000OOOO0OOOO0OO0 ['url1']or O000OOOO0OOOO0OO0 ['url2']or O000OOOO0OOOO0OO0 ['url3']#line:568:url = d['url1'] or d['url2'] or d['url3']
-            O000O00O0O0O0O000 =urljoin (OOO0OOOO0OOOO00O0 .base_url ,O000O00O0O0O0O000 )#line:569:url = urljoin(self.base_url, url)
-            O000O00O0O0O0O000 =unescape (O000O00O0O0O0O000 )#line:570:url = unescape(url)
-            O000O00O0O0O0O000 =OOO0OOOO0OOOO00O0 ._clean_re .sub (lambda O000OOOO00O0000O0 :'%%%2x'%ord (O000OOOO00O0000O0 .group (0 )),O000O00O0O0O0O000 )#line:571:url = self._clean_re.sub(lambda m: '%%%2x' % ord(m.group(0)), url)
-            OO0O0000O000O0OO0 .add ((O000O00O0O0O0O000 ,OO0OOOOO0O0O00OOO ))#line:572:result.add((url, rel))
-        OO0O0000O000O0OO0 =sorted (OO0O0000O000O0OO0 ,key =lambda O0OOOOOO0OOO000O0 :O0OOOOOO0OOO000O0 [0 ],reverse =True )#line:575:result = sorted(result, key=lambda t: t[0], reverse=True)
-        return OO0O0000O000O0OO0 #line:576:return result
-class SimpleScrapingLocator (Locator ):#line:579:class SimpleScrapingLocator(Locator):
-    ""#line:584:"""
-    decoders ={'deflate':zlib .decompress ,'gzip':lambda O00O0O00O0000OOO0 :gzip .GzipFile (fileobj =BytesIO (d )).read (),'none':lambda OOOOOOOOOOOOOO000 :OOOOOOOOOOOOOO000 ,}#line:591:}
-    def __init__ (OOO0O000O00O00OOO ,OOOOOOO00O0OO00OO ,timeout =None ,num_workers =10 ,**O0OOO00OOO00OOOOO ):#line:593:def __init__(self, url, timeout=None, num_workers=10, **kwargs):
-        ""#line:602:"""
-        super (SimpleScrapingLocator ,OOO0O000O00O00OOO ).__init__ (**O0OOO00OOO00OOOOO )#line:603:super(SimpleScrapingLocator, self).__init__(**kwargs)
-        OOO0O000O00O00OOO .base_url =ensure_slash (OOOOOOO00O0OO00OO )#line:604:self.base_url = ensure_slash(url)
-        OOO0O000O00O00OOO .timeout =timeout #line:605:self.timeout = timeout
-        OOO0O000O00O00OOO ._page_cache ={}#line:606:self._page_cache = {}
-        OOO0O000O00O00OOO ._seen =set ()#line:607:self._seen = set()
-        OOO0O000O00O00OOO ._to_fetch =queue .Queue ()#line:608:self._to_fetch = queue.Queue()
-        OOO0O000O00O00OOO ._bad_hosts =set ()#line:609:self._bad_hosts = set()
-        OOO0O000O00O00OOO .skip_externals =False #line:610:self.skip_externals = False
-        OOO0O000O00O00OOO .num_workers =num_workers #line:611:self.num_workers = num_workers
-        OOO0O000O00O00OOO ._lock =threading .RLock ()#line:612:self._lock = threading.RLock()
-        OOO0O000O00O00OOO ._gplock =threading .RLock ()#line:617:self._gplock = threading.RLock()
-        OOO0O000O00O00OOO .platform_check =False #line:618:self.platform_check = False  # See issue #112
-    def _prepare_threads (O00O0OOO00OOO0OO0 ):#line:620:def _prepare_threads(self):
-        ""#line:625:"""
-        O00O0OOO00OOO0OO0 ._threads =[]#line:626:self._threads = []
-        for OO00O0OOOO0O0OOO0 in range (O00O0OOO00OOO0OO0 .num_workers ):#line:627:for i in range(self.num_workers):
-            O00OO0000O0000O00 =threading .Thread (target =O00O0OOO00OOO0OO0 ._fetch )#line:628:t = threading.Thread(target=self._fetch)
-            O00OO0000O0000O00 .setDaemon (True )#line:629:t.setDaemon(True)
-            O00OO0000O0000O00 .start ()#line:630:t.start()
-            O00O0OOO00OOO0OO0 ._threads .append (O00OO0000O0000O00 )#line:631:self._threads.append(t)
-    def _wait_threads (O00O0OO0O0O00OO00 ):#line:633:def _wait_threads(self):
-        ""#line:637:"""
-        for OOOO0OO00OOOO0OO0 in O00O0OO0O0O00OO00 ._threads :#line:640:for t in self._threads:
-            O00O0OO0O0O00OO00 ._to_fetch .put (None )#line:641:self._to_fetch.put(None)    # sentinel
-        for OOOO0OO00OOOO0OO0 in O00O0OO0O0O00OO00 ._threads :#line:642:for t in self._threads:
-            OOOO0OO00OOOO0OO0 .join ()#line:643:t.join()
-        O00O0OO0O0O00OO00 ._threads =[]#line:644:self._threads = []
-    def _get_project (O0OO0OOOO000OOO0O ,O00OOO0O000OOOOO0 ):#line:646:def _get_project(self, name):
-        OOO0O00OO0000O000 ={'urls':{},'digests':{}}#line:647:result = {'urls': {}, 'digests': {}}
-        with O0OO0OOOO000OOO0O ._gplock :#line:648:with self._gplock:
-            O0OO0OOOO000OOO0O .result =OOO0O00OO0000O000 #line:649:self.result = result
-            O0OO0OOOO000OOO0O .project_name =O00OOO0O000OOOOO0 #line:650:self.project_name = name
-            OOO00OOOOO0OOOO0O =urljoin (O0OO0OOOO000OOO0O .base_url ,'%s/'%quote (O00OOO0O000OOOOO0 ))#line:651:url = urljoin(self.base_url, '%s/' % quote(name))
-            O0OO0OOOO000OOO0O ._seen .clear ()#line:652:self._seen.clear()
-            O0OO0OOOO000OOO0O ._page_cache .clear ()#line:653:self._page_cache.clear()
-            O0OO0OOOO000OOO0O ._prepare_threads ()#line:654:self._prepare_threads()
-            try :#line:655:try:
-                logger .debug ('Queueing %s',OOO00OOOOO0OOOO0O )#line:656:logger.debug('Queueing %s', url)
-                O0OO0OOOO000OOO0O ._to_fetch .put (OOO00OOOOO0OOOO0O )#line:657:self._to_fetch.put(url)
-                O0OO0OOOO000OOO0O ._to_fetch .join ()#line:658:self._to_fetch.join()
-            finally :#line:659:finally:
-                O0OO0OOOO000OOO0O ._wait_threads ()#line:660:self._wait_threads()
-            del O0OO0OOOO000OOO0O .result #line:661:del self.result
-        return OOO0O00OO0000O000 #line:662:return result
-    platform_dependent =re .compile (r'\b(linux_(i\d86|x86_64|arm\w+)|' r'win(32|_amd64)|macosx_?\d+)\b',re .I )#line:665:r'win(32|_amd64)|macosx_?\d+)\b', re.I)
-    def _is_platform_dependent (OO00O0O00OOOO0OO0 ,O00O0OO00OOOO0000 ):#line:667:def _is_platform_dependent(self, url):
-        ""#line:670:"""
-        return OO00O0O00OOOO0OO0 .platform_dependent .search (O00O0OO00OOOO0000 )#line:671:return self.platform_dependent.search(url)
-    def _process_download (OO0O0000OOOOOO000 ,OOO0000O0O0O0OOO0 ):#line:673:def _process_download(self, url):
-        ""#line:682:"""
-        if OO0O0000OOOOOO000 .platform_check and OO0O0000OOOOOO000 ._is_platform_dependent (OOO0000O0O0O0OOO0 ):#line:683:if self.platform_check and self._is_platform_dependent(url):
-            OOOO0O0O0O0O0OO0O =None #line:684:info = None
-        else :#line:685:else:
-            OOOO0O0O0O0O0OO0O =OO0O0000OOOOOO000 .convert_url_to_download_info (OOO0000O0O0O0OOO0 ,OO0O0000OOOOOO000 .project_name )#line:686:info = self.convert_url_to_download_info(url, self.project_name)
-        logger .debug ('process_download: %s -> %s',OOO0000O0O0O0OOO0 ,OOOO0O0O0O0O0OO0O )#line:687:logger.debug('process_download: %s -> %s', url, info)
-        if OOOO0O0O0O0O0OO0O :#line:688:if info:
-            with OO0O0000OOOOOO000 ._lock :#line:689:with self._lock:    # needed because self.result is shared
-                OO0O0000OOOOOO000 ._update_version_data (OO0O0000OOOOOO000 .result ,OOOO0O0O0O0O0OO0O )#line:690:self._update_version_data(self.result, info)
-        return OOOO0O0O0O0O0OO0O #line:691:return info
-    def _should_queue (O00000O00OO000OOO ,OOOO00000O000O000 ,O0O0O00OO00OOOOO0 ,OO0O000OO0O00OO0O ):#line:693:def _should_queue(self, link, referrer, rel):
-        ""#line:697:"""
-        OOOOOO000OO0O00O0 ,O00000OO0OO00OOOO ,O0O0000O00O0O0OOO ,_OOO000000O0OOO00O ,_OOO000000O0OOO00O ,_OOO000000O0OOO00O =urlparse (OOOO00000O000O000 )#line:698:scheme, netloc, path, _, _, _ = urlparse(link)
-        if O0O0000O00O0O0OOO .endswith (O00000O00OO000OOO .source_extensions +O00000O00OO000OOO .binary_extensions +O00000O00OO000OOO .excluded_extensions ):#line:700:self.excluded_extensions):
-            OOO0O000O0OOOO0O0 =False #line:701:result = False
-        elif O00000O00OO000OOO .skip_externals and not OOOO00000O000O000 .startswith (O00000O00OO000OOO .base_url ):#line:702:elif self.skip_externals and not link.startswith(self.base_url):
-            OOO0O000O0OOOO0O0 =False #line:703:result = False
-        elif not O0O0O00OO00OOOOO0 .startswith (O00000O00OO000OOO .base_url ):#line:704:elif not referrer.startswith(self.base_url):
-            OOO0O000O0OOOO0O0 =False #line:705:result = False
-        elif OO0O000OO0O00OO0O not in ('homepage','download'):#line:706:elif rel not in ('homepage', 'download'):
-            OOO0O000O0OOOO0O0 =False #line:707:result = False
-        elif OOOOOO000OO0O00O0 not in ('http','https','ftp'):#line:708:elif scheme not in ('http', 'https', 'ftp'):
-            OOO0O000O0OOOO0O0 =False #line:709:result = False
-        elif O00000O00OO000OOO ._is_platform_dependent (OOOO00000O000O000 ):#line:710:elif self._is_platform_dependent(link):
-            OOO0O000O0OOOO0O0 =False #line:711:result = False
-        else :#line:712:else:
-            O00OO0OO0O0O0O00O =O00000OO0OO00OOOO .split (':',1 )[0 ]#line:713:host = netloc.split(':', 1)[0]
-            if O00OO0OO0O0O0O00O .lower ()=='localhost':#line:714:if host.lower() == 'localhost':
-                OOO0O000O0OOOO0O0 =False #line:715:result = False
-            else :#line:716:else:
-                OOO0O000O0OOOO0O0 =True #line:717:result = True
-        logger .debug ('should_queue: %s (%s) from %s -> %s',OOOO00000O000O000 ,OO0O000OO0O00OO0O ,O0O0O00OO00OOOOO0 ,OOO0O000O0OOOO0O0 )#line:719:referrer, result)
-        return OOO0O000O0OOOO0O0 #line:720:return result
-    def _fetch (OOO00000OOOOO00OO ):#line:722:def _fetch(self):
-        ""#line:728:"""
-        while True :#line:729:while True:
-            O0O0OOOO0O0O000O0 =OOO00000OOOOO00OO ._to_fetch .get ()#line:730:url = self._to_fetch.get()
-            try :#line:731:try:
-                if O0O0OOOO0O0O000O0 :#line:732:if url:
-                    OOO000OO0O00OO0OO =OOO00000OOOOO00OO .get_page (O0O0OOOO0O0O000O0 )#line:733:page = self.get_page(url)
-                    if OOO000OO0O00OO0OO is None :#line:734:if page is None:    # e.g. after an error
-                        continue #line:735:continue
-                    for O0O0OOO00O0OO0OO0 ,O0OOOO00000OO000O in OOO000OO0O00OO0OO .links :#line:736:for link, rel in page.links:
-                        if O0O0OOO00O0OO0OO0 not in OOO00000OOOOO00OO ._seen :#line:737:if link not in self._seen:
-                            try :#line:738:try:
-                                OOO00000OOOOO00OO ._seen .add (O0O0OOO00O0OO0OO0 )#line:739:self._seen.add(link)
-                                if (not OOO00000OOOOO00OO ._process_download (O0O0OOO00O0OO0OO0 )and OOO00000OOOOO00OO ._should_queue (O0O0OOO00O0OO0OO0 ,O0O0OOOO0O0O000O0 ,O0OOOO00000OO000O )):#line:741:self._should_queue(link, url, rel)):
-                                    logger .debug ('Queueing %s from %s',O0O0OOO00O0OO0OO0 ,O0O0OOOO0O0O000O0 )#line:742:logger.debug('Queueing %s from %s', link, url)
-                                    OOO00000OOOOO00OO ._to_fetch .put (O0O0OOO00O0OO0OO0 )#line:743:self._to_fetch.put(link)
-                            except MetadataInvalidError :#line:744:except MetadataInvalidError:  # e.g. invalid versions
-                                pass #line:745:pass
-            except Exception as OO00OO0OO000000O0 :#line:746:except Exception as e:  # pragma: no cover
-                OOO00000OOOOO00OO .errors .put (text_type (OO00OO0OO000000O0 ))#line:747:self.errors.put(text_type(e))
-            finally :#line:748:finally:
-                OOO00000OOOOO00OO ._to_fetch .task_done ()#line:750:self._to_fetch.task_done()
-            if not O0O0OOOO0O0O000O0 :#line:751:if not url:
-                break #line:753:break
-    def get_page (O0OO00000O000O000 ,O0OOOO0OOOO0OOO0O ):#line:755:def get_page(self, url):
-        ""#line:762:"""
-        OOO0O00O000OOO000 ,O00OOO0O00OO0OO00 ,OOOOOO00OO0O0000O ,_OO00OOOOO000OO000 ,_OO00OOOOO000OO000 ,_OO00OOOOO000OO000 =urlparse (O0OOOO0OOOO0OOO0O )#line:764:scheme, netloc, path, _, _, _ = urlparse(url)
-        if OOO0O00O000OOO000 =='file'and os .path .isdir (url2pathname (OOOOOO00OO0O0000O )):#line:765:if scheme == 'file' and os.path.isdir(url2pathname(path)):
-            O0OOOO0OOOO0OOO0O =urljoin (ensure_slash (O0OOOO0OOOO0OOO0O ),'index.html')#line:766:url = urljoin(ensure_slash(url), 'index.html')
-        if O0OOOO0OOOO0OOO0O in O0OO00000O000O000 ._page_cache :#line:768:if url in self._page_cache:
-            O00O000OO0O0OO000 =O0OO00000O000O000 ._page_cache [O0OOOO0OOOO0OOO0O ]#line:769:result = self._page_cache[url]
-            logger .debug ('Returning %s from cache: %s',O0OOOO0OOOO0OOO0O ,O00O000OO0O0OO000 )#line:770:logger.debug('Returning %s from cache: %s', url, result)
-        else :#line:771:else:
-            O0OOO00O0OO0O0000 =O00OOO0O00OO0OO00 .split (':',1 )[0 ]#line:772:host = netloc.split(':', 1)[0]
-            O00O000OO0O0OO000 =None #line:773:result = None
-            if O0OOO00O0OO0O0000 in O0OO00000O000O000 ._bad_hosts :#line:774:if host in self._bad_hosts:
-                logger .debug ('Skipping %s due to bad host %s',O0OOOO0OOOO0OOO0O ,O0OOO00O0OO0O0000 )#line:775:logger.debug('Skipping %s due to bad host %s', url, host)
-            else :#line:776:else:
-                O0OOO0OO00OO000OO =Request (O0OOOO0OOOO0OOO0O ,headers ={'Accept-encoding':'identity'})#line:777:req = Request(url, headers={'Accept-encoding': 'identity'})
-                try :#line:778:try:
-                    logger .debug ('Fetching %s',O0OOOO0OOOO0OOO0O )#line:779:logger.debug('Fetching %s', url)
-                    O0000O0OOO0OO00O0 =O0OO00000O000O000 .opener .open (O0OOO0OO00OO000OO ,timeout =O0OO00000O000O000 .timeout )#line:780:resp = self.opener.open(req, timeout=self.timeout)
-                    logger .debug ('Fetched %s',O0OOOO0OOOO0OOO0O )#line:781:logger.debug('Fetched %s', url)
-                    O00OO0OO0OO000O0O =O0000O0OOO0OO00O0 .info ()#line:782:headers = resp.info()
-                    O0OO00OOOO00OO0O0 =O00OO0OO0OO000O0O .get ('Content-Type','')#line:783:content_type = headers.get('Content-Type', '')
-                    if HTML_CONTENT_TYPE .match (O0OO00OOOO00OO0O0 ):#line:784:if HTML_CONTENT_TYPE.match(content_type):
-                        O0OO0OO0000OOO0O0 =O0000O0OOO0OO00O0 .geturl ()#line:785:final_url = resp.geturl()
-                        OOO0O00OO0000000O =O0000O0OOO0OO00O0 .read ()#line:786:data = resp.read()
-                        O00000OO0OO0O0OOO =O00OO0OO0OO000O0O .get ('Content-Encoding')#line:787:encoding = headers.get('Content-Encoding')
-                        if O00000OO0OO0O0OOO :#line:788:if encoding:
-                            O00OOOOOO00O000OO =O0OO00000O000O000 .decoders [O00000OO0OO0O0OOO ]#line:789:decoder = self.decoders[encoding]   # fail if not found
-                            OOO0O00OO0000000O =O00OOOOOO00O000OO (OOO0O00OO0000000O )#line:790:data = decoder(data)
-                        O00000OO0OO0O0OOO ='utf-8'#line:791:encoding = 'utf-8'
-                        OOOOOO00O00OOO0O0 =CHARSET .search (O0OO00OOOO00OO0O0 )#line:792:m = CHARSET.search(content_type)
-                        if OOOOOO00O00OOO0O0 :#line:793:if m:
-                            O00000OO0OO0O0OOO =OOOOOO00O00OOO0O0 .group (1 )#line:794:encoding = m.group(1)
-                        try :#line:795:try:
-                            OOO0O00OO0000000O =OOO0O00OO0000000O .decode (O00000OO0OO0O0OOO )#line:796:data = data.decode(encoding)
-                        except UnicodeError :#line:797:except UnicodeError:  # pragma: no cover
-                            OOO0O00OO0000000O =OOO0O00OO0000000O .decode ('latin-1')#line:798:data = data.decode('latin-1')    # fallback
-                        O00O000OO0O0OO000 =Page (OOO0O00OO0000000O ,O0OO0OO0000OOO0O0 )#line:799:result = Page(data, final_url)
-                        O0OO00000O000O000 ._page_cache [O0OO0OO0000OOO0O0 ]=O00O000OO0O0OO000 #line:800:self._page_cache[final_url] = result
-                except HTTPError as O0O0OOO00OOO00O00 :#line:801:except HTTPError as e:
-                    if O0O0OOO00OOO00O00 .code !=404 :#line:802:if e.code != 404:
-                        logger .exception ('Fetch failed: %s: %s',O0OOOO0OOOO0OOO0O ,O0O0OOO00OOO00O00 )#line:803:logger.exception('Fetch failed: %s: %s', url, e)
-                except URLError as O0O0OOO00OOO00O00 :#line:804:except URLError as e:  # pragma: no cover
-                    logger .exception ('Fetch failed: %s: %s',O0OOOO0OOOO0OOO0O ,O0O0OOO00OOO00O00 )#line:805:logger.exception('Fetch failed: %s: %s', url, e)
-                    with O0OO00000O000O000 ._lock :#line:806:with self._lock:
-                        O0OO00000O000O000 ._bad_hosts .add (O0OOO00O0OO0O0000 )#line:807:self._bad_hosts.add(host)
-                except Exception as O0O0OOO00OOO00O00 :#line:808:except Exception as e:  # pragma: no cover
-                    logger .exception ('Fetch failed: %s: %s',O0OOOO0OOOO0OOO0O ,O0O0OOO00OOO00O00 )#line:809:logger.exception('Fetch failed: %s: %s', url, e)
-                finally :#line:810:finally:
-                    O0OO00000O000O000 ._page_cache [O0OOOO0OOOO0OOO0O ]=O00O000OO0O0OO000 #line:811:self._page_cache[url] = result   # even if None (failure)
-        return O00O000OO0O0OO000 #line:812:return result
-    _distname_re =re .compile ('<a href=[^>]*>([^<]+)<')#line:814:_distname_re = re.compile('<a href=[^>]*>([^<]+)<')
-    def get_distribution_names (O0OOO00OO00O00O00 ):#line:816:def get_distribution_names(self):
-        ""#line:819:"""
-        O0O000O000O00O0OO =set ()#line:820:result = set()
-        O00000OO0O0OO0O0O =O0OOO00OO00O00O00 .get_page (O0OOO00OO00O00O00 .base_url )#line:821:page = self.get_page(self.base_url)
-        if not O00000OO0O0OO0O0O :#line:822:if not page:
-            raise DistlibException ('Unable to get %s'%O0OOO00OO00O00O00 .base_url )#line:823:raise DistlibException('Unable to get %s' % self.base_url)
-        for OO000O00000OO00OO in O0OOO00OO00O00O00 ._distname_re .finditer (O00000OO0O0OO0O0O .data ):#line:824:for match in self._distname_re.finditer(page.data):
-            O0O000O000O00O0OO .add (OO000O00000OO00OO .group (1 ))#line:825:result.add(match.group(1))
-        return O0O000O000O00O0OO #line:826:return result
-class DirectoryLocator (Locator ):#line:828:class DirectoryLocator(Locator):
-    ""#line:831:"""
-    def __init__ (O0OO00OO000000O0O ,O0OOO00O000O00000 ,**OO0O00OO0O00000O0 ):#line:833:def __init__(self, path, **kwargs):
-        ""#line:842:"""
-        O0OO00OO000000O0O .recursive =OO0O00OO0O00000O0 .pop ('recursive',True )#line:843:self.recursive = kwargs.pop('recursive', True)
-        super (DirectoryLocator ,O0OO00OO000000O0O ).__init__ (**OO0O00OO0O00000O0 )#line:844:super(DirectoryLocator, self).__init__(**kwargs)
-        O0OOO00O000O00000 =os .path .abspath (O0OOO00O000O00000 )#line:845:path = os.path.abspath(path)
-        if not os .path .isdir (O0OOO00O000O00000 ):#line:846:if not os.path.isdir(path):  # pragma: no cover
-            raise DistlibException ('Not a directory: %r'%O0OOO00O000O00000 )#line:847:raise DistlibException('Not a directory: %r' % path)
-        O0OO00OO000000O0O .base_dir =O0OOO00O000O00000 #line:848:self.base_dir = path
-    def should_include (O0OO0OOOO0O0OOO0O ,OO0O000OOO0O0O000 ,OO00O00000OOO0000 ):#line:850:def should_include(self, filename, parent):
-        ""#line:855:"""
-        return OO0O000OOO0O0O000 .endswith (O0OO0OOOO0O0OOO0O .downloadable_extensions )#line:856:return filename.endswith(self.downloadable_extensions)
-    def _get_project (O0OOO0OO00O000OO0 ,O000O0OO000O00O0O ):#line:858:def _get_project(self, name):
-        O0O0000O000OOO000 ={'urls':{},'digests':{}}#line:859:result = {'urls': {}, 'digests': {}}
-        for OOOO0OO0O0O0O0OOO ,O0000O0O00OO0OOOO ,O0OO0OOOOO0O00O0O in os .walk (O0OOO0OO00O000OO0 .base_dir ):#line:860:for root, dirs, files in os.walk(self.base_dir):
-            for O00000O0O000O00OO in O0OO0OOOOO0O00O0O :#line:861:for fn in files:
-                if O0OOO0OO00O000OO0 .should_include (O00000O0O000O00OO ,OOOO0OO0O0O0O0OOO ):#line:862:if self.should_include(fn, root):
-                    O00000O0O000O00OO =os .path .join (OOOO0OO0O0O0O0OOO ,O00000O0O000O00OO )#line:863:fn = os.path.join(root, fn)
-                    O0O0OOOO0OOOOOOO0 =urlunparse (('file','',pathname2url (os .path .abspath (O00000O0O000O00OO )),'','',''))#line:866:'', '', ''))
-                    O0O00OOOOO0O0OO00 =O0OOO0OO00O000OO0 .convert_url_to_download_info (O0O0OOOO0OOOOOOO0 ,O000O0OO000O00O0O )#line:867:info = self.convert_url_to_download_info(url, name)
-                    if O0O00OOOOO0O0OO00 :#line:868:if info:
-                        O0OOO0OO00O000OO0 ._update_version_data (O0O0000O000OOO000 ,O0O00OOOOO0O0OO00 )#line:869:self._update_version_data(result, info)
-            if not O0OOO0OO00O000OO0 .recursive :#line:870:if not self.recursive:
-                break #line:871:break
-        return O0O0000O000OOO000 #line:872:return result
-    def get_distribution_names (OO000O00O00000O0O ):#line:874:def get_distribution_names(self):
-        ""#line:877:"""
-        OO00000OO0OOOOOO0 =set ()#line:878:result = set()
-        for OO000OO00O0OO0000 ,O00O00O0O000OOO0O ,OO0O0O0OOOOOO0OO0 in os .walk (OO000O00O00000O0O .base_dir ):#line:879:for root, dirs, files in os.walk(self.base_dir):
-            for OO00OO0O0OOOOO0OO in OO0O0O0OOOOOO0OO0 :#line:880:for fn in files:
-                if OO000O00O00000O0O .should_include (OO00OO0O0OOOOO0OO ,OO000OO00O0OO0000 ):#line:881:if self.should_include(fn, root):
-                    OO00OO0O0OOOOO0OO =os .path .join (OO000OO00O0OO0000 ,OO00OO0O0OOOOO0OO )#line:882:fn = os.path.join(root, fn)
-                    O0O0O0O00OOO0OOO0 =urlunparse (('file','',pathname2url (os .path .abspath (OO00OO0O0OOOOO0OO )),'','',''))#line:885:'', '', ''))
-                    OOOOO0OO0OOOO0O0O =OO000O00O00000O0O .convert_url_to_download_info (O0O0O0O00OOO0OOO0 ,None )#line:886:info = self.convert_url_to_download_info(url, None)
-                    if OOOOO0OO0OOOO0O0O :#line:887:if info:
-                        OO00000OO0OOOOOO0 .add (OOOOO0OO0OOOO0O0O ['name'])#line:888:result.add(info['name'])
-            if not OO000O00O00000O0O .recursive :#line:889:if not self.recursive:
-                break #line:890:break
-        return OO00000OO0OOOOOO0 #line:891:return result
-class JSONLocator (Locator ):#line:893:class JSONLocator(Locator):
-    ""#line:899:"""
-    def get_distribution_names (O000O00O0O000O0OO ):#line:900:def get_distribution_names(self):
-        ""#line:903:"""
-        raise NotImplementedError ('Not available from this locator')#line:904:raise NotImplementedError('Not available from this locator')
-    def _get_project (O0O0O0O0O0O00000O ,OOO0OO0OO0OO0O00O ):#line:906:def _get_project(self, name):
-        O00OO000O0O0000OO ={'urls':{},'digests':{}}#line:907:result = {'urls': {}, 'digests': {}}
-        O0O0OOO0O00000000 =get_project_data (OOO0OO0OO0OO0O00O )#line:908:data = get_project_data(name)
-        if O0O0OOO0O00000000 :#line:909:if data:
-            for O00O000O000OO00O0 in O0O0OOO0O00000000 .get ('files',[]):#line:910:for info in data.get('files', []):
-                if O00O000O000OO00O0 ['ptype']!='sdist'or O00O000O000OO00O0 ['pyversion']!='source':#line:911:if info['ptype'] != 'sdist' or info['pyversion'] != 'source':
-                    continue #line:912:continue
-                OO00O00O000O0O000 =make_dist (O0O0OOO0O00000000 ['name'],O00O000O000OO00O0 ['version'],summary =O0O0OOO0O00000000 .get ('summary','Placeholder for summary'),scheme =O0O0O0O0O0O00000O .scheme )#line:919:scheme=self.scheme)
-                O0OO0OOO0O000O0OO =OO00O00O000O0O000 .metadata #line:920:md = dist.metadata
-                O0OO0OOO0O000O0OO .source_url =O00O000O000OO00O0 ['url']#line:921:md.source_url = info['url']
-                if 'digest'in O00O000O000OO00O0 and O00O000O000OO00O0 ['digest']:#line:923:if 'digest' in info and info['digest']:
-                    OO00O00O000O0O000 .digest =('md5',O00O000O000OO00O0 ['digest'])#line:924:dist.digest = ('md5', info['digest'])
-                O0OO0OOO0O000O0OO .dependencies =O00O000O000OO00O0 .get ('requirements',{})#line:925:md.dependencies = info.get('requirements', {})
-                OO00O00O000O0O000 .exports =O00O000O000OO00O0 .get ('exports',{})#line:926:dist.exports = info.get('exports', {})
-                O00OO000O0O0000OO [OO00O00O000O0O000 .version ]=OO00O00O000O0O000 #line:927:result[dist.version] = dist
-                O00OO000O0O0000OO ['urls'].setdefault (OO00O00O000O0O000 .version ,set ()).add (O00O000O000OO00O0 ['url'])#line:928:result['urls'].setdefault(dist.version, set()).add(info['url'])
-        return O00OO000O0O0000OO #line:929:return result
-class DistPathLocator (Locator ):#line:931:class DistPathLocator(Locator):
-    ""#line:935:"""
-    def __init__ (O0OO00O00O0O00O0O ,OO0O0O00O000O00O0 ,**O00O0OOO0O0OOO0O0 ):#line:936:def __init__(self, distpath, **kwargs):
-        ""#line:941:"""
-        super (DistPathLocator ,O0OO00O00O0O00O0O ).__init__ (**O00O0OOO0O0OOO0O0 )#line:942:super(DistPathLocator, self).__init__(**kwargs)
-        assert isinstance (OO0O0O00O000O00O0 ,DistributionPath )#line:943:assert isinstance(distpath, DistributionPath)
-        O0OO00O00O0O00O0O .distpath =OO0O0O00O000O00O0 #line:944:self.distpath = distpath
-    def _get_project (OO00O0OOOOO0O00O0 ,OOO0OOOOOOOOOO00O ):#line:946:def _get_project(self, name):
-        OOOO00OOO00O000OO =OO00O0OOOOO0O00O0 .distpath .get_distribution (OOO0OOOOOOOOOO00O )#line:947:dist = self.distpath.get_distribution(name)
-        if OOOO00OOO00O000OO is None :#line:948:if dist is None:
-            O00OOOOOOO0OO0O00 ={'urls':{},'digests':{}}#line:949:result = {'urls': {}, 'digests': {}}
-        else :#line:950:else:
-            O00OOOOOOO0OO0O00 ={OOOO00OOO00O000OO .version :OOOO00OOO00O000OO ,'urls':{OOOO00OOO00O000OO .version :set ([OOOO00OOO00O000OO .source_url ])},'digests':{OOOO00OOO00O000OO .version :set ([None ])}}#line:955:}
-        return O00OOOOOOO0OO0O00 #line:956:return result
-class AggregatingLocator (Locator ):#line:959:class AggregatingLocator(Locator):
-    ""#line:962:"""
-    def __init__ (O0OOO000O0OO0O0OO ,*OOOOO000O00OOOOOO ,**O0O00O00O0OOO0O00 ):#line:963:def __init__(self, *locators, **kwargs):
-        ""#line:974:"""
-        O0OOO000O0OO0O0OO .merge =O0O00O00O0OOO0O00 .pop ('merge',False )#line:975:self.merge = kwargs.pop('merge', False)
-        O0OOO000O0OO0O0OO .locators =OOOOO000O00OOOOOO #line:976:self.locators = locators
-        super (AggregatingLocator ,O0OOO000O0OO0O0OO ).__init__ (**O0O00O00O0OOO0O00 )#line:977:super(AggregatingLocator, self).__init__(**kwargs)
-    def clear_cache (O00000O0000O0O0OO ):#line:979:def clear_cache(self):
-        super (AggregatingLocator ,O00000O0000O0O0OO ).clear_cache ()#line:980:super(AggregatingLocator, self).clear_cache()
-        for OO0OOO00OO000O0O0 in O00000O0000O0O0OO .locators :#line:981:for locator in self.locators:
-            OO0OOO00OO000O0O0 .clear_cache ()#line:982:locator.clear_cache()
-    def _set_scheme (OO0OO000O0O0OOOO0 ,O0O000O0O00O00OO0 ):#line:984:def _set_scheme(self, value):
-        OO0OO000O0O0OOOO0 ._scheme =O0O000O0O00O00OO0 #line:985:self._scheme = value
-        for OO0O0O00000O0OOO0 in OO0OO000O0O0OOOO0 .locators :#line:986:for locator in self.locators:
-            OO0O0O00000O0OOO0 .scheme =O0O000O0O00O00OO0 #line:987:locator.scheme = value
-    scheme =property (Locator .scheme .fget ,_set_scheme )#line:989:scheme = property(Locator.scheme.fget, _set_scheme)
-    def _get_project (OO0O00O0O00OO0000 ,O00OOOO0O000OOOOO ):#line:991:def _get_project(self, name):
-        OOO00OOOO00000O0O ={}#line:992:result = {}
-        for O0O0OO0O000OO00O0 in OO0O00O0O00OO0000 .locators :#line:993:for locator in self.locators:
-            OOOO00O0000O0O000 =O0O0OO0O000OO00O0 .get_project (O00OOOO0O000OOOOO )#line:994:d = locator.get_project(name)
-            if OOOO00O0000O0O000 :#line:995:if d:
-                if OO0O00O0O00OO0000 .merge :#line:996:if self.merge:
-                    OO000O00O0000O0O0 =OOO00OOOO00000O0O .get ('urls',{})#line:997:files = result.get('urls', {})
-                    O0OO00OOO0000O0O0 =OOO00OOOO00000O0O .get ('digests',{})#line:998:digests = result.get('digests', {})
-                    OOO00OOOO00000O0O .update (OOOO00O0000O0O000 )#line:1000:result.update(d)
-                    O00O0OO00O0OOOO0O =OOO00OOOO00000O0O .get ('urls')#line:1001:df = result.get('urls')
-                    if OO000O00O0000O0O0 and O00O0OO00O0OOOO0O :#line:1002:if files and df:
-                        for OOO0O000O00OO0O00 ,OO000OOOO0OOO00OO in OO000O00O0000O0O0 .items ():#line:1003:for k, v in files.items():
-                            if OOO0O000O00OO0O00 in O00O0OO00O0OOOO0O :#line:1004:if k in df:
-                                O00O0OO00O0OOOO0O [OOO0O000O00OO0O00 ]|=OO000OOOO0OOO00OO #line:1005:df[k] |= v
-                            else :#line:1006:else:
-                                O00O0OO00O0OOOO0O [OOO0O000O00OO0O00 ]=OO000OOOO0OOO00OO #line:1007:df[k] = v
-                    O0O0OO000O00000OO =OOO00OOOO00000O0O .get ('digests')#line:1008:dd = result.get('digests')
-                    if O0OO00OOO0000O0O0 and O0O0OO000O00000OO :#line:1009:if digests and dd:
-                        O0O0OO000O00000OO .update (O0OO00OOO0000O0O0 )#line:1010:dd.update(digests)
-                else :#line:1011:else:
-                    if OO0O00O0O00OO0000 .matcher is None :#line:1022:if self.matcher is None:
-                        O0O00OOOOO0000O00 =True #line:1023:found = True
-                    else :#line:1024:else:
-                        O0O00OOOOO0000O00 =False #line:1025:found = False
-                        for OOO0O000O00OO0O00 in OOOO00O0000O0O000 :#line:1026:for k in d:
-                            if OO0O00O0O00OO0000 .matcher .match (OOO0O000O00OO0O00 ):#line:1027:if self.matcher.match(k):
-                                O0O00OOOOO0000O00 =True #line:1028:found = True
-                                break #line:1029:break
-                    if O0O00OOOOO0000O00 :#line:1030:if found:
-                        OOO00OOOO00000O0O =OOOO00O0000O0O000 #line:1031:result = d
-                        break #line:1032:break
-        return OOO00OOOO00000O0O #line:1033:return result
-    def get_distribution_names (OOOOO0OO0000OO0O0 ):#line:1035:def get_distribution_names(self):
-        ""#line:1038:"""
-        O00O0O0000O0O00OO =set ()#line:1039:result = set()
-        for O00000OOO0OO00OOO in OOOOO0OO0000OO0O0 .locators :#line:1040:for locator in self.locators:
-            try :#line:1041:try:
-                O00O0O0000O0O00OO |=O00000OOO0OO00OOO .get_distribution_names ()#line:1042:result |= locator.get_distribution_names()
-            except NotImplementedError :#line:1043:except NotImplementedError:
-                pass #line:1044:pass
-        return O00O0O0000O0O00OO #line:1045:return result
-default_locator =AggregatingLocator (JSONLocator (),SimpleScrapingLocator ('https://pypi.python.org/simple/',timeout =3.0 ),scheme ='legacy')#line:1054:scheme='legacy')
-locate =default_locator .locate #line:1056:locate = default_locator.locate
-NAME_VERSION_RE =re .compile (r'(?P<name>[\w-]+)\s*' r'\(\s*(==\s*)?(?P<ver>[^)]+)\)$')#line:1059:r'\(\s*(==\s*)?(?P<ver>[^)]+)\)$')
-class DependencyFinder (object ):#line:1061:class DependencyFinder(object):
-    ""#line:1064:"""
-    def __init__ (O000O00OOOOOOOO0O ,locator =None ):#line:1066:def __init__(self, locator=None):
-        ""#line:1070:"""
-        O000O00OOOOOOOO0O .locator =locator or default_locator #line:1071:self.locator = locator or default_locator
-        O000O00OOOOOOOO0O .scheme =get_scheme (O000O00OOOOOOOO0O .locator .scheme )#line:1072:self.scheme = get_scheme(self.locator.scheme)
-    def add_distribution (O00OO00OO0OO0OO00 ,O00O0O00O000OOO00 ):#line:1074:def add_distribution(self, dist):
-        ""#line:1079:"""
-        logger .debug ('adding distribution %s',O00O0O00O000OOO00 )#line:1080:logger.debug('adding distribution %s', dist)
-        OO00OOO000O00O0O0 =O00O0O00O000OOO00 .key #line:1081:name = dist.key
-        O00OO00OO0OO0OO00 .dists_by_name [OO00OOO000O00O0O0 ]=O00O0O00O000OOO00 #line:1082:self.dists_by_name[name] = dist
-        O00OO00OO0OO0OO00 .dists [(OO00OOO000O00O0O0 ,O00O0O00O000OOO00 .version )]=O00O0O00O000OOO00 #line:1083:self.dists[(name, dist.version)] = dist
-        for O000OOO00OOO0OO00 in O00O0O00O000OOO00 .provides :#line:1084:for p in dist.provides:
-            OO00OOO000O00O0O0 ,OOOOOO0O00O0O0O0O =parse_name_and_version (O000OOO00OOO0OO00 )#line:1085:name, version = parse_name_and_version(p)
-            logger .debug ('Add to provided: %s, %s, %s',OO00OOO000O00O0O0 ,OOOOOO0O00O0O0O0O ,O00O0O00O000OOO00 )#line:1086:logger.debug('Add to provided: %s, %s, %s', name, version, dist)
-            O00OO00OO0OO0OO00 .provided .setdefault (OO00OOO000O00O0O0 ,set ()).add ((OOOOOO0O00O0O0O0O ,O00O0O00O000OOO00 ))#line:1087:self.provided.setdefault(name, set()).add((version, dist))
-    def remove_distribution (OOOO00OOO0OO00OO0 ,OO000O0OOOOOOOO0O ):#line:1089:def remove_distribution(self, dist):
-        ""#line:1094:"""
-        logger .debug ('removing distribution %s',OO000O0OOOOOOOO0O )#line:1095:logger.debug('removing distribution %s', dist)
-        OOOOOO0OOO0OO00OO =OO000O0OOOOOOOO0O .key #line:1096:name = dist.key
-        del OOOO00OOO0OO00OO0 .dists_by_name [OOOOOO0OOO0OO00OO ]#line:1097:del self.dists_by_name[name]
-        del OOOO00OOO0OO00OO0 .dists [(OOOOOO0OOO0OO00OO ,OO000O0OOOOOOOO0O .version )]#line:1098:del self.dists[(name, dist.version)]
-        for O0OO000OO00OO0OO0 in OO000O0OOOOOOOO0O .provides :#line:1099:for p in dist.provides:
-            OOOOOO0OOO0OO00OO ,OO0OO00OOOOOOOOOO =parse_name_and_version (O0OO000OO00OO0OO0 )#line:1100:name, version = parse_name_and_version(p)
-            logger .debug ('Remove from provided: %s, %s, %s',OOOOOO0OOO0OO00OO ,OO0OO00OOOOOOOOOO ,OO000O0OOOOOOOO0O )#line:1101:logger.debug('Remove from provided: %s, %s, %s', name, version, dist)
-            OO0000O00OOO00000 =OOOO00OOO0OO00OO0 .provided [OOOOOO0OOO0OO00OO ]#line:1102:s = self.provided[name]
-            OO0000O00OOO00000 .remove ((OO0OO00OOOOOOOOOO ,OO000O0OOOOOOOO0O ))#line:1103:s.remove((version, dist))
-            if not OO0000O00OOO00000 :#line:1104:if not s:
-                del OOOO00OOO0OO00OO0 .provided [OOOOOO0OOO0OO00OO ]#line:1105:del self.provided[name]
-    def get_matcher (O0OO0O0000000OO0O ,O00O0O00O00OO0O00 ):#line:1107:def get_matcher(self, reqt):
-        ""#line:1114:"""
-        try :#line:1115:try:
-            O00OO00OOOO0OOOO0 =O0OO0O0000000OO0O .scheme .matcher (O00O0O00O00OO0O00 )#line:1116:matcher = self.scheme.matcher(reqt)
-        except UnsupportedVersionError :#line:1117:except UnsupportedVersionError:  # pragma: no cover
-            OO0O0O0O0OOO0000O =O00O0O00O00OO0O00 .split ()[0 ]#line:1119:name = reqt.split()[0]
-            O00OO00OOOO0OOOO0 =O0OO0O0000000OO0O .scheme .matcher (OO0O0O0O0OOO0000O )#line:1120:matcher = self.scheme.matcher(name)
-        return O00OO00OOOO0OOOO0 #line:1121:return matcher
-    def find_providers (O0OO000O0O0OOOO0O ,O0000O0O00OOO0OOO ):#line:1123:def find_providers(self, reqt):
-        ""#line:1130:"""
-        OOO0OO0000OOO00OO =O0OO000O0O0OOOO0O .get_matcher (O0000O0O00OOO0OOO )#line:1131:matcher = self.get_matcher(reqt)
-        O0O0OOOOOOOO0O00O =OOO0OO0000OOO00OO .key #line:1132:name = matcher.key   # case-insensitive
-        OO0OOO000OOO000OO =set ()#line:1133:result = set()
-        OOO0OO00O0000OOO0 =O0OO000O0O0OOOO0O .provided #line:1134:provided = self.provided
-        if O0O0OOOOOOOO0O00O in OOO0OO00O0000OOO0 :#line:1135:if name in provided:
-            for OO00O0000OOOOO000 ,OOOOOOO00000O0OOO in OOO0OO00O0000OOO0 [O0O0OOOOOOOO0O00O ]:#line:1136:for version, provider in provided[name]:
-                try :#line:1137:try:
-                    OOO00000O0OOO0O0O =OOO0OO0000OOO00OO .match (OO00O0000OOOOO000 )#line:1138:match = matcher.match(version)
-                except UnsupportedVersionError :#line:1139:except UnsupportedVersionError:
-                    OOO00000O0OOO0O0O =False #line:1140:match = False
-                if OOO00000O0OOO0O0O :#line:1142:if match:
-                    OO0OOO000OOO000OO .add (OOOOOOO00000O0OOO )#line:1143:result.add(provider)
-                    break #line:1144:break
-        return OO0OOO000OOO000OO #line:1145:return result
-    def try_to_replace (OOOO000OOOO00O00O ,O0OOOO0O0OO0OO0O0 ,O000OOOO00OOOOO00 ,OOO0OO0OO00OOO000 ):#line:1147:def try_to_replace(self, provider, other, problems):
-        ""#line:1165:"""
-        OO000OO000OOO0O0O =OOOO000OOOO00O00O .reqts [O000OOOO00OOOOO00 ]#line:1166:rlist = self.reqts[other]
-        OOO00O0O0OO00O000 =set ()#line:1167:unmatched = set()
-        for O00OO00OOO00OO000 in OO000OO000OOO0O0O :#line:1168:for s in rlist:
-            OOOOO0O0OOOO000O0 =OOOO000OOOO00O00O .get_matcher (O00OO00OOO00OO000 )#line:1169:matcher = self.get_matcher(s)
-            if not OOOOO0O0OOOO000O0 .match (O0OOOO0O0OO0OO0O0 .version ):#line:1170:if not matcher.match(provider.version):
-                OOO00O0O0OO00O000 .add (O00OO00OOO00OO000 )#line:1171:unmatched.add(s)
-        if OOO00O0O0OO00O000 :#line:1172:if unmatched:
-            OOO0OO0OO00OOO000 .add (('cantreplace',O0OOOO0O0OO0OO0O0 ,O000OOOO00OOOOO00 ,frozenset (OOO00O0O0OO00O000 )))#line:1175:frozenset(unmatched)))
-            O0OO00O00OO0OOO00 =False #line:1176:result = False
-        else :#line:1177:else:
-            OOOO000OOOO00O00O .remove_distribution (O000OOOO00OOOOO00 )#line:1179:self.remove_distribution(other)
-            del OOOO000OOOO00O00O .reqts [O000OOOO00OOOOO00 ]#line:1180:del self.reqts[other]
-            for O00OO00OOO00OO000 in OO000OO000OOO0O0O :#line:1181:for s in rlist:
-                OOOO000OOOO00O00O .reqts .setdefault (O0OOOO0O0OO0OO0O0 ,set ()).add (O00OO00OOO00OO000 )#line:1182:self.reqts.setdefault(provider, set()).add(s)
-            OOOO000OOOO00O00O .add_distribution (O0OOOO0O0OO0OO0O0 )#line:1183:self.add_distribution(provider)
-            O0OO00O00OO0OOO00 =True #line:1184:result = True
-        return O0OO00O00OO0OOO00 #line:1185:return result
-    def find (O0000O00OO00OOOOO ,O0OOOO0OOO0O0OO00 ,meta_extras =None ,prereleases =False ):#line:1187:def find(self, requirement, meta_extras=None, prereleases=False):
-        ""#line:1211:"""
-        O0000O00OO00OOOOO .provided ={}#line:1213:self.provided = {}
-        O0000O00OO00OOOOO .dists ={}#line:1214:self.dists = {}
-        O0000O00OO00OOOOO .dists_by_name ={}#line:1215:self.dists_by_name = {}
-        O0000O00OO00OOOOO .reqts ={}#line:1216:self.reqts = {}
-        meta_extras =set (meta_extras or [])#line:1218:meta_extras = set(meta_extras or [])
-        if ':*:'in meta_extras :#line:1219:if ':*:' in meta_extras:
-            meta_extras .remove (':*:')#line:1220:meta_extras.remove(':*:')
-            meta_extras |=set ([':test:',':build:',':dev:'])#line:1222:meta_extras |= set([':test:', ':build:', ':dev:'])
-        if isinstance (O0OOOO0OOO0O0OO00 ,Distribution ):#line:1224:if isinstance(requirement, Distribution):
-            O00OOO00O00OOO00O =O00OO000OOOO0OO00 =O0OOOO0OOO0O0OO00 #line:1225:dist = odist = requirement
-            logger .debug ('passed %s as requirement',O00OO000OOOO0OO00 )#line:1226:logger.debug('passed %s as requirement', odist)
-        else :#line:1227:else:
-            O00OOO00O00OOO00O =O00OO000OOOO0OO00 =O0000O00OO00OOOOO .locator .locate (O0OOOO0OOO0O0OO00 ,prereleases =prereleases )#line:1229:prereleases=prereleases)
-            if O00OOO00O00OOO00O is None :#line:1230:if dist is None:
-                raise DistlibException ('Unable to locate %r'%O0OOOO0OOO0O0OO00 )#line:1231:raise DistlibException('Unable to locate %r' % requirement)
-            logger .debug ('located %s',O00OO000OOOO0OO00 )#line:1232:logger.debug('located %s', odist)
-        O00OOO00O00OOO00O .requested =True #line:1233:dist.requested = True
-        OOOO0OOOO00OO0OO0 =set ()#line:1234:problems = set()
-        O0000O0OOO0O00000 =set ([O00OOO00O00OOO00O ])#line:1235:todo = set([dist])
-        O0000O0O000OOO0O0 =set ([O00OO000OOOO0OO00 ])#line:1236:install_dists = set([odist])
-        while O0000O0OOO0O00000 :#line:1237:while todo:
-            O00OOO00O00OOO00O =O0000O0OOO0O00000 .pop ()#line:1238:dist = todo.pop()
-            O0OOOOO0O0OOOOO0O =O00OOO00O00OOO00O .key #line:1239:name = dist.key     # case-insensitive
-            if O0OOOOO0O0OOOOO0O not in O0000O00OO00OOOOO .dists_by_name :#line:1240:if name not in self.dists_by_name:
-                O0000O00OO00OOOOO .add_distribution (O00OOO00O00OOO00O )#line:1241:self.add_distribution(dist)
-            else :#line:1242:else:
-                O0000OO0OOO0O00O0 =O0000O00OO00OOOOO .dists_by_name [O0OOOOO0O0OOOOO0O ]#line:1244:other = self.dists_by_name[name]
-                if O0000OO0OOO0O00O0 !=O00OOO00O00OOO00O :#line:1245:if other != dist:
-                    O0000O00OO00OOOOO .try_to_replace (O00OOO00O00OOO00O ,O0000OO0OOO0O00O0 ,OOOO0OOOO00OO0OO0 )#line:1246:self.try_to_replace(dist, other, problems)
-            OO00O0OO0OO000OOO =O00OOO00O00OOO00O .run_requires |O00OOO00O00OOO00O .meta_requires #line:1248:ireqts = dist.run_requires | dist.meta_requires
-            OO00OO00OO0OOO0OO =O00OOO00O00OOO00O .build_requires #line:1249:sreqts = dist.build_requires
-            OOO0OOOO0O00O0O0O =set ()#line:1250:ereqts = set()
-            if meta_extras and O00OOO00O00OOO00O in O0000O0O000OOO0O0 :#line:1251:if meta_extras and dist in install_dists:
-                for OO00O00O00OO0O00O in ('test','build','dev'):#line:1252:for key in ('test', 'build', 'dev'):
-                    OOOO0OO0O0OO00O0O =':%s:'%OO00O00O00OO0O00O #line:1253:e = ':%s:' % key
-                    if OOOO0OO0O0OO00O0O in meta_extras :#line:1254:if e in meta_extras:
-                        OOO0OOOO0O00O0O0O |=getattr (O00OOO00O00OOO00O ,'%s_requires'%OO00O00O00OO0O00O )#line:1255:ereqts |= getattr(dist, '%s_requires' % key)
-            OOOO00OO00O0O0O00 =OO00O0OO0OO000OOO |OO00OO00OO0OOO0OO |OOO0OOOO0O00O0O0O #line:1256:all_reqts = ireqts | sreqts | ereqts
-            for O0OOOO0000O0O000O in OOOO00OO00O0O0O00 :#line:1257:for r in all_reqts:
-                OOO0O00OO00O00O00 =O0000O00OO00OOOOO .find_providers (O0OOOO0000O0O000O )#line:1258:providers = self.find_providers(r)
-                if not OOO0O00OO00O00O00 :#line:1259:if not providers:
-                    logger .debug ('No providers found for %r',O0OOOO0000O0O000O )#line:1260:logger.debug('No providers found for %r', r)
-                    O000O0OOO00OO000O =O0000O00OO00OOOOO .locator .locate (O0OOOO0000O0O000O ,prereleases =prereleases )#line:1261:provider = self.locator.locate(r, prereleases=prereleases)
-                    if O000O0OOO00OO000O is None and not prereleases :#line:1264:if provider is None and not prereleases:
-                        O000O0OOO00OO000O =O0000O00OO00OOOOO .locator .locate (O0OOOO0000O0O000O ,prereleases =True )#line:1265:provider = self.locator.locate(r, prereleases=True)
-                    if O000O0OOO00OO000O is None :#line:1266:if provider is None:
-                        logger .debug ('Cannot satisfy %r',O0OOOO0000O0O000O )#line:1267:logger.debug('Cannot satisfy %r', r)
-                        OOOO0OOOO00OO0OO0 .add (('unsatisfied',O0OOOO0000O0O000O ))#line:1268:problems.add(('unsatisfied', r))
-                    else :#line:1269:else:
-                        OOOOOOOO0OO000000 ,O0OO0O0OO000O0O0O =O000O0OOO00OO000O .key ,O000O0OOO00OO000O .version #line:1270:n, v = provider.key, provider.version
-                        if (OOOOOOOO0OO000000 ,O0OO0O0OO000O0O0O )not in O0000O00OO00OOOOO .dists :#line:1271:if (n, v) not in self.dists:
-                            O0000O0OOO0O00000 .add (O000O0OOO00OO000O )#line:1272:todo.add(provider)
-                        OOO0O00OO00O00O00 .add (O000O0OOO00OO000O )#line:1273:providers.add(provider)
-                        if O0OOOO0000O0O000O in OO00O0OO0OO000OOO and O00OOO00O00OOO00O in O0000O0O000OOO0O0 :#line:1274:if r in ireqts and dist in install_dists:
-                            O0000O0O000OOO0O0 .add (O000O0OOO00OO000O )#line:1275:install_dists.add(provider)
-                            logger .debug ('Adding %s to install_dists',O000O0OOO00OO000O .name_and_version )#line:1277:provider.name_and_version)
-                for OOO0O00OO000OOOOO in OOO0O00OO00O00O00 :#line:1278:for p in providers:
-                    O0OOOOO0O0OOOOO0O =OOO0O00OO000OOOOO .key #line:1279:name = p.key
-                    if O0OOOOO0O0OOOOO0O not in O0000O00OO00OOOOO .dists_by_name :#line:1280:if name not in self.dists_by_name:
-                        O0000O00OO00OOOOO .reqts .setdefault (OOO0O00OO000OOOOO ,set ()).add (O0OOOO0000O0O000O )#line:1281:self.reqts.setdefault(p, set()).add(r)
-                    else :#line:1282:else:
-                        O0000OO0OOO0O00O0 =O0000O00OO00OOOOO .dists_by_name [O0OOOOO0O0OOOOO0O ]#line:1283:other = self.dists_by_name[name]
-                        if O0000OO0OOO0O00O0 !=OOO0O00OO000OOOOO :#line:1284:if other != p:
-                            O0000O00OO00OOOOO .try_to_replace (OOO0O00OO000OOOOO ,O0000OO0OOO0O00O0 ,OOOO0OOOO00OO0OO0 )#line:1286:self.try_to_replace(p, other, problems)
-        O0OO000O00O0OOOO0 =set (O0000O00OO00OOOOO .dists .values ())#line:1288:dists = set(self.dists.values())
-        for O00OOO00O00OOO00O in O0OO000O00O0OOOO0 :#line:1289:for dist in dists:
-            O00OOO00O00OOO00O .build_time_dependency =O00OOO00O00OOO00O not in O0000O0O000OOO0O0 #line:1290:dist.build_time_dependency = dist not in install_dists
-            if O00OOO00O00OOO00O .build_time_dependency :#line:1291:if dist.build_time_dependency:
-                logger .debug ('%s is a build-time dependency only.',O00OOO00O00OOO00O .name_and_version )#line:1293:dist.name_and_version)
-        logger .debug ('find done for %s',O00OO000OOOO0OO00 )#line:1294:logger.debug('find done for %s', odist)
-        return O0OO000O00O0OOOO0 ,OOOO0OOOO00OO0OO0 #line:1295:return dists, problems
+from __future__ import absolute_import #line:1
+from collections import namedtuple #line:2
+from ..exceptions import LocationParseError #line:4
+url_attrs =['scheme','auth','host','port','path','query','fragment']#line:7
+NORMALIZABLE_SCHEMES =('http','https',None )#line:11
+class Url (namedtuple ('Url',url_attrs )):#line:14
+    ""#line:19
+    __slots__ =()#line:20
+    def __new__ (O00OOO00O0OO0OOOO ,scheme =None ,auth =None ,host =None ,port =None ,path =None ,query =None ,fragment =None ):#line:23
+        if path and not path .startswith ('/'):#line:24
+            path ='/'+path #line:25
+        if scheme :#line:26
+            scheme =scheme .lower ()#line:27
+        if host and scheme in NORMALIZABLE_SCHEMES :#line:28
+            host =host .lower ()#line:29
+        return super (Url ,O00OOO00O0OO0OOOO ).__new__ (O00OOO00O0OO0OOOO ,scheme ,auth ,host ,port ,path ,query ,fragment )#line:31
+    @property #line:33
+    def hostname (OO00OOO000O0O000O ):#line:34
+        ""#line:35
+        return OO00OOO000O0O000O .host #line:36
+    @property #line:38
+    def request_uri (O00O00OOO00OO0OOO ):#line:39
+        ""#line:40
+        O0O0000OOOO00000O =O00O00OOO00OO0OOO .path or '/'#line:41
+        if O00O00OOO00OO0OOO .query is not None :#line:43
+            O0O0000OOOO00000O +='?'+O00O00OOO00OO0OOO .query #line:44
+        return O0O0000OOOO00000O #line:46
+    @property #line:48
+    def netloc (O0O00O0O0000000O0 ):#line:49
+        ""#line:50
+        if O0O00O0O0000000O0 .port :#line:51
+            return '%s:%d'%(O0O00O0O0000000O0 .host ,O0O00O0O0000000O0 .port )#line:52
+        return O0O00O0O0000000O0 .host #line:53
+    @property #line:55
+    def url (O0O0O0OO00OO00OO0 ):#line:56
+        ""#line:73
+        O0OOOOO0O00OOO000 ,O0O000O000OOOOOOO ,O0O000O0O00OO0O00 ,O0O0000OO0O0O0O00 ,O0O00OO0OO000OOOO ,O0OO0O0OOO0O000OO ,O000O0OOO0000O0O0 =O0O0O0OO00OO00OO0 #line:74
+        O00OO0OO0OOO00OO0 =''#line:75
+        if O0OOOOO0O00OOO000 is not None :#line:78
+            O00OO0OO0OOO00OO0 +=O0OOOOO0O00OOO000 +'://'#line:79
+        if O0O000O000OOOOOOO is not None :#line:80
+            O00OO0OO0OOO00OO0 +=O0O000O000OOOOOOO +'@'#line:81
+        if O0O000O0O00OO0O00 is not None :#line:82
+            O00OO0OO0OOO00OO0 +=O0O000O0O00OO0O00 #line:83
+        if O0O0000OO0O0O0O00 is not None :#line:84
+            O00OO0OO0OOO00OO0 +=':'+str (O0O0000OO0O0O0O00 )#line:85
+        if O0O00OO0OO000OOOO is not None :#line:86
+            O00OO0OO0OOO00OO0 +=O0O00OO0OO000OOOO #line:87
+        if O0OO0O0OOO0O000OO is not None :#line:88
+            O00OO0OO0OOO00OO0 +='?'+O0OO0O0OOO0O000OO #line:89
+        if O000O0OOO0000O0O0 is not None :#line:90
+            O00OO0OO0OOO00OO0 +='#'+O000O0OOO0000O0O0 #line:91
+        return O00OO0OO0OOO00OO0 #line:93
+    def __str__ (OO0OOO0O00O000OO0 ):#line:95
+        return OO0OOO0O00O000OO0 .url #line:96
+def split_first (OOO00O000O00OO00O ,OOOO00O0OOOO00OO0 ):#line:99
+    ""#line:114
+    O0OOOO0O00OOOOO0O =None #line:115
+    OO0O0OOO00O000O0O =None #line:116
+    for OO000O0000OOOO00O in OOOO00O0OOOO00OO0 :#line:117
+        OOO0OOOOO0O0OOO00 =OOO00O000O00OO00O .find (OO000O0000OOOO00O )#line:118
+        if OOO0OOOOO0O0OOO00 <0 :#line:119
+            continue #line:120
+        if O0OOOO0O00OOOOO0O is None or OOO0OOOOO0O0OOO00 <O0OOOO0O00OOOOO0O :#line:122
+            O0OOOO0O00OOOOO0O =OOO0OOOOO0O0OOO00 #line:123
+            OO0O0OOO00O000O0O =OO000O0000OOOO00O #line:124
+    if O0OOOO0O00OOOOO0O is None or O0OOOO0O00OOOOO0O <0 :#line:126
+        return OOO00O000O00OO00O ,'',None #line:127
+    return OOO00O000O00OO00O [:O0OOOO0O00OOOOO0O ],OOO00O000O00OO00O [O0OOOO0O00OOOOO0O +1 :],OO0O0OOO00O000O0O #line:129
+def parse_url (OOOOOOOOO00O0OOO0 ):#line:132
+    ""#line:147
+    if not OOOOOOOOO00O0OOO0 :#line:154
+        return Url ()#line:156
+    OOOOO0O0OO000000O =None #line:158
+    OO0O00O0O00OOO00O =None #line:159
+    OOO0O000O0O0000OO =None #line:160
+    OO0OOO0OO0OOO0O00 =None #line:161
+    O0000OOOO00OO0000 =None #line:162
+    O00OOO0OO0000O0O0 =None #line:163
+    O0O00O0O00OOO0OOO =None #line:164
+    if '://'in OOOOOOOOO00O0OOO0 :#line:167
+        OOOOO0O0OO000000O ,OOOOOOOOO00O0OOO0 =OOOOOOOOO00O0OOO0 .split ('://',1 )#line:168
+    OOOOOOOOO00O0OOO0 ,OO00OO0OO0OO0OOOO ,O00OO0000OO000OOO =split_first (OOOOOOOOO00O0OOO0 ,['/','?','#'])#line:172
+    if O00OO0000OO000OOO :#line:174
+        O0000OOOO00OO0000 =O00OO0000OO000OOO +OO00OO0OO0OO0OOOO #line:176
+    if '@'in OOOOOOOOO00O0OOO0 :#line:179
+        OO0O00O0O00OOO00O ,OOOOOOOOO00O0OOO0 =OOOOOOOOO00O0OOO0 .rsplit ('@',1 )#line:181
+    if OOOOOOOOO00O0OOO0 and OOOOOOOOO00O0OOO0 [0 ]=='[':#line:184
+        OOO0O000O0O0000OO ,OOOOOOOOO00O0OOO0 =OOOOOOOOO00O0OOO0 .split (']',1 )#line:185
+        OOO0O000O0O0000OO +=']'#line:186
+    if ':'in OOOOOOOOO00O0OOO0 :#line:189
+        _O00OO000OOO000000 ,OO0OOO0OO0OOO0O00 =OOOOOOOOO00O0OOO0 .split (':',1 )#line:190
+        if not OOO0O000O0O0000OO :#line:192
+            OOO0O000O0O0000OO =_O00OO000OOO000000 #line:193
+        if OO0OOO0OO0OOO0O00 :#line:195
+            if not OO0OOO0OO0OOO0O00 .isdigit ():#line:198
+                raise LocationParseError (OOOOOOOOO00O0OOO0 )#line:199
+            try :#line:200
+                OO0OOO0OO0OOO0O00 =int (OO0OOO0OO0OOO0O00 )#line:201
+            except ValueError :#line:202
+                raise LocationParseError (OOOOOOOOO00O0OOO0 )#line:203
+        else :#line:204
+            OO0OOO0OO0OOO0O00 =None #line:206
+    elif not OOO0O000O0O0000OO and OOOOOOOOO00O0OOO0 :#line:208
+        OOO0O000O0O0000OO =OOOOOOOOO00O0OOO0 #line:209
+    if not O0000OOOO00OO0000 :#line:211
+        return Url (OOOOO0O0OO000000O ,OO0O00O0O00OOO00O ,OOO0O000O0O0000OO ,OO0OOO0OO0OOO0O00 ,O0000OOOO00OO0000 ,O0O00O0O00OOO0OOO ,O00OOO0OO0000O0O0 )#line:212
+    if '#'in O0000OOOO00OO0000 :#line:215
+        O0000OOOO00OO0000 ,O00OOO0OO0000O0O0 =O0000OOOO00OO0000 .split ('#',1 )#line:216
+    if '?'in O0000OOOO00OO0000 :#line:219
+        O0000OOOO00OO0000 ,O0O00O0O00OOO0OOO =O0000OOOO00OO0000 .split ('?',1 )#line:220
+    return Url (OOOOO0O0OO000000O ,OO0O00O0O00OOO00O ,OOO0O000O0O0000OO ,OO0OOO0OO0OOO0O00 ,O0000OOOO00OO0000 ,O0O00O0O00OOO0OOO ,O00OOO0OO0000O0O0 )#line:222
+def get_host (O0O0OOO0000OO0OOO ):#line:225
+    ""#line:228
+    OO0OOO00000OOO0OO =parse_url (O0O0OOO0000OO0OOO )#line:229
+    return OO0OOO00000OOO0OO .scheme or 'http',OO0OOO00000OOO0OO .hostname ,OO0OOO00000OOO0OO .port #line:230

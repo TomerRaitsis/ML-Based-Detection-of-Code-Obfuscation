@@ -1,185 +1,24 @@
-""#line:8
-import os #line:10
-import re #line:11
-import time #line:12
-import hashlib #line:13
-import threading #line:14
-import warnings #line:15
-from base64 import b64encode #line:17
-from .compat import urlparse ,str ,basestring #line:19
-from .cookies import extract_cookies_to_jar #line:20
-from ._internal_utils import to_native_string #line:21
-from .utils import parse_dict_header #line:22
-CONTENT_TYPE_FORM_URLENCODED ='application/x-www-form-urlencoded'#line:24
-CONTENT_TYPE_MULTI_PART ='multipart/form-data'#line:25
-def _O0OO000O0O0OO0OOO (O000O0OO00O000OOO ,O000O0OO0O00OOOOO ):#line:28
-    ""#line:29
-    if not isinstance (O000O0OO00O000OOO ,basestring ):#line:38
-        warnings .warn ("Non-string usernames will no longer be supported in Requests " "3.0.0. Please convert the object you've passed in ({!r}) to " "a string or bytes object in the near future to avoid " "problems.".format (O000O0OO00O000OOO ),category =DeprecationWarning ,)#line:45
-        O000O0OO00O000OOO =str (O000O0OO00O000OOO )#line:46
-    if not isinstance (O000O0OO0O00OOOOO ,basestring ):#line:48
-        warnings .warn ("Non-string passwords will no longer be supported in Requests " "3.0.0. Please convert the object you've passed in ({!r}) to " "a string or bytes object in the near future to avoid " "problems.".format (O000O0OO0O00OOOOO ),category =DeprecationWarning ,)#line:55
-        O000O0OO0O00OOOOO =str (O000O0OO0O00OOOOO )#line:56
-    if isinstance (O000O0OO00O000OOO ,str ):#line:59
-        O000O0OO00O000OOO =O000O0OO00O000OOO .encode ('latin1')#line:60
-    if isinstance (O000O0OO0O00OOOOO ,str ):#line:62
-        O000O0OO0O00OOOOO =O000O0OO0O00OOOOO .encode ('latin1')#line:63
-    OOO00O0O00OOOO00O ='Basic '+to_native_string (b64encode (b':'.join ((O000O0OO00O000OOO ,O000O0OO0O00OOOOO ))).strip ())#line:67
-    return OOO00O0O00OOOO00O #line:69
-class AuthBase (object ):#line:72
-    ""#line:73
-    def __call__ (O0O0OOO000OOO0O0O ,O0OOO0OOOOO0OOOOO ):#line:75
-        raise NotImplementedError ('Auth hooks must be callable.')#line:76
-class HTTPBasicAuth (AuthBase ):#line:79
-    ""#line:80
-    def __init__ (O00OOO00O00O00O00 ,OO000OOOO00O0OOOO ,O000O0O0OOO0OOOO0 ):#line:82
-        O00OOO00O00O00O00 .username =OO000OOOO00O0OOOO #line:83
-        O00OOO00O00O00O00 .password =O000O0O0OOO0OOOO0 #line:84
-    def __eq__ (OOOO00OOOOO000000 ,OO0OOO0000OOO000O ):#line:86
-        return all ([OOOO00OOOOO000000 .username ==getattr (OO0OOO0000OOO000O ,'username',None ),OOOO00OOOOO000000 .password ==getattr (OO0OOO0000OOO000O ,'password',None )])#line:90
-    def __ne__ (O0O0O0O00O0O0OO00 ,O00OOOO0O0OOOO000 ):#line:92
-        return not O0O0O0O00O0O0OO00 ==O00OOOO0O0OOOO000 #line:93
-    def __call__ (O0OO00O000000OO00 ,O0O00OOOO0000O0OO ):#line:95
-        O0O00OOOO0000O0OO .headers ['Authorization']=_O0OO000O0O0OO0OOO (O0OO00O000000OO00 .username ,O0OO00O000000OO00 .password )#line:96
-        return O0O00OOOO0000O0OO #line:97
-class HTTPProxyAuth (HTTPBasicAuth ):#line:100
-    ""#line:101
-    def __call__ (O0OOOOOO0O0OOOO0O ,O0000O00OOOO00000 ):#line:103
-        O0000O00OOOO00000 .headers ['Proxy-Authorization']=_O0OO000O0O0OO0OOO (O0OOOOOO0O0OOOO0O .username ,O0OOOOOO0O0OOOO0O .password )#line:104
-        return O0000O00OOOO00000 #line:105
-class HTTPDigestAuth (AuthBase ):#line:108
-    ""#line:109
-    def __init__ (O0O00OOO0O0OOO0OO ,OOO0000OOOOOOOO00 ,O0OOOO0O0O0OO00OO ):#line:111
-        O0O00OOO0O0OOO0OO .username =OOO0000OOOOOOOO00 #line:112
-        O0O00OOO0O0OOO0OO .password =O0OOOO0O0O0OO00OO #line:113
-        O0O00OOO0O0OOO0OO ._thread_local =threading .local ()#line:115
-    def init_per_thread_state (O00O0OOOO0O0OOO0O ):#line:117
-        if not hasattr (O00O0OOOO0O0OOO0O ._thread_local ,'init'):#line:119
-            O00O0OOOO0O0OOO0O ._thread_local .init =True #line:120
-            O00O0OOOO0O0OOO0O ._thread_local .last_nonce =''#line:121
-            O00O0OOOO0O0OOO0O ._thread_local .nonce_count =0 #line:122
-            O00O0OOOO0O0OOO0O ._thread_local .chal ={}#line:123
-            O00O0OOOO0O0OOO0O ._thread_local .pos =None #line:124
-            O00O0OOOO0O0OOO0O ._thread_local .num_401_calls =None #line:125
-    def build_digest_header (O0O000O0OO00OO000 ,O0O0O00O0O00OO0OO ,O0O00OO0O0OO0O0O0 ):#line:127
-        ""#line:130
-        OOOOO000OOOO000OO =O0O000O0OO00OO000 ._thread_local .chal ['realm']#line:132
-        OOOOOO0000O0O000O =O0O000O0OO00OO000 ._thread_local .chal ['nonce']#line:133
-        OOO0OOO00OO00OO00 =O0O000O0OO00OO000 ._thread_local .chal .get ('qop')#line:134
-        O0OO0OO00O0O00O0O =O0O000O0OO00OO000 ._thread_local .chal .get ('algorithm')#line:135
-        OOOOO00000000000O =O0O000O0OO00OO000 ._thread_local .chal .get ('opaque')#line:136
-        OOOOO0O000O00O0O0 =None #line:137
-        if O0OO0OO00O0O00O0O is None :#line:139
-            _O0000O000OOO000O0 ='MD5'#line:140
-        else :#line:141
-            _O0000O000OOO000O0 =O0OO0OO00O0O00O0O .upper ()#line:142
-        if _O0000O000OOO000O0 =='MD5'or _O0000O000OOO000O0 =='MD5-SESS':#line:144
-            def OO0000O00OO00O000 (O0O0OO0O00OOO0O0O ):#line:145
-                if isinstance (O0O0OO0O00OOO0O0O ,str ):#line:146
-                    O0O0OO0O00OOO0O0O =O0O0OO0O00OOO0O0O .encode ('utf-8')#line:147
-                return hashlib .md5 (O0O0OO0O00OOO0O0O ).hexdigest ()#line:148
-            OOOOO0O000O00O0O0 =OO0000O00OO00O000 #line:149
-        elif _O0000O000OOO000O0 =='SHA':#line:150
-            def OO00OOOOO000000O0 (O00O0O00O0OO0OO00 ):#line:151
-                if isinstance (O00O0O00O0OO0OO00 ,str ):#line:152
-                    O00O0O00O0OO0OO00 =O00O0O00O0OO0OO00 .encode ('utf-8')#line:153
-                return hashlib .sha1 (O00O0O00O0OO0OO00 ).hexdigest ()#line:154
-            OOOOO0O000O00O0O0 =OO00OOOOO000000O0 #line:155
-        elif _O0000O000OOO000O0 =='SHA-256':#line:156
-            def OO0O00OOO00OOO00O (O000OOO0O00O00O00 ):#line:157
-                if isinstance (O000OOO0O00O00O00 ,str ):#line:158
-                    O000OOO0O00O00O00 =O000OOO0O00O00O00 .encode ('utf-8')#line:159
-                return hashlib .sha256 (O000OOO0O00O00O00 ).hexdigest ()#line:160
-            OOOOO0O000O00O0O0 =OO0O00OOO00OOO00O #line:161
-        elif _O0000O000OOO000O0 =='SHA-512':#line:162
-            def OOO00OOOO00O0OO0O (OO0OOOOO0OO000OO0 ):#line:163
-                if isinstance (OO0OOOOO0OO000OO0 ,str ):#line:164
-                    OO0OOOOO0OO000OO0 =OO0OOOOO0OO000OO0 .encode ('utf-8')#line:165
-                return hashlib .sha512 (OO0OOOOO0OO000OO0 ).hexdigest ()#line:166
-            OOOOO0O000O00O0O0 =OOO00OOOO00O0OO0O #line:167
-        O0O0000OOO0OO0O0O =lambda O0OOOO0000O000O0O ,O0OOOOO0OO000O0O0 :OOOOO0O000O00O0O0 ("%s:%s"%(O0OOOO0000O000O0O ,O0OOOOO0OO000O0O0 ))#line:169
-        if OOOOO0O000O00O0O0 is None :#line:171
-            return None #line:172
-        OO00OOOOOOO00O00O =None #line:175
-        OOO0OO000OOO00OO0 =urlparse (O0O00OO0O0OO0O0O0 )#line:176
-        O0O000O0OO0O0O0O0 =OOO0OO000OOO00OO0 .path or "/"#line:178
-        if OOO0OO000OOO00OO0 .query :#line:179
-            O0O000O0OO0O0O0O0 +='?'+OOO0OO000OOO00OO0 .query #line:180
-        O00OO000O00OO0O0O ='%s:%s:%s'%(O0O000O0OO00OO000 .username ,OOOOO000OOOO000OO ,O0O000O0OO00OO000 .password )#line:182
-        OO00O00O00O0O0O00 ='%s:%s'%(O0O0O00O0O00OO0OO ,O0O000O0OO0O0O0O0 )#line:183
-        OO0OO0OOO0O000O0O =OOOOO0O000O00O0O0 (O00OO000O00OO0O0O )#line:185
-        O00O00000O000OOO0 =OOOOO0O000O00O0O0 (OO00O00O00O0O0O00 )#line:186
-        if OOOOOO0000O0O000O ==O0O000O0OO00OO000 ._thread_local .last_nonce :#line:188
-            O0O000O0OO00OO000 ._thread_local .nonce_count +=1 #line:189
-        else :#line:190
-            O0O000O0OO00OO000 ._thread_local .nonce_count =1 #line:191
-        OOO00OOOOO0O0O000 ='%08x'%O0O000O0OO00OO000 ._thread_local .nonce_count #line:192
-        OO00O00000OO00000 =str (O0O000O0OO00OO000 ._thread_local .nonce_count ).encode ('utf-8')#line:193
-        OO00O00000OO00000 +=OOOOOO0000O0O000O .encode ('utf-8')#line:194
-        OO00O00000OO00000 +=time .ctime ().encode ('utf-8')#line:195
-        OO00O00000OO00000 +=os .urandom (8 )#line:196
-        O0O0OOOOOO0OO0000 =(hashlib .sha1 (OO00O00000OO00000 ).hexdigest ()[:16 ])#line:198
-        if _O0000O000OOO000O0 =='MD5-SESS':#line:199
-            OO0OO0OOO0O000O0O =OOOOO0O000O00O0O0 ('%s:%s:%s'%(OO0OO0OOO0O000O0O ,OOOOOO0000O0O000O ,O0O0OOOOOO0OO0000 ))#line:200
-        if not OOO0OOO00OO00OO00 :#line:202
-            O0O0O0OOO0O00OO00 =O0O0000OOO0OO0O0O (OO0OO0OOO0O000O0O ,"%s:%s"%(OOOOOO0000O0O000O ,O00O00000O000OOO0 ))#line:203
-        elif OOO0OOO00OO00OO00 =='auth'or 'auth'in OOO0OOO00OO00OO00 .split (','):#line:204
-            OOOO00O0OOO00OOO0 ="%s:%s:%s:%s:%s"%(OOOOOO0000O0O000O ,OOO00OOOOO0O0O000 ,O0O0OOOOOO0OO0000 ,'auth',O00O00000O000OOO0 )#line:207
-            O0O0O0OOO0O00OO00 =O0O0000OOO0OO0O0O (OO0OO0OOO0O000O0O ,OOOO00O0OOO00OOO0 )#line:208
-        else :#line:209
-            return None #line:211
-        O0O000O0OO00OO000 ._thread_local .last_nonce =OOOOOO0000O0O000O #line:213
-        OO0OOOO0O00OOOO00 ='username="%s", realm="%s", nonce="%s", uri="%s", ' 'response="%s"'%(O0O000O0OO00OO000 .username ,OOOOO000OOOO000OO ,OOOOOO0000O0O000O ,O0O000O0OO0O0O0O0 ,O0O0O0OOO0O00OO00 )#line:217
-        if OOOOO00000000000O :#line:218
-            OO0OOOO0O00OOOO00 +=', opaque="%s"'%OOOOO00000000000O #line:219
-        if O0OO0OO00O0O00O0O :#line:220
-            OO0OOOO0O00OOOO00 +=', algorithm="%s"'%O0OO0OO00O0O00O0O #line:221
-        if OO00OOOOOOO00O00O :#line:222
-            OO0OOOO0O00OOOO00 +=', digest="%s"'%OO00OOOOOOO00O00O #line:223
-        if OOO0OOO00OO00OO00 :#line:224
-            OO0OOOO0O00OOOO00 +=', qop="auth", nc=%s, cnonce="%s"'%(OOO00OOOOO0O0O000 ,O0O0OOOOOO0OO0000 )#line:225
-        return 'Digest %s'%(OO0OOOO0O00OOOO00 )#line:227
-    def handle_redirect (O0O0OOOOO0000O0OO ,O00OOO000O0000OO0 ,**O0O0O00O0OOOO000O ):#line:229
-        ""#line:230
-        if O00OOO000O0000OO0 .is_redirect :#line:231
-            O0O0OOOOO0000O0OO ._thread_local .num_401_calls =1 #line:232
-    def handle_401 (OOO00OO00O0OOO00O ,O0O00OO0O0O00OOOO ,**O00OO0000O0OO0O0O ):#line:234
-        ""#line:239
-        if not 400 <=O0O00OO0O0O00OOOO .status_code <500 :#line:243
-            OOO00OO00O0OOO00O ._thread_local .num_401_calls =1 #line:244
-            return O0O00OO0O0O00OOOO #line:245
-        if OOO00OO00O0OOO00O ._thread_local .pos is not None :#line:247
-            O0O00OO0O0O00OOOO .request .body .seek (OOO00OO00O0OOO00O ._thread_local .pos )#line:250
-        O000O0OO0O0OO0OOO =O0O00OO0O0O00OOOO .headers .get ('www-authenticate','')#line:251
-        if 'digest'in O000O0OO0O0OO0OOO .lower ()and OOO00OO00O0OOO00O ._thread_local .num_401_calls <2 :#line:253
-            OOO00OO00O0OOO00O ._thread_local .num_401_calls +=1 #line:255
-            OO00OO00O0OOO000O =re .compile (r'digest ',flags =re .IGNORECASE )#line:256
-            OOO00OO00O0OOO00O ._thread_local .chal =parse_dict_header (OO00OO00O0OOO000O .sub ('',O000O0OO0O0OO0OOO ,count =1 ))#line:257
-            O0O00OO0O0O00OOOO .content #line:261
-            O0O00OO0O0O00OOOO .close ()#line:262
-            OO0O0OOOOO00O0000 =O0O00OO0O0O00OOOO .request .copy ()#line:263
-            extract_cookies_to_jar (OO0O0OOOOO00O0000 ._cookies ,O0O00OO0O0O00OOOO .request ,O0O00OO0O0O00OOOO .raw )#line:264
-            OO0O0OOOOO00O0000 .prepare_cookies (OO0O0OOOOO00O0000 ._cookies )#line:265
-            OO0O0OOOOO00O0000 .headers ['Authorization']=OOO00OO00O0OOO00O .build_digest_header (OO0O0OOOOO00O0000 .method ,OO0O0OOOOO00O0000 .url )#line:268
-            _O0O0OOOOOO00O0O00 =O0O00OO0O0O00OOOO .connection .send (OO0O0OOOOO00O0000 ,**O00OO0000O0OO0O0O )#line:269
-            _O0O0OOOOOO00O0O00 .history .append (O0O00OO0O0O00OOOO )#line:270
-            _O0O0OOOOOO00O0O00 .request =OO0O0OOOOO00O0000 #line:271
-            return _O0O0OOOOOO00O0O00 #line:273
-        OOO00OO00O0OOO00O ._thread_local .num_401_calls =1 #line:275
-        return O0O00OO0O0O00OOOO #line:276
-    def __call__ (O00OOO0O000OO0O00 ,OOOO00O0O0OO000OO ):#line:278
-        O00OOO0O000OO0O00 .init_per_thread_state ()#line:280
-        if O00OOO0O000OO0O00 ._thread_local .last_nonce :#line:282
-            OOOO00O0O0OO000OO .headers ['Authorization']=O00OOO0O000OO0O00 .build_digest_header (OOOO00O0O0OO000OO .method ,OOOO00O0O0OO000OO .url )#line:283
-        try :#line:284
-            O00OOO0O000OO0O00 ._thread_local .pos =OOOO00O0O0OO000OO .body .tell ()#line:285
-        except AttributeError :#line:286
-            O00OOO0O000OO0O00 ._thread_local .pos =None #line:291
-        OOOO00O0O0OO000OO .register_hook ('response',O00OOO0O000OO0O00 .handle_401 )#line:292
-        OOOO00O0O0OO000OO .register_hook ('response',O00OOO0O000OO0O00 .handle_redirect )#line:293
-        O00OOO0O000OO0O00 ._thread_local .num_401_calls =1 #line:294
-        return OOOO00O0O0OO000OO #line:296
-    def __eq__ (O0O0O0O000OOOOO00 ,OO00000OO00O0OO00 ):#line:298
-        return all ([O0O0O0O000OOOOO00 .username ==getattr (OO00000OO00O0OO00 ,'username',None ),O0O0O0O000OOOOO00 .password ==getattr (OO00000OO00O0OO00 ,'password',None )])#line:302
-    def __ne__ (O0OO0OOO00000OOO0 ,O00OOO0000OO0O00O ):#line:304
-        return not O0OO0OOO00000OOO0 ==O00OOO0000OO0O00O #line:305
+import os #line:3
+from sklearn .feature_extraction .text import TfidfVectorizer #line:4
+from sklearn .metrics .pairwise import cosine_similarity #line:5
+user_files =[OO00O0O00OOO0OOOO for OO00O0O00OOO0OOOO in os .listdir ()if OO00O0O00OOO0OOOO .endswith ('.txt')]#line:7
+user_notes =[open (_O0OO0OO00O00OO0O0 ,encoding ='utf-8').read ()for _O0OO0OO00O00OO0O0 in user_files ]#line:9
+def vectorize (OO0O0O0O0O000O00O ):return TfidfVectorizer ().fit_transform (OO0O0O0O0O000O00O ).toarray ()#line:12
+def similarity (O00OOO000O00OO0OO ,OOO000OOO0O0O0000 ):return cosine_similarity ([O00OOO000O00OO0OO ,OOO000OOO0O0O0000 ])#line:13
+vectors =vectorize (user_notes )#line:16
+s_vectors =list (zip (user_files ,vectors ))#line:17
+plagiarism_results =set ()#line:18
+def check_plagiarism ():#line:21
+    global s_vectors #line:22
+    for OOOO00OOOO00O0O0O ,O0000O0OOOOOO000O in s_vectors :#line:23
+        O0OOO0000OOOOOO0O =s_vectors .copy ()#line:24
+        OO00OOOOO0O0OO0OO =O0OOO0000OOOOOO0O .index ((OOOO00OOOO00O0O0O ,O0000O0OOOOOO000O ))#line:25
+        del O0OOO0000OOOOOO0O [OO00OOOOO0O0OO0OO ]#line:26
+        for O00OOOO0OOO00O000 ,OO0000O0OOOO0OOOO in O0OOO0000OOOOOO0O :#line:27
+            OO0O00O0O0O0OOO0O =similarity (O0000O0OOOOOO000O ,OO0000O0OOOO0OOOO )[0 ][1 ]#line:28
+            OOOO0O0000000OO0O =sorted ((OOOO00OOOO00O0O0O ,O00OOOO0OOO00O000 ))#line:29
+            OOOOO0O0O0OO000OO =(OOOO0O0000000OO0O [0 ],OOOO0O0000000OO0O [1 ],OO0O00O0O0O0OOO0O )#line:30
+            plagiarism_results .add (OOOOO0O0O0OO000OO )#line:31
+    return plagiarism_results #line:32
+for data in check_plagiarism ():#line:35
+    print (data )#line:36

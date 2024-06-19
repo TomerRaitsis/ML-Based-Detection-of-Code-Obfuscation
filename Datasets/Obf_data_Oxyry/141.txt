@@ -1,181 +1,24 @@
-import random #line:1
-board =list ()#line:2
-move =1 #line:3
-def createboard ():#line:5
-    OOO00OO00O0OOOOO0 =list ()#line:6
-    for O0000O00OO000OOOO in range (0 ,9 ):#line:7
-        OOO00OO00O0OOOOO0 .append (' ')#line:8
-    return OOO00OO00O0OOOOO0 #line:9
-def displayBoard (OO00OOO000O0OO0OO ):#line:11
-    print (OO00OOO000O0OO0OO [0 ]+' | '+OO00OOO000O0OO0OO [1 ]+' | '+OO00OOO000O0OO0OO [2 ])#line:12
-    print ('---------')#line:13
-    print (OO00OOO000O0OO0OO [3 ]+' | '+OO00OOO000O0OO0OO [4 ]+' | '+OO00OOO000O0OO0OO [5 ])#line:14
-    print ('---------')#line:15
-    print (OO00OOO000O0OO0OO [6 ]+' | '+OO00OOO000O0OO0OO [7 ]+' | '+OO00OOO000O0OO0OO [8 ])#line:16
-def playermove (O0O0O00O00OO000O0 ,OOO0OO0OOO0O0OO0O ,O0OOOOOOOOO000OO0 ):#line:18
-    while True :#line:19
-        try :#line:20
-            OOOOOOOOO00000O0O =int (input ("Player "+str (O0OOOOOOOOO000OO0 )+" input your next move ("+OOO0OO0OOO0O0OO0O +") position (1-9) : "))#line:21
-            if O0O0O00O00OO000O0 [OOOOOOOOO00000O0O -1 ]==' ':#line:22
-                O0O0O00O00OO000O0 [OOOOOOOOO00000O0O -1 ]=OOO0OO0OOO0O0OO0O #line:23
-                break #line:24
-            else :#line:25
-                print ("Position already occupied! Try entering again :")#line:26
-        except :#line:27
-            print ("Enter a valid move : ")#line:28
-def iswon (O00OO0OOO0OOO0OOO ):#line:30
-    if (O00OO0OOO0OOO0OOO [0 ]=='X'and O00OO0OOO0OOO0OOO [1 ]=='X'and O00OO0OOO0OOO0OOO [2 ]=='X')or (O00OO0OOO0OOO0OOO [3 ]=='X'and O00OO0OOO0OOO0OOO [4 ]=='X'and O00OO0OOO0OOO0OOO [5 ]=='X')or (O00OO0OOO0OOO0OOO [6 ]=='X'and O00OO0OOO0OOO0OOO [7 ]=='X'and O00OO0OOO0OOO0OOO [8 ]=='X')or (O00OO0OOO0OOO0OOO [0 ]=='X'and O00OO0OOO0OOO0OOO [3 ]=='X'and O00OO0OOO0OOO0OOO [6 ]=='X')or (O00OO0OOO0OOO0OOO [1 ]=='X'and O00OO0OOO0OOO0OOO [4 ]=='X'and O00OO0OOO0OOO0OOO [7 ]=='X')or (O00OO0OOO0OOO0OOO [2 ]=='X'and O00OO0OOO0OOO0OOO [5 ]=='X'and O00OO0OOO0OOO0OOO [8 ]=='X')or (O00OO0OOO0OOO0OOO [0 ]=='X'and O00OO0OOO0OOO0OOO [4 ]=='X'and O00OO0OOO0OOO0OOO [8 ]=='X')or (O00OO0OOO0OOO0OOO [2 ]=='X'and O00OO0OOO0OOO0OOO [4 ]=='X'and O00OO0OOO0OOO0OOO [6 ]=='X'):#line:31
-        return True #line:32
-    if (O00OO0OOO0OOO0OOO [0 ]=='O'and O00OO0OOO0OOO0OOO [1 ]=='O'and O00OO0OOO0OOO0OOO [2 ]=='O')or (O00OO0OOO0OOO0OOO [3 ]=='O'and O00OO0OOO0OOO0OOO [4 ]=='O'and O00OO0OOO0OOO0OOO [5 ]=='O')or (O00OO0OOO0OOO0OOO [6 ]=='O'and O00OO0OOO0OOO0OOO [7 ]=='O'and O00OO0OOO0OOO0OOO [8 ]=='O')or (O00OO0OOO0OOO0OOO [0 ]=='O'and O00OO0OOO0OOO0OOO [3 ]=='O'and O00OO0OOO0OOO0OOO [6 ]=='O')or (O00OO0OOO0OOO0OOO [1 ]=='O'and O00OO0OOO0OOO0OOO [4 ]=='O'and O00OO0OOO0OOO0OOO [7 ]=='O')or (O00OO0OOO0OOO0OOO [2 ]=='O'and O00OO0OOO0OOO0OOO [5 ]=='O'and O00OO0OOO0OOO0OOO [8 ]=='O')or (O00OO0OOO0OOO0OOO [0 ]=='O'and O00OO0OOO0OOO0OOO [4 ]=='O'and O00OO0OOO0OOO0OOO [8 ]=='O')or (O00OO0OOO0OOO0OOO [2 ]=='O'and O00OO0OOO0OOO0OOO [4 ]=='O'and O00OO0OOO0OOO0OOO [6 ]=='O'):#line:34
-        return True #line:35
-    return False #line:37
-def computermove (OO0OOO000OOO00O0O ,OOOO0OOO0OO0O00OO ):#line:39
-    OO0OOOO00OO0O00O0 =list ()#line:40
-    OOO0OO00000OOO00O =0 #line:41
-    for O0O00000O00OOO0O0 in range (0 ,9 ):#line:43
-        if OO0OOO000OOO00O0O [O0O00000O00OOO0O0 ]!='X'and OO0OOO000OOO00O0O [O0O00000O00OOO0O0 ]!='O':#line:44
-            OO0OOOO00OO0O00O0 .append (O0O00000O00OOO0O0 )#line:45
-    O00OOOO0O00O0O0O0 =OO0OOO000OOO00O0O [:]#line:47
-    for O0O00000O00OOO0O0 in OO0OOOO00OO0O00O0 :#line:49
-        O00OOOO0O00O0O0O0 [O0O00000O00OOO0O0 ]=OOOO0OOO0OO0O00OO #line:50
-        if iswon (O00OOOO0O00O0O0O0 ):#line:51
-            OO0OOO000OOO00O0O [O0O00000O00OOO0O0 ]=OOOO0OOO0OO0O00OO #line:52
-            print ("Computer's move1 (O) at position (1-9) : "+str (O0O00000O00OOO0O0 +1 ))#line:53
-            OOO0OO00000OOO00O =1 #line:54
-            break #line:55
-        else :#line:56
-            O00OOOO0O00O0O0O0 [O0O00000O00OOO0O0 ]=' '#line:57
-    if OOO0OO00000OOO00O ==0 :#line:59
-        for O0O00000O00OOO0O0 in OO0OOOO00OO0O00O0 :#line:60
-            O00OOOO0O00O0O0O0 [O0O00000O00OOO0O0 ]='X'#line:61
-            if iswon (O00OOOO0O00O0O0O0 ):#line:62
-                OO0OOO000OOO00O0O [O0O00000O00OOO0O0 ]=OOOO0OOO0OO0O00OO #line:63
-                print ("Computer's move2 (O) at position (1-9) : "+str (O0O00000O00OOO0O0 +1 ))#line:64
-                OOO0OO00000OOO00O =1 #line:65
-                break #line:66
-            else :#line:67
-                O00OOOO0O00O0O0O0 [O0O00000O00OOO0O0 ]=' '#line:68
-    if OOO0OO00000OOO00O ==0 :#line:70
-        O00OO00OOOO00OO00 =[]#line:71
-        if OO0OOO000OOO00O0O [0 ]=='X'and OO0OOO000OOO00O0O [8 ]=='X':#line:72
-            if 1 in OO0OOOO00OO0O00O0 :#line:73
-                O00OO00OOOO00OO00 .append (1 )#line:74
-            if 7 in OO0OOOO00OO0O00O0 :#line:75
-                O00OO00OOOO00OO00 .append (7 )#line:76
-            O00000000000000OO =random .choice (O00OO00OOOO00OO00 )#line:77
-            OO0OOO000OOO00O0O [O00000000000000OO ]=OOOO0OOO0OO0O00OO #line:78
-            OOO0OO00000OOO00O =1 #line:79
-    if OOO0OO00000OOO00O ==0 :#line:81
-        if OO0OOO000OOO00O0O [4 ]=='X':#line:82
-            O0000O000O0000O0O =[]#line:83
-            if 0 in OO0OOOO00OO0O00O0 :#line:84
-                O0000O000O0000O0O .append (0 )#line:85
-            if 2 in OO0OOOO00OO0O00O0 :#line:86
-                O0000O000O0000O0O .append (2 )#line:87
-            if 6 in OO0OOOO00OO0O00O0 :#line:88
-                O0000O000O0000O0O .append (6 )#line:89
-            if 8 in OO0OOOO00OO0O00O0 :#line:90
-                O0000O000O0000O0O .append (8 )#line:91
-            if len (O0000O000O0000O0O )>=1 :#line:92
-                O00000000000000OO =random .choice (O0000O000O0000O0O )#line:93
-                OO0OOO000OOO00O0O [O00000000000000OO ]='O'#line:94
-                print ("Computer's move3 (O) at position (1-9) : "+str (O00000000000000OO +1 ))#line:95
-            OOO0OO00000OOO00O =1 #line:96
-    if OOO0OO00000OOO00O ==0 :#line:98
-        if 4 in OO0OOOO00OO0O00O0 :#line:99
-            OO0OOO000OOO00O0O [4 ]=OOOO0OOO0OO0O00OO #line:100
-            print ("Computer's move4 (O) at position (1-9) : "+str (5 ))#line:101
-            OOO0OO00000OOO00O =1 #line:102
-    if OOO0OO00000OOO00O ==0 :#line:104
-        O0O00000O00OOO0O0 =random .randrange (0 ,len (OO0OOOO00OO0O00O0 ))#line:105
-        OO0OOO000OOO00O0O [OO0OOOO00OO0O00O0 [O0O00000O00OOO0O0 ]]=OOOO0OOO0OO0O00OO #line:106
-        print ("Computer's move5 (O) at position (1-9) : "+str (OO0OOOO00OO0O00O0 [O0O00000O00OOO0O0 ]+1 ))#line:107
-        OOO0OO00000OOO00O =1 #line:108
-def isfull (OOO00OO0O00O00000 ):#line:110
-    if OOO00OO0O00O00000 .count (' ')>=1 :#line:111
-        return False #line:112
-    else :#line:113
-        return True #line:114
-def main ():#line:116
-    print ("Welcome to Tic Tac Toe !")#line:117
-    print ("'X' is your key and 'O' is computer's key in case you play against computer.\n")#line:118
-    OOOOOOOOOOOOOO0O0 =0 #line:119
-    OO0OOO000OOO00OOO =0 #line:120
-    O00O0O000O0OO0O0O =0 #line:121
-    O000OOO00O0O0OO0O =0 #line:122
-    O0000O0OOOO0O0000 =0 #line:123
-    OO00O000OO0O000O0 ='y'#line:124
-    while OO00O000OO0O000O0 .lower ()=='y':#line:125
-        print ("Enter 1 to play against player")#line:126
-        print ("Enter 2 to play against computer")#line:127
-        O0OOO0O0O00OOOOO0 =int (input ("Enter your choice: "))#line:128
-        print ()#line:129
-        if O0OOO0O0O00OOOOO0 ==2 :#line:130
-            O0000O0000OOOO00O =createboard ()#line:131
-            while True :#line:132
-                displayBoard (O0000O0000OOOO00O )#line:133
-                if not isfull (O0000O0000OOOO00O ):#line:134
-                    if not iswon (O0000O0000OOOO00O ):#line:135
-                        playermove (O0000O0000OOOO00O ,'X',1 )#line:136
-                        if not iswon (O0000O0000OOOO00O ):#line:137
-                            if not isfull (O0000O0000OOOO00O ):#line:138
-                                computermove (O0000O0000OOOO00O ,'O')#line:139
-                            else :#line:140
-                                O0000O0OOOO0O0000 +=1 #line:141
-                                print ("Match Tie !")#line:142
-                                break #line:143
-                        else :#line:144
-                            O000OOO00O0O0OO0O =O000OOO00O0O0OO0O +1 #line:145
-                            print ("You Won... Good Job")#line:146
-                            break #line:147
-                    else :#line:148
-                        OOOOOOOOOOOOOO0O0 =OOOOOOOOOOOOOO0O0 +1 #line:149
-                        print ("Computer won..... Nice Try!")#line:150
-                        break #line:151
-                else :#line:152
-                    O0000O0OOOO0O0000 +=1 #line:153
-                    print ("Match Tie !")#line:154
-                    break #line:155
-        elif O0OOO0O0O00OOOOO0 ==1 :#line:156
-            O0000O0000OOOO00O =createboard ()#line:157
-            while True :#line:158
-                displayBoard (O0000O0000OOOO00O )#line:159
-                if not isfull (O0000O0000OOOO00O ):#line:160
-                    if not iswon (O0000O0000OOOO00O ):#line:161
-                        playermove (O0000O0000OOOO00O ,'X',1 )#line:162
-                        if not iswon (O0000O0000OOOO00O ):#line:163
-                            if not isfull (O0000O0000OOOO00O ):#line:164
-                                displayBoard (O0000O0000OOOO00O )#line:165
-                                playermove (O0000O0000OOOO00O ,'O',2 )#line:166
-                            else :#line:167
-                                O0000O0OOOO0O0000 +=1 #line:168
-                                print ("Match Tie !")#line:169
-                                break #line:170
-                        else :#line:171
-                            OO0OOO000OOO00OOO =OO0OOO000OOO00OOO +1 #line:172
-                            print ("Player 1 Won... Good Job")#line:173
-                            break #line:174
-                    else :#line:175
-                        O00O0O000O0OO0O0O =O00O0O000O0OO0O0O +1 #line:176
-                        print ("Player 2 Won..... Good Job")#line:177
-                        break #line:178
-                else :#line:179
-                    O0000O0OOOO0O0000 +=1 #line:180
-                    print ("Match Tie !")#line:181
-                    break #line:182
-        else :#line:183
-            print ("Invalid input: ")#line:184
-        OO00O000OO0O000O0 =input ("Want to play again (y/any key) : ")#line:185
-    print ()#line:186
-    print ("Final Scores are : ")#line:187
-    print ("===================")#line:188
-    print ()#line:189
-    print (" : Against computer : ")#line:190
-    print ("----------------------")#line:191
-    print ("Computer Score = "+str (OOOOOOOOOOOOOO0O0 )+"         Your Score = "+str (O000OOO00O0O0OO0O ))#line:192
-    print (" : Player Against Player : ")#line:193
-    print ("---------------------------")#line:194
-    print ("Player 1 Score = "+str (OO0OOO000OOO00OOO )+"        Player 2 Score = "+str (O00O0O000O0OO0O0O ))#line:195
-    print ("--------------------")#line:196
-    print ("Match Tied = "+str (O0000O0OOOO0O0000 ))#line:197
-main ()
+from unittest .mock import patch #line:1
+from calculate_age import age_calculator #line:2
+@patch ("time.time",return_value =1621848668.0 )#line:5
+def test_age_calculator (OOOOOO00OOO00O0O0 ):#line:6
+    ""#line:11
+    O0OO00O0000OO0000 ="Chloe"#line:12
+    O00O0OOOO000OOO00 =30 #line:13
+    OO0O00OOOO0000000 ="Chloe's age is 30 years or 365 months or 11102 days"#line:14
+    assert age_calculator (O0OO00O0000OO0000 ,O00O0OOOO000OOO00 )==OO0O00OOOO0000000 #line:15
+def test_age_calculator_negative_age ():#line:18
+    ""#line:22
+    OOO000OO0O0OO0OO0 ="Emma"#line:23
+    O0OOOO00OO0000000 =-5 #line:24
+    try :#line:25
+        age_calculator (OOO000OO0O0OO0OO0 ,O0OOOO00OO0000000 )#line:26
+    except ValueError as O0O0OO0O00O0OO000 :#line:27
+        assert str (O0O0OO0O00O0OO000 )=="Please input a positive number."#line:28
+@patch ("time.time",return_value =1621848668.0 )#line:31
+def test_age_calculator_leap_year (OOOO000O000OO000O ):#line:32
+    ""#line:36
+    O0OO0O0O00OO0OOO0 ="David"#line:37
+    O0OOOOOOOOO0O00O0 =30 #line:38
+    OO000O000O0OOO0O0 ="David's age is 30 years or 365 months or 11102 days"#line:39
+    assert age_calculator (O0OO0O0O00OO0OOO0 ,O0OOOOOOOOO0O00O0 )==OO000O000O0OOO0O0 #line:40

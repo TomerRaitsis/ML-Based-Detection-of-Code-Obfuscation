@@ -1,103 +1,20 @@
-import time #line:1
-import numpy as np #line:2
-import sys #line:3
-def delay_print (OO00OO0O0O00O00O0 ):#line:8
-    for OO0OOO0OO00000OO0 in OO00OO0O0O00O00O0 :#line:11
-        sys .stdout .write (OO0OOO0OO00000OO0 )#line:12
-        sys .stdout .flush ()#line:13
-        time .sleep (0.05 )#line:14
-class Pokemon :#line:20
-    def __init__ (OO000OO0O0O00O0O0 ,O0O0OO000O00O0OO0 ,O0OOOO00O00000O00 ,O00OO00000OO0O00O ,OO0O00000O000OOOO ,health ="==================="):#line:21
-        OO000OO0O0O00O0O0 .name =O0O0OO000O00O0OO0 #line:23
-        OO000OO0O0O00O0O0 .types =O0OOOO00O00000O00 #line:24
-        OO000OO0O0O00O0O0 .moves =O00OO00000OO0O00O #line:25
-        OO000OO0O0O00O0O0 .attack =OO0O00000O000OOOO ["ATTACK"]#line:26
-        OO000OO0O0O00O0O0 .defense =OO0O00000O000OOOO ["DEFENSE"]#line:27
-        OO000OO0O0O00O0O0 .health =health #line:28
-        OO000OO0O0O00O0O0 .bars =20 #line:29
-    def fight (O000OO0000000OOOO ,OO0O0000OOOO0OO00 ):#line:31
-        print ("-----POKEMONE BATTLE-----")#line:35
-        print (f"\n{O000OO0000000OOOO.name}")#line:36
-        print ("TYPE/",O000OO0000000OOOO .types )#line:37
-        print ("ATTACK/",O000OO0000000OOOO .attack )#line:38
-        print ("DEFENSE/",O000OO0000000OOOO .defense )#line:39
-        print ("LVL/",3 *(1 +np .mean ([O000OO0000000OOOO .attack ,O000OO0000000OOOO .defense ])))#line:40
-        print ("\nVS")#line:41
-        print (f"\n{OO0O0000OOOO0OO00.name}")#line:42
-        print ("TYPE/",OO0O0000OOOO0OO00 .types )#line:43
-        print ("ATTACK/",OO0O0000OOOO0OO00 .attack )#line:44
-        print ("DEFENSE/",OO0O0000OOOO0OO00 .defense )#line:45
-        print ("LVL/",3 *(1 +np .mean ([OO0O0000OOOO0OO00 .attack ,OO0O0000OOOO0OO00 .defense ])))#line:46
-        time .sleep (2 )#line:48
-        O0000OOOOO0000O00 =["Fire","Water","Grass"]#line:51
-        for O0O0O0O0000OO0OOO ,OOO0OO0O0O0OOO0O0 in enumerate (O0000OOOOO0000O00 ):#line:52
-            if O000OO0000000OOOO .types ==OOO0OO0O0O0OOO0O0 :#line:53
-                if OO0O0000OOOO0OO00 .types ==OOO0OO0O0O0OOO0O0 :#line:55
-                    OO0OOO0OO000OOO0O ="\nIts not very effective..."#line:56
-                    OOO0O0OOOOO000OOO ="\nIts not very effective..."#line:57
-                if OO0O0000OOOO0OO00 .types ==O0000OOOOO0000O00 [(O0O0O0O0000OO0OOO +1 )%3 ]:#line:60
-                    OO0O0000OOOO0OO00 .attack *=2 #line:61
-                    OO0O0000OOOO0OO00 .defense *=2 #line:62
-                    O000OO0000000OOOO .attack /=2 #line:63
-                    O000OO0000000OOOO .defense /=2 #line:64
-                    OO0OOO0OO000OOO0O ="\nIts not very effective..."#line:65
-                    OOO0O0OOOOO000OOO ="\nIts super effective!"#line:66
-                if OO0O0000OOOO0OO00 .types ==O0000OOOOO0000O00 [(O0O0O0O0000OO0OOO +2 )%3 ]:#line:69
-                    O000OO0000000OOOO .attack *=2 #line:70
-                    O000OO0000000OOOO .defense *=2 #line:71
-                    OO0O0000OOOO0OO00 .attack /=2 #line:72
-                    OO0O0000OOOO0OO00 .defense /=2 #line:73
-                    OO0OOO0OO000OOO0O ="\nIts super effective!"#line:74
-                    OOO0O0OOOOO000OOO ="\nIts not very effective..."#line:75
-        while (O000OO0000000OOOO .bars >0 )and (OO0O0000OOOO0OO00 .bars >0 ):#line:79
-            print (f"\n{O000OO0000000OOOO.name}\t\tHLTH\t{O000OO0000000OOOO.health}")#line:81
-            print (f"{OO0O0000OOOO0OO00.name}\t\tHLTH\t{OO0O0000OOOO0OO00.health}\n")#line:82
-            print (f"Go {O000OO0000000OOOO.name}!")#line:84
-            for O0O0O0O0000OO0OOO ,OO0O00OOO0OOO0OO0 in enumerate (O000OO0000000OOOO .moves ):#line:85
-                print (f"{O0O0O0O0000OO0OOO+1}.",OO0O00OOO0OOO0OO0 )#line:86
-            OOO00OOO0OOO0O0O0 =int (input ("Pick a move: "))#line:87
-            delay_print (f"\n{O000OO0000000OOOO.name} used {O000OO0000000OOOO.moves[OOO00OOO0OOO0O0O0-1]}!")#line:88
-            time .sleep (1 )#line:89
-            delay_print (OO0OOO0OO000OOO0O )#line:90
-            OO0O0000OOOO0OO00 .bars -=O000OO0000000OOOO .attack #line:93
-            OO0O0000OOOO0OO00 .health =""#line:94
-            for OOO0OOO0000O000OO in range (int (OO0O0000OOOO0OO00 .bars +0.1 *OO0O0000OOOO0OO00 .defense )):#line:97
-                OO0O0000OOOO0OO00 .health +="="#line:98
-            time .sleep (1 )#line:100
-            print (f"\n{O000OO0000000OOOO.name}\t\tHLTH\t{O000OO0000000OOOO.health}")#line:101
-            print (f"{OO0O0000OOOO0OO00.name}\t\tHLTH\t{OO0O0000OOOO0OO00.health}\n")#line:102
-            time .sleep (0.5 )#line:103
-            if OO0O0000OOOO0OO00 .bars <=0 :#line:106
-                delay_print ("\n..."+OO0O0000OOOO0OO00 .name +" fainted.")#line:107
-                break #line:108
-            print (f"Go {OO0O0000OOOO0OO00.name}!")#line:112
-            for O0O0O0O0000OO0OOO ,OO0O00OOO0OOO0OO0 in enumerate (OO0O0000OOOO0OO00 .moves ):#line:113
-                print (f"{O0O0O0O0000OO0OOO+1}.",OO0O00OOO0OOO0OO0 )#line:114
-            OOO00OOO0OOO0O0O0 =int (input ("Pick a move: "))#line:115
-            delay_print (f"\n{OO0O0000OOOO0OO00.name} used {OO0O0000OOOO0OO00.moves[OOO00OOO0OOO0O0O0-1]}!")#line:116
-            time .sleep (1 )#line:117
-            delay_print (OOO0O0OOOOO000OOO )#line:118
-            O000OO0000000OOOO .bars -=OO0O0000OOOO0OO00 .attack #line:121
-            O000OO0000000OOOO .health =""#line:122
-            for OOO0OOO0000O000OO in range (int (O000OO0000000OOOO .bars +0.1 *O000OO0000000OOOO .defense )):#line:125
-                O000OO0000000OOOO .health +="="#line:126
-            time .sleep (1 )#line:128
-            print (f"{O000OO0000000OOOO.name}\t\tHLTH\t{O000OO0000000OOOO.health}")#line:129
-            print (f"{OO0O0000OOOO0OO00.name}\t\tHLTH\t{OO0O0000OOOO0OO00.health}\n")#line:130
-            time .sleep (0.5 )#line:131
-            if O000OO0000000OOOO .bars <=0 :#line:134
-                delay_print ("\n..."+O000OO0000000OOOO .name +" fainted.")#line:135
-                break #line:136
-        O00OO00OO0O0O00OO =np .random .choice (5000 )#line:138
-        delay_print (f"\nOpponent paid you ${O00OO00OO0O0O00OO}.\n")#line:139
-if __name__ =="__main__":#line:142
-    Charizard =Pokemon ("Charizard","Fire",["Flamethrower","Fly","Blast Burn","Fire Punch"],{"ATTACK":12 ,"DEFENSE":8 },)#line:149
-    Blastoise =Pokemon ("Blastoise","Water",["Water Gun","Bubblebeam","Hydro Pump","Surf"],{"ATTACK":10 ,"DEFENSE":10 },)#line:155
-    Venusaur =Pokemon ("Venusaur","Grass",["Vine Wip","Razor Leaf","Earthquake","Frenzy Plant"],{"ATTACK":8 ,"DEFENSE":12 },)#line:161
-    Charmeleon =Pokemon ("Charmeleon","Fire",["Ember","Scratch","Flamethrower","Fire Punch"],{"ATTACK":6 ,"DEFENSE":5 },)#line:168
-    Wartortle =Pokemon ("Wartortle","Water",["Bubblebeam","Water Gun","Headbutt","Surf"],{"ATTACK":5 ,"DEFENSE":5 },)#line:174
-    Ivysaur =Pokemon ("Ivysaur\t","Grass",["Vine Wip","Razor Leaf","Bullet Seed","Leech Seed"],{"ATTACK":4 ,"DEFENSE":6 },)#line:180
-    Charmander =Pokemon ("Charmander","Fire",["Ember","Scratch","Tackle","Fire Punch"],{"ATTACK":4 ,"DEFENSE":2 },)#line:187
-    Squirtle =Pokemon ("Squirtle","Water",["Bubblebeam","Tackle","Headbutt","Surf"],{"ATTACK":3 ,"DEFENSE":3 },)#line:193
-    Bulbasaur =Pokemon ("Bulbasaur","Grass",["Vine Wip","Razor Leaf","Tackle","Leech Seed"],{"ATTACK":2 ,"DEFENSE":4 },)#line:199
-    Blastoise .fight (Squirtle )#line:201
+import requests #line:1
+import tkinter as tk #line:2
+def get_random_quote ():#line:6
+    try :#line:7
+        O00O0OOO0000OOOO0 =requests .get ("https://api.quotable.io/random")#line:8
+        O0O0O0O00O0O00OO0 =O00O0OOO0000OOOO0 .json ()#line:9
+        O00O000OO0O0O0O0O =O0O0O0O00O0O00OO0 ["content"]#line:10
+        O0O00O00O000OOOO0 =O0O0O0O00O0O00OO0 ["author"]#line:11
+        quote_text .set (f'"{O00O000OO0O0O0O0O}" - {O0O00O00O000OOOO0}')#line:12
+    except requests .exceptions .RequestException as OOO00OOO0OOOO000O :#line:13
+        quote_text .set ("Failed to fetch a quote. Check your internet connection.")#line:14
+root =tk .Tk ()#line:18
+root .title ("Random Quote Generator")#line:19
+quote_text =tk .StringVar ()#line:22
+quote_label =tk .Label (root ,textvariable =quote_text ,wraplength =300 ,font =("Helvetica",12 ))#line:25
+quote_label .pack (pady =20 )#line:26
+new_quote_button =tk .Button (root ,text ="Get a New Quote",command =get_random_quote )#line:29
+new_quote_button .pack ()#line:30
+get_random_quote ()#line:33
+root .mainloop ()#line:36

@@ -1,109 +1,35 @@
-from __future__ import absolute_import ,division ,unicode_literals #line:1
-from .import base #line:3
-class Filter (base .Filter ):#line:6
-    ""#line:7
-    def slider (OOO000OO00OOOOO0O ):#line:8
-        OO0O00OOOOOOOO00O =O0OO0O000OOOOOO0O =None #line:9
-        for O0O0000000OO0O0OO in OOO000OO00OOOOO0O .source :#line:10
-            if OO0O00OOOOOOOO00O is not None :#line:11
-                yield O0OO0O000OOOOOO0O ,OO0O00OOOOOOOO00O ,O0O0000000OO0O0OO #line:12
-            O0OO0O000OOOOOO0O =OO0O00OOOOOOOO00O #line:13
-            OO0O00OOOOOOOO00O =O0O0000000OO0O0OO #line:14
-        if OO0O00OOOOOOOO00O is not None :#line:15
-            yield O0OO0O000OOOOOO0O ,OO0O00OOOOOOOO00O ,None #line:16
-    def __iter__ (O000OOOO000OO0OO0 ):#line:18
-        for OOOOO0O0OOOO0O00O ,O0OO00000OOOOOO00 ,O0OOO00OOO00O0000 in O000OOOO000OO0OO0 .slider ():#line:19
-            O00OO0OOO000OO000 =O0OO00000OOOOOO00 ["type"]#line:20
-            if O00OO0OOO000OO000 =="StartTag":#line:21
-                if (O0OO00000OOOOOO00 ["data"]or not O000OOOO000OO0OO0 .is_optional_start (O0OO00000OOOOOO00 ["name"],OOOOO0O0OOOO0O00O ,O0OOO00OOO00O0000 )):#line:23
-                    yield O0OO00000OOOOOO00 #line:24
-            elif O00OO0OOO000OO000 =="EndTag":#line:25
-                if not O000OOOO000OO0OO0 .is_optional_end (O0OO00000OOOOOO00 ["name"],O0OOO00OOO00O0000 ):#line:26
-                    yield O0OO00000OOOOOO00 #line:27
-            else :#line:28
-                yield O0OO00000OOOOOO00 #line:29
-    def is_optional_start (OOOOOOO0O0OO00OOO ,O0O0O000O0000O0OO ,O0O000000OO0O0O0O ,OOO0OOOO00OOO0OOO ):#line:31
-        OOOOOO000OO00O0O0 =OOO0OOOO00OOO0OOO and OOO0OOOO00OOO0OOO ["type"]or None #line:32
-        if O0O0O000O0000O0OO in 'html':#line:33
-            return OOOOOO000OO00O0O0 not in ("Comment","SpaceCharacters")#line:36
-        elif O0O0O000O0000O0OO =='head':#line:37
-            if OOOOOO000OO00O0O0 in ("StartTag","EmptyTag"):#line:41
-                return True #line:42
-            elif OOOOOO000OO00O0O0 =="EndTag":#line:43
-                return OOO0OOOO00OOO0OOO ["name"]=="head"#line:44
-        elif O0O0O000O0000O0OO =='body':#line:45
-            if OOOOOO000OO00O0O0 in ("Comment","SpaceCharacters"):#line:51
-                return False #line:52
-            elif OOOOOO000OO00O0O0 =="StartTag":#line:53
-                return OOO0OOOO00OOO0OOO ["name"]not in ('script','style')#line:57
-            else :#line:58
-                return True #line:59
-        elif O0O0O000O0000O0OO =='colgroup':#line:60
-            if OOOOOO000OO00O0O0 in ("StartTag","EmptyTag"):#line:65
-                return OOO0OOOO00OOO0OOO ["name"]=="col"#line:69
-            else :#line:70
-                return False #line:71
-        elif O0O0O000O0000O0OO =='tbody':#line:72
-            if OOOOOO000OO00O0O0 =="StartTag":#line:77
-                if O0O000000OO0O0O0O and O0O000000OO0O0O0O ['type']=='EndTag'and O0O000000OO0O0O0O ['name']in ('tbody','thead','tfoot'):#line:81
-                    return False #line:82
-                return OOO0OOOO00OOO0OOO ["name"]=='tr'#line:83
-            else :#line:84
-                return False #line:85
-        return False #line:86
-    def is_optional_end (O0OO0O00OOO0OOO0O ,O0OOOO000O0OOOO0O ,OOOOOO0O0OO0OO0OO ):#line:88
-        OOOO0OO000000OOO0 =OOOOOO0O0OO0OO0OO and OOOOOO0O0OO0OO0OO ["type"]or None #line:89
-        if O0OOOO000O0OOOO0O in ('html','head','body'):#line:90
-            return OOOO0OO000000OOO0 not in ("Comment","SpaceCharacters")#line:93
-        elif O0OOOO000O0OOOO0O in ('li','optgroup','tr'):#line:94
-            if OOOO0OO000000OOO0 =="StartTag":#line:104
-                return OOOOOO0O0OO0OO0OO ["name"]==O0OOOO000O0OOOO0O #line:105
-            else :#line:106
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:107
-        elif O0OOOO000O0OOOO0O in ('dt','dd'):#line:108
-            if OOOO0OO000000OOO0 =="StartTag":#line:114
-                return OOOOOO0O0OO0OO0OO ["name"]in ('dt','dd')#line:115
-            elif O0OOOO000O0OOOO0O =='dd':#line:116
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:117
-            else :#line:118
-                return False #line:119
-        elif O0OOOO000O0OOOO0O =='p':#line:120
-            if OOOO0OO000000OOO0 in ("StartTag","EmptyTag"):#line:127
-                return OOOOOO0O0OO0OO0OO ["name"]in ('address','article','aside','blockquote','datagrid','dialog','dir','div','dl','fieldset','footer','form','h1','h2','h3','h4','h5','h6','header','hr','menu','nav','ol','p','pre','section','table','ul')#line:133
-            else :#line:134
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:135
-        elif O0OOOO000O0OOOO0O =='option':#line:136
-            if OOOO0OO000000OOO0 =="StartTag":#line:142
-                return OOOOOO0O0OO0OO0OO ["name"]in ('option','optgroup')#line:143
-            else :#line:144
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:145
-        elif O0OOOO000O0OOOO0O in ('rt','rp'):#line:146
-            if OOOO0OO000000OOO0 =="StartTag":#line:153
-                return OOOOOO0O0OO0OO0OO ["name"]in ('rt','rp')#line:154
-            else :#line:155
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:156
-        elif O0OOOO000O0OOOO0O =='colgroup':#line:157
-            if OOOO0OO000000OOO0 in ("Comment","SpaceCharacters"):#line:161
-                return False #line:162
-            elif OOOO0OO000000OOO0 =="StartTag":#line:163
-                return OOOOOO0O0OO0OO0OO ["name"]!='colgroup'#line:166
-            else :#line:167
-                return True #line:168
-        elif O0OOOO000O0OOOO0O in ('thead','tbody'):#line:169
-            if OOOO0OO000000OOO0 =="StartTag":#line:180
-                return OOOOOO0O0OO0OO0OO ["name"]in ['tbody','tfoot']#line:181
-            elif O0OOOO000O0OOOO0O =='tbody':#line:182
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:183
-            else :#line:184
-                return False #line:185
-        elif O0OOOO000O0OOOO0O =='tfoot':#line:186
-            if OOOO0OO000000OOO0 =="StartTag":#line:192
-                return OOOOOO0O0OO0OO0OO ["name"]=='tbody'#line:193
-            else :#line:194
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:195
-        elif O0OOOO000O0OOOO0O in ('td','th'):#line:196
-            if OOOO0OO000000OOO0 =="StartTag":#line:203
-                return OOOOOO0O0OO0OO0OO ["name"]in ('td','th')#line:204
-            else :#line:205
-                return OOOO0OO000000OOO0 =="EndTag"or OOOO0OO000000OOO0 is None #line:206
-        return False #line:207
+""#line:11
+import json #line:13
+try :#line:14
+    from urllib import urlopen #line:15
+except ImportError :#line:16
+    from urllib .request import urlopen #line:17
+def assert_lower (OO0OOO0O0O00O0OO0 ):#line:20
+    assert OO0OOO0O0O00O0OO0 ==OO0OOO0O0O00O0OO0 .lower ()#line:21
+    return OO0OOO0O0O00O0OO0 #line:22
+def generate (O00O0000O0O000000 ):#line:25
+    O0OO00O0OO00O0O0O =['''\
+"""
+
+    webencodings.labels
+    ~~~~~~~~~~~~~~~~~~~
+
+    Map encoding labels to their name.
+
+    :copyright: Copyright 2012 by Simon Sapin
+    :license: BSD, see LICENSE for details.
+
+"""
+
+# XXX Do not edit!
+# This file is automatically generated by mklabels.py
+
+LABELS = {
+''']#line:43
+    OOO0O000000OO0OOO =[(repr (assert_lower (O00OO0OOOOO0OO00O )).lstrip ('u'),repr (O000OOO0OOOOOO000 ['name']).lstrip ('u'))for OOOO0O0O0O0O00O0O in json .loads (urlopen (O00O0000O0O000000 ).read ().decode ('ascii'))for O000OOO0OOOOOO000 in OOOO0O0O0O0O00O0O ['encodings']for O00OO0OOOOO0OO00O in O000OOO0OOOOOO000 ['labels']]#line:49
+    OOOOO0O00OOOO0000 =max (len (O00000000O0O00O0O )for O00000000O0O00O0O ,OO00O0OO0O00OO00O in OOO0O000000OO0OOO )#line:50
+    O0OO00O0OO00O0O0O .extend ('    %s:%s %s,\n'%(O000O00O00OO00O0O ,' '*(OOOOO0O00OOOO0000 -len (O000O00O00OO00O0O )),O0O00O00O0OO00OO0 )for O000O00O00OO00O0O ,O0O00O00O0OO00OO0 in OOO0O000000OO0OOO )#line:53
+    O0OO00O0OO00O0O0O .append ('}')#line:54
+    return ''.join (O0OO00O0OO00O0O0O )#line:55
+if __name__ =='__main__':#line:58
+    print (generate ('http://encoding.spec.whatwg.org/encodings.json'))#line:59

@@ -1,224 +1,129 @@
-from __future__ import absolute_import ,division ,unicode_literals #line:1:from __future__ import absolute_import, division, unicode_literals
-from pip ._vendor .six import text_type #line:2:from pip._vendor.six import text_type
-import re #line:4:import re
-from codecs import register_error ,xmlcharrefreplace_errors #line:6:from codecs import register_error, xmlcharrefreplace_errors
-from .constants import voidElements ,booleanAttributes ,spaceCharacters #line:8:from .constants import voidElements, booleanAttributes, spaceCharacters
-from .constants import rcdataElements ,entities ,xmlEntities #line:9:from .constants import rcdataElements, entities, xmlEntities
-from .import treewalkers ,_utils #line:10:from . import treewalkers, _utils
-from xml .sax .saxutils import escape #line:11:from xml.sax.saxutils import escape
-_OO00OOOO00O0000OO ="".join (spaceCharacters )+"\"'=<>`"#line:13:_quoteAttributeSpecChars = "".join(spaceCharacters) + "\"'=<>`"
-_OOO0000000000OO0O =re .compile ("["+_OO00OOOO00O0000OO +"]")#line:14:_quoteAttributeSpec = re.compile("[" + _quoteAttributeSpecChars + "]")
-_OOO0O0OOOOO00O0O0 =re .compile ("["+_OO00OOOO00O0000OO +"\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n" "\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15" "\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f" "\x20\x2f\x60\xa0\u1680\u180e\u180f\u2000" "\u2001\u2002\u2003\u2004\u2005\u2006\u2007" "\u2008\u2009\u200a\u2028\u2029\u202f\u205f" "\u3000]")#line:22:"\u3000]")
-_O0000OOO000OOO00O ={}#line:25:_encode_entity_map = {}
-_OOO00OO0000O0000O =len ("\U0010FFFF")==1 #line:26:_is_ucs4 = len("\U0010FFFF") == 1
-for k ,v in list (entities .items ()):#line:27:for k, v in list(entities.items()):
-    if ((_OOO00OO0000O0000O and len (v )>1 )or (not _OOO00OO0000O0000O and len (v )>2 )):#line:30:(not _is_ucs4 and len(v) > 2)):
-        continue #line:31:continue
-    if v !="&":#line:32:if v != "&":
-        if len (v )==2 :#line:33:if len(v) == 2:
-            v =_utils .surrogatePairToCodepoint (v )#line:34:v = _utils.surrogatePairToCodepoint(v)
-        else :#line:35:else:
-            v =ord (v )#line:36:v = ord(v)
-        if v not in _O0000OOO000OOO00O or k .islower ():#line:37:if v not in _encode_entity_map or k.islower():
-            _O0000OOO000OOO00O [v ]=k #line:39:_encode_entity_map[v] = k
-def htmlentityreplace_errors (OO0O0OO0000000000 ):#line:42:def htmlentityreplace_errors(exc):
-    if isinstance (OO0O0OO0000000000 ,(UnicodeEncodeError ,UnicodeTranslateError )):#line:43:if isinstance(exc, (UnicodeEncodeError, UnicodeTranslateError)):
-        O00O00O0000O00000 =[]#line:44:res = []
-        OO0OO000000O0OO0O =[]#line:45:codepoints = []
-        OO00000O0O0000O0O =False #line:46:skip = False
-        for O0OO0O00000OO0O00 ,O000OOO0OOO0O00O0 in enumerate (OO0O0OO0000000000 .object [OO0O0OO0000000000 .start :OO0O0OO0000000000 .end ]):#line:47:for i, c in enumerate(exc.object[exc.start:exc.end]):
-            if OO00000O0O0000O0O :#line:48:if skip:
-                OO00000O0O0000O0O =False #line:49:skip = False
-                continue #line:50:continue
-            O0O00O00000000OO0 =O0OO0O00000OO0O00 +OO0O0OO0000000000 .start #line:51:index = i + exc.start
-            if _utils .isSurrogatePair (OO0O0OO0000000000 .object [O0O00O00000000OO0 :min ([OO0O0OO0000000000 .end ,O0O00O00000000OO0 +2 ])]):#line:52:if _utils.isSurrogatePair(exc.object[index:min([exc.end, index + 2])]):
-                OO00OOOOOOO000000 =_utils .surrogatePairToCodepoint (OO0O0OO0000000000 .object [O0O00O00000000OO0 :O0O00O00000000OO0 +2 ])#line:53:codepoint = _utils.surrogatePairToCodepoint(exc.object[index:index + 2])
-                OO00000O0O0000O0O =True #line:54:skip = True
-            else :#line:55:else:
-                OO00OOOOOOO000000 =ord (O000OOO0OOO0O00O0 )#line:56:codepoint = ord(c)
-            OO0OO000000O0OO0O .append (OO00OOOOOOO000000 )#line:57:codepoints.append(codepoint)
-        for O0OOOO0000O0O0000 in OO0OO000000O0OO0O :#line:58:for cp in codepoints:
-            O0000000OOOOO00O0 =_O0000OOO000OOO00O .get (O0OOOO0000O0O0000 )#line:59:e = _encode_entity_map.get(cp)
-            if O0000000OOOOO00O0 :#line:60:if e:
-                O00O00O0000O00000 .append ("&")#line:61:res.append("&")
-                O00O00O0000O00000 .append (O0000000OOOOO00O0 )#line:62:res.append(e)
-                if not O0000000OOOOO00O0 .endswith (";"):#line:63:if not e.endswith(";"):
-                    O00O00O0000O00000 .append (";")#line:64:res.append(";")
-            else :#line:65:else:
-                O00O00O0000O00000 .append ("&#x%s;"%(hex (O0OOOO0000O0O0000 )[2 :]))#line:66:res.append("&#x%s;" % (hex(cp)[2:]))
-        return ("".join (O00O00O0000O00000 ),OO0O0OO0000000000 .end )#line:67:return ("".join(res), exc.end)
-    else :#line:68:else:
-        return xmlcharrefreplace_errors (OO0O0OO0000000000 )#line:69:return xmlcharrefreplace_errors(exc)
-register_error ("htmlentityreplace",htmlentityreplace_errors )#line:72:register_error("htmlentityreplace", htmlentityreplace_errors)
-def serialize (OOO0OOOO00OO000OO ,tree ="etree",encoding =None ,**O0O000OO00O0OOO00 ):#line:75:def serialize(input, tree="etree", encoding=None, **serializer_opts):
-    ""#line:97:"""
-    O00OOOO0O0000O000 =treewalkers .getTreeWalker (tree )#line:99:walker = treewalkers.getTreeWalker(tree)
-    OOO0O0OOO00OO0000 =HTMLSerializer (**O0O000OO00O0OOO00 )#line:100:s = HTMLSerializer(**serializer_opts)
-    return OOO0O0OOO00OO0000 .render (O00OOOO0O0000O000 (OOO0OOOO00OO000OO ),encoding )#line:101:return s.render(walker(input), encoding)
-class HTMLSerializer (object ):#line:104:class HTMLSerializer(object):
-    quote_attr_values ="legacy"#line:107:quote_attr_values = "legacy"  # be secure by default
-    quote_char ='"'#line:108:quote_char = '"'
-    use_best_quote_char =True #line:109:use_best_quote_char = True
-    omit_optional_tags =True #line:112:omit_optional_tags = True
-    minimize_boolean_attributes =True #line:113:minimize_boolean_attributes = True
-    use_trailing_solidus =False #line:114:use_trailing_solidus = False
-    space_before_trailing_solidus =True #line:115:space_before_trailing_solidus = True
-    escape_lt_in_attrs =False #line:118:escape_lt_in_attrs = False
-    escape_rcdata =False #line:119:escape_rcdata = False
-    resolve_entities =True #line:120:resolve_entities = True
-    alphabetical_attributes =False #line:123:alphabetical_attributes = False
-    inject_meta_charset =True #line:124:inject_meta_charset = True
-    strip_whitespace =False #line:125:strip_whitespace = False
-    sanitize =False #line:126:sanitize = False
-    options =("quote_attr_values","quote_char","use_best_quote_char","omit_optional_tags","minimize_boolean_attributes","use_trailing_solidus","space_before_trailing_solidus","escape_lt_in_attrs","escape_rcdata","resolve_entities","alphabetical_attributes","inject_meta_charset","strip_whitespace","sanitize")#line:133:"strip_whitespace", "sanitize")
-    def __init__ (OOOOOOO00OOO0OO0O ,**O0OOOOO00OOO00O0O ):#line:135:def __init__(self, **kwargs):
-        ""#line:213:"""
-        O00O00OOO0OO0O0OO =frozenset (O0OOOOO00OOO00O0O )-frozenset (OOOOOOO00OOO0OO0O .options )#line:214:unexpected_args = frozenset(kwargs) - frozenset(self.options)
-        if len (O00O00OOO0OO0O0OO )>0 :#line:215:if len(unexpected_args) > 0:
-            raise TypeError ("__init__() got an unexpected keyword argument '%s'"%next (iter (O00O00OOO0OO0O0OO )))#line:216:raise TypeError("__init__() got an unexpected keyword argument '%s'" % next(iter(unexpected_args)))
-        if 'quote_char'in O0OOOOO00OOO00O0O :#line:217:if 'quote_char' in kwargs:
-            OOOOOOO00OOO0OO0O .use_best_quote_char =False #line:218:self.use_best_quote_char = False
-        for O00000OOOOOO0OO00 in OOOOOOO00OOO0OO0O .options :#line:219:for attr in self.options:
-            setattr (OOOOOOO00OOO0OO0O ,O00000OOOOOO0OO00 ,O0OOOOO00OOO00O0O .get (O00000OOOOOO0OO00 ,getattr (OOOOOOO00OOO0OO0O ,O00000OOOOOO0OO00 )))#line:220:setattr(self, attr, kwargs.get(attr, getattr(self, attr)))
-        OOOOOOO00OOO0OO0O .errors =[]#line:221:self.errors = []
-        OOOOOOO00OOO0OO0O .strict =False #line:222:self.strict = False
-    def encode (O00OOOOOOO0OO000O ,O0O000O00000OO00O ):#line:224:def encode(self, string):
-        assert (isinstance (O0O000O00000OO00O ,text_type ))#line:225:assert(isinstance(string, text_type))
-        if O00OOOOOOO0OO000O .encoding :#line:226:if self.encoding:
-            return O0O000O00000OO00O .encode (O00OOOOOOO0OO000O .encoding ,"htmlentityreplace")#line:227:return string.encode(self.encoding, "htmlentityreplace")
-        else :#line:228:else:
-            return O0O000O00000OO00O #line:229:return string
-    def encodeStrict (O0O00O0000OOO0O00 ,O0000OO00OO00OO0O ):#line:231:def encodeStrict(self, string):
-        assert (isinstance (O0000OO00OO00OO0O ,text_type ))#line:232:assert(isinstance(string, text_type))
-        if O0O00O0000OOO0O00 .encoding :#line:233:if self.encoding:
-            return O0000OO00OO00OO0O .encode (O0O00O0000OOO0O00 .encoding ,"strict")#line:234:return string.encode(self.encoding, "strict")
-        else :#line:235:else:
-            return O0000OO00OO00OO0O #line:236:return string
-    def serialize (O0O0O000OOO0O0OO0 ,OOO0OO0O00000O00O ,encoding =None ):#line:238:def serialize(self, treewalker, encoding=None):
-        O0O0O000OOO0O0OO0 .encoding =encoding #line:240:self.encoding = encoding
-        OOOOO00OOOOO000OO =False #line:241:in_cdata = False
-        O0O0O000OOO0O0OO0 .errors =[]#line:242:self.errors = []
-        if encoding and O0O0O000OOO0O0OO0 .inject_meta_charset :#line:244:if encoding and self.inject_meta_charset:
-            from .filters .inject_meta_charset import Filter #line:245:from .filters.inject_meta_charset import Filter
-            OOO0OO0O00000O00O =Filter (OOO0OO0O00000O00O ,encoding )#line:246:treewalker = Filter(treewalker, encoding)
-        if O0O0O000OOO0O0OO0 .alphabetical_attributes :#line:250:if self.alphabetical_attributes:
-            from .filters .alphabeticalattributes import Filter #line:251:from .filters.alphabeticalattributes import Filter
-            OOO0OO0O00000O00O =Filter (OOO0OO0O00000O00O )#line:252:treewalker = Filter(treewalker)
-        if O0O0O000OOO0O0OO0 .strip_whitespace :#line:255:if self.strip_whitespace:
-            from .filters .whitespace import Filter #line:256:from .filters.whitespace import Filter
-            OOO0OO0O00000O00O =Filter (OOO0OO0O00000O00O )#line:257:treewalker = Filter(treewalker)
-        if O0O0O000OOO0O0OO0 .sanitize :#line:258:if self.sanitize:
-            from .filters .sanitizer import Filter #line:259:from .filters.sanitizer import Filter
-            OOO0OO0O00000O00O =Filter (OOO0OO0O00000O00O )#line:260:treewalker = Filter(treewalker)
-        if O0O0O000OOO0O0OO0 .omit_optional_tags :#line:261:if self.omit_optional_tags:
-            from .filters .optionaltags import Filter #line:262:from .filters.optionaltags import Filter
-            OOO0OO0O00000O00O =Filter (OOO0OO0O00000O00O )#line:263:treewalker = Filter(treewalker)
-        for OO0OOO0OO000O00O0 in OOO0OO0O00000O00O :#line:265:for token in treewalker:
-            O0OO00OO000O00O00 =OO0OOO0OO000O00O0 ["type"]#line:266:type = token["type"]
-            if O0OO00OO000O00O00 =="Doctype":#line:267:if type == "Doctype":
-                O0000000O000O000O ="<!DOCTYPE %s"%OO0OOO0OO000O00O0 ["name"]#line:268:doctype = "<!DOCTYPE %s" % token["name"]
-                if OO0OOO0OO000O00O0 ["publicId"]:#line:270:if token["publicId"]:
-                    O0000000O000O000O +=' PUBLIC "%s"'%OO0OOO0OO000O00O0 ["publicId"]#line:271:doctype += ' PUBLIC "%s"' % token["publicId"]
-                elif OO0OOO0OO000O00O0 ["systemId"]:#line:272:elif token["systemId"]:
-                    O0000000O000O000O +=" SYSTEM"#line:273:doctype += " SYSTEM"
-                if OO0OOO0OO000O00O0 ["systemId"]:#line:274:if token["systemId"]:
-                    if OO0OOO0OO000O00O0 ["systemId"].find ('"')>=0 :#line:275:if token["systemId"].find('"') >= 0:
-                        if OO0OOO0OO000O00O0 ["systemId"].find ("'")>=0 :#line:276:if token["systemId"].find("'") >= 0:
-                            O0O0O000OOO0O0OO0 .serializeError ("System identifer contains both single and double quote characters")#line:277:self.serializeError("System identifer contains both single and double quote characters")
-                        OO0OO0OO0OOO0OO00 ="'"#line:278:quote_char = "'"
-                    else :#line:279:else:
-                        OO0OO0OO0OOO0OO00 ='"'#line:280:quote_char = '"'
-                    O0000000O000O000O +=" %s%s%s"%(OO0OO0OO0OOO0OO00 ,OO0OOO0OO000O00O0 ["systemId"],OO0OO0OO0OOO0OO00 )#line:281:doctype += " %s%s%s" % (quote_char, token["systemId"], quote_char)
-                O0000000O000O000O +=">"#line:283:doctype += ">"
-                yield O0O0O000OOO0O0OO0 .encodeStrict (O0000000O000O000O )#line:284:yield self.encodeStrict(doctype)
-            elif O0OO00OO000O00O00 in ("Characters","SpaceCharacters"):#line:286:elif type in ("Characters", "SpaceCharacters"):
-                if O0OO00OO000O00O00 =="SpaceCharacters"or OOOOO00OOOOO000OO :#line:287:if type == "SpaceCharacters" or in_cdata:
-                    if OOOOO00OOOOO000OO and OO0OOO0OO000O00O0 ["data"].find ("</")>=0 :#line:288:if in_cdata and token["data"].find("</") >= 0:
-                        O0O0O000OOO0O0OO0 .serializeError ("Unexpected </ in CDATA")#line:289:self.serializeError("Unexpected </ in CDATA")
-                    yield O0O0O000OOO0O0OO0 .encode (OO0OOO0OO000O00O0 ["data"])#line:290:yield self.encode(token["data"])
-                else :#line:291:else:
-                    yield O0O0O000OOO0O0OO0 .encode (escape (OO0OOO0OO000O00O0 ["data"]))#line:292:yield self.encode(escape(token["data"]))
-            elif O0OO00OO000O00O00 in ("StartTag","EmptyTag"):#line:294:elif type in ("StartTag", "EmptyTag"):
-                OO0OO0O0O0O00O000 =OO0OOO0OO000O00O0 ["name"]#line:295:name = token["name"]
-                yield O0O0O000OOO0O0OO0 .encodeStrict ("<%s"%OO0OO0O0O0O00O000 )#line:296:yield self.encodeStrict("<%s" % name)
-                if OO0OO0O0O0O00O000 in rcdataElements and not O0O0O000OOO0O0OO0 .escape_rcdata :#line:297:if name in rcdataElements and not self.escape_rcdata:
-                    OOOOO00OOOOO000OO =True #line:298:in_cdata = True
-                elif OOOOO00OOOOO000OO :#line:299:elif in_cdata:
-                    O0O0O000OOO0O0OO0 .serializeError ("Unexpected child element of a CDATA element")#line:300:self.serializeError("Unexpected child element of a CDATA element")
-                for (_O0O0OO0OOO0OOO0O0 ,O000OO00O000OO00O ),OO0OOOO0O0000O0OO in OO0OOO0OO000O00O0 ["data"].items ():#line:301:for (_, attr_name), attr_value in token["data"].items():
-                    OOOOO00OOO0000OOO =O000OO00O000OO00O #line:303:k = attr_name
-                    OO000O000O00OOOO0 =OO0OOOO0O0000O0OO #line:304:v = attr_value
-                    yield O0O0O000OOO0O0OO0 .encodeStrict (' ')#line:305:yield self.encodeStrict(' ')
-                    yield O0O0O000OOO0O0OO0 .encodeStrict (OOOOO00OOO0000OOO )#line:307:yield self.encodeStrict(k)
-                    if not O0O0O000OOO0O0OO0 .minimize_boolean_attributes or (OOOOO00OOO0000OOO not in booleanAttributes .get (OO0OO0O0O0O00O000 ,tuple ())and OOOOO00OOO0000OOO not in booleanAttributes .get ("",tuple ())):#line:310:k not in booleanAttributes.get("", tuple())):
-                        yield O0O0O000OOO0O0OO0 .encodeStrict ("=")#line:311:yield self.encodeStrict("=")
-                        if O0O0O000OOO0O0OO0 .quote_attr_values =="always"or len (OO000O000O00OOOO0 )==0 :#line:312:if self.quote_attr_values == "always" or len(v) == 0:
-                            O0000O0OO00OO0OO0 =True #line:313:quote_attr = True
-                        elif O0O0O000OOO0O0OO0 .quote_attr_values =="spec":#line:314:elif self.quote_attr_values == "spec":
-                            O0000O0OO00OO0OO0 =_OOO0000000000OO0O .search (OO000O000O00OOOO0 )is not None #line:315:quote_attr = _quoteAttributeSpec.search(v) is not None
-                        elif O0O0O000OOO0O0OO0 .quote_attr_values =="legacy":#line:316:elif self.quote_attr_values == "legacy":
-                            O0000O0OO00OO0OO0 =_OOO0O0OOOOO00O0O0 .search (OO000O000O00OOOO0 )is not None #line:317:quote_attr = _quoteAttributeLegacy.search(v) is not None
-                        else :#line:318:else:
-                            raise ValueError ("quote_attr_values must be one of: " "'always', 'spec', or 'legacy'")#line:320:"'always', 'spec', or 'legacy'")
-                        OO000O000O00OOOO0 =OO000O000O00OOOO0 .replace ("&","&amp;")#line:321:v = v.replace("&", "&amp;")
-                        if O0O0O000OOO0O0OO0 .escape_lt_in_attrs :#line:322:if self.escape_lt_in_attrs:
-                            OO000O000O00OOOO0 =OO000O000O00OOOO0 .replace ("<","&lt;")#line:323:v = v.replace("<", "&lt;")
-                        if O0000O0OO00OO0OO0 :#line:324:if quote_attr:
-                            OO0OO0OO0OOO0OO00 =O0O0O000OOO0O0OO0 .quote_char #line:325:quote_char = self.quote_char
-                            if O0O0O000OOO0O0OO0 .use_best_quote_char :#line:326:if self.use_best_quote_char:
-                                if "'"in OO000O000O00OOOO0 and '"'not in OO000O000O00OOOO0 :#line:327:if "'" in v and '"' not in v:
-                                    OO0OO0OO0OOO0OO00 ='"'#line:328:quote_char = '"'
-                                elif '"'in OO000O000O00OOOO0 and "'"not in OO000O000O00OOOO0 :#line:329:elif '"' in v and "'" not in v:
-                                    OO0OO0OO0OOO0OO00 ="'"#line:330:quote_char = "'"
-                            if OO0OO0OO0OOO0OO00 =="'":#line:331:if quote_char == "'":
-                                OO000O000O00OOOO0 =OO000O000O00OOOO0 .replace ("'","&#39;")#line:332:v = v.replace("'", "&#39;")
-                            else :#line:333:else:
-                                OO000O000O00OOOO0 =OO000O000O00OOOO0 .replace ('"',"&quot;")#line:334:v = v.replace('"', "&quot;")
-                            yield O0O0O000OOO0O0OO0 .encodeStrict (OO0OO0OO0OOO0OO00 )#line:335:yield self.encodeStrict(quote_char)
-                            yield O0O0O000OOO0O0OO0 .encode (OO000O000O00OOOO0 )#line:336:yield self.encode(v)
-                            yield O0O0O000OOO0O0OO0 .encodeStrict (OO0OO0OO0OOO0OO00 )#line:337:yield self.encodeStrict(quote_char)
-                        else :#line:338:else:
-                            yield O0O0O000OOO0O0OO0 .encode (OO000O000O00OOOO0 )#line:339:yield self.encode(v)
-                if OO0OO0O0O0O00O000 in voidElements and O0O0O000OOO0O0OO0 .use_trailing_solidus :#line:340:if name in voidElements and self.use_trailing_solidus:
-                    if O0O0O000OOO0O0OO0 .space_before_trailing_solidus :#line:341:if self.space_before_trailing_solidus:
-                        yield O0O0O000OOO0O0OO0 .encodeStrict (" /")#line:342:yield self.encodeStrict(" /")
-                    else :#line:343:else:
-                        yield O0O0O000OOO0O0OO0 .encodeStrict ("/")#line:344:yield self.encodeStrict("/")
-                yield O0O0O000OOO0O0OO0 .encode (">")#line:345:yield self.encode(">")
-            elif O0OO00OO000O00O00 =="EndTag":#line:347:elif type == "EndTag":
-                OO0OO0O0O0O00O000 =OO0OOO0OO000O00O0 ["name"]#line:348:name = token["name"]
-                if OO0OO0O0O0O00O000 in rcdataElements :#line:349:if name in rcdataElements:
-                    OOOOO00OOOOO000OO =False #line:350:in_cdata = False
-                elif OOOOO00OOOOO000OO :#line:351:elif in_cdata:
-                    O0O0O000OOO0O0OO0 .serializeError ("Unexpected child element of a CDATA element")#line:352:self.serializeError("Unexpected child element of a CDATA element")
-                yield O0O0O000OOO0O0OO0 .encodeStrict ("</%s>"%OO0OO0O0O0O00O000 )#line:353:yield self.encodeStrict("</%s>" % name)
-            elif O0OO00OO000O00O00 =="Comment":#line:355:elif type == "Comment":
-                OO00O0O0O00OO0O00 =OO0OOO0OO000O00O0 ["data"]#line:356:data = token["data"]
-                if OO00O0O0O00OO0O00 .find ("--")>=0 :#line:357:if data.find("--") >= 0:
-                    O0O0O000OOO0O0OO0 .serializeError ("Comment contains --")#line:358:self.serializeError("Comment contains --")
-                yield O0O0O000OOO0O0OO0 .encodeStrict ("<!--%s-->"%OO0OOO0OO000O00O0 ["data"])#line:359:yield self.encodeStrict("<!--%s-->" % token["data"])
-            elif O0OO00OO000O00O00 =="Entity":#line:361:elif type == "Entity":
-                OO0OO0O0O0O00O000 =OO0OOO0OO000O00O0 ["name"]#line:362:name = token["name"]
-                O00O000O0OO00OO0O =OO0OO0O0O0O00O000 +";"#line:363:key = name + ";"
-                if O00O000O0OO00OO0O not in entities :#line:364:if key not in entities:
-                    O0O0O000OOO0O0OO0 .serializeError ("Entity %s not recognized"%OO0OO0O0O0O00O000 )#line:365:self.serializeError("Entity %s not recognized" % name)
-                if O0O0O000OOO0O0OO0 .resolve_entities and O00O000O0OO00OO0O not in xmlEntities :#line:366:if self.resolve_entities and key not in xmlEntities:
-                    OO00O0O0O00OO0O00 =entities [O00O000O0OO00OO0O ]#line:367:data = entities[key]
-                else :#line:368:else:
-                    OO00O0O0O00OO0O00 ="&%s;"%OO0OO0O0O0O00O000 #line:369:data = "&%s;" % name
-                yield O0O0O000OOO0O0OO0 .encodeStrict (OO00O0O0O00OO0O00 )#line:370:yield self.encodeStrict(data)
-            else :#line:372:else:
-                O0O0O000OOO0O0OO0 .serializeError (OO0OOO0OO000O00O0 ["data"])#line:373:self.serializeError(token["data"])
-    def render (OO0OOO000O0OOOO0O ,O00O0OO0OOOOO000O ,encoding =None ):#line:375:def render(self, treewalker, encoding=None):
-        ""#line:394:"""
-        if encoding :#line:395:if encoding:
-            return b"".join (list (OO0OOO000O0OOOO0O .serialize (O00O0OO0OOOOO000O ,encoding )))#line:396:return b"".join(list(self.serialize(treewalker, encoding)))
-        else :#line:397:else:
-            return "".join (list (OO0OOO000O0OOOO0O .serialize (O00O0OO0OOOOO000O )))#line:398:return "".join(list(self.serialize(treewalker)))
-    def serializeError (O0000O00O0OO0O00O ,data ="XXX ERROR MESSAGE NEEDED"):#line:400:def serializeError(self, data="XXX ERROR MESSAGE NEEDED"):
-        O0000O00O0OO0O00O .errors .append (data )#line:402:self.errors.append(data)
-        if O0000O00O0OO0O00O .strict :#line:403:if self.strict:
-            raise SerializeError #line:404:raise SerializeError
-class SerializeError (Exception ):#line:407:class SerializeError(Exception):
-    ""#line:408:"""Error in serialized tree"""
-    pass #line:409:pass
+import tkinter as tk #line:1
+from tkinter import ttk #line:2
+import random #line:3
+import time #line:4
+sentences =["The quick brown fox jumps over the lazy dog","Python is an interpreted high-level programming language","I'm learning to code with Python and it's fun","A journey of a thousand miles begins with a single step","Coding is not just about algorithms, it's about logic","Practice makes perfect in programming","Innovation distinguishes between a leader and a follower","The only way to do great work is to love what you do","Coding is the language of the future","Keep calm and code on",]#line:18
+score =0 #line:21
+start_time =0 #line:22
+current_sentence =random .choice (sentences )#line:23
+timer_duration =30 #line:24
+countdown_duration =5 #line:25
+game_started =False #line:28
+def start_game ():#line:32
+    global start_time ,current_sentence ,timer_duration ,score ,game_started #line:33
+    score =0 #line:34
+    timer_duration =30 #line:35
+    countdown_label .config (text ="Get ready!")#line:36
+    root .update ()#line:37
+    time .sleep (1 )#line:38
+    for OO0O000O0O000O000 in range (countdown_duration ,0 ,-1 ):#line:39
+        countdown_label .config (text =str (OO0O000O0O000O000 ))#line:40
+        root .update ()#line:41
+        time .sleep (1 )#line:42
+    countdown_label .config (text ="Go!")#line:43
+    root .update ()#line:44
+    time .sleep (1 )#line:45
+    countdown_label .config (text ="")#line:46
+    root .update ()#line:47
+    start_time =time .time ()#line:48
+    current_sentence =random .choice (sentences )#line:49
+    sentence_label .config (text =current_sentence )#line:50
+    input_box .delete (0 ,tk .END )#line:51
+    input_box .focus ()#line:52
+    input_box .config (foreground ="black",width =40 )#line:55
+    game_started =True #line:56
+    start_main_timer ()#line:57
+def reset_game ():#line:61
+    global game_started #line:62
+    game_started =False #line:63
+    countdown_label .config (text ="")#line:64
+    submit_score ()#line:65
+def start_main_timer ():#line:69
+    global timer_duration ,game_started #line:70
+    if timer_duration >0 and game_started :#line:71
+        timer_label .config (text =f"Time left: {timer_duration} seconds")#line:72
+        countdown_label .config (text =str (timer_duration ))#line:73
+        timer_duration -=1 #line:74
+        root .after (1000 ,start_main_timer )#line:75
+    elif game_started :#line:76
+        timer_label .config (text ="Time's up!")#line:77
+        submit_score ()#line:78
+def check_input (O0O0O0O0OO0O00000 ):#line:82
+    O0OO0O000O000OOOO =input_box .get ()#line:83
+    if current_sentence .startswith (O0OO0O000O000OOOO ):#line:84
+        input_box .config (foreground ="green")#line:85
+        update_progress_bar (len (O0OO0O000O000OOOO ))#line:86
+    else :#line:87
+        input_box .config (foreground ="red")#line:88
+def submit_score ():#line:92
+    global current_sentence ,game_started #line:93
+    O0O00O0OO000OO0OO =time .time ()#line:94
+    OOOOO000O00OOO0O0 =round (O0O00O0OO000OO0OO -start_time ,2 )#line:95
+    if input_box .get ()==current_sentence :#line:96
+        OO0OO00000O0OO0OO =calculate_wpm (OOOOO000O00OOO0O0 ,len (current_sentence .split ()))#line:97
+        result_label .config (text =f"Correct! Time taken: {OOOOO000O00OOO0O0} seconds, WPM: {OO0OO00000O0OO0OO}",foreground ="green",)#line:101
+        reset_progress_bar ()#line:102
+        animate_result_label ()#line:103
+        current_sentence =random .choice (sentences )#line:104
+        start_game ()#line:105
+    else :#line:106
+        result_label .config (text =f"Incorrect. Time taken: {OOOOO000O00OOO0O0} seconds",foreground ="red")#line:109
+        animate_result_label ()#line:110
+def animate_result_label ():#line:114
+    result_label .config (foreground ="red")#line:115
+    root .after (100 ,lambda :result_label .config (foreground ="black"))#line:116
+    root .after (200 ,lambda :result_label .config (foreground ="red"))#line:117
+    root .after (300 ,lambda :result_label .config (foreground ="black"))#line:118
+    root .after (400 ,lambda :result_label .config (foreground ="red"))#line:119
+    root .after (500 ,lambda :result_label .config (foreground ="black"))#line:120
+    root .after (600 ,lambda :result_label .config (foreground ="red"))#line:121
+    root .after (700 ,lambda :result_label .config (foreground ="black"))#line:122
+    root .after (800 ,lambda :result_label .config (foreground ="red"))#line:123
+    root .after (900 ,lambda :result_label .config (foreground ="black"))#line:124
+    root .after (1000 ,lambda :result_label .config (foreground ="red"))#line:125
+    root .after (1100 ,lambda :result_label .config (text ="",foreground ="black"))#line:126
+def update_progress_bar (OO0OOO000OOO0OO00 ):#line:130
+    OO0O0OO0000OO000O =min (OO0OOO000OOO0OO00 /len (current_sentence ),1.0 )*100 #line:131
+    progressbar_label .config (text =f"Progress: {int(OO0O0OO0000OO000O)}%")#line:132
+    progressbar ["value"]=OO0O0OO0000OO000O #line:133
+def reset_progress_bar ():#line:137
+    progressbar_label .config (text ="Progress: 0%")#line:138
+    progressbar ["value"]=0 #line:139
+def countdown ():#line:143
+    global timer_duration ,game_started #line:144
+    if timer_duration >0 and game_started :#line:145
+        timer_label .config (text =f"Time left: {timer_duration} seconds")#line:146
+        countdown_label .config (text =str (timer_duration ))#line:147
+        timer_duration -=1 #line:148
+        root .after (1000 ,countdown )#line:149
+def calculate_wpm (O00OOO0OO0OOO00OO ,OOOO00OOO00O00O00 ):#line:153
+    OO0OO00OOO00O000O =O00OOO0OO0OOO00OO /60 #line:154
+    OO00OOO0OO0O0OOO0 =(OOOO00OOO00O00O00 /5 )/OO0OO00OOO00O000O #line:155
+    return round (OO00OOO0OO0O0OOO0 )#line:156
+root =tk .Tk ()#line:160
+root .geometry ("800x400")#line:161
+root .title ("TypeRacer")#line:162
+style =ttk .Style ()#line:166
+style .configure ("TLabel",foreground ="black",font =("Arial",14 ))#line:167
+style .configure ("TButton",font =("Arial",16 ))#line:168
+sentence_label =ttk .Label (root ,text =current_sentence ,wraplength =700 ,justify ="left")#line:170
+input_box =ttk .Entry (root ,font =("Arial",16 ),width =40 )#line:171
+submit_button =ttk .Button (root ,text ="Submit",command =submit_score )#line:172
+reset_button =ttk .Button (root ,text ="Reset",command =reset_game )#line:173
+result_label =ttk .Label (root )#line:174
+progressbar_label =ttk .Label (root ,text ="Progress: 0%")#line:175
+progressbar =ttk .Progressbar (root ,orient =tk .HORIZONTAL ,length =200 ,mode ="determinate")#line:178
+timer_label =ttk .Label (root ,text =f"Time left: {timer_duration} seconds")#line:179
+countdown_label =ttk .Label (root ,font =("Arial",24 ),foreground ="red")#line:180
+sentence_label .pack (pady =20 )#line:183
+input_box .pack (pady =10 )#line:184
+submit_button .pack (side =tk .RIGHT ,padx =10 )#line:185
+reset_button .pack (side =tk .RIGHT ,padx =10 )#line:186
+result_label .pack (pady =10 )#line:187
+progressbar_label .pack (pady =10 )#line:188
+progressbar .pack (pady =10 )#line:189
+timer_label .pack (pady =10 )#line:190
+countdown_label .pack (pady =10 )#line:191
+input_box .bind ("<KeyRelease>",check_input )#line:194
+start_game ()#line:197
+root .mainloop ()#line:200

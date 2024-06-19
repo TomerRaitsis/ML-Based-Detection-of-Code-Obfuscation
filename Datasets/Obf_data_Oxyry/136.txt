@@ -1,110 +1,18 @@
-from __future__ import absolute_import #line:1
-import logging #line:3
-import os #line:4
-from email .parser import FeedParser #line:5
-from pip ._vendor import pkg_resources #line:7
-from pip ._vendor .packaging .utils import canonicalize_name #line:8
-from pip ._internal .cli .base_command import Command #line:10
-from pip ._internal .cli .status_codes import ERROR ,SUCCESS #line:11
-logger =logging .getLogger (__name__ )#line:13
-class ShowCommand (Command ):#line:16
-    ""#line:21
-    name ='show'#line:22
-    usage ="""
-      %prog [options] <package> ..."""#line:24
-    summary ='Show information about installed packages.'#line:25
-    ignore_require_venv =True #line:26
-    def __init__ (O0O00OO0O0O000000 ,*O0O00O00000O0O000 ,**O0000000O0OOOO0OO ):#line:28
-        super (ShowCommand ,O0O00OO0O0O000000 ).__init__ (*O0O00O00000O0O000 ,**O0000000O0OOOO0OO )#line:29
-        O0O00OO0O0O000000 .cmd_opts .add_option ('-f','--files',dest ='files',action ='store_true',default =False ,help ='Show the full list of installed files for each package.')#line:35
-        O0O00OO0O0O000000 .parser .insert_option_group (0 ,O0O00OO0O0O000000 .cmd_opts )#line:37
-    def run (O0OO0O00OO0000000 ,O0O00OOO0OOOOO000 ,O0O00OOO000OO00O0 ):#line:39
-        if not O0O00OOO000OO00O0 :#line:40
-            logger .warning ('ERROR: Please provide a package name or names.')#line:41
-            return ERROR #line:42
-        O000OO000O00O0OO0 =O0O00OOO000OO00O0 #line:43
-        OO0OOOO0OOOOO00OO =search_packages_info (O000OO000O00O0OO0 )#line:45
-        if not print_results (OO0OOOO0OOOOO00OO ,list_files =O0O00OOO0OOOOO000 .files ,verbose =O0O00OOO0OOOOO000 .verbose ):#line:47
-            return ERROR #line:48
-        return SUCCESS #line:49
-def search_packages_info (O0O0000OO00O0OOO0 ):#line:52
-    ""#line:58
-    OO0O0OO0OO0OO000O ={}#line:59
-    for O00O000OO0OO0O000 in pkg_resources .working_set :#line:60
-        OO0O0OO0OO0OO000O [canonicalize_name (O00O000OO0OO0O000 .project_name )]=O00O000OO0OO0O000 #line:61
-    OO0O000O0OO0O0OO0 =[canonicalize_name (O00O00O00O0OOO000 )for O00O00O00O0OOO000 in O0O0000OO00O0OOO0 ]#line:63
-    for O0OOO00O0O0000O00 in [OO0O0OO0OO0OO000O [O00O0O0OOO000OOOO ]for O00O0O0OOO000OOOO in OO0O000O0OO0O0OO0 if O00O0O0OOO000OOOO in OO0O0OO0OO0OO000O ]:#line:65
-        O0O000OO000O0O0O0 ={'name':O0OOO00O0O0000O00 .project_name ,'version':O0OOO00O0O0000O00 .version ,'location':O0OOO00O0O0000O00 .location ,'requires':[O0OOOO0O0O0OOO000 .project_name for O0OOOO0O0O0OOO000 in O0OOO00O0O0000O00 .requires ()],}#line:71
-        O00OOO0O0O0OO000O =None #line:72
-        O00O0000O0000OO0O =None #line:73
-        if isinstance (O0OOO00O0O0000O00 ,pkg_resources .DistInfoDistribution ):#line:74
-            if O0OOO00O0O0000O00 .has_metadata ('RECORD'):#line:76
-                OOO0000OOOO00OOOO =O0OOO00O0O0000O00 .get_metadata_lines ('RECORD')#line:77
-                O00000000000OO00O =[OOO000O000OOOOO0O .split (',')[0 ]for OOO000O000OOOOO0O in OOO0000OOOO00OOOO ]#line:78
-                O00000000000OO00O =[os .path .join (O0OOO00O0O0000O00 .location ,O00OO00000000OO0O )for O00OO00000000OO0O in O00000000000OO00O ]#line:79
-                O00OOO0O0O0OO000O =[os .path .relpath (O00O0O00O0OOOO00O ,O0OOO00O0O0000O00 .location )for O00O0O00O0OOOO00O in O00000000000OO00O ]#line:80
-            if O0OOO00O0O0000O00 .has_metadata ('METADATA'):#line:82
-                O00O0000O0000OO0O =O0OOO00O0O0000O00 .get_metadata ('METADATA')#line:83
-        else :#line:84
-            if O0OOO00O0O0000O00 .has_metadata ('installed-files.txt'):#line:86
-                O00000000000OO00O =O0OOO00O0O0000O00 .get_metadata_lines ('installed-files.txt')#line:87
-                O00000000000OO00O =[os .path .join (O0OOO00O0O0000O00 .egg_info ,OOOOO0O00O0OO00OO )for OOOOO0O00O0OO00OO in O00000000000OO00O ]#line:88
-                O00OOO0O0O0OO000O =[os .path .relpath (O0O0000000OOOOO0O ,O0OOO00O0O0000O00 .location )for O0O0000000OOOOO0O in O00000000000OO00O ]#line:89
-            if O0OOO00O0O0000O00 .has_metadata ('PKG-INFO'):#line:91
-                O00O0000O0000OO0O =O0OOO00O0O0000O00 .get_metadata ('PKG-INFO')#line:92
-        if O0OOO00O0O0000O00 .has_metadata ('entry_points.txt'):#line:94
-            O0OOOOO0000OOOO00 =O0OOO00O0O0000O00 .get_metadata_lines ('entry_points.txt')#line:95
-            O0O000OO000O0O0O0 ['entry_points']=O0OOOOO0000OOOO00 #line:96
-        if O0OOO00O0O0000O00 .has_metadata ('INSTALLER'):#line:98
-            for O0OOOO00000000OO0 in O0OOO00O0O0000O00 .get_metadata_lines ('INSTALLER'):#line:99
-                if O0OOOO00000000OO0 .strip ():#line:100
-                    O0O000OO000O0O0O0 ['installer']=O0OOOO00000000OO0 .strip ()#line:101
-                    break #line:102
-        O0OOO0OO0000OO0O0 =FeedParser ()#line:106
-        O0OOO0OO0000OO0O0 .feed (O00O0000O0000OO0O )#line:107
-        O00OO0O0O0O000OO0 =O0OOO0OO0000OO0O0 .close ()#line:108
-        for OO000O0OO0O0OO0O0 in ('metadata-version','summary','home-page','author','author-email','license'):#line:110
-            O0O000OO000O0O0O0 [OO000O0OO0O0OO0O0 ]=O00OO0O0O0O000OO0 .get (OO000O0OO0O0OO0O0 )#line:111
-        OOOOOOO00OOOOO0O0 =[]#line:114
-        for O0OOOO00000000OO0 in O00O0000O0000OO0O .splitlines ():#line:115
-            if O0OOOO00000000OO0 .startswith ('Classifier: '):#line:116
-                OOOOOOO00OOOOO0O0 .append (O0OOOO00000000OO0 [len ('Classifier: '):])#line:117
-        O0O000OO000O0O0O0 ['classifiers']=OOOOOOO00OOOOO0O0 #line:118
-        if O00OOO0O0O0OO000O :#line:120
-            O0O000OO000O0O0O0 ['files']=sorted (O00OOO0O0O0OO000O )#line:121
-        yield O0O000OO000O0O0O0 #line:122
-def print_results (O000OOO0OOOOO0O00 ,list_files =False ,verbose =False ):#line:125
-    ""#line:128
-    O00O00O0OO0O0O0OO =False #line:129
-    for O0OO0O0O000O0O0O0 ,O0O0OOO0O0O0OOOO0 in enumerate (O000OOO0OOOOO0O00 ):#line:130
-        O00O00O0OO0O0O0OO =True #line:131
-        if O0OO0O0O000O0O0O0 >0 :#line:132
-            logger .info ("---")#line:133
-        OO00O000O00O00OOO =O0O0OOO0O0O0OOOO0 .get ('name','')#line:135
-        O000000O0O000OO0O =[OOO0O0O0O000O0O00 .project_name for OOO0O0O0O000O0O00 in pkg_resources .working_set if OO00O000O00O00OOO in [O00O000O00O00OO00 .name for O00O000O00O00OO00 in OOO0O0O0O000O0O00 .requires ()]]#line:139
-        logger .info ("Name: %s",OO00O000O00O00OOO )#line:141
-        logger .info ("Version: %s",O0O0OOO0O0O0OOOO0 .get ('version',''))#line:142
-        logger .info ("Summary: %s",O0O0OOO0O0O0OOOO0 .get ('summary',''))#line:143
-        logger .info ("Home-page: %s",O0O0OOO0O0O0OOOO0 .get ('home-page',''))#line:144
-        logger .info ("Author: %s",O0O0OOO0O0O0OOOO0 .get ('author',''))#line:145
-        logger .info ("Author-email: %s",O0O0OOO0O0O0OOOO0 .get ('author-email',''))#line:146
-        logger .info ("License: %s",O0O0OOO0O0O0OOOO0 .get ('license',''))#line:147
-        logger .info ("Location: %s",O0O0OOO0O0O0OOOO0 .get ('location',''))#line:148
-        logger .info ("Requires: %s",', '.join (O0O0OOO0O0O0OOOO0 .get ('requires',[])))#line:149
-        logger .info ("Required-by: %s",', '.join (O000000O0O000OO0O ))#line:150
-        if verbose :#line:152
-            logger .info ("Metadata-Version: %s",O0O0OOO0O0O0OOOO0 .get ('metadata-version',''))#line:154
-            logger .info ("Installer: %s",O0O0OOO0O0O0OOOO0 .get ('installer',''))#line:155
-            logger .info ("Classifiers:")#line:156
-            for OO000O00000OO0OOO in O0O0OOO0O0O0OOOO0 .get ('classifiers',[]):#line:157
-                logger .info ("  %s",OO000O00000OO0OOO )#line:158
-            logger .info ("Entry-points:")#line:159
-            for O00O0000OO0OOO000 in O0O0OOO0O0O0OOOO0 .get ('entry_points',[]):#line:160
-                logger .info ("  %s",O00O0000OO0OOO000 .strip ())#line:161
-        if list_files :#line:162
-            logger .info ("Files:")#line:163
-            for O0000OO0O00OO0OO0 in O0O0OOO0O0O0OOOO0 .get ('files',[]):#line:164
-                logger .info ("  %s",O0000OO0O00OO0OO0 .strip ())#line:165
-            if "files"not in O0O0OOO0O0O0OOOO0 :#line:166
-                logger .info ("Cannot locate installed-files.txt")#line:167
-    return O00O00O0OO0O0O0OO #line:168
+from __future__ import unicode_literals #line:17
+from .import Infinite #line:18
+from .helpers import WriteMixin #line:19
+class Spinner (WriteMixin ,Infinite ):#line:22
+    message =''#line:23
+    phases =('-','\\','|','/')#line:24
+    hide_cursor =True #line:25
+    def update (O00O00O000OOOO000 ):#line:27
+        O00O0O0OOO0O0OOOO =O00O00O000OOOO000 .index %len (O00O00O000OOOO000 .phases )#line:28
+        O00O00O000OOOO000 .write (O00O00O000OOOO000 .phases [O00O0O0OOO0O0OOOO ])#line:29
+class PieSpinner (Spinner ):#line:32
+    phases =['◷','◶','◵','◴']#line:33
+class MoonSpinner (Spinner ):#line:36
+    phases =['◑','◒','◐','◓']#line:37
+class LineSpinner (Spinner ):#line:40
+    phases =['⎺','⎻','⎼','⎽','⎼','⎻']#line:41
+class PixelSpinner (Spinner ):#line:43
+    phases =['⣾','⣷','⣯','⣟','⡿','⢿','⣻','⣽']#line:44

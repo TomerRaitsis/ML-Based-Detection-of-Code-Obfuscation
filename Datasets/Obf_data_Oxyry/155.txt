@@ -1,130 +1,32 @@
-from __future__ import absolute_import #line:1
-from .packages .six .moves .http_client import (IncompleteRead as httplib_IncompleteRead )#line:4
-class HTTPError (Exception ):#line:8
-    ""#line:9
-    pass #line:10
-class HTTPWarning (Warning ):#line:13
-    ""#line:14
-    pass #line:15
-class PoolError (HTTPError ):#line:18
-    ""#line:19
-    def __init__ (OOOOOOOO0O000O000 ,O0OO0O00O0O0O00O0 ,O0O0OO0OOO00OOOOO ):#line:20
-        OOOOOOOO0O000O000 .pool =O0OO0O00O0O0O00O0 #line:21
-        HTTPError .__init__ (OOOOOOOO0O000O000 ,"%s: %s"%(O0OO0O00O0O0O00O0 ,O0O0OO0OOO00OOOOO ))#line:22
-    def __reduce__ (O00OOO0000OOOOO0O ):#line:24
-        return O00OOO0000OOOOO0O .__class__ ,(None ,None )#line:26
-class RequestError (PoolError ):#line:29
-    ""#line:30
-    def __init__ (OO0O00000OO0OOOOO ,O0000OOOO0OOOOO00 ,O00OOO0OOO0O0OOO0 ,O0O0O00OO0O0O0OOO ):#line:31
-        OO0O00000OO0OOOOO .url =O00OOO0OOO0O0OOO0 #line:32
-        PoolError .__init__ (OO0O00000OO0OOOOO ,O0000OOOO0OOOOO00 ,O0O0O00OO0O0O0OOO )#line:33
-    def __reduce__ (OOOOO00OO000OO000 ):#line:35
-        return OOOOO00OO000OO000 .__class__ ,(None ,OOOOO00OO000OO000 .url ,None )#line:37
-class SSLError (HTTPError ):#line:40
-    ""#line:41
-    pass #line:42
-class ProxyError (HTTPError ):#line:45
-    ""#line:46
-    pass #line:47
-class DecodeError (HTTPError ):#line:50
-    ""#line:51
-    pass #line:52
-class ProtocolError (HTTPError ):#line:55
-    ""#line:56
-    pass #line:57
-ConnectionError =ProtocolError #line:61
-class MaxRetryError (RequestError ):#line:66
-    ""#line:74
-    def __init__ (O00OOOO0O0O00OO0O ,OO0O00000O0OOOO00 ,O00000OO00O0O000O ,reason =None ):#line:76
-        O00OOOO0O0O00OO0O .reason =reason #line:77
-        OOOO0O000000O0O0O ="Max retries exceeded with url: %s (Caused by %r)"%(O00000OO00O0O000O ,reason )#line:80
-        RequestError .__init__ (O00OOOO0O0O00OO0O ,OO0O00000O0OOOO00 ,O00000OO00O0O000O ,OOOO0O000000O0O0O )#line:82
-class HostChangedError (RequestError ):#line:85
-    ""#line:86
-    def __init__ (O00OO00OOOOOO0O0O ,O0OO000OO0O0O00O0 ,O0OO00000O000O00O ,retries =3 ):#line:88
-        OOO0000O0OO0O0O0O ="Tried to open a foreign host with url: %s"%O0OO00000O000O00O #line:89
-        RequestError .__init__ (O00OO00OOOOOO0O0O ,O0OO000OO0O0O00O0 ,O0OO00000O000O00O ,OOO0000O0OO0O0O0O )#line:90
-        O00OO00OOOOOO0O0O .retries =retries #line:91
-class TimeoutStateError (HTTPError ):#line:94
-    ""#line:95
-    pass #line:96
-class TimeoutError (HTTPError ):#line:99
-    ""#line:104
-    pass #line:105
-class ReadTimeoutError (TimeoutError ,RequestError ):#line:108
-    ""#line:109
-    pass #line:110
-class ConnectTimeoutError (TimeoutError ):#line:115
-    ""#line:116
-    pass #line:117
-class NewConnectionError (ConnectTimeoutError ,PoolError ):#line:120
-    ""#line:121
-    pass #line:122
-class EmptyPoolError (PoolError ):#line:125
-    ""#line:126
-    pass #line:127
-class ClosedPoolError (PoolError ):#line:130
-    ""#line:131
-    pass #line:132
-class LocationValueError (ValueError ,HTTPError ):#line:135
-    ""#line:136
-    pass #line:137
-class LocationParseError (LocationValueError ):#line:140
-    ""#line:141
-    def __init__ (O0O00OOOOO0O000OO ,O00000O0O0000000O ):#line:143
-        O0000O0OO00OOO00O ="Failed to parse: %s"%O00000O0O0000000O #line:144
-        HTTPError .__init__ (O0O00OOOOO0O000OO ,O0000O0OO00OOO00O )#line:145
-        O0O00OOOOO0O000OO .location =O00000O0O0000000O #line:147
-class ResponseError (HTTPError ):#line:150
-    ""#line:151
-    GENERIC_ERROR ='too many error responses'#line:152
-    SPECIFIC_ERROR ='too many {status_code} error responses'#line:153
-class SecurityWarning (HTTPWarning ):#line:156
-    ""#line:157
-    pass #line:158
-class SubjectAltNameWarning (SecurityWarning ):#line:161
-    ""#line:162
-    pass #line:163
-class InsecureRequestWarning (SecurityWarning ):#line:166
-    ""#line:167
-    pass #line:168
-class SystemTimeWarning (SecurityWarning ):#line:171
-    ""#line:172
-    pass #line:173
-class InsecurePlatformWarning (SecurityWarning ):#line:176
-    ""#line:177
-    pass #line:178
-class SNIMissingWarning (HTTPWarning ):#line:181
-    ""#line:182
-    pass #line:183
-class DependencyWarning (HTTPWarning ):#line:186
-    ""#line:190
-    pass #line:191
-class ResponseNotChunked (ProtocolError ,ValueError ):#line:194
-    ""#line:195
-    pass #line:196
-class BodyNotHttplibCompatible (HTTPError ):#line:199
-    ""#line:203
-    pass #line:204
-class IncompleteRead (HTTPError ,httplib_IncompleteRead ):#line:207
-    ""#line:214
-    def __init__ (O000O0OO0OO0OOOOO ,OO000O0OOOOOO0OOO ,O0O000OOO000OOO0O ):#line:215
-        super (IncompleteRead ,O000O0OO0OO0OOOOO ).__init__ (OO000O0OOOOOO0OOO ,O0O000OOO000OOO0O )#line:216
-    def __repr__ (O0O00OO0O00OO000O ):#line:218
-        return ('IncompleteRead(%i bytes read, ' '%i more expected)'%(O0O00OO0O00OO000O .partial ,O0O00OO0O00OO000O .expected ))#line:220
-class InvalidHeader (HTTPError ):#line:223
-    ""#line:224
-    pass #line:225
-class ProxySchemeUnknown (AssertionError ,ValueError ):#line:228
-    ""#line:229
-    def __init__ (OOO0OOOOOOOO00OOO ,OOO0OO000OOO0000O ):#line:232
-        O000OOOO0000OO00O ="Not supported proxy scheme %s"%OOO0OO000OOO0000O #line:233
-        super (ProxySchemeUnknown ,OOO0OOOOOOOO00OOO ).__init__ (O000OOOO0000OO00O )#line:234
-class HeaderParsingError (HTTPError ):#line:237
-    ""#line:238
-    def __init__ (O00O00OOO0OO00OOO ,O0OOO0000OO0OO00O ,OOO0O0O00000O000O ):#line:239
-        O000O0O00000O0O00 ='%s, unparsed data: %r'%(O0OOO0000OO0OO00O or 'Unknown',OOO0O0O00000O000O )#line:240
-        super (HeaderParsingError ,O00O00OOO0OO00OOO ).__init__ (O000O0O00000O0O00 )#line:241
-class UnrewindableBodyError (HTTPError ):#line:244
-    ""#line:245
-    pass #line:246
+import zipfile #line:1
+import sys #line:2
+import os #line:3
+def zip_file (OOOO00OOO00O00O0O ):#line:7
+    O0OO0O0O000OO0OO0 =zipfile .ZipFile (OOOO00OOO00O00O0O +'.zip','w')#line:8
+    O0OO0O0O000OO0OO0 .write (path ,compress_type =zipfile .ZIP_DEFLATED )#line:9
+    O0OO0O0O000OO0OO0 .close ()#line:10
+def retrieve_file_paths (O0O0O000O0OOO0OO0 ):#line:14
+    OOOO0OO0OOO0OO0O0 =[]#line:16
+    for O00OO0O000O0O0000 ,OOO0OO0OOO000O0OO ,O0OO00O0000OO000O in os .walk (O0O0O000O0OOO0OO0 ):#line:19
+        for OOO0O0OOOO0000O00 in O0OO00O0000OO000O :#line:20
+            O000OOO0000OOOO0O =os .path .join (O00OO0O000O0O0000 ,OOO0O0OOOO0000O00 )#line:22
+            OOOO0OO0OOO0OO0O0 .append (O000OOO0000OOOO0O )#line:23
+    return OOOO0OO0OOO0OO0O0 #line:26
+def zip_dir (OO0OO0OOOOOO0O000 ,O0O0OOOO0000O0O00 ):#line:29
+    OO000OOOO00OOO0OO =zipfile .ZipFile (OO0OO0OOOOOO0O000 +'.zip','w')#line:31
+    with OO000OOOO00OOO0OO :#line:32
+        for O0OOOOOO0OO0OOO0O in O0O0OOOO0000O0O00 :#line:34
+            OO000OOOO00OOO0OO .write (O0OOOOOO0OO0OOO0O )#line:35
+if __name__ =="__main__":#line:38
+    path =sys .argv [1 ]#line:39
+    if os .path .isdir (path ):#line:41
+        files_path =retrieve_file_paths (path )#line:42
+        print ('The following list of files will be zipped:')#line:44
+        for file_name in files_path :#line:45
+            print (file_name )#line:46
+        zip_dir (path ,files_path )#line:47
+    elif os .path .isfile (path ):#line:48
+        print ('The %s will be zipped:'%path )#line:49
+        zip_file (path )#line:50
+    else :#line:51
+        print ('a special file(socket,FIFO,device file), please input file or dir')#line:52

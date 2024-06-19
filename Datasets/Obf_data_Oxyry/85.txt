@@ -1,138 +1,19 @@
-""#line:9:"""
-import base64 #line:10:import base64
-import ctypes #line:11:import ctypes
-import itertools #line:12:import itertools
-import re #line:13:import re
-import os #line:14:import os
-import ssl #line:15:import ssl
-import tempfile #line:16:import tempfile
-from .bindings import Security ,CoreFoundation ,CFConst #line:18:from .bindings import Security, CoreFoundation, CFConst
-_OO000O000OOO0O000 =re .compile (b"-----BEGIN CERTIFICATE-----\n(.*?)\n-----END CERTIFICATE-----",re .DOTALL )#line:24:)
-def _O00OO0OO00O0OO00O (OO0OOO0000O000OOO ):#line:27:def _cf_data_from_bytes(bytestring):
-    ""#line:31:"""
-    return CoreFoundation .CFDataCreate (CoreFoundation .kCFAllocatorDefault ,OO0OOO0000O000OOO ,len (OO0OOO0000O000OOO ))#line:34:)
-def _OOO00OOO0O0O00OO0 (O00O00OO0O0000000 ):#line:37:def _cf_dictionary_from_tuples(tuples):
-    ""#line:40:"""
-    O0O00O0OO000OO000 =len (O00O00OO0O0000000 )#line:41:dictionary_size = len(tuples)
-    OO0000OO0000O0000 =(O000OOO000O00O000 [0 ]for O000OOO000O00O000 in O00O00OO0O0000000 )#line:44:keys = (t[0] for t in tuples)
-    O0O00OOO0OO0O000O =(OO000O000O000OOOO [1 ]for OO000O000O000OOOO in O00O00OO0O0000000 )#line:45:values = (t[1] for t in tuples)
-    OOOOOOO0OO00OOO00 =(CoreFoundation .CFTypeRef *O0O00O0OO000OO000 )(*OO0000OO0000O0000 )#line:46:cf_keys = (CoreFoundation.CFTypeRef * dictionary_size)(*keys)
-    OO0000000000O0000 =(CoreFoundation .CFTypeRef *O0O00O0OO000OO000 )(*O0O00OOO0OO0O000O )#line:47:cf_values = (CoreFoundation.CFTypeRef * dictionary_size)(*values)
-    return CoreFoundation .CFDictionaryCreate (CoreFoundation .kCFAllocatorDefault ,OOOOOOO0OO00OOO00 ,OO0000000000O0000 ,O0O00O0OO000OO000 ,CoreFoundation .kCFTypeDictionaryKeyCallBacks ,CoreFoundation .kCFTypeDictionaryValueCallBacks ,)#line:56:)
-def _OO00OO0OO00O0O0O0 (OOOO0000OOO0OOO0O ):#line:59:def _cf_string_to_unicode(value):
-    ""#line:65:"""
-    O0OO000OOO0OOO00O =ctypes .cast (OOOO0000OOO0OOO0O ,ctypes .POINTER (ctypes .c_void_p ))#line:66:value_as_void_p = ctypes.cast(value, ctypes.POINTER(ctypes.c_void_p))
-    O00000OO000O0000O =CoreFoundation .CFStringGetCStringPtr (O0OO000OOO0OOO00O ,CFConst .kCFStringEncodingUTF8 )#line:71:)
-    if O00000OO000O0000O is None :#line:72:if string is None:
-        OOO0OOOO00O0O000O =ctypes .create_string_buffer (1024 )#line:73:buffer = ctypes.create_string_buffer(1024)
-        O00OO0O00000OOO00 =CoreFoundation .CFStringGetCString (O0OO000OOO0OOO00O ,OOO0OOOO00O0O000O ,1024 ,CFConst .kCFStringEncodingUTF8 )#line:79:)
-        if not O00OO0O00000OOO00 :#line:80:if not result:
-            raise OSError ('Error copying C string from CFStringRef')#line:81:raise OSError('Error copying C string from CFStringRef')
-        O00000OO000O0000O =OOO0OOOO00O0O000O .value #line:82:string = buffer.value
-    if O00000OO000O0000O is not None :#line:83:if string is not None:
-        O00000OO000O0000O =O00000OO000O0000O .decode ('utf-8')#line:84:string = string.decode('utf-8')
-    return O00000OO000O0000O #line:85:return string
-def _O0O0O00OO0O00O0OO (O0OO0OO0OO0000O00 ,exception_class =None ):#line:88:def _assert_no_error(error, exception_class=None):
-    ""#line:92:"""
-    if O0OO0OO0OO0000O00 ==0 :#line:93:if error == 0:
-        return #line:94:return
-    O0O0000OO0OOO000O =Security .SecCopyErrorMessageString (O0OO0OO0OO0000O00 ,None )#line:96:cf_error_string = Security.SecCopyErrorMessageString(error, None)
-    O0O00OOO00OO00OOO =_OO00OO0OO00O0O0O0 (O0O0000OO0OOO000O )#line:97:output = _cf_string_to_unicode(cf_error_string)
-    CoreFoundation .CFRelease (O0O0000OO0OOO000O )#line:98:CoreFoundation.CFRelease(cf_error_string)
-    if O0O00OOO00OO00OOO is None or O0O00OOO00OO00OOO ==u'':#line:100:if output is None or output == u'':
-        O0O00OOO00OO00OOO =u'OSStatus %s'%O0OO0OO0OO0000O00 #line:101:output = u'OSStatus %s' % error
-    if exception_class is None :#line:103:if exception_class is None:
-        exception_class =ssl .SSLError #line:104:exception_class = ssl.SSLError
-    raise exception_class (O0O00OOO00OO00OOO )#line:106:raise exception_class(output)
-def _OO0O00OO0O0OOOO0O (OOOO0OOOO00O00OO0 ):#line:109:def _cert_array_from_pem(pem_bundle):
-    ""#line:113:"""
-    OOOO0OOOO00O00OO0 =OOOO0OOOO00O00OO0 .replace (b"\r\n",b"\n")#line:115:pem_bundle = pem_bundle.replace(b"\r\n", b"\n")
-    O00OO00OO0OOO00O0 =[base64 .b64decode (O00OOOO000000OOOO .group (1 ))for O00OOOO000000OOOO in _OO000O000OOO0O000 .finditer (OOOO0OOOO00O00OO0 )]#line:120:]
-    if not O00OO00OO0OOO00O0 :#line:121:if not der_certs:
-        raise ssl .SSLError ("No root certificates specified")#line:122:raise ssl.SSLError("No root certificates specified")
-    O0OO0000OOO00OOOO =CoreFoundation .CFArrayCreateMutable (CoreFoundation .kCFAllocatorDefault ,0 ,ctypes .byref (CoreFoundation .kCFTypeArrayCallBacks ))#line:128:)
-    if not O0OO0000OOO00OOOO :#line:129:if not cert_array:
-        raise ssl .SSLError ("Unable to allocate memory!")#line:130:raise ssl.SSLError("Unable to allocate memory!")
-    try :#line:132:try:
-        for O00OOO0OOOOO00OOO in O00OO00OO0OOO00O0 :#line:133:for der_bytes in der_certs:
-            OOO0O0O0O0OOO0O0O =_O00OO0OO00O0OO00O (O00OOO0OOOOO00OOO )#line:134:certdata = _cf_data_from_bytes(der_bytes)
-            if not OOO0O0O0O0OOO0O0O :#line:135:if not certdata:
-                raise ssl .SSLError ("Unable to allocate memory!")#line:136:raise ssl.SSLError("Unable to allocate memory!")
-            O0O000O0OO0000O00 =Security .SecCertificateCreateWithData (CoreFoundation .kCFAllocatorDefault ,OOO0O0O0O0OOO0O0O )#line:139:)
-            CoreFoundation .CFRelease (OOO0O0O0O0OOO0O0O )#line:140:CoreFoundation.CFRelease(certdata)
-            if not O0O000O0OO0000O00 :#line:141:if not cert:
-                raise ssl .SSLError ("Unable to build cert object!")#line:142:raise ssl.SSLError("Unable to build cert object!")
-            CoreFoundation .CFArrayAppendValue (O0OO0000OOO00OOOO ,O0O000O0OO0000O00 )#line:144:CoreFoundation.CFArrayAppendValue(cert_array, cert)
-            CoreFoundation .CFRelease (O0O000O0OO0000O00 )#line:145:CoreFoundation.CFRelease(cert)
-    except Exception :#line:146:except Exception:
-        CoreFoundation .CFRelease (O0OO0000OOO00OOOO )#line:150:CoreFoundation.CFRelease(cert_array)
-    return O0OO0000OOO00OOOO #line:152:return cert_array
-def _O0OO0O00OOOOO000O (O000OOOO0OO0O0OOO ):#line:155:def _is_cert(item):
-    ""#line:158:"""
-    O000O0OO00OO0OOO0 =Security .SecCertificateGetTypeID ()#line:159:expected = Security.SecCertificateGetTypeID()
-    return CoreFoundation .CFGetTypeID (O000OOOO0OO0O0OOO )==O000O0OO00OO0OOO0 #line:160:return CoreFoundation.CFGetTypeID(item) == expected
-def _OOOOOOOOO00OO00OO (O00OO00O0OOO00000 ):#line:163:def _is_identity(item):
-    ""#line:166:"""
-    OO0OO0OO000OO0O00 =Security .SecIdentityGetTypeID ()#line:167:expected = Security.SecIdentityGetTypeID()
-    return CoreFoundation .CFGetTypeID (O00OO00O0OOO00000 )==OO0OO0OO000OO0O00 #line:168:return CoreFoundation.CFGetTypeID(item) == expected
-def _O0000OOO0OOO0O00O ():#line:171:def _temporary_keychain():
-    ""#line:181:"""
-    O0OOOOO00OO0OOOOO =os .urandom (40 )#line:188:random_bytes = os.urandom(40)
-    O0OO00000O000000O =base64 .b16encode (O0OOOOO00OO0OOOOO [:8 ]).decode ('utf-8')#line:189:filename = base64.b16encode(random_bytes[:8]).decode('utf-8')
-    O0000000O00OO0O00 =base64 .b16encode (O0OOOOO00OO0OOOOO [8 :])#line:190:password = base64.b16encode(random_bytes[8:])  # Must be valid UTF-8
-    OOOO00O0OO000O0OO =tempfile .mkdtemp ()#line:191:tempdirectory = tempfile.mkdtemp()
-    OO0OOO000OOOO0OO0 =os .path .join (OOOO00O0OO000O0OO ,O0OO00000O000000O ).encode ('utf-8')#line:193:keychain_path = os.path.join(tempdirectory, filename).encode('utf-8')
-    O00OOOO0OOO00OO0O =Security .SecKeychainRef ()#line:196:keychain = Security.SecKeychainRef()
-    O00O0O0OOOO0OOO0O =Security .SecKeychainCreate (OO0OOO000OOOO0OO0 ,len (O0000000O00OO0O00 ),O0000000O00OO0O00 ,False ,None ,ctypes .byref (O00OOOO0OOO00OO0O ))#line:204:)
-    _O0O0O00OO0O00O0OO (O00O0O0OOOO0OOO0O )#line:205:_assert_no_error(status)
-    return O00OOOO0OOO00OO0O ,OOOO00O0OO000O0OO #line:208:return keychain, tempdirectory
-def _OOOOO0O0OOOO0OOOO (OO000OOO0OO0O0O0O ,O0O0O0O0OOOO00OOO ):#line:211:def _load_items_from_file(keychain, path):
-    ""#line:217:"""
-    O0OOOOO00OOO0O00O =[]#line:218:certificates = []
-    OOOOOO00O000OOO00 =[]#line:219:identities = []
-    OO0OOO0000OOO0000 =None #line:220:result_array = None
-    with open (O0O0O0O0OOOO00OOO ,'rb')as O00OO0O0O0000O0O0 :#line:222:with open(path, 'rb') as f:
-        O00O00OO0000OOO0O =O00OO0O0O0000O0O0 .read ()#line:223:raw_filedata = f.read()
-    try :#line:225:try:
-        O00OO0OO0OOO0OO00 =CoreFoundation .CFDataCreate (CoreFoundation .kCFAllocatorDefault ,O00O00OO0000OOO0O ,len (O00O00OO0000OOO0O ))#line:230:)
-        OO0OOO0000OOO0000 =CoreFoundation .CFArrayRef ()#line:231:result_array = CoreFoundation.CFArrayRef()
-        OOO000O000000O00O =Security .SecItemImport (O00OO0OO0OOO0OO00 ,None ,None ,None ,0 ,None ,OO000OOO0OO0O0O0O ,ctypes .byref (OO0OOO0000OOO0000 ))#line:241:)
-        _O0O0O00OO0O00O0OO (OOO000O000000O00O )#line:242:_assert_no_error(result)
-        OO00O00O000O000O0 =CoreFoundation .CFArrayGetCount (OO0OOO0000OOO0000 )#line:248:result_count = CoreFoundation.CFArrayGetCount(result_array)
-        for OO0OOO0OOOOOOO0O0 in range (OO00O00O000O000O0 ):#line:249:for index in range(result_count):
-            O000O0O00O0000OO0 =CoreFoundation .CFArrayGetValueAtIndex (OO0OOO0000OOO0000 ,OO0OOO0OOOOOOO0O0 )#line:252:)
-            O000O0O00O0000OO0 =ctypes .cast (O000O0O00O0000OO0 ,CoreFoundation .CFTypeRef )#line:253:item = ctypes.cast(item, CoreFoundation.CFTypeRef)
-            if _O0OO0O00OOOOO000O (O000O0O00O0000OO0 ):#line:255:if _is_cert(item):
-                CoreFoundation .CFRetain (O000O0O00O0000OO0 )#line:256:CoreFoundation.CFRetain(item)
-                O0OOOOO00OOO0O00O .append (O000O0O00O0000OO0 )#line:257:certificates.append(item)
-            elif _OOOOOOOOO00OO00OO (O000O0O00O0000OO0 ):#line:258:elif _is_identity(item):
-                CoreFoundation .CFRetain (O000O0O00O0000OO0 )#line:259:CoreFoundation.CFRetain(item)
-                OOOOOO00O000OOO00 .append (O000O0O00O0000OO0 )#line:260:identities.append(item)
-    finally :#line:261:finally:
-        if OO0OOO0000OOO0000 :#line:262:if result_array:
-            CoreFoundation .CFRelease (OO0OOO0000OOO0000 )#line:263:CoreFoundation.CFRelease(result_array)
-        CoreFoundation .CFRelease (O00OO0OO0OOO0OO00 )#line:265:CoreFoundation.CFRelease(filedata)
-    return (OOOOOO00O000OOO00 ,O0OOOOO00OOO0O00O )#line:267:return (identities, certificates)
-def _OOO00OOO0OO0O0000 (O00OO0OOOOO00000O ,*OOO00O0000OO00O00 ):#line:270:def _load_client_cert_chain(keychain, *paths):
-    ""#line:276:"""
-    O00OOO0OO0OOOOOOO =[]#line:302:certificates = []
-    OOOOO0O0OOO0OO0OO =[]#line:303:identities = []
-    OOO00O0000OO00O00 =(O0OO0OOOOOOO0O0O0 for O0OO0OOOOOOO0O0O0 in OOO00O0000OO00O00 if O0OO0OOOOOOO0O0O0 )#line:306:paths = (path for path in paths if path)
-    try :#line:308:try:
-        for O00O00000O000OOOO in OOO00O0000OO00O00 :#line:309:for file_path in paths:
-            O000O000000O000OO ,OO0O0O00OO000OO00 =_OOOOO0O0OOOO0OOOO (O00OO0OOOOO00000O ,O00O00000O000OOOO )#line:312:)
-            OOOOO0O0OOO0OO0OO .extend (O000O000000O000OO )#line:313:identities.extend(new_identities)
-            O00OOO0OO0OOOOOOO .extend (OO0O0O00OO000OO00 )#line:314:certificates.extend(new_certs)
-        if not OOOOO0O0OOO0OO0OO :#line:318:if not identities:
-            O00O000OOOOOOOOOO =Security .SecIdentityRef ()#line:319:new_identity = Security.SecIdentityRef()
-            OO00OOO000OOOOOO0 =Security .SecIdentityCreateWithCertificate (O00OO0OOOOO00000O ,O00OOO0OO0OOOOOOO [0 ],ctypes .byref (O00O000OOOOOOOOOO ))#line:324:)
-            _O0O0O00OO0O00O0OO (OO00OOO000OOOOOO0 )#line:325:_assert_no_error(status)
-            OOOOO0O0OOO0OO0OO .append (O00O000OOOOOOOOOO )#line:326:identities.append(new_identity)
-            CoreFoundation .CFRelease (O00OOO0OO0OOOOOOO .pop (0 ))#line:330:CoreFoundation.CFRelease(certificates.pop(0))
-        O0000O0OOO00OOO0O =CoreFoundation .CFArrayCreateMutable (CoreFoundation .kCFAllocatorDefault ,0 ,ctypes .byref (CoreFoundation .kCFTypeArrayCallBacks ),)#line:337:)
-        for O000OOO00OOOOO000 in itertools .chain (OOOOO0O0OOO0OO0OO ,O00OOO0OO0OOOOOOO ):#line:338:for item in itertools.chain(identities, certificates):
-            CoreFoundation .CFArrayAppendValue (O0000O0OOO00OOO0O ,O000OOO00OOOOO000 )#line:341:CoreFoundation.CFArrayAppendValue(trust_chain, item)
-        return O0000O0OOO00OOO0O #line:343:return trust_chain
-    finally :#line:344:finally:
-        for OO0OOOO00OO000000 in itertools .chain (OOOOO0O0OOO0OO0OO ,O00OOO0OO0OOOOOOO ):#line:345:for obj in itertools.chain(identities, certificates):
-            CoreFoundation .CFRelease (OO0OOOO00OO000000 )#line:346:CoreFoundation.CFRelease(obj)
+import codecs #line:1
+import locale #line:2
+import re #line:3
+import sys #line:4
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:6
+if MYPY_CHECK_RUNNING :#line:8
+    from typing import List ,Tuple ,Text #line:9
+BOMS =[(codecs .BOM_UTF8 ,'utf8'),(codecs .BOM_UTF16 ,'utf16'),(codecs .BOM_UTF16_BE ,'utf16-be'),(codecs .BOM_UTF16_LE ,'utf16-le'),(codecs .BOM_UTF32 ,'utf32'),(codecs .BOM_UTF32_BE ,'utf32-be'),(codecs .BOM_UTF32_LE ,'utf32-le'),]#line:19
+ENCODING_RE =re .compile (br'coding[:=]\s*([-\w.]+)')#line:21
+def auto_decode (OOOO000OO0O000O0O ):#line:24
+    ""#line:28
+    for O00O00OO00O00O000 ,OOOO0OO0OO0O0OOOO in BOMS :#line:29
+        if OOOO000OO0O000O0O .startswith (O00O00OO00O00O000 ):#line:30
+            return OOOO000OO0O000O0O [len (O00O00OO00O00O000 ):].decode (OOOO0OO0OO0O0OOOO )#line:31
+    for O0O0O00OO0O000O00 in OOOO000OO0O000O0O .split (b'\n')[:2 ]:#line:33
+        if O0O0O00OO0O000O00 [0 :1 ]==b'#'and ENCODING_RE .search (O0O0O00OO0O000O00 ):#line:34
+            OOOO0OO0OO0O0OOOO =ENCODING_RE .search (O0O0O00OO0O000O00 ).groups ()[0 ].decode ('ascii')#line:35
+            return OOOO000OO0O000O0O .decode (OOOO0OO0OO0O0OOOO )#line:36
+    return OOOO000OO0O000O0O .decode (locale .getpreferredencoding (False )or sys .getdefaultencoding (),)#line:39

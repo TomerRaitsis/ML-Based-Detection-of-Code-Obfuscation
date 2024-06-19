@@ -1,135 +1,23 @@
-import sys #line:1
-import pygame #line:2
-import random #line:3
-pygame .init ()#line:5
-WIDTH ,HEIGHT =800 ,600 #line:8
-GRID_SIZE =25 #line:9
-WHITE =(255 ,255 ,255 )#line:12
-BLACK =(0 ,0 ,0 )#line:13
-RED =(255 ,0 ,0 )#line:14
-BLUE =(0 ,0 ,255 )#line:15
-GREEN =(0 ,255 ,0 )#line:16
-COLORS =[RED ,BLUE ,GREEN ]#line:17
-SHAPES =[[[".....",".....",".....","OOOO.","....."],[".....","..O..","..O..","..O..","..O.."],],[[".....",".....","..O..",".OOO.","....."],[".....","..O..",".OO..","..O..","....."],[".....",".....",".OOO.","..O..","....."],[".....","..O..","..OO.","..O..","....."],],[[".....",".....","..OO.",".OO..","....."],[".....",".....",".OO..","..OO.","....."],[".....",".O...",".OO..","..O..","....."],[".....","..O..",".OO..",".O...","....."],],[[".....","..O..","..O.","..OO.","....."],[".....","...O.",".OOO.",".....","....."],[".....",".OO..","..O..","..O..","....."],[".....",".....",".OOO.",".O...","....."],],]#line:43
-class Tetromino :#line:46
-    def __init__ (OO000O0000O00O000 ,OO00OO0O0OOOOOOO0 ,O0OOOO0OOOOO00000 ,OOOOO000O0O0O00O0 ):#line:47
-        OO000O0000O00O000 .x =OO00OO0O0OOOOOOO0 #line:48
-        OO000O0000O00O000 .y =O0OOOO0OOOOO00000 #line:49
-        OO000O0000O00O000 .shape =OOOOO000O0O0O00O0 #line:50
-        OO000O0000O00O000 .color =random .choice (COLORS )#line:53
-        OO000O0000O00O000 .rotation =0 #line:54
-class Tetris :#line:57
-    def __init__ (OO000000O0O00O0OO ,O0O00OOO0OO0O0OO0 ,OO00O00O00O00OO00 ):#line:58
-        OO000000O0O00O0OO .width =O0O00OOO0OO0O0OO0 #line:59
-        OO000000O0O00O0OO .height =OO00O00O00O00OO00 #line:60
-        OO000000O0O00O0OO .grid =[[0 for _OOOOOOO0OO000O00O in range (O0O00OOO0OO0O0OO0 )]for _OOO00O0OO000OO0OO in range (OO00O00O00O00OO00 )]#line:61
-        OO000000O0O00O0OO .current_piece =OO000000O0O00O0OO .new_piece ()#line:62
-        OO000000O0O00O0OO .game_over =False #line:63
-        OO000000O0O00O0OO .score =0 #line:64
-    def new_piece (O000O0OOO0OO0O0OO ):#line:66
-        O0OO0O0OOO0000000 =random .choice (SHAPES )#line:68
-        return Tetromino (O000O0OOO0OO0O0OO .width //2 ,0 ,O0OO0O0OOO0000000 )#line:70
-    def valid_move (OO0O000O0000OO0O0 ,OOO0O00OOO0OO0O0O ,OO000O000OO0O0OO0 ,OO00O0OO0OO0OOO0O ,O000O00OOO0O0OO00 ):#line:72
-        ""#line:73
-        for OOOO0OO0OOOOO00O0 ,OOOOOOOOOO000000O in enumerate (OOO0O00OOO0OO0O0O .shape [(OOO0O00OOO0OO0O0O .rotation +O000O00OOO0O0OO00 )%len (OOO0O00OOO0OO0O0O .shape )]):#line:76
-            for O0OO0OO0OOO0OO0OO ,O00OOOOOOO00O00OO in enumerate (OOOOOOOOOO000000O ):#line:77
-                try :#line:78
-                    if O00OOOOOOO00O00OO =="O"and (OO0O000O0000OO0O0 .grid [OOO0O00OOO0OO0O0O .y +OOOO0OO0OOOOO00O0 +OO00O0OO0OO0OOO0O ][OOO0O00OOO0OO0O0O .x +O0OO0OO0OOO0OO0OO +OO000O000OO0O0OO0 ]!=0 ):#line:81
-                        return False #line:82
-                except IndexError :#line:83
-                    return False #line:84
-        return True #line:85
-    def clear_lines (O00OO00O00OOO0000 ):#line:87
-        ""#line:88
-        O0OOOO000OO00OOOO =0 #line:89
-        for O0O000O000O000000 ,O000O0O0O000OOO00 in enumerate (O00OO00O00OOO0000 .grid [:-1 ]):#line:90
-            if all (O0OOO0OO0000OO0O0 !=0 for O0OOO0OO0000OO0O0 in O000O0O0O000OOO00 ):#line:91
-                O0OOOO000OO00OOOO +=1 #line:92
-                del O00OO00O00OOO0000 .grid [O0O000O000O000000 ]#line:93
-                O00OO00O00OOO0000 .grid .insert (0 ,[0 for _OO0OO00OO000O0OO0 in range (O00OO00O00OOO0000 .width )])#line:94
-        return O0OOOO000OO00OOOO #line:95
-    def lock_piece (O0O00OOOO0OOO000O ,OOOO00000OO0OO00O ):#line:97
-        ""#line:98
-        for OO000O00O00OO00O0 ,OOO0OO0OO0OO0OOOO in enumerate (OOOO00000OO0OO00O .shape [OOOO00000OO0OO00O .rotation %len (OOOO00000OO0OO00O .shape )]):#line:99
-            for OO0000OO0OOO00O0O ,OOOOOOO00O00OOO00 in enumerate (OOO0OO0OO0OO0OOOO ):#line:100
-                if OOOOOOO00O00OOO00 =="O":#line:101
-                    O0O00OOOO0OOO000O .grid [OOOO00000OO0OO00O .y +OO000O00O00OO00O0 ][OOOO00000OO0OO00O .x +OO0000OO0OOO00O0O ]=OOOO00000OO0OO00O .color #line:102
-        OOOOO0000O00OOOOO =O0O00OOOO0OOO000O .clear_lines ()#line:104
-        O0O00OOOO0OOO000O .score +=(OOOOO0000O00OOOOO *100 )#line:107
-        O0O00OOOO0OOO000O .current_piece =O0O00OOOO0OOO000O .new_piece ()#line:109
-        if not O0O00OOOO0OOO000O .valid_move (O0O00OOOO0OOO000O .current_piece ,0 ,0 ,0 ):#line:111
-            O0O00OOOO0OOO000O .game_over =True #line:112
-        return OOOOO0000O00OOOOO #line:113
-    def update (O00OO0OOO0OO0O0O0 ):#line:115
-        ""#line:116
-        if not O00OO0OOO0OO0O0O0 .game_over :#line:117
-            if O00OO0OOO0OO0O0O0 .valid_move (O00OO0OOO0OO0O0O0 .current_piece ,0 ,1 ,0 ):#line:118
-                O00OO0OOO0OO0O0O0 .current_piece .y +=1 #line:119
-            else :#line:120
-                O00OO0OOO0OO0O0O0 .lock_piece (O00OO0OOO0OO0O0O0 .current_piece )#line:121
-    def draw (O00000O00000O0OOO ,OO00OOOOO00OO0000 ):#line:123
-        ""#line:124
-        for OO0OO0000OOOOO000 ,OO0O00OOOO0OO0OO0 in enumerate (O00000O00000O0OOO .grid ):#line:125
-            for O00000000O0O0OO00 ,OOOO0OO0O0O00O0OO in enumerate (OO0O00OOOO0OO0OO0 ):#line:126
-                if OOOO0OO0O0O00O0OO :#line:127
-                    pygame .draw .rect (OO00OOOOO00OO0000 ,OOOO0OO0O0O00O0OO ,(O00000000O0O0OO00 *GRID_SIZE ,OO0OO0000OOOOO000 *GRID_SIZE ,GRID_SIZE -1 ,GRID_SIZE -1 ),)#line:132
-        if O00000O00000O0OOO .current_piece :#line:134
-            for OO0OOO00OO00OO0OO ,OO0O00OOOO0OO0OO0 in enumerate (O00000O00000O0OOO .current_piece .shape [O00000O00000O0OOO .current_piece .rotation %len (O00000O00000O0OOO .current_piece .shape )]):#line:139
-                for OO00OOOO00OO0OO00 ,OOOO0OO0O0O00O0OO in enumerate (OO0O00OOOO0OO0OO0 ):#line:140
-                    if OOOO0OO0O0O00O0OO =="O":#line:141
-                        pygame .draw .rect (OO00OOOOO00OO0000 ,O00000O00000O0OOO .current_piece .color ,((O00000O00000O0OOO .current_piece .x +OO00OOOO00OO0OO00 )*GRID_SIZE ,(O00000O00000O0OOO .current_piece .y +OO0OOO00OO00OO0OO )*GRID_SIZE ,GRID_SIZE -1 ,GRID_SIZE -1 ,),)#line:151
-def draw_score (O00OOOOO0O00000O0 ,OO0OOO0OO0O000000 ,OOO0000OO00OO00OO ,OOOOOOO0OOOOOOO0O ):#line:154
-    ""#line:155
-    O00O0OOOO0OOO0OOO =pygame .font .Font (None ,36 )#line:156
-    O000OO00000OO0O00 =O00O0OOOO0OOO0OOO .render (f"Score: {OO0OOO0OO0O000000}",True ,WHITE )#line:157
-    O00OOOOO0O00000O0 .blit (O000OO00000OO0O00 ,(OOO0000OO00OO00OO ,OOOOOOO0OOOOOOO0O ))#line:158
-def draw_game_over (OOOOOOO0OO00OOO0O ,OO00O00O000OO000O ,OO000OOOOO0O0O0O0 ):#line:161
-    ""#line:162
-    OO0OO000OO000O0OO =pygame .font .Font (None ,48 )#line:163
-    OOO00OO0OOOO0O0O0 =OO0OO000OO000O0OO .render ("Game Over",True ,RED )#line:164
-    OOOOOOO0OO00OOO0O .blit (OOO00OO0OOOO0O0O0 ,(OO00O00O000OO000O ,OO000OOOOO0O0O0O0 ))#line:165
-def main ():#line:168
-    OOO0O0OO000O0000O =pygame .display .set_mode ((WIDTH ,HEIGHT ))#line:170
-    pygame .display .set_caption ("Tetris")#line:171
-    O0OO0O000O00O000O =pygame .time .Clock ()#line:173
-    OO0OOO0OO0O0OOO00 =Tetris (WIDTH //GRID_SIZE ,HEIGHT //GRID_SIZE )#line:175
-    O00O0000O0000O000 =0 #line:176
-    O0OOO00OO00OO00O0 =50 #line:177
-    while True :#line:178
-        OOO0O0OO000O0000O .fill (BLACK )#line:180
-        for OO000O0O0OO00OOO0 in pygame .event .get ():#line:181
-            if OO000O0O0OO00OOO0 .type ==pygame .QUIT :#line:183
-                pygame .quit ()#line:184
-                sys .exit ()#line:185
-            if OO000O0O0OO00OOO0 .type ==pygame .KEYDOWN :#line:187
-                if OO000O0O0OO00OOO0 .key ==pygame .K_LEFT :#line:188
-                    if OO0OOO0OO0O0OOO00 .valid_move (OO0OOO0OO0O0OOO00 .current_piece ,-1 ,0 ,0 ):#line:189
-                        OO0OOO0OO0O0OOO00 .current_piece .x -=1 #line:190
-                if OO000O0O0OO00OOO0 .key ==pygame .K_RIGHT :#line:191
-                    if OO0OOO0OO0O0OOO00 .valid_move (OO0OOO0OO0O0OOO00 .current_piece ,1 ,0 ,0 ):#line:192
-                        OO0OOO0OO0O0OOO00 .current_piece .x +=1 #line:193
-                if OO000O0O0OO00OOO0 .key ==pygame .K_DOWN :#line:194
-                    if OO0OOO0OO0O0OOO00 .valid_move (OO0OOO0OO0O0OOO00 .current_piece ,0 ,1 ,0 ):#line:195
-                        OO0OOO0OO0O0OOO00 .current_piece .y +=1 #line:196
-                if OO000O0O0OO00OOO0 .key ==pygame .K_UP :#line:197
-                    if OO0OOO0OO0O0OOO00 .valid_move (OO0OOO0OO0O0OOO00 .current_piece ,0 ,0 ,1 ):#line:198
-                        OO0OOO0OO0O0OOO00 .current_piece .rotation +=1 #line:199
-                if OO000O0O0OO00OOO0 .key ==pygame .K_SPACE :#line:200
-                    while OO0OOO0OO0O0OOO00 .valid_move (OO0OOO0OO0O0OOO00 .current_piece ,0 ,1 ,0 ):#line:201
-                        OO0OOO0OO0O0OOO00 .current_piece .y +=(1 )#line:204
-                    OO0OOO0OO0O0OOO00 .lock_piece (OO0OOO0OO0O0OOO00 .current_piece )#line:205
-        O0O0OO0O0000O00OO =O0OO0O000O00O000O .get_rawtime ()#line:207
-        O00O0000O0000O000 +=O0O0OO0O0000O00OO #line:209
-        if O00O0000O0000O000 >=O0OOO00OO00OO00O0 :#line:210
-            OO0OOO0OO0O0OOO00 .update ()#line:212
-            O00O0000O0000O000 =0 #line:214
-        draw_score (OOO0O0OO000O0000O ,OO0OOO0OO0O0OOO00 .score ,10 ,10 )#line:216
-        OO0OOO0OO0O0OOO00 .draw (OOO0O0OO000O0000O )#line:218
-        if OO0OOO0OO0O0OOO00 .game_over :#line:219
-            draw_game_over (OOO0O0OO000O0000O ,WIDTH //2 -100 ,HEIGHT //2 -30 )#line:223
-            if OO000O0O0OO00OOO0 .type ==pygame .KEYDOWN :#line:226
-                OO0OOO0OO0O0OOO00 =Tetris (WIDTH //GRID_SIZE ,HEIGHT //GRID_SIZE )#line:228
-        pygame .display .flip ()#line:230
-        O0OO0O000O00O000O .tick (60 )#line:232
-if __name__ =="__main__":#line:235
-    main ()#line:236
+#!/usr/bin/env python3
+""#line:2
+import argparse #line:4
+import os #line:5
+import re #line:6
+def get_args ():#line:10
+    ""#line:11
+    OO0OO0OO0OO0OOO00 =argparse .ArgumentParser (description ='Apples and bananas',formatter_class =argparse .ArgumentDefaultsHelpFormatter )#line:15
+    OO0OO0OO0OO0OOO00 .add_argument ('text',metavar ='text',help ='Input text or file')#line:17
+    OO0OO0OO0OO0OOO00 .add_argument ('-v','--vowel',help ='The vowel to substitute',metavar ='vowel',type =str ,default ='a',choices =list ('aeiou'))#line:25
+    OOOOO0O0O000OO0O0 =OO0OO0OO0OO0OOO00 .parse_args ()#line:27
+    if os .path .isfile (OOOOO0O0O000OO0O0 .text ):#line:29
+        OOOOO0O0O000OO0O0 .text =open (OOOOO0O0O000OO0O0 .text ).read ().rstrip ()#line:30
+    return OOOOO0O0O000OO0O0 #line:32
+def main ():#line:36
+    ""#line:37
+    OOOO00O0O0O0OO0O0 =get_args ()#line:39
+    OO000O0OOOOOO0O0O =OOOO00O0O0O0OO0O0 .vowel #line:40
+    O00000O00OO0O00O0 =str .maketrans ('aeiouAEIOU',OO000O0OOOOOO0O0O *5 +OO000O0OOOOOO0O0O .upper ()*5 )#line:41
+    O0OO0O00O000OO000 =OOOO00O0O0O0OO0O0 .text .translate (O00000O00OO0O00O0 )#line:42
+    print (O0OO0O00O000OO000 )#line:44
+if __name__ =='__main__':#line:48
+    main ()#line:49

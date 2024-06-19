@@ -1,165 +1,29 @@
-""#line:9:"""
-import logging #line:11:import logging
-import os #line:12:import os
-import re #line:13:import re
-from pip ._vendor .packaging .markers import Marker #line:15:from pip._vendor.packaging.markers import Marker
-from pip ._vendor .packaging .requirements import InvalidRequirement ,Requirement #line:16:from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
-from pip ._vendor .packaging .specifiers import Specifier #line:17:from pip._vendor.packaging.specifiers import Specifier
-from pip ._vendor .pkg_resources import RequirementParseError ,parse_requirements #line:18:from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
-from pip ._internal .download import (is_archive_file ,is_url ,path_to_url ,url_to_path ,)#line:22:)
-from pip ._internal .exceptions import InstallationError #line:23:from pip._internal.exceptions import InstallationError
-from pip ._internal .models .index import PyPI ,TestPyPI #line:24:from pip._internal.models.index import PyPI, TestPyPI
-from pip ._internal .models .link import Link #line:25:from pip._internal.models.link import Link
-from pip ._internal .pyproject import make_pyproject_path #line:26:from pip._internal.pyproject import make_pyproject_path
-from pip ._internal .req .req_install import InstallRequirement #line:27:from pip._internal.req.req_install import InstallRequirement
-from pip ._internal .utils .misc import is_installable_dir #line:28:from pip._internal.utils.misc import is_installable_dir
-from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:29:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip ._internal .vcs import vcs #line:30:from pip._internal.vcs import vcs
-from pip ._internal .wheel import Wheel #line:31:from pip._internal.wheel import Wheel
-if MYPY_CHECK_RUNNING :#line:33:if MYPY_CHECK_RUNNING:
-    from typing import (Optional ,Tuple ,Set ,Any ,Union ,Text ,Dict ,)#line:36:)
-    from pip ._internal .cache import WheelCache #line:37:from pip._internal.cache import WheelCache  # noqa: F401
-__all__ =["install_req_from_editable","install_req_from_line","parse_editable"]#line:43:]
-O00O0O00O0000OO00 =logging .getLogger (__name__ )#line:45:logger = logging.getLogger(__name__)
-OO0O0O000OO0O0O00 =Specifier ._operators .keys ()#line:46:operators = Specifier._operators.keys()
-def _O000O00000000000O (O0O000OOO0OOOOOO0 ):#line:49:def _strip_extras(path):
-    OO00OOOO0O0O0000O =re .match (r'^(.+)(\[[^\]]+\])$',O0O000OOO0OOOOOO0 )#line:51:m = re.match(r'^(.+)(\[[^\]]+\])$', path)
-    O0O0OO0OOOOOOO0O0 =None #line:52:extras = None
-    if OO00OOOO0O0O0000O :#line:53:if m:
-        O0OO00O00OO0O00OO =OO00OOOO0O0O0000O .group (1 )#line:54:path_no_extras = m.group(1)
-        O0O0OO0OOOOOOO0O0 =OO00OOOO0O0O0000O .group (2 )#line:55:extras = m.group(2)
-    else :#line:56:else:
-        O0OO00O00OO0O00OO =O0O000OOO0OOOOOO0 #line:57:path_no_extras = path
-    return O0OO00O00OO0O00OO ,O0O0OO0OOOOOOO0O0 #line:59:return path_no_extras, extras
-def parse_editable (O00O0O0OO00OO0OOO ):#line:62:def parse_editable(editable_req):
-    ""#line:72:"""
-    OOOOOOO00000O0OO0 =O00O0O0OO00OO0OOO #line:74:url = editable_req
-    O0OO0OO00OOO00OOO ,OOOO0OO0OOOOOO00O =_O000O00000000000O (OOOOOOO00000O0OO0 )#line:77:url_no_extras, extras = _strip_extras(url)
-    if os .path .isdir (O0OO0OO00OOO00OOO ):#line:79:if os.path.isdir(url_no_extras):
-        if not os .path .exists (os .path .join (O0OO0OO00OOO00OOO ,'setup.py')):#line:80:if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
-            OOOOOOOO000OOO0O0 =('File "setup.py" not found. Directory cannot be installed ' 'in editable mode: {}'.format (os .path .abspath (O0OO0OO00OOO00OOO )))#line:84:)
-            O000OO0000OOOO0OO =make_pyproject_path (O0OO0OO00OOO00OOO )#line:85:pyproject_path = make_pyproject_path(url_no_extras)
-            if os .path .isfile (O000OO0000OOOO0OO ):#line:86:if os.path.isfile(pyproject_path):
-                OOOOOOOO000OOO0O0 +=('\n(A "pyproject.toml" file was found, but editable ' 'mode currently requires a setup.py based build.)')#line:90:)
-            raise InstallationError (OOOOOOOO000OOO0O0 )#line:91:raise InstallationError(msg)
-        O0OO0OO00OOO00OOO =path_to_url (O0OO0OO00OOO00OOO )#line:94:url_no_extras = path_to_url(url_no_extras)
-    if O0OO0OO00OOO00OOO .lower ().startswith ('file:'):#line:96:if url_no_extras.lower().startswith('file:'):
-        O00O0O0OO0O00000O =Link (O0OO0OO00OOO00OOO ).egg_fragment #line:97:package_name = Link(url_no_extras).egg_fragment
-        if OOOO0OO0OOOOOO00O :#line:98:if extras:
-            return (O00O0O0OO0O00000O ,O0OO0OO00OOO00OOO ,Requirement ("placeholder"+OOOO0OO0OOOOOO00O .lower ()).extras ,)#line:103:)
-        else :#line:104:else:
-            return O00O0O0OO0O00000O ,O0OO0OO00OOO00OOO ,None #line:105:return package_name, url_no_extras, None
-    for OOO000O00O00O0OOO in vcs :#line:107:for version_control in vcs:
-        if OOOOOOO00000O0OO0 .lower ().startswith ('%s:'%OOO000O00O00O0OOO ):#line:108:if url.lower().startswith('%s:' % version_control):
-            OOOOOOO00000O0OO0 ='%s+%s'%(OOO000O00O00O0OOO ,OOOOOOO00000O0OO0 )#line:109:url = '%s+%s' % (version_control, url)
-            break #line:110:break
-    if '+'not in OOOOOOO00000O0OO0 :#line:112:if '+' not in url:
-        raise InstallationError ('%s should either be a path to a local project or a VCS url ' 'beginning with svn+, git+, hg+, or bzr+'%O00O0O0OO00OO0OOO )#line:117:)
-    O0O00OO00000OOO00 =OOOOOOO00000O0OO0 .split ('+',1 )[0 ].lower ()#line:119:vc_type = url.split('+', 1)[0].lower()
-    if not vcs .get_backend (O0O00OO00000OOO00 ):#line:121:if not vcs.get_backend(vc_type):
-        OOOOOOOO000OO000O ='For --editable=%s only '%O00O0O0OO00OO0OOO +', '.join ([O0O00OO00OO0OOO00 .name +'+URL'for O0O00OO00OO0OOO00 in vcs .backends ])+' is currently supported'#line:124:' is currently supported'
-        raise InstallationError (OOOOOOOO000OO000O )#line:125:raise InstallationError(error_message)
-    O00O0O0OO0O00000O =Link (OOOOOOO00000O0OO0 ).egg_fragment #line:127:package_name = Link(url).egg_fragment
-    if not O00O0O0OO0O00000O :#line:128:if not package_name:
-        raise InstallationError ("Could not detect requirement name for '%s', please specify one " "with #egg=your_package_name"%O00O0O0OO00OO0OOO )#line:132:)
-    return O00O0O0OO0O00000O ,OOOOOOO00000O0OO0 ,None #line:133:return package_name, url, None
-def OOO0000OO0O0O0O00 (OOO0OOOO0O0OO00O0 ):#line:136:def deduce_helpful_msg(req):
-    ""#line:142:"""
-    OO000O00OOO0000O0 =""#line:143:msg = ""
-    if os .path .exists (OOO0OOOO0O0OO00O0 ):#line:144:if os.path.exists(req):
-        OO000O00OOO0000O0 =" It does exist."#line:145:msg = " It does exist."
-        try :#line:147:try:
-            with open (OOO0OOOO0O0OO00O0 ,'r')as OOO0OOOO00000O0O0 :#line:148:with open(req, 'r') as fp:
-                next (parse_requirements (OOO0OOOO00000O0O0 .read ()))#line:150:next(parse_requirements(fp.read()))
-                OO000O00OOO0000O0 +=" The argument you provided "+"(%s) appears to be a"%(OOO0OOOO0O0OO00O0 )+" requirements file. If that is the"+" case, use the '-r' flag to install"+" the packages specified within it."#line:155:" the packages specified within it."
-        except RequirementParseError :#line:156:except RequirementParseError:
-            O00O0O00O0000OO00 .debug ("Cannot parse '%s' as requirements \
-            file"%(OOO0OOOO0O0OO00O0 ),exc_info =True )#line:158:file" % (req), exc_info=True)
-    else :#line:159:else:
-        OO000O00OOO0000O0 +=" File '%s' does not exist."%(OOO0OOOO0O0OO00O0 )#line:160:msg += " File '%s' does not exist." % (req)
-    return OO000O00OOO0000O0 #line:161:return msg
-def install_req_from_editable (OO0000OO0OO000000 ,comes_from =None ,use_pep517 =None ,isolated =False ,options =None ,wheel_cache =None ,constraint =False ):#line:175:):
-    OO0OO000O0O0OOOO0 ,OO0O00OO0O00O00OO ,OO000OOO00OOOOOO0 =parse_editable (OO0000OO0OO000000 )#line:177:name, url, extras_override = parse_editable(editable_req)
-    if OO0O00OO0O00O00OO .startswith ('file:'):#line:178:if url.startswith('file:'):
-        O0OOO0OOO00O0000O =url_to_path (OO0O00OO0O00O00OO )#line:179:source_dir = url_to_path(url)
-    else :#line:180:else:
-        O0OOO0OOO00O0000O =None #line:181:source_dir = None
-    if OO0OO000O0O0OOOO0 is not None :#line:183:if name is not None:
-        try :#line:184:try:
-            O00OO0OO0O000OO00 =Requirement (OO0OO000O0O0OOOO0 )#line:185:req = Requirement(name)
-        except InvalidRequirement :#line:186:except InvalidRequirement:
-            raise InstallationError ("Invalid requirement: '%s'"%OO0OO000O0O0OOOO0 )#line:187:raise InstallationError("Invalid requirement: '%s'" % name)
-    else :#line:188:else:
-        O00OO0OO0O000OO00 =None #line:189:req = None
-    return InstallRequirement (O00OO0OO0O000OO00 ,comes_from ,source_dir =O0OOO0OOO00O0000O ,editable =True ,link =Link (OO0O00OO0O00O00OO ),constraint =constraint ,use_pep517 =use_pep517 ,isolated =isolated ,options =options if options else {},wheel_cache =wheel_cache ,extras =OO000OOO00OOOOOO0 or (),)#line:200:)
-def install_req_from_line (OOO000OO00O0OO0O0 ,comes_from =None ,use_pep517 =None ,isolated =False ,options =None ,wheel_cache =None ,constraint =False ):#line:211:):
-    ""#line:215:"""
-    if is_url (OOO000OO00O0OO0O0 ):#line:216:if is_url(name):
-        OO0O00O00000OO0OO ='; '#line:217:marker_sep = '; '
-    else :#line:218:else:
-        OO0O00O00000OO0OO =';'#line:219:marker_sep = ';'
-    if OO0O00O00000OO0OO in OOO000OO00O0OO0O0 :#line:220:if marker_sep in name:
-        OOO000OO00O0OO0O0 ,O000O0O0O0000O00O =OOO000OO00O0OO0O0 .split (OO0O00O00000OO0OO ,1 )#line:221:name, markers_as_string = name.split(marker_sep, 1)
-        O000O0O0O0000O00O =O000O0O0O0000O00O .strip ()#line:222:markers_as_string = markers_as_string.strip()
-        if not O000O0O0O0000O00O :#line:223:if not markers_as_string:
-            O0OOO00OOOO0OO00O =None #line:224:markers = None
-        else :#line:225:else:
-            O0OOO00OOOO0OO00O =Marker (O000O0O0O0000O00O )#line:226:markers = Marker(markers_as_string)
-    else :#line:227:else:
-        O0OOO00OOOO0OO00O =None #line:228:markers = None
-    OOO000OO00O0OO0O0 =OOO000OO00O0OO0O0 .strip ()#line:229:name = name.strip()
-    O000O0O0O00O000OO =None #line:230:req_as_string = None
-    O0OOOO0O0000000O0 =os .path .normpath (os .path .abspath (OOO000OO00O0OO0O0 ))#line:231:path = os.path.normpath(os.path.abspath(name))
-    OOO0O0O0O00OOOO00 =None #line:232:link = None
-    OO00O0000OO000O0O =None #line:233:extras_as_string = None
-    if is_url (OOO000OO00O0OO0O0 ):#line:235:if is_url(name):
-        OOO0O0O0O00OOOO00 =Link (OOO000OO00O0OO0O0 )#line:236:link = Link(name)
-    else :#line:237:else:
-        O0O00OO0O0000O0OO ,OO00O0000OO000O0O =_O000O00000000000O (O0OOOO0O0000000O0 )#line:238:p, extras_as_string = _strip_extras(path)
-        O000O0OO0OO00O0OO =os .path .isdir (O0O00OO0O0000O0OO )and (os .path .sep in OOO000OO00O0OO0O0 or (os .path .altsep is not None and os .path .altsep in OOO000OO00O0OO0O0 )or OOO000OO00O0OO0O0 .startswith ('.'))#line:243:)
-        if O000O0OO0OO00O0OO :#line:244:if looks_like_dir:
-            if not is_installable_dir (O0O00OO0O0000O0OO ):#line:245:if not is_installable_dir(p):
-                raise InstallationError ("Directory %r is not installable. Neither 'setup.py' " "nor 'pyproject.toml' found."%OOO000OO00O0OO0O0 )#line:249:)
-            OOO0O0O0O00OOOO00 =Link (path_to_url (O0O00OO0O0000O0OO ))#line:250:link = Link(path_to_url(p))
-        elif is_archive_file (O0O00OO0O0000O0OO ):#line:251:elif is_archive_file(p):
-            if not os .path .isfile (O0O00OO0O0000O0OO ):#line:252:if not os.path.isfile(p):
-                O00O0O00O0000OO00 .warning ('Requirement %r looks like a filename, but the ' 'file does not exist',OOO000OO00O0OO0O0 )#line:257:)
-            OOO0O0O0O00OOOO00 =Link (path_to_url (O0O00OO0O0000O0OO ))#line:258:link = Link(path_to_url(p))
-    if OOO0O0O0O00OOOO00 :#line:261:if link:
-        if OOO0O0O0O00OOOO00 .scheme =='file'and re .search (r'\.\./',OOO0O0O0O00OOOO00 .url ):#line:263:if link.scheme == 'file' and re.search(r'\.\./', link.url):
-            OOO0O0O0O00OOOO00 =Link (path_to_url (os .path .normpath (os .path .abspath (OOO0O0O0O00OOOO00 .path ))))#line:265:path_to_url(os.path.normpath(os.path.abspath(link.path))))
-        if OOO0O0O0O00OOOO00 .is_wheel :#line:267:if link.is_wheel:
-            OO0OO00O00OOO0O0O =Wheel (OOO0O0O0O00OOOO00 .filename )#line:268:wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-            O000O0O0O00O000OO ="%s==%s"%(OO0OO00O00OOO0O0O .name ,OO0OO00O00OOO0O0O .version )#line:269:req_as_string = "%s==%s" % (wheel.name, wheel.version)
-        else :#line:270:else:
-            O000O0O0O00O000OO =OOO0O0O0O00OOOO00 .egg_fragment #line:273:req_as_string = link.egg_fragment
-    else :#line:276:else:
-        O000O0O0O00O000OO =OOO000OO00O0OO0O0 #line:277:req_as_string = name
-    if OO00O0000OO000O0O :#line:279:if extras_as_string:
-        OOOO0O0O00O000OOO =Requirement ("placeholder"+OO00O0000OO000O0O .lower ()).extras #line:280:extras = Requirement("placeholder" + extras_as_string.lower()).extras
-    else :#line:281:else:
-        OOOO0O0O00O000OOO =()#line:282:extras = ()
-    if O000O0O0O00O000OO is not None :#line:283:if req_as_string is not None:
-        try :#line:284:try:
-            O0OO0O00OOOOOOOOO =Requirement (O000O0O0O00O000OO )#line:285:req = Requirement(req_as_string)
-        except InvalidRequirement :#line:286:except InvalidRequirement:
-            if os .path .sep in O000O0O0O00O000OO :#line:287:if os.path.sep in req_as_string:
-                OOO00000O00O0O00O ="It looks like a path."#line:288:add_msg = "It looks like a path."
-                OOO00000O00O0O00O +=OOO0000OO0O0O0O00 (O000O0O0O00O000OO )#line:289:add_msg += deduce_helpful_msg(req_as_string)
-            elif ('='in O000O0O0O00O000OO and not any (OO000O0O0OO0O00O0 in O000O0O0O00O000OO for OO000O0O0OO0O00O0 in OO0O0O000OO0O0O00 )):#line:291:not any(op in req_as_string for op in operators)):
-                OOO00000O00O0O00O ="= is not a valid operator. Did you mean == ?"#line:292:add_msg = "= is not a valid operator. Did you mean == ?"
-            else :#line:293:else:
-                OOO00000O00O0O00O =""#line:294:add_msg = ""
-            raise InstallationError ("Invalid requirement: '%s'\n%s"%(O000O0O0O00O000OO ,OOO00000O00O0O00O ))#line:297:)
-    else :#line:298:else:
-        O0OO0O00OOOOOOOOO =None #line:299:req = None
-    return InstallRequirement (O0OO0O00OOOOOOOOO ,comes_from ,link =OOO0O0O0O00OOOO00 ,markers =O0OOO00OOOO0OO00O ,use_pep517 =use_pep517 ,isolated =isolated ,options =options if options else {},wheel_cache =wheel_cache ,constraint =constraint ,extras =OOOO0O0O00O000OOO ,)#line:308:)
-def O00OO0OOO0OO0O0OO (OO00000OOO0O00O0O ,comes_from =None ,isolated =False ,wheel_cache =None ,use_pep517 =None ):#line:317:):
-    try :#line:319:try:
-        OO0000OO00O0OOO00 =Requirement (OO00000OOO0O00O0O )#line:320:req = Requirement(req_string)
-    except InvalidRequirement :#line:321:except InvalidRequirement:
-        raise InstallationError ("Invalid requirement: '%s'"%OO0000OO00O0OOO00 )#line:322:raise InstallationError("Invalid requirement: '%s'" % req)
-    OOOO0OO0OOO0O0O0O =[PyPI .file_storage_domain ,TestPyPI .file_storage_domain ,]#line:327:]
-    if OO0000OO00O0OOO00 .url and comes_from .link .netloc in OOOO0OO0OOO0O0O0O :#line:328:if req.url and comes_from.link.netloc in domains_not_allowed:
-        raise InstallationError ("Packages installed from PyPI cannot depend on packages " "which are not also hosted on PyPI.\n" "%s depends on %s "%(comes_from .name ,OO0000OO00O0OOO00 ))#line:334:)
-    return InstallRequirement (OO0000OO00O0OOO00 ,comes_from ,isolated =isolated ,wheel_cache =wheel_cache ,use_pep517 =use_pep517 )#line:339:)
+from datetime import date #line:1
+def ageCalculator (O00OO0OO0000OOOOO ,OOOO000O00O00O0OO ,OO0OOO00OO0O0O000 ):#line:4
+    OO0O000OOO0OOO0OO =0 #line:5
+    OO0O0OOOO0O000000 =0 #line:6
+    OOOO00000OOOO0OO0 =0 #line:7
+    OOOOO000O0O0OO0O0 =int (today .strftime ("%d"))#line:9
+    O00O00O00OOOO0000 =int (today .strftime ("%m"))#line:10
+    O0O0O00OO0OO0000O =int (today .strftime ("%y"))#line:11
+    if OOOOO000O0O0OO0O0 <day :#line:13
+        OOOOO000O0O0OO0O0 +=31 #line:14
+        OO0O000OOO0OOO0OO =OOOOO000O0O0OO0O0 -OO0OOO00OO0O0O000 #line:15
+    else :#line:16
+        OO0O000OOO0OOO0OO =OOOOO000O0O0OO0O0 -OO0OOO00OO0O0O000 #line:17
+    if O00O00O00OOOO0000 <OOOO000O00O00O0OO :#line:19
+        O00O00O00OOOO0000 +=12 #line:20
+        OO0O0OOOO0O000000 =O00O00O00OOOO0000 -OOOO000O00O00O0OO #line:21
+    else :#line:22
+        OO0O0OOOO0O000000 =O00O00O00OOOO0000 -OOOO000O00O00O0OO #line:23
+    OOOO00000OOOO0OO0 =O0O0O00OO0OO0000O -O00OO0OO0000OOOOO #line:25
+    print (f"your age of today is :{O0O0O00OO0OO0000O}-{O00O00O00OOOO0000}-{OOOOO000O0O0OO0O0}")#line:27
+today =date .today ()#line:30
+print ("today's date is:",today )#line:31
+birthDate =input ('Enter your birth date in YYYY-MM-DD format:')#line:32
+year ,month ,day =map (int ,birthDate .split ('-'))#line:33
+if month >12 or day >31 or year <int (today .strftime ("%y")):#line:34
+    print ('invalid date')#line:35
+    exit ()#line:36
+print ("your date of birth is:",birthDate )#line:37
+ageCalculator (year ,month ,day )#line:38

@@ -1,118 +1,41 @@
-from __future__ import absolute_import ,division ,unicode_literals #line:1
-from xml .dom import Node #line:3
-from ..constants import namespaces ,voidElements ,spaceCharacters #line:4
-__all__ =["DOCUMENT","DOCTYPE","TEXT","ELEMENT","COMMENT","ENTITY","UNKNOWN","TreeWalker","NonRecursiveTreeWalker"]#line:7
-DOCUMENT =Node .DOCUMENT_NODE #line:9
-DOCTYPE =Node .DOCUMENT_TYPE_NODE #line:10
-TEXT =Node .TEXT_NODE #line:11
-ELEMENT =Node .ELEMENT_NODE #line:12
-COMMENT =Node .COMMENT_NODE #line:13
-ENTITY =Node .ENTITY_NODE #line:14
-UNKNOWN ="<#UNKNOWN#>"#line:15
-spaceCharacters ="".join (spaceCharacters )#line:17
-class TreeWalker (object ):#line:20
-    ""#line:26
-    def __init__ (OOO0OO0OOOO0OOO0O ,O0000OOO0OOO00O00 ):#line:27
-        ""#line:32
-        OOO0OO0OOOO0OOO0O .tree =O0000OOO0OOO00O00 #line:33
-    def __iter__ (O0OOOOOO0O00OOO00 ):#line:35
-        raise NotImplementedError #line:36
-    def error (O0000OOO0O0OOO00O ,OOO0O0O0OO000000O ):#line:38
-        ""#line:45
-        return {"type":"SerializeError","data":OOO0O0O0OO000000O }#line:46
-    def emptyTag (O0O00000O000OOOOO ,OOO0000OOOO00O0OO ,O0O000OO0O0O0O0O0 ,OOO000O0O00000O00 ,hasChildren =False ):#line:48
-        ""#line:62
-        yield {"type":"EmptyTag","name":O0O000OO0O0O0O0O0 ,"namespace":OOO0000OOOO00O0OO ,"data":OOO000O0O00000O00 }#line:65
-        if hasChildren :#line:66
-            yield O0O00000O000OOOOO .error ("Void element has children")#line:67
-    def startTag (O00OOOO0OO0O000OO ,O0000OO0OOO00O0OO ,OOOOOOO0OOO0O0000 ,OO000OO00O0OOO000 ):#line:69
-        ""#line:80
-        return {"type":"StartTag","name":OOOOOOO0OOO0O0000 ,"namespace":O0000OO0OOO00O0OO ,"data":OO000OO00O0OOO000 }#line:84
-    def endTag (OO0O0O000O00O0OO0 ,OO00O00OOOOO00O0O ,OO00OO000OO0OOOOO ):#line:86
-        ""#line:95
-        return {"type":"EndTag","name":OO00OO000OO0OOOOO ,"namespace":OO00O00OOOOO00O0O }#line:98
-    def text (O000O00OOO0000OO0 ,O00OO00OO00OOOO00 ):#line:100
-        ""#line:124
-        O00OO00OO00OOOO00 =O00OO00OO00OOOO00 #line:125
-        OOOO0O0O000OO0O0O =O00OO00OO00OOOO00 .lstrip (spaceCharacters )#line:126
-        OO0O0O00OO00O00OO =O00OO00OO00OOOO00 [:len (O00OO00OO00OOOO00 )-len (OOOO0O0O000OO0O0O )]#line:127
-        if OO0O0O00OO00O00OO :#line:128
-            yield {"type":"SpaceCharacters","data":OO0O0O00OO00O00OO }#line:129
-        O00OO00OO00OOOO00 =OOOO0O0O000OO0O0O #line:130
-        OOOO0O0O000OO0O0O =O00OO00OO00OOOO00 .rstrip (spaceCharacters )#line:131
-        OOO00O000OO000O00 =O00OO00OO00OOOO00 [len (OOOO0O0O000OO0O0O ):]#line:132
-        if OOOO0O0O000OO0O0O :#line:133
-            yield {"type":"Characters","data":OOOO0O0O000OO0O0O }#line:134
-        if OOO00O000OO000O00 :#line:135
-            yield {"type":"SpaceCharacters","data":OOO00O000OO000O00 }#line:136
-    def comment (OO00O0O00OOOO00OO ,OOO0OO0O00000O000 ):#line:138
-        ""#line:145
-        return {"type":"Comment","data":OOO0OO0O00000O000 }#line:146
-    def doctype (OOOO0O00O0O0000O0 ,OOOO0OOO0OOO0O0O0 ,publicId =None ,systemId =None ):#line:148
-        ""#line:159
-        return {"type":"Doctype","name":OOOO0OOO0OOO0O0O0 ,"publicId":publicId ,"systemId":systemId }#line:163
-    def entity (OOOO00OO0O0000000 ,OOO00OOO000O000O0 ):#line:165
-        ""#line:172
-        return {"type":"Entity","name":OOO00OOO000O000O0 }#line:173
-    def unknown (O00O0O00O0O00O000 ,O0O00OOOOO00OOO00 ):#line:175
-        ""#line:176
-        return O00O0O00O0O00O000 .error ("Unknown node type: "+O0O00OOOOO00OOO00 )#line:177
-class NonRecursiveTreeWalker (TreeWalker ):#line:180
-    def getNodeDetails (O000O00000OOOOOO0 ,O00O0OOOO00000O00 ):#line:181
-        raise NotImplementedError #line:182
-    def getFirstChild (OOO000O000000OO0O ,O0O000O0O0O00O000 ):#line:184
-        raise NotImplementedError #line:185
-    def getNextSibling (OOOOO0OO0000O0OO0 ,OOO00O00OO000O0O0 ):#line:187
-        raise NotImplementedError #line:188
-    def getParentNode (OOOO0OO0O0OO00000 ,OOO0O0000O000OOOO ):#line:190
-        raise NotImplementedError #line:191
-    def __iter__ (O0O00O0000O0OO0OO ):#line:193
-        OOOOOOOOO0OOO00O0 =O0O00O0000O0OO0OO .tree #line:194
-        while OOOOOOOOO0OOO00O0 is not None :#line:195
-            O00OO0OO0O0000O00 =O0O00O0000O0OO0OO .getNodeDetails (OOOOOOOOO0OOO00O0 )#line:196
-            OOOOOOOOO0OOO0OOO ,O00OO0OO0O0000O00 =O00OO0OO0O0000O00 [0 ],O00OO0OO0O0000O00 [1 :]#line:197
-            O0O0O0OO000OOO0OO =False #line:198
-            if OOOOOOOOO0OOO0OOO ==DOCTYPE :#line:200
-                yield O0O00O0000O0OO0OO .doctype (*O00OO0OO0O0000O00 )#line:201
-            elif OOOOOOOOO0OOO0OOO ==TEXT :#line:203
-                for OOO00OOO0O0OOO000 in O0O00O0000O0OO0OO .text (*O00OO0OO0O0000O00 ):#line:204
-                    yield OOO00OOO0O0OOO000 #line:205
-            elif OOOOOOOOO0OOO0OOO ==ELEMENT :#line:207
-                OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 ,O0O0O0OO000OOO0OO =O00OO0OO0O0000O00 #line:208
-                if (not OOOO0O00000OO0O0O or OOOO0O00000OO0O0O ==namespaces ["html"])and O00OOO000O0O00OO0 in voidElements :#line:209
-                    for OOO00OOO0O0OOO000 in O0O00O0000O0OO0OO .emptyTag (OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 ,O0O0O0OO000OOO0OO ):#line:211
-                        yield OOO00OOO0O0OOO000 #line:212
-                    O0O0O0OO000OOO0OO =False #line:213
-                else :#line:214
-                    yield O0O00O0000O0OO0OO .startTag (OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 )#line:215
-            elif OOOOOOOOO0OOO0OOO ==COMMENT :#line:217
-                yield O0O00O0000O0OO0OO .comment (O00OO0OO0O0000O00 [0 ])#line:218
-            elif OOOOOOOOO0OOO0OOO ==ENTITY :#line:220
-                yield O0O00O0000O0OO0OO .entity (O00OO0OO0O0000O00 [0 ])#line:221
-            elif OOOOOOOOO0OOO0OOO ==DOCUMENT :#line:223
-                O0O0O0OO000OOO0OO =True #line:224
-            else :#line:226
-                yield O0O00O0000O0OO0OO .unknown (O00OO0OO0O0000O00 [0 ])#line:227
-            if O0O0O0OO000OOO0OO :#line:229
-                OOOO000OOO0OO000O =O0O00O0000O0OO0OO .getFirstChild (OOOOOOOOO0OOO00O0 )#line:230
-            else :#line:231
-                OOOO000OOO0OO000O =None #line:232
-            if OOOO000OOO0OO000O is not None :#line:234
-                OOOOOOOOO0OOO00O0 =OOOO000OOO0OO000O #line:235
-            else :#line:236
-                while OOOOOOOOO0OOO00O0 is not None :#line:237
-                    O00OO0OO0O0000O00 =O0O00O0000O0OO0OO .getNodeDetails (OOOOOOOOO0OOO00O0 )#line:238
-                    OOOOOOOOO0OOO0OOO ,O00OO0OO0O0000O00 =O00OO0OO0O0000O00 [0 ],O00OO0OO0O0000O00 [1 :]#line:239
-                    if OOOOOOOOO0OOO0OOO ==ELEMENT :#line:240
-                        OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 ,OO0OO0OO0000OOOO0 ,O0O0O0OO000OOO0OO =O00OO0OO0O0000O00 #line:241
-                        if (OOOO0O00000OO0O0O and OOOO0O00000OO0O0O !=namespaces ["html"])or O00OOO000O0O00OO0 not in voidElements :#line:242
-                            yield O0O00O0000O0OO0OO .endTag (OOOO0O00000OO0O0O ,O00OOO000O0O00OO0 )#line:243
-                    if O0O00O0000O0OO0OO .tree is OOOOOOOOO0OOO00O0 :#line:244
-                        OOOOOOOOO0OOO00O0 =None #line:245
-                        break #line:246
-                    OOO00OO00O00O0000 =O0O00O0000O0OO0OO .getNextSibling (OOOOOOOOO0OOO00O0 )#line:247
-                    if OOO00OO00O00O0000 is not None :#line:248
-                        OOOOOOOOO0OOO00O0 =OOO00OO00O00O0000 #line:249
-                        break #line:250
-                    else :#line:251
-                        OOOOOOOOO0OOO00O0 =O0O00O0000O0OO0OO .getParentNode (OOOOOOOOO0OOO00O0 )#line:252
+from __future__ import absolute_import ,division ,print_function #line:4
+class Infinity (object ):#line:7
+    def __repr__ (OO000OO0O0O00OOOO ):#line:8
+        return "Infinity"#line:9
+    def __hash__ (OO0O0000O00O0OO0O ):#line:11
+        return hash (repr (OO0O0000O00O0OO0O ))#line:12
+    def __lt__ (OO0OOOO0O00O0OOOO ,OO0OOO0000000000O ):#line:14
+        return False #line:15
+    def __le__ (O0O0O00OO00OOOOO0 ,O00000O0O0OOOOOO0 ):#line:17
+        return False #line:18
+    def __eq__ (OOO00O0000OO000O0 ,O0O0OOOOO0OO0O0O0 ):#line:20
+        return isinstance (O0O0OOOOO0OO0O0O0 ,OOO00O0000OO000O0 .__class__ )#line:21
+    def __ne__ (OO00OO0000000O0OO ,O00OOO0O000000000 ):#line:23
+        return not isinstance (O00OOO0O000000000 ,OO00OO0000000O0OO .__class__ )#line:24
+    def __gt__ (O0OOOOO0OOOO00O0O ,O00OOO00OOOOOO000 ):#line:26
+        return True #line:27
+    def __ge__ (O00000OO00OO0OO0O ,OO00000OOO0O0O000 ):#line:29
+        return True #line:30
+    def __neg__ (OO00OOO000000000O ):#line:32
+        return NegativeInfinity #line:33
+Infinity =Infinity ()#line:36
+class NegativeInfinity (object ):#line:39
+    def __repr__ (OOO000O00OOO0OOO0 ):#line:40
+        return "-Infinity"#line:41
+    def __hash__ (O0OOOO00O0O00O00O ):#line:43
+        return hash (repr (O0OOOO00O0O00O00O ))#line:44
+    def __lt__ (O000O00OO00OOOO0O ,O000OO00O0OO00O00 ):#line:46
+        return True #line:47
+    def __le__ (OOOO0O0OOO0000OO0 ,O000OO0O00000OOOO ):#line:49
+        return True #line:50
+    def __eq__ (OO0O0O00000OOOOOO ,OOOO0OO000000O000 ):#line:52
+        return isinstance (OOOO0OO000000O000 ,OO0O0O00000OOOOOO .__class__ )#line:53
+    def __ne__ (O0O0OOO00O00OO000 ,O0O00O00O0OOOO000 ):#line:55
+        return not isinstance (O0O00O00O0OOOO000 ,O0O0OOO00O00OO000 .__class__ )#line:56
+    def __gt__ (OOO00O000OO0OOO00 ,OO0O000000OOO0OO0 ):#line:58
+        return False #line:59
+    def __ge__ (OOO0OO0O00O0OO00O ,O0O0000000O000000 ):#line:61
+        return False #line:62
+    def __neg__ (O0OO00O000OO000OO ):#line:64
+        return Infinity #line:65
+NegativeInfinity =NegativeInfinity ()#line:68

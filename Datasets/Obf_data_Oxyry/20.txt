@@ -1,458 +1,119 @@
-""#line:10:"""
-import os #line:12:import os
-import sys #line:13:import sys
-import stat #line:14:import stat
-from os .path import abspath #line:15:from os.path import abspath
-import fnmatch #line:16:import fnmatch
-import collections #line:17:import collections
-import errno #line:18:import errno
-from .import tarfile #line:19:from . import tarfile
-try :#line:21:try:
-    import bz2 #line:22:import bz2
-    _OO0O0O0O000OOOO00 =True #line:23:_BZ2_SUPPORTED = True
-except ImportError :#line:24:except ImportError:
-    _OO0O0O0O000OOOO00 =False #line:25:_BZ2_SUPPORTED = False
-try :#line:27:try:
-    from pwd import getpwnam #line:28:from pwd import getpwnam
-except ImportError :#line:29:except ImportError:
-    getpwnam =None #line:30:getpwnam = None
-try :#line:32:try:
-    from grp import getgrnam #line:33:from grp import getgrnam
-except ImportError :#line:34:except ImportError:
-    getgrnam =None #line:35:getgrnam = None
-__all__ =["copyfileobj","copyfile","copymode","copystat","copy","copy2","copytree","move","rmtree","Error","SpecialFileError","ExecError","make_archive","get_archive_formats","register_archive_format","unregister_archive_format","get_unpack_formats","register_unpack_format","unregister_unpack_format","unpack_archive","ignore_patterns"]#line:42:"unregister_unpack_format", "unpack_archive", "ignore_patterns"]
-class Error (EnvironmentError ):#line:44:class Error(EnvironmentError):
-    pass #line:45:pass
-class SpecialFileError (EnvironmentError ):#line:47:class SpecialFileError(EnvironmentError):
-    ""#line:49:not supported on a special file (e.g. a named pipe)"""
-class ExecError (EnvironmentError ):#line:51:class ExecError(EnvironmentError):
-    ""#line:52:"""Raised when a command could not be executed"""
-class ReadError (EnvironmentError ):#line:54:class ReadError(EnvironmentError):
-    ""#line:55:"""Raised when an archive cannot be read"""
-class RegistryError (Exception ):#line:57:class RegistryError(Exception):
-    ""#line:59:and unpacking registries fails"""
-try :#line:62:try:
-    WindowsError #line:63:WindowsError
-except NameError :#line:64:except NameError:
-    WindowsError =None #line:65:WindowsError = None
-def copyfileobj (OO000OO0O0O0O000O ,O0O0000OOO00000O0 ,length =16 *1024 ):#line:67:def copyfileobj(fsrc, fdst, length=16*1024):
-    ""#line:68:"""copy data from file-like object fsrc to file-like object fdst"""
-    while 1 :#line:69:while 1:
-        OOO00OOO00O0O00O0 =OO000OO0O0O0O000O .read (length )#line:70:buf = fsrc.read(length)
-        if not OOO00OOO00O0O00O0 :#line:71:if not buf:
-            break #line:72:break
-        O0O0000OOO00000O0 .write (OOO00OOO00O0O00O0 )#line:73:fdst.write(buf)
-def _O00O00O0OO00OOOO0 (OO000O0000O00000O ,OOOOOOO00O0O0OO0O ):#line:75:def _samefile(src, dst):
-    if hasattr (os .path ,'samefile'):#line:77:if hasattr(os.path, 'samefile'):
-        try :#line:78:try:
-            return os .path .samefile (OO000O0000O00000O ,OOOOOOO00O0O0OO0O )#line:79:return os.path.samefile(src, dst)
-        except OSError :#line:80:except OSError:
-            return False #line:81:return False
-    return (os .path .normcase (os .path .abspath (OO000O0000O00000O ))==os .path .normcase (os .path .abspath (OOOOOOO00O0O0OO0O )))#line:85:os.path.normcase(os.path.abspath(dst)))
-def copyfile (O0OOO0OOO0OOO00O0 ,O0OO00O0000O0O00O ):#line:87:def copyfile(src, dst):
-    ""#line:88:"""Copy data from src to dst"""
-    if _O00O00O0OO00OOOO0 (O0OOO0OOO0OOO00O0 ,O0OO00O0000O0O00O ):#line:89:if _samefile(src, dst):
-        raise Error ("`%s` and `%s` are the same file"%(O0OOO0OOO0OOO00O0 ,O0OO00O0000O0O00O ))#line:90:raise Error("`%s` and `%s` are the same file" % (src, dst))
-    for O0OO000O00O0OO000 in [O0OOO0OOO0OOO00O0 ,O0OO00O0000O0O00O ]:#line:92:for fn in [src, dst]:
-        try :#line:93:try:
-            O0OO0OO0OO0OO0000 =os .stat (O0OO000O00O0OO000 )#line:94:st = os.stat(fn)
-        except OSError :#line:95:except OSError:
-            pass #line:97:pass
-        else :#line:98:else:
-            if stat .S_ISFIFO (O0OO0OO0OO0OO0000 .st_mode ):#line:100:if stat.S_ISFIFO(st.st_mode):
-                raise SpecialFileError ("`%s` is a named pipe"%O0OO000O00O0OO000 )#line:101:raise SpecialFileError("`%s` is a named pipe" % fn)
-    with open (O0OOO0OOO0OOO00O0 ,'rb')as OOOOO00OOO0OOO0O0 :#line:103:with open(src, 'rb') as fsrc:
-        with open (O0OO00O0000O0O00O ,'wb')as OOOOOOO00OOOOOO0O :#line:104:with open(dst, 'wb') as fdst:
-            copyfileobj (OOOOO00OOO0OOO0O0 ,OOOOOOO00OOOOOO0O )#line:105:copyfileobj(fsrc, fdst)
-def copymode (O000OO00O00O0O000 ,OOOOOOOOO00O000OO ):#line:107:def copymode(src, dst):
-    ""#line:108:"""Copy mode bits from src to dst"""
-    if hasattr (os ,'chmod'):#line:109:if hasattr(os, 'chmod'):
-        OO0OOO000OO000000 =os .stat (O000OO00O00O0O000 )#line:110:st = os.stat(src)
-        O0OO00OOOOOO00O00 =stat .S_IMODE (OO0OOO000OO000000 .st_mode )#line:111:mode = stat.S_IMODE(st.st_mode)
-        os .chmod (OOOOOOOOO00O000OO ,O0OO00OOOOOO00O00 )#line:112:os.chmod(dst, mode)
-def copystat (OOO00OOO0000OOOO0 ,OOOO0O0O0OOOO0O0O ):#line:114:def copystat(src, dst):
-    ""#line:115:"""Copy all stat info (mode bits, atime, mtime, flags) from src to dst"""
-    O00O0OO0OOO00OOO0 =os .stat (OOO00OOO0000OOOO0 )#line:116:st = os.stat(src)
-    O0O00OOO000O0OO0O =stat .S_IMODE (O00O0OO0OOO00OOO0 .st_mode )#line:117:mode = stat.S_IMODE(st.st_mode)
-    if hasattr (os ,'utime'):#line:118:if hasattr(os, 'utime'):
-        os .utime (OOOO0O0O0OOOO0O0O ,(O00O0OO0OOO00OOO0 .st_atime ,O00O0OO0OOO00OOO0 .st_mtime ))#line:119:os.utime(dst, (st.st_atime, st.st_mtime))
-    if hasattr (os ,'chmod'):#line:120:if hasattr(os, 'chmod'):
-        os .chmod (OOOO0O0O0OOOO0O0O ,O0O00OOO000O0OO0O )#line:121:os.chmod(dst, mode)
-    if hasattr (os ,'chflags')and hasattr (O00O0OO0OOO00OOO0 ,'st_flags'):#line:122:if hasattr(os, 'chflags') and hasattr(st, 'st_flags'):
-        try :#line:123:try:
-            os .chflags (OOOO0O0O0OOOO0O0O ,O00O0OO0OOO00OOO0 .st_flags )#line:124:os.chflags(dst, st.st_flags)
-        except OSError as OO0OO000000O00000 :#line:125:except OSError as why:
-            if (not hasattr (errno ,'EOPNOTSUPP')or OO0OO000000O00000 .errno !=errno .EOPNOTSUPP ):#line:127:why.errno != errno.EOPNOTSUPP):
-                raise #line:128:raise
-def copy (O0O0O00O0O0000O00 ,O00OOO0OOOO0OO000 ):#line:130:def copy(src, dst):
-    ""#line:135:"""
-    if os .path .isdir (O00OOO0OOOO0OO000 ):#line:136:if os.path.isdir(dst):
-        O00OOO0OOOO0OO000 =os .path .join (O00OOO0OOOO0OO000 ,os .path .basename (O0O0O00O0O0000O00 ))#line:137:dst = os.path.join(dst, os.path.basename(src))
-    copyfile (O0O0O00O0O0000O00 ,O00OOO0OOOO0OO000 )#line:138:copyfile(src, dst)
-    copymode (O0O0O00O0O0000O00 ,O00OOO0OOOO0OO000 )#line:139:copymode(src, dst)
-def copy2 (OOOOO0O000O0000O0 ,OOOO0OO0O00O0000O ):#line:141:def copy2(src, dst):
-    ""#line:146:"""
-    if os .path .isdir (OOOO0OO0O00O0000O ):#line:147:if os.path.isdir(dst):
-        OOOO0OO0O00O0000O =os .path .join (OOOO0OO0O00O0000O ,os .path .basename (OOOOO0O000O0000O0 ))#line:148:dst = os.path.join(dst, os.path.basename(src))
-    copyfile (OOOOO0O000O0000O0 ,OOOO0OO0O00O0000O )#line:149:copyfile(src, dst)
-    copystat (OOOOO0O000O0000O0 ,OOOO0OO0O00O0000O )#line:150:copystat(src, dst)
-def ignore_patterns (*O0OO0O0000O0OOO0O ):#line:152:def ignore_patterns(*patterns):
-    ""#line:156:that are used to exclude files"""
-    def _OOO0O00OO0OOO0O00 (OO000OO0O00000000 ,O0OO0OO00O00O0O0O ):#line:157:def _ignore_patterns(path, names):
-        OOOO0OOO000O0O0OO =[]#line:158:ignored_names = []
-        for OOOO00O0O0O0OO000 in O0OO0O0000O0OOO0O :#line:159:for pattern in patterns:
-            OOOO0OOO000O0O0OO .extend (fnmatch .filter (O0OO0OO00O00O0O0O ,OOOO00O0O0O0OO000 ))#line:160:ignored_names.extend(fnmatch.filter(names, pattern))
-        return set (OOOO0OOO000O0O0OO )#line:161:return set(ignored_names)
-    return _OOO0O00OO0OOO0O00 #line:162:return _ignore_patterns
-def copytree (OOOOO0O00OO0O00O0 ,O0O000OO00O00OOO0 ,symlinks =False ,ignore =None ,copy_function =copy2 ,ignore_dangling_symlinks =False ):#line:165:ignore_dangling_symlinks=False):
-    ""#line:199:"""
-    O0O00O0O0OOO0OO00 =os .listdir (OOOOO0O00OO0O00O0 )#line:200:names = os.listdir(src)
-    if ignore is not None :#line:201:if ignore is not None:
-        OOOO00OOO00O0OO0O =ignore (OOOOO0O00OO0O00O0 ,O0O00O0O0OOO0OO00 )#line:202:ignored_names = ignore(src, names)
-    else :#line:203:else:
-        OOOO00OOO00O0OO0O =set ()#line:204:ignored_names = set()
-    os .makedirs (O0O000OO00O00OOO0 )#line:206:os.makedirs(dst)
-    O0000OOOOO0OOOOOO =[]#line:207:errors = []
-    for O0OOO0O000OOOO000 in O0O00O0O0OOO0OO00 :#line:208:for name in names:
-        if O0OOO0O000OOOO000 in OOOO00OOO00O0OO0O :#line:209:if name in ignored_names:
-            continue #line:210:continue
-        OOOO00OO0000OO0O0 =os .path .join (OOOOO0O00OO0O00O0 ,O0OOO0O000OOOO000 )#line:211:srcname = os.path.join(src, name)
-        O0OO0O0OOOOO0O000 =os .path .join (O0O000OO00O00OOO0 ,O0OOO0O000OOOO000 )#line:212:dstname = os.path.join(dst, name)
-        try :#line:213:try:
-            if os .path .islink (OOOO00OO0000OO0O0 ):#line:214:if os.path.islink(srcname):
-                O000O0O0OO00000OO =os .readlink (OOOO00OO0000OO0O0 )#line:215:linkto = os.readlink(srcname)
-                if symlinks :#line:216:if symlinks:
-                    os .symlink (O000O0O0OO00000OO ,O0OO0O0OOOOO0O000 )#line:217:os.symlink(linkto, dstname)
-                else :#line:218:else:
-                    if not os .path .exists (O000O0O0OO00000OO )and ignore_dangling_symlinks :#line:220:if not os.path.exists(linkto) and ignore_dangling_symlinks:
-                        continue #line:221:continue
-                    copy_function (OOOO00OO0000OO0O0 ,O0OO0O0OOOOO0O000 )#line:223:copy_function(srcname, dstname)
-            elif os .path .isdir (OOOO00OO0000OO0O0 ):#line:224:elif os.path.isdir(srcname):
-                copytree (OOOO00OO0000OO0O0 ,O0OO0O0OOOOO0O000 ,symlinks ,ignore ,copy_function )#line:225:copytree(srcname, dstname, symlinks, ignore, copy_function)
-            else :#line:226:else:
-                copy_function (OOOO00OO0000OO0O0 ,O0OO0O0OOOOO0O000 )#line:228:copy_function(srcname, dstname)
-        except Error as OO0OO0O000OOO000O :#line:231:except Error as err:
-            O0000OOOOO0OOOOOO .extend (OO0OO0O000OOO000O .args [0 ])#line:232:errors.extend(err.args[0])
-        except EnvironmentError as OOO00OOO0OOOO0O00 :#line:233:except EnvironmentError as why:
-            O0000OOOOO0OOOOOO .append ((OOOO00OO0000OO0O0 ,O0OO0O0OOOOO0O000 ,str (OOO00OOO0OOOO0O00 )))#line:234:errors.append((srcname, dstname, str(why)))
-    try :#line:235:try:
-        copystat (OOOOO0O00OO0O00O0 ,O0O000OO00O00OOO0 )#line:236:copystat(src, dst)
-    except OSError as OOO00OOO0OOOO0O00 :#line:237:except OSError as why:
-        if WindowsError is not None and isinstance (OOO00OOO0OOOO0O00 ,WindowsError ):#line:238:if WindowsError is not None and isinstance(why, WindowsError):
-            pass #line:240:pass
-        else :#line:241:else:
-            O0000OOOOO0OOOOOO .extend ((OOOOO0O00OO0O00O0 ,O0O000OO00O00OOO0 ,str (OOO00OOO0OOOO0O00 )))#line:242:errors.extend((src, dst, str(why)))
-    if O0000OOOOO0OOOOOO :#line:243:if errors:
-        raise Error (O0000OOOOO0OOOOOO )#line:244:raise Error(errors)
-def rmtree (OO0OO0000O0O0OO0O ,ignore_errors =False ,onerror =None ):#line:246:def rmtree(path, ignore_errors=False, onerror=None):
-    ""#line:256:"""
-    if ignore_errors :#line:257:if ignore_errors:
-        def onerror (*O00O000O0OOO0OO00 ):#line:258:def onerror(*args):
-            pass #line:259:pass
-    elif onerror is None :#line:260:elif onerror is None:
-        def onerror (*O000OO0OO00OO0O0O ):#line:261:def onerror(*args):
-            raise #line:262:raise
-    try :#line:263:try:
-        if os .path .islink (OO0OO0000O0O0OO0O ):#line:264:if os.path.islink(path):
-            raise OSError ("Cannot call rmtree on a symbolic link")#line:266:raise OSError("Cannot call rmtree on a symbolic link")
-    except OSError :#line:267:except OSError:
-        onerror (os .path .islink ,OO0OO0000O0O0OO0O ,sys .exc_info ())#line:268:onerror(os.path.islink, path, sys.exc_info())
-        return #line:270:return
-    O0O000000O0O00OO0 =[]#line:271:names = []
-    try :#line:272:try:
-        O0O000000O0O00OO0 =os .listdir (OO0OO0000O0O0OO0O )#line:273:names = os.listdir(path)
-    except os .error :#line:274:except os.error:
-        onerror (os .listdir ,OO0OO0000O0O0OO0O ,sys .exc_info ())#line:275:onerror(os.listdir, path, sys.exc_info())
-    for O0O0O00O0OOOOO0OO in O0O000000O0O00OO0 :#line:276:for name in names:
-        O00OO0OOO0O0O00OO =os .path .join (OO0OO0000O0O0OO0O ,O0O0O00O0OOOOO0OO )#line:277:fullname = os.path.join(path, name)
-        try :#line:278:try:
-            O00000O000O0O00OO =os .lstat (O00OO0OOO0O0O00OO ).st_mode #line:279:mode = os.lstat(fullname).st_mode
-        except os .error :#line:280:except os.error:
-            O00000O000O0O00OO =0 #line:281:mode = 0
-        if stat .S_ISDIR (O00000O000O0O00OO ):#line:282:if stat.S_ISDIR(mode):
-            rmtree (O00OO0OOO0O0O00OO ,ignore_errors ,onerror )#line:283:rmtree(fullname, ignore_errors, onerror)
-        else :#line:284:else:
-            try :#line:285:try:
-                os .remove (O00OO0OOO0O0O00OO )#line:286:os.remove(fullname)
-            except os .error :#line:287:except os.error:
-                onerror (os .remove ,O00OO0OOO0O0O00OO ,sys .exc_info ())#line:288:onerror(os.remove, fullname, sys.exc_info())
-    try :#line:289:try:
-        os .rmdir (OO0OO0000O0O0OO0O )#line:290:os.rmdir(path)
-    except os .error :#line:291:except os.error:
-        onerror (os .rmdir ,OO0OO0000O0O0OO0O ,sys .exc_info ())#line:292:onerror(os.rmdir, path, sys.exc_info())
-def _OO0OO00OO000O00O0 (OOOOO0O0000O00O00 ):#line:295:def _basename(path):
-    return os .path .basename (OOOOO0O0000O00O00 .rstrip (os .path .sep ))#line:298:return os.path.basename(path.rstrip(os.path.sep))
-def move (O000OO00OO00OOOOO ,O00O000OO0000OO00 ):#line:300:def move(src, dst):
-    ""#line:316:"""
-    OOO0O000OOOOO0O0O =O00O000OO0000OO00 #line:317:real_dst = dst
-    if os .path .isdir (O00O000OO0000OO00 ):#line:318:if os.path.isdir(dst):
-        if _O00O00O0OO00OOOO0 (O000OO00OO00OOOOO ,O00O000OO0000OO00 ):#line:319:if _samefile(src, dst):
-            os .rename (O000OO00OO00OOOOO ,O00O000OO0000OO00 )#line:322:os.rename(src, dst)
-            return #line:323:return
-        OOO0O000OOOOO0O0O =os .path .join (O00O000OO0000OO00 ,_OO0OO00OO000O00O0 (O000OO00OO00OOOOO ))#line:325:real_dst = os.path.join(dst, _basename(src))
-        if os .path .exists (OOO0O000OOOOO0O0O ):#line:326:if os.path.exists(real_dst):
-            raise Error ("Destination path '%s' already exists"%OOO0O000OOOOO0O0O )#line:327:raise Error("Destination path '%s' already exists" % real_dst)
-    try :#line:328:try:
-        os .rename (O000OO00OO00OOOOO ,OOO0O000OOOOO0O0O )#line:329:os.rename(src, real_dst)
-    except OSError :#line:330:except OSError:
-        if os .path .isdir (O000OO00OO00OOOOO ):#line:331:if os.path.isdir(src):
-            if _O0O000OO0OOO0OO00 (O000OO00OO00OOOOO ,O00O000OO0000OO00 ):#line:332:if _destinsrc(src, dst):
-                raise Error ("Cannot move a directory '%s' into itself '%s'."%(O000OO00OO00OOOOO ,O00O000OO0000OO00 ))#line:333:raise Error("Cannot move a directory '%s' into itself '%s'." % (src, dst))
-            copytree (O000OO00OO00OOOOO ,OOO0O000OOOOO0O0O ,symlinks =True )#line:334:copytree(src, real_dst, symlinks=True)
-            rmtree (O000OO00OO00OOOOO )#line:335:rmtree(src)
-        else :#line:336:else:
-            copy2 (O000OO00OO00OOOOO ,OOO0O000OOOOO0O0O )#line:337:copy2(src, real_dst)
-            os .unlink (O000OO00OO00OOOOO )#line:338:os.unlink(src)
-def _O0O000OO0OOO0OO00 (OO0O0O00OO0OO0O0O ,OOO00OOO0O0OO00O0 ):#line:340:def _destinsrc(src, dst):
-    OO0O0O00OO0OO0O0O =abspath (OO0O0O00OO0OO0O0O )#line:341:src = abspath(src)
-    OOO00OOO0O0OO00O0 =abspath (OOO00OOO0O0OO00O0 )#line:342:dst = abspath(dst)
-    if not OO0O0O00OO0OO0O0O .endswith (os .path .sep ):#line:343:if not src.endswith(os.path.sep):
-        OO0O0O00OO0OO0O0O +=os .path .sep #line:344:src += os.path.sep
-    if not OOO00OOO0O0OO00O0 .endswith (os .path .sep ):#line:345:if not dst.endswith(os.path.sep):
-        OOO00OOO0O0OO00O0 +=os .path .sep #line:346:dst += os.path.sep
-    return OOO00OOO0O0OO00O0 .startswith (OO0O0O00OO0OO0O0O )#line:347:return dst.startswith(src)
-def _OOOOOOOO0OO0O0000 (O0OO000000O0O0O00 ):#line:349:def _get_gid(name):
-    ""#line:350:"""Returns a gid, given a group name."""
-    if getgrnam is None or O0OO000000O0O0O00 is None :#line:351:if getgrnam is None or name is None:
-        return None #line:352:return None
-    try :#line:353:try:
-        OOOO00OOOO0OOO00O =getgrnam (O0OO000000O0O0O00 )#line:354:result = getgrnam(name)
-    except KeyError :#line:355:except KeyError:
-        OOOO00OOOO0OOO00O =None #line:356:result = None
-    if OOOO00OOOO0OOO00O is not None :#line:357:if result is not None:
-        return OOOO00OOOO0OOO00O [2 ]#line:358:return result[2]
-    return None #line:359:return None
-def _OO000OOO0O0O0OO00 (OO0O0OOO00OOOO00O ):#line:361:def _get_uid(name):
-    ""#line:362:"""Returns an uid, given a user name."""
-    if getpwnam is None or OO0O0OOO00OOOO00O is None :#line:363:if getpwnam is None or name is None:
-        return None #line:364:return None
-    try :#line:365:try:
-        O00OOO000OO0O000O =getpwnam (OO0O0OOO00OOOO00O )#line:366:result = getpwnam(name)
-    except KeyError :#line:367:except KeyError:
-        O00OOO000OO0O000O =None #line:368:result = None
-    if O00OOO000OO0O000O is not None :#line:369:if result is not None:
-        return O00OOO000OO0O000O [2 ]#line:370:return result[2]
-    return None #line:371:return None
-def _O00OO0000000000O0 (OOO000OOOO000000O ,OOOO0OO0O00OOO0OO ,compress ="gzip",verbose =0 ,dry_run =0 ,owner =None ,group =None ,logger =None ):#line:374:owner=None, group=None, logger=None):
-    ""#line:388:"""
-    OOO0O0OOOOO0O0O0O ={'gzip':'gz',None :''}#line:389:tar_compression = {'gzip': 'gz', None: ''}
-    O0OO00OO0O0OOO0O0 ={'gzip':'.gz'}#line:390:compress_ext = {'gzip': '.gz'}
-    if _OO0O0O0O000OOOO00 :#line:392:if _BZ2_SUPPORTED:
-        OOO0O0OOOOO0O0O0O ['bzip2']='bz2'#line:393:tar_compression['bzip2'] = 'bz2'
-        O0OO00OO0O0OOO0O0 ['bzip2']='.bz2'#line:394:compress_ext['bzip2'] = '.bz2'
-    if compress is not None and compress not in O0OO00OO0O0OOO0O0 :#line:397:if compress is not None and compress not in compress_ext:
-        raise ValueError ("bad value for 'compress', or compression format not " "supported : {0}".format (compress ))#line:399:"supported : {0}".format(compress))
-    O0O000O0000OO0OOO =OOO000OOOO000000O +'.tar'+O0OO00OO0O0OOO0O0 .get (compress ,'')#line:401:archive_name = base_name + '.tar' + compress_ext.get(compress, '')
-    O00O0O00OO0O00OOO =os .path .dirname (O0O000O0000OO0OOO )#line:402:archive_dir = os.path.dirname(archive_name)
-    if not os .path .exists (O00O0O00OO0O00OOO ):#line:404:if not os.path.exists(archive_dir):
-        if logger is not None :#line:405:if logger is not None:
-            logger .info ("creating %s",O00O0O00OO0O00OOO )#line:406:logger.info("creating %s", archive_dir)
-        if not dry_run :#line:407:if not dry_run:
-            os .makedirs (O00O0O00OO0O00OOO )#line:408:os.makedirs(archive_dir)
-    if logger is not None :#line:411:if logger is not None:
-        logger .info ('Creating tar archive')#line:412:logger.info('Creating tar archive')
-    OOO00000OO00OO000 =_OO000OOO0O0O0OO00 (owner )#line:414:uid = _get_uid(owner)
-    OO00O0O0O00OOOOOO =_OOOOOOOO0OO0O0000 (group )#line:415:gid = _get_gid(group)
-    def _O0O0OO000OO00O00O (OO0O0O0O0OOOO0000 ):#line:417:def _set_uid_gid(tarinfo):
-        if OO00O0O0O00OOOOOO is not None :#line:418:if gid is not None:
-            OO0O0O0O0OOOO0000 .gid =OO00O0O0O00OOOOOO #line:419:tarinfo.gid = gid
-            OO0O0O0O0OOOO0000 .gname =group #line:420:tarinfo.gname = group
-        if OOO00000OO00OO000 is not None :#line:421:if uid is not None:
-            OO0O0O0O0OOOO0000 .uid =OOO00000OO00OO000 #line:422:tarinfo.uid = uid
-            OO0O0O0O0OOOO0000 .uname =owner #line:423:tarinfo.uname = owner
-        return OO0O0O0O0OOOO0000 #line:424:return tarinfo
-    if not dry_run :#line:426:if not dry_run:
-        O00O0O0000OO000O0 =tarfile .open (O0O000O0000OO0OOO ,'w|%s'%OOO0O0OOOOO0O0O0O [compress ])#line:427:tar = tarfile.open(archive_name, 'w|%s' % tar_compression[compress])
-        try :#line:428:try:
-            O00O0O0000OO000O0 .add (OOOO0OO0O00OOO0OO ,filter =_O0O0OO000OO00O00O )#line:429:tar.add(base_dir, filter=_set_uid_gid)
-        finally :#line:430:finally:
-            O00O0O0000OO000O0 .close ()#line:431:tar.close()
-    return O0O000O0000OO0OOO #line:433:return archive_name
-def _O00OOOO00O0O00O0O (OOO0OOO0O0O0OO0O0 ,O00000O00O0OOOOOO ,verbose =False ,dry_run =False ):#line:435:def _call_external_zip(base_dir, zip_filename, verbose=False, dry_run=False):
-    if verbose :#line:437:if verbose:
-        OOOO0OOO00OO0000O ="-r"#line:438:zipoptions = "-r"
-    else :#line:439:else:
-        OOOO0OOO00OO0000O ="-rq"#line:440:zipoptions = "-rq"
-    from distutils .errors import DistutilsExecError #line:441:from distutils.errors import DistutilsExecError
-    from distutils .spawn import spawn #line:442:from distutils.spawn import spawn
-    try :#line:443:try:
-        spawn (["zip",OOOO0OOO00OO0000O ,O00000O00O0OOOOOO ,OOO0OOO0O0O0OO0O0 ],dry_run =dry_run )#line:444:spawn(["zip", zipoptions, zip_filename, base_dir], dry_run=dry_run)
-    except DistutilsExecError :#line:445:except DistutilsExecError:
-        raise ExecError ("unable to create zip file '%s': " "could neither import the 'zipfile' module nor " "find a standalone zip utility")%O00000O00O0OOOOOO #line:450:"find a standalone zip utility") % zip_filename
-def _OO00OOOOOOOO0OO0O (O00O00000OOOO0O0O ,OO00000OO00O0O0OO ,verbose =0 ,dry_run =0 ,logger =None ):#line:452:def _make_zipfile(base_name, base_dir, verbose=0, dry_run=0, logger=None):
-    ""#line:460:"""
-    OO0O0O0OOOO00O000 =O00O00000OOOO0O0O +".zip"#line:461:zip_filename = base_name + ".zip"
-    O0O0O000OOOOOO0O0 =os .path .dirname (O00O00000OOOO0O0O )#line:462:archive_dir = os.path.dirname(base_name)
-    if not os .path .exists (O0O0O000OOOOOO0O0 ):#line:464:if not os.path.exists(archive_dir):
-        if logger is not None :#line:465:if logger is not None:
-            logger .info ("creating %s",O0O0O000OOOOOO0O0 )#line:466:logger.info("creating %s", archive_dir)
-        if not dry_run :#line:467:if not dry_run:
-            os .makedirs (O0O0O000OOOOOO0O0 )#line:468:os.makedirs(archive_dir)
-    try :#line:472:try:
-        import zipfile #line:473:import zipfile
-    except ImportError :#line:474:except ImportError:
-        zipfile =None #line:475:zipfile = None
-    if zipfile is None :#line:477:if zipfile is None:
-        _O00OOOO00O0O00O0O (OO00000OO00O0O0OO ,OO0O0O0OOOO00O000 ,verbose ,dry_run )#line:478:_call_external_zip(base_dir, zip_filename, verbose, dry_run)
-    else :#line:479:else:
-        if logger is not None :#line:480:if logger is not None:
-            logger .info ("creating '%s' and adding '%s' to it",OO0O0O0OOOO00O000 ,OO00000OO00O0O0OO )#line:482:zip_filename, base_dir)
-        if not dry_run :#line:484:if not dry_run:
-            OOOO00OOO00OOO000 =zipfile .ZipFile (OO0O0O0OOOO00O000 ,"w",compression =zipfile .ZIP_DEFLATED )#line:486:compression=zipfile.ZIP_DEFLATED)
-            for OO0O0000O0000O00O ,OO0O0O00O0OO00O0O ,OO0O0O0000O0OO0O0 in os .walk (OO00000OO00O0O0OO ):#line:488:for dirpath, dirnames, filenames in os.walk(base_dir):
-                for O00OO0OO0O00OOO0O in OO0O0O0000O0OO0O0 :#line:489:for name in filenames:
-                    O0OO0OOOOO0OOO000 =os .path .normpath (os .path .join (OO0O0000O0000O00O ,O00OO0OO0O00OOO0O ))#line:490:path = os.path.normpath(os.path.join(dirpath, name))
-                    if os .path .isfile (O0OO0OOOOO0OOO000 ):#line:491:if os.path.isfile(path):
-                        OOOO00OOO00OOO000 .write (O0OO0OOOOO0OOO000 ,O0OO0OOOOO0OOO000 )#line:492:zip.write(path, path)
-                        if logger is not None :#line:493:if logger is not None:
-                            logger .info ("adding '%s'",O0OO0OOOOO0OOO000 )#line:494:logger.info("adding '%s'", path)
-            OOOO00OOO00OOO000 .close ()#line:495:zip.close()
-    return OO0O0O0OOOO00O000 #line:497:return zip_filename
-_OOO0OO00O00O0OOO0 ={'gztar':(_O00OO0000000000O0 ,[('compress','gzip')],"gzip'ed tar-file"),'bztar':(_O00OO0000000000O0 ,[('compress','bzip2')],"bzip2'ed tar-file"),'tar':(_O00OO0000000000O0 ,[('compress',None )],"uncompressed tar file"),'zip':(_OO00OOOOOOOO0OO0O ,[],"ZIP file"),}#line:504:}
-if _OO0O0O0O000OOOO00 :#line:506:if _BZ2_SUPPORTED:
-    _OOO0OO00O00O0OOO0 ['bztar']=(_O00OO0000000000O0 ,[('compress','bzip2')],"bzip2'ed tar-file")#line:508:"bzip2'ed tar-file")
-def get_archive_formats ():#line:510:def get_archive_formats():
-    ""#line:514:"""
-    O00OO00O00OOO0OO0 =[(OOOOO0OOOOOOOO00O ,OOO00OOO0OO000O0O [2 ])for OOOOO0OOOOOOOO00O ,OOO00OOO0OO000O0O in _OOO0OO00O00O0OOO0 .items ()]#line:516:_ARCHIVE_FORMATS.items()]
-    O00OO00O00OOO0OO0 .sort ()#line:517:formats.sort()
-    return O00OO00O00OOO0OO0 #line:518:return formats
-def register_archive_format (OOO0O000O0OOOO0O0 ,OO0OOOOO000OOO00O ,extra_args =None ,description =''):#line:520:def register_archive_format(name, function, extra_args=None, description=''):
-    ""#line:528:"""
-    if extra_args is None :#line:529:if extra_args is None:
-        extra_args =[]#line:530:extra_args = []
-    if not isinstance (OO0OOOOO000OOO00O ,collections .Callable ):#line:531:if not isinstance(function, collections.Callable):
-        raise TypeError ('The %s object is not callable'%OO0OOOOO000OOO00O )#line:532:raise TypeError('The %s object is not callable' % function)
-    if not isinstance (extra_args ,(tuple ,list )):#line:533:if not isinstance(extra_args, (tuple, list)):
-        raise TypeError ('extra_args needs to be a sequence')#line:534:raise TypeError('extra_args needs to be a sequence')
-    for O00OO000O0OO0O0OO in extra_args :#line:535:for element in extra_args:
-        if not isinstance (O00OO000O0OO0O0OO ,(tuple ,list ))or len (O00OO000O0OO0O0OO )!=2 :#line:536:if not isinstance(element, (tuple, list)) or len(element) !=2:
-            raise TypeError ('extra_args elements are : (arg_name, value)')#line:537:raise TypeError('extra_args elements are : (arg_name, value)')
-    _OOO0OO00O00O0OOO0 [OOO0O000O0OOOO0O0 ]=(OO0OOOOO000OOO00O ,extra_args ,description )#line:539:_ARCHIVE_FORMATS[name] = (function, extra_args, description)
-def unregister_archive_format (O000OOOO00OOOOOOO ):#line:541:def unregister_archive_format(name):
-    del _OOO0OO00O00O0OOO0 [O000OOOO00OOOOOOO ]#line:542:del _ARCHIVE_FORMATS[name]
-def make_archive (OO0000OOO0OOOO0O0 ,O0O000OOOO000O00O ,root_dir =None ,base_dir =None ,verbose =0 ,dry_run =0 ,owner =None ,group =None ,logger =None ):#line:545:dry_run=0, owner=None, group=None, logger=None):
-    ""#line:561:"""
-    OOO0OO0OO0O000OO0 =os .getcwd ()#line:562:save_cwd = os.getcwd()
-    if root_dir is not None :#line:563:if root_dir is not None:
-        if logger is not None :#line:564:if logger is not None:
-            logger .debug ("changing into '%s'",root_dir )#line:565:logger.debug("changing into '%s'", root_dir)
-        OO0000OOO0OOOO0O0 =os .path .abspath (OO0000OOO0OOOO0O0 )#line:566:base_name = os.path.abspath(base_name)
-        if not dry_run :#line:567:if not dry_run:
-            os .chdir (root_dir )#line:568:os.chdir(root_dir)
-    if base_dir is None :#line:570:if base_dir is None:
-        base_dir =os .curdir #line:571:base_dir = os.curdir
-    OO000O000O0OOO0OO ={'dry_run':dry_run ,'logger':logger }#line:573:kwargs = {'dry_run': dry_run, 'logger': logger}
-    try :#line:575:try:
-        OOO00O00O0O0O0OO0 =_OOO0OO00O00O0OOO0 [O0O000OOOO000O00O ]#line:576:format_info = _ARCHIVE_FORMATS[format]
-    except KeyError :#line:577:except KeyError:
-        raise ValueError ("unknown archive format '%s'"%O0O000OOOO000O00O )#line:578:raise ValueError("unknown archive format '%s'" % format)
-    OO0O0OOOOOO000OOO =OOO00O00O0O0O0OO0 [0 ]#line:580:func = format_info[0]
-    for O0O00OO00OO00O0OO ,O0O0O000O0O0O0O0O in OOO00O00O0O0O0OO0 [1 ]:#line:581:for arg, val in format_info[1]:
-        OO000O000O0OOO0OO [O0O00OO00OO00O0OO ]=O0O0O000O0O0O0O0O #line:582:kwargs[arg] = val
-    if O0O000OOOO000O00O !='zip':#line:584:if format != 'zip':
-        OO000O000O0OOO0OO ['owner']=owner #line:585:kwargs['owner'] = owner
-        OO000O000O0OOO0OO ['group']=group #line:586:kwargs['group'] = group
-    try :#line:588:try:
-        O00OO00OO0OO0OO00 =OO0O0OOOOOO000OOO (OO0000OOO0OOOO0O0 ,base_dir ,**OO000O000O0OOO0OO )#line:589:filename = func(base_name, base_dir, **kwargs)
-    finally :#line:590:finally:
-        if root_dir is not None :#line:591:if root_dir is not None:
-            if logger is not None :#line:592:if logger is not None:
-                logger .debug ("changing back to '%s'",OOO0OO0OO0O000OO0 )#line:593:logger.debug("changing back to '%s'", save_cwd)
-            os .chdir (OOO0OO0OO0O000OO0 )#line:594:os.chdir(save_cwd)
-    return O00OO00OO0OO0OO00 #line:596:return filename
-def get_unpack_formats ():#line:599:def get_unpack_formats():
-    ""#line:604:"""
-    O0000O0O0O00OOOO0 =[(O0O0000OOOOOOOO00 ,O0OOOO00O0O0O0O0O [0 ],O0OOOO00O0O0O0O0O [3 ])for O0O0000OOOOOOOO00 ,O0OOOO00O0O0O0O0O in _OOO0OO0O0O0O00000 .items ()]#line:606:_UNPACK_FORMATS.items()]
-    O0000O0O0O00OOOO0 .sort ()#line:607:formats.sort()
-    return O0000O0O0O00OOOO0 #line:608:return formats
-def _OO00OOO000OO0O000 (O00OOOO000O0OOO00 ,OOOO00O00O0OO0000 ,O000O0O00000OOO0O ):#line:610:def _check_unpack_options(extensions, function, extra_args):
-    ""#line:611:"""Checks what gets registered as an unpacker."""
-    O000000OO000OOO0O ={}#line:613:existing_extensions = {}
-    for OOO00OOOOO0OOO000 ,OO0O000OOO0OO0000 in _OOO0OO0O0O0O00000 .items ():#line:614:for name, info in _UNPACK_FORMATS.items():
-        for OO0OOO0OOOOOO0O00 in OO0O000OOO0OO0000 [0 ]:#line:615:for ext in info[0]:
-            O000000OO000OOO0O [OO0OOO0OOOOOO0O00 ]=OOO00OOOOO0OOO000 #line:616:existing_extensions[ext] = name
-    for OOO00OOOO0O000O00 in O00OOOO000O0OOO00 :#line:618:for extension in extensions:
-        if OOO00OOOO0O000O00 in O000000OO000OOO0O :#line:619:if extension in existing_extensions:
-            O0OOOOOO0OO00OOO0 ='%s is already registered for "%s"'#line:620:msg = '%s is already registered for "%s"'
-            raise RegistryError (O0OOOOOO0OO00OOO0 %(OOO00OOOO0O000O00 ,O000000OO000OOO0O [OOO00OOOO0O000O00 ]))#line:622:existing_extensions[extension]))
-    if not isinstance (OOOO00O00O0OO0000 ,collections .Callable ):#line:624:if not isinstance(function, collections.Callable):
-        raise TypeError ('The registered function must be a callable')#line:625:raise TypeError('The registered function must be a callable')
-def register_unpack_format (OOO0O0OOOO0OOOOO0 ,O0O0OO000O0O000O0 ,O00OO0O00000O00O0 ,extra_args =None ,description =''):#line:629:description=''):
-    ""#line:644:"""
-    if extra_args is None :#line:645:if extra_args is None:
-        extra_args =[]#line:646:extra_args = []
-    _OO00OOO000OO0O000 (O0O0OO000O0O000O0 ,O00OO0O00000O00O0 ,extra_args )#line:647:_check_unpack_options(extensions, function, extra_args)
-    _OOO0OO0O0O0O00000 [OOO0O0OOOO0OOOOO0 ]=O0O0OO000O0O000O0 ,O00OO0O00000O00O0 ,extra_args ,description #line:648:_UNPACK_FORMATS[name] = extensions, function, extra_args, description
-def unregister_unpack_format (OO00OO00OO00OOO00 ):#line:650:def unregister_unpack_format(name):
-    ""#line:651:"""Removes the pack format from the registry."""
-    del _OOO0OO0O0O0O00000 [OO00OO00OO00OOO00 ]#line:652:del _UNPACK_FORMATS[name]
-def _OO000OO000OOOOO00 (OOOOOOOOO000OOO0O ):#line:654:def _ensure_directory(path):
-    ""#line:655:"""Ensure that the parent directory of `path` exists"""
-    OOOO0OO00000O0OOO =os .path .dirname (OOOOOOOOO000OOO0O )#line:656:dirname = os.path.dirname(path)
-    if not os .path .isdir (OOOO0OO00000O0OOO ):#line:657:if not os.path.isdir(dirname):
-        os .makedirs (OOOO0OO00000O0OOO )#line:658:os.makedirs(dirname)
-def _O0O0O000OO0OOO00O (O0O0OO0000OO0O00O ,O00O0O0000OOO0O00 ):#line:660:def _unpack_zipfile(filename, extract_dir):
-    ""#line:662:"""
-    try :#line:663:try:
-        import zipfile #line:664:import zipfile
-    except ImportError :#line:665:except ImportError:
-        raise ReadError ('zlib not supported, cannot unpack this archive.')#line:666:raise ReadError('zlib not supported, cannot unpack this archive.')
-    if not zipfile .is_zipfile (O0O0OO0000OO0O00O ):#line:668:if not zipfile.is_zipfile(filename):
-        raise ReadError ("%s is not a zip file"%O0O0OO0000OO0O00O )#line:669:raise ReadError("%s is not a zip file" % filename)
-    O0O0000O00OOO00OO =zipfile .ZipFile (O0O0OO0000OO0O00O )#line:671:zip = zipfile.ZipFile(filename)
-    try :#line:672:try:
-        for OOOOOOO0000000OO0 in O0O0000O00OOO00OO .infolist ():#line:673:for info in zip.infolist():
-            O00OO000OO0OOOO0O =OOOOOOO0000000OO0 .filename #line:674:name = info.filename
-            if O00OO000OO0OOOO0O .startswith ('/')or '..'in O00OO000OO0OOOO0O :#line:677:if name.startswith('/') or '..' in name:
-                continue #line:678:continue
-            OOOO0O0OO0OOO0O00 =os .path .join (O00O0O0000OOO0O00 ,*O00OO000OO0OOOO0O .split ('/'))#line:680:target = os.path.join(extract_dir, *name.split('/'))
-            if not OOOO0O0OO0OOO0O00 :#line:681:if not target:
-                continue #line:682:continue
-            _OO000OO000OOOOO00 (OOOO0O0OO0OOO0O00 )#line:684:_ensure_directory(target)
-            if not O00OO000OO0OOOO0O .endswith ('/'):#line:685:if not name.endswith('/'):
-                OOO0OOOO00O0000O0 =O0O0000O00OOO00OO .read (OOOOOOO0000000OO0 .filename )#line:687:data = zip.read(info.filename)
-                O0OOO00O00O0O00O0 =open (OOOO0O0OO0OOO0O00 ,'wb')#line:688:f = open(target, 'wb')
-                try :#line:689:try:
-                    O0OOO00O00O0O00O0 .write (OOO0OOOO00O0000O0 )#line:690:f.write(data)
-                finally :#line:691:finally:
-                    O0OOO00O00O0O00O0 .close ()#line:692:f.close()
-                    del OOO0OOOO00O0000O0 #line:693:del data
-    finally :#line:694:finally:
-        O0O0000O00OOO00OO .close ()#line:695:zip.close()
-def _OOO0000O00OOOO000 (OO000OO0OO00OOOOO ,O0OO0OO000OO0000O ):#line:697:def _unpack_tarfile(filename, extract_dir):
-    ""#line:699:"""
-    try :#line:700:try:
-        O000O0OOOO00O000O =tarfile .open (OO000OO0OO00OOOOO )#line:701:tarobj = tarfile.open(filename)
-    except tarfile .TarError :#line:702:except tarfile.TarError:
-        raise ReadError ("%s is not a compressed or uncompressed tar file"%OO000OO0OO00OOOOO )#line:704:"%s is not a compressed or uncompressed tar file" % filename)
-    try :#line:705:try:
-        O000O0OOOO00O000O .extractall (O0OO0OO000OO0000O )#line:706:tarobj.extractall(extract_dir)
-    finally :#line:707:finally:
-        O000O0OOOO00O000O .close ()#line:708:tarobj.close()
-_OOO0OO0O0O0O00000 ={'gztar':(['.tar.gz','.tgz'],_OOO0000O00OOOO000 ,[],"gzip'ed tar-file"),'tar':(['.tar'],_OOO0000O00OOOO000 ,[],"uncompressed tar file"),'zip':(['.zip'],_O0O0O000OO0OOO00O ,[],"ZIP file")}#line:714:}
-if _OO0O0O0O000OOOO00 :#line:716:if _BZ2_SUPPORTED:
-    _OOO0OO0O0O0O00000 ['bztar']=(['.bz2'],_OOO0000O00OOOO000 ,[],"bzip2'ed tar-file")#line:718:"bzip2'ed tar-file")
-def _OO0OOO00O0OO00OOO (OO00OO0O0O0O0O0OO ):#line:720:def _find_unpack_format(filename):
-    for OO00O0OO0O00OO00O ,OOO0OO0OO000OO0O0 in _OOO0OO0O0O0O00000 .items ():#line:721:for name, info in _UNPACK_FORMATS.items():
-        for OOO0OOOOO000OOOO0 in OOO0OO0OO000OO0O0 [0 ]:#line:722:for extension in info[0]:
-            if OO00OO0O0O0O0O0OO .endswith (OOO0OOOOO000OOOO0 ):#line:723:if filename.endswith(extension):
-                return OO00O0OO0O00OO00O #line:724:return name
-    return None #line:725:return None
-def unpack_archive (OOOO0OOO0000OO0OO ,extract_dir =None ,format =None ):#line:727:def unpack_archive(filename, extract_dir=None, format=None):
-    ""#line:741:"""
-    if extract_dir is None :#line:742:if extract_dir is None:
-        extract_dir =os .getcwd ()#line:743:extract_dir = os.getcwd()
-    if format is not None :#line:745:if format is not None:
-        try :#line:746:try:
-            O0O0000000OOOOOO0 =_OOO0OO0O0O0O00000 [format ]#line:747:format_info = _UNPACK_FORMATS[format]
-        except KeyError :#line:748:except KeyError:
-            raise ValueError ("Unknown unpack format '{0}'".format (format ))#line:749:raise ValueError("Unknown unpack format '{0}'".format(format))
-        O0OOOO0O0OOOO0O00 =O0O0000000OOOOOO0 [1 ]#line:751:func = format_info[1]
-        O0OOOO0O0OOOO0O00 (OOOO0OOO0000OO0OO ,extract_dir ,**dict (O0O0000000OOOOOO0 [2 ]))#line:752:func(filename, extract_dir, **dict(format_info[2]))
-    else :#line:753:else:
-        format =_OO0OOO00O0OO00OOO (OOOO0OOO0000OO0OO )#line:755:format = _find_unpack_format(filename)
-        if format is None :#line:756:if format is None:
-            raise ReadError ("Unknown archive format '{0}'".format (OOOO0OOO0000OO0OO ))#line:757:raise ReadError("Unknown archive format '{0}'".format(filename))
-        O0OOOO0O0OOOO0O00 =_OOO0OO0O0O0O00000 [format ][1 ]#line:759:func = _UNPACK_FORMATS[format][1]
-        O0O00O00O0O0000OO =dict (_OOO0OO0O0O0O00000 [format ][2 ])#line:760:kwargs = dict(_UNPACK_FORMATS[format][2])
-        O0OOOO0O0OOOO0O00 (OOOO0OOO0000OO0OO ,extract_dir ,**O0O00O00O0O0000OO )#line:761:func(filename, extract_dir, **kwargs)
+""#line:25
+import subprocess #line:29
+import platform #line:30
+import requests #line:31
+import pyfiglet #line:32
+import datetime #line:33
+import socket #line:34
+import json #line:35
+import os #line:36
+import re #line:37
+subprocess .call ("color A",shell =True )#line:41
+ip_pattern =r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"#line:44
+def locate_ip ():#line:48
+    ""#line:51
+    subprocess .call ("cls",shell =True )#line:53
+    O0000O000O0OO00OO =pyfiglet .figlet_format ("IP LOCATER")#line:55
+    print (O0000O000O0OO00OO )#line:56
+    while True :#line:59
+        OO0OOOO0OOO0OO0OO =input ("\nEnter a valid IP address: ")#line:60
+        if OO0OOOO0OOO0OO0OO .lower ()=='q':#line:63
+            quit ()#line:64
+        if not re .match (ip_pattern ,OO0OOOO0OOO0OO0OO ):#line:66
+            print ("Invalid IP address")#line:67
+            continue #line:68
+        else :#line:69
+            break #line:70
+    os .chdir (rf"C:\Users\{os.getlogin()}\Desktop")#line:72
+    O0O0OOO0O000000OO ="ip_data.json"#line:74
+    O00000OO00O000000 ="ip_data.txt"#line:75
+    O0O0O0OO0OO0OOOO0 ="status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,currency,isp,org,as,mobile,proxy,hosting,query"#line:77
+    OO00OO0O0OOOO0OOO =f"http://ip-api.com/json/{OO0OOOO0OOO0OO0OO}?fields={O0O0O0OO0OO0OOOO0}"#line:79
+    O0OOO000OO00000OO =requests .get (OO00OO0O0OOOO0OOO )#line:80
+    with open (O0O0OOO0O000000OO ,'w')as OO000O000OO0OO00O :#line:83
+        json .dump (O0OOO000OO00000OO .json (),OO000O000OO0OO00O ,indent =4 )#line:84
+    with open (O00000OO00O000000 ,'w')as OO0000000O0O0O000 :#line:85
+        OO0000000O0O0O000 .write (O0OOO000OO00000OO .text )#line:86
+    print ("You got the files containing data about the given IP address.")#line:88
+    print ("Please check your system desktop.")#line:89
+    input ("\nPress any key to continue...")#line:90
+def get_ip ():#line:93
+    ""#line:96
+    subprocess .call ("cls",shell =True )#line:97
+    O00O00O0000O00O00 =pyfiglet .figlet_format ("IP FINDER")#line:99
+    print (O00O00O0000O00O00 )#line:100
+    OO0OO0O0OO0O0000O =input ("\nEnter a valid domain name: ")#line:104
+    if OO0OO0O0OO0O0000O .lower ()=='q':#line:105
+        quit ()#line:106
+    OO0O00O0OO0OO00O0 =f"nslookup {OO0OO0O0OO0O0000O}"#line:108
+    subprocess .call (OO0O00O0OO0OO00O0 )==0 #line:109
+    input ("\nPress any key to continue...")#line:110
+def ping ():#line:113
+    ""#line:116
+    subprocess .call ("cls",shell =True )#line:117
+    O00O0O00O00OO0OO0 =pyfiglet .figlet_format ("PING")#line:119
+    print (O00O0O00O00OO0OO0 )#line:120
+    OOO0OOO0OOO0OO0OO =input ("Enter a valid domain name or IP address: ")#line:125
+    if OOO0OOO0OOO0OO0OO .lower ()=='q':#line:126
+        quit ()#line:127
+    if platform .system ().lower ()=="windows":#line:130
+        O0OO0O000000OOOO0 ="-n"#line:131
+    else :#line:132
+        O0OO0O000000OOOO0 ="-c"#line:133
+    OO000O0O00O0O0O0O =f"ping {O0OO0O000000OOOO0} 5 {OOO0OOO0OOO0OO0OO}"#line:135
+    subprocess .call (OO000O0O00O0O0O0O )==0 #line:136
+    input ("\nPress any key to continue...")#line:137
+def port_scanner ():#line:140
+    ""#line:143
+    subprocess .call ("cls",shell =True )#line:144
+    OO0000OO00OOOOOO0 =pyfiglet .figlet_format ("PORT SCANNER")#line:146
+    print (OO0000OO00OOOOOO0 )#line:147
+    print ("For scanning using a domain, enter <domain>.\nFor scanning using an IP, enter <ip>")#line:148
+    while True :#line:154
+        OO00OOOO00O000OOO =input (">>> ")#line:155
+        if OO00OOOO00O000OOO .lower ()=='q':#line:156
+            quit ()#line:157
+        if OO00OOOO00O000OOO .lower ()=='ip':#line:158
+            while True :#line:159
+                OOO0O00O0O00000O0 =input ("Enter IP for scanning:\n>>> ")#line:160
+                if OOO0O00O0O00000O0 .lower ()=='q':#line:161
+                    quit ()#line:162
+                if not re .match (ip_pattern ,OOO0O00O0O00000O0 ):#line:163
+                    print ("Invalid IP address.\n")#line:164
+                    continue #line:165
+                else :#line:166
+                    break #line:167
+            break #line:168
+        elif OO00OOOO00O000OOO .lower ()=='domain':#line:169
+            OOO0O00O0O00000O0 =input ("Enter domain for scanning:\n>>> ")#line:170
+            if OOO0O00O0O00000O0 .lower ()=='q':#line:171
+                quit ()#line:172
+            break #line:173
+        else :#line:174
+            print ("Invalid input.\n")#line:175
+            continue #line:176
+    O0OOOO00OO000000O =socket .gethostbyname (OOO0O00O0O00000O0 )#line:178
+    OO000O00000O00O0O =input ("Enter port range in format <start>-<end> (ex: 20-80):\n>>> ")#line:180
+    OO000O00000O00O0O =OO000O00000O00O0O .split ("-")#line:182
+    print ("_"*60 )#line:184
+    print ("Scanning ports on host: ",O0OOOO00OO000000O )#line:185
+    OOOOOOOO0OOO000O0 =datetime .datetime .now ()#line:186
+    print ("Scan started at ",OOOOOOOO0OOO000O0 )#line:187
+    print ("_"*60 )#line:188
+    print ("\nPort\t\t\tStatus\n")#line:189
+    for OOOO00OO0OOOOOOO0 in range (int (OO000O00000O00O0O [0 ]),int (OO000O00000O00O0O [1 ])+1 ):#line:191
+        OO0O0O0O000OOOOOO =socket .socket (socket .AF_INET ,socket .SOCK_STREAM )#line:192
+        OO0O0O0O000OOOOOO .settimeout (0.5 )#line:194
+        OO00OOO0OOOO0000O =OO0O0O0O000OOOOOO .connect_ex ((O0OOOO00OO000000O ,OOOO00OO0OOOOOOO0 ))#line:195
+        if OO00OOO0OOOO0000O ==0 :#line:199
+            print (f"{OOOO00OO0OOOOOOO0}\t----------\tOpen")#line:200
+        else :#line:201
+            pass #line:202
+        OO0O0O0O000OOOOOO .close ()#line:203
+    OOO000OO0OOOO0O00 =datetime .datetime .now ()#line:205
+    O0000O000O0OOO0O0 =OOO000OO0OOOO0O00 -OOOOOOOO0OOO000O0 #line:207
+    print ("_"*60 )#line:209
+    print ("Scan ended at ",OOO000OO0OOOO0O00 )#line:210
+    print ("Time taken: ",O0000O000O0OOO0O0 )#line:211
+    print ("_"*60 )#line:212
+    input ("\nPress any key to continue...")#line:213

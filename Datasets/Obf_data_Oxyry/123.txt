@@ -1,161 +1,20 @@
-from contextlib import contextmanager #line:1
-from ._compat import term_len #line:3
-from .parser import split_opt #line:4
-from .termui import get_terminal_size #line:5
-FORCED_WIDTH =None #line:8
-def measure_table (OO0OO00O000OO0O00 ):#line:11
-    O0000000OOOOOOOOO ={}#line:12
-    for OO0O0OO00000OO00O in OO0OO00O000OO0O00 :#line:13
-        for O0O0O0OOO0OOOO0O0 ,O00OOO0OO00O000O0 in enumerate (OO0O0OO00000OO00O ):#line:14
-            O0000000OOOOOOOOO [O0O0O0OOO0OOOO0O0 ]=max (O0000000OOOOOOOOO .get (O0O0O0OOO0OOOO0O0 ,0 ),term_len (O00OOO0OO00O000O0 ))#line:15
-    return tuple (OO0OO0OOOO00OOOO0 for OO00O00OOOOOO00O0 ,OO0OO0OOOO00OOOO0 in sorted (O0000000OOOOOOOOO .items ()))#line:16
-def iter_rows (O000OOO0O000O00O0 ,OO0O00OOOO0O0000O ):#line:19
-    for OO000OO0O000000O0 in O000OOO0O000O00O0 :#line:20
-        OO000OO0O000000O0 =tuple (OO000OO0O000000O0 )#line:21
-        yield OO000OO0O000000O0 +("",)*(OO0O00OOOO0O0000O -len (OO000OO0O000000O0 ))#line:22
-def wrap_text (OOO0000000O0OO0OO ,width =78 ,initial_indent ="",subsequent_indent ="",preserve_paragraphs =False ):#line:27
-    ""#line:45
-    from ._textwrap import TextWrapper #line:46
-    OOO0000000O0OO0OO =OOO0000000O0OO0OO .expandtabs ()#line:48
-    OOOOO000O000OO00O =TextWrapper (width ,initial_indent =initial_indent ,subsequent_indent =subsequent_indent ,replace_whitespace =False ,)#line:54
-    if not preserve_paragraphs :#line:55
-        return OOOOO000O000OO00O .fill (OOO0000000O0OO0OO )#line:56
-    OOOOOOO0O0O0OOO00 =[]#line:58
-    OO000O0O0000OO0OO =[]#line:59
-    O0O00OOOOO00000O0 =None #line:60
-    def _OOO0OOO0OOOO0OOOO ():#line:62
-        if not OO000O0O0000OO0OO :#line:63
-            return #line:64
-        if OO000O0O0000OO0OO [0 ].strip ()=="\b":#line:65
-            OOOOOOO0O0O0OOO00 .append ((O0O00OOOOO00000O0 or 0 ,True ,"\n".join (OO000O0O0000OO0OO [1 :])))#line:66
-        else :#line:67
-            OOOOOOO0O0O0OOO00 .append ((O0O00OOOOO00000O0 or 0 ,False ," ".join (OO000O0O0000OO0OO )))#line:68
-        del OO000O0O0000OO0OO [:]#line:69
-    for OOOO0O0O000OOOOO0 in OOO0000000O0OO0OO .splitlines ():#line:71
-        if not OOOO0O0O000OOOOO0 :#line:72
-            _OOO0OOO0OOOO0OOOO ()#line:73
-            O0O00OOOOO00000O0 =None #line:74
-        else :#line:75
-            if O0O00OOOOO00000O0 is None :#line:76
-                O00O0OOO000OO00O0 =term_len (OOOO0O0O000OOOOO0 )#line:77
-                OOOO0O0O000OOOOO0 =OOOO0O0O000OOOOO0 .lstrip ()#line:78
-                O0O00OOOOO00000O0 =O00O0OOO000OO00O0 -term_len (OOOO0O0O000OOOOO0 )#line:79
-            OO000O0O0000OO0OO .append (OOOO0O0O000OOOOO0 )#line:80
-    _OOO0OOO0OOOO0OOOO ()#line:81
-    O00OOO0000OO000O0 =[]#line:83
-    for O0O00OOOOO00000O0 ,O0OO0000OO0OO0OO0 ,OOO0000000O0OO0OO in OOOOOOO0O0O0OOO00 :#line:84
-        with OOOOO000O000OO00O .extra_indent (" "*O0O00OOOOO00000O0 ):#line:85
-            if O0OO0000OO0OO0OO0 :#line:86
-                O00OOO0000OO000O0 .append (OOOOO000O000OO00O .indent_only (OOO0000000O0OO0OO ))#line:87
-            else :#line:88
-                O00OOO0000OO000O0 .append (OOOOO000O000OO00O .fill (OOO0000000O0OO0OO ))#line:89
-    return "\n\n".join (O00OOO0000OO000O0 )#line:91
-class HelpFormatter (object ):#line:94
-    ""#line:104
-    def __init__ (O00O00O0000O00000 ,indent_increment =2 ,width =None ,max_width =None ):#line:106
-        O00O00O0000O00000 .indent_increment =indent_increment #line:107
-        if max_width is None :#line:108
-            max_width =80 #line:109
-        if width is None :#line:110
-            width =FORCED_WIDTH #line:111
-            if width is None :#line:112
-                width =max (min (get_terminal_size ()[0 ],max_width )-2 ,50 )#line:113
-        O00O00O0000O00000 .width =width #line:114
-        O00O00O0000O00000 .current_indent =0 #line:115
-        O00O00O0000O00000 .buffer =[]#line:116
-    def write (O0O00OO0OOOOOO00O ,O00O000OOOOO000O0 ):#line:118
-        ""#line:119
-        O0O00OO0OOOOOO00O .buffer .append (O00O000OOOOO000O0 )#line:120
-    def indent (O0OOO0O0OOO00O0O0 ):#line:122
-        ""#line:123
-        O0OOO0O0OOO00O0O0 .current_indent +=O0OOO0O0OOO00O0O0 .indent_increment #line:124
-    def dedent (OO0OO0O000OOOO0OO ):#line:126
-        ""#line:127
-        OO0OO0O000OOOO0OO .current_indent -=OO0OO0O000OOOO0OO .indent_increment #line:128
-    def write_usage (OO0000O0OO0OOOO0O ,OOO0OO000OO00O0O0 ,args ="",prefix ="Usage: "):#line:130
-        ""#line:136
-        OO0OOO00O00O000OO ="{:>{w}}{} ".format (prefix ,OOO0OO000OO00O0O0 ,w =OO0000O0OO0OOOO0O .current_indent )#line:137
-        OO0O00O0000000O0O =OO0000O0OO0OOOO0O .width -OO0000O0OO0OOOO0O .current_indent #line:138
-        if OO0O00O0000000O0O >=(term_len (OO0OOO00O00O000OO )+20 ):#line:140
-            OO00O0OO00O0OOOOO =" "*term_len (OO0OOO00O00O000OO )#line:142
-            OO0000O0OO0OOOO0O .write (wrap_text (args ,OO0O00O0000000O0O ,initial_indent =OO0OOO00O00O000OO ,subsequent_indent =OO00O0OO00O0OOOOO ,))#line:150
-        else :#line:151
-            OO0000O0OO0OOOO0O .write (OO0OOO00O00O000OO )#line:153
-            OO0000O0OO0OOOO0O .write ("\n")#line:154
-            OO00O0OO00O0OOOOO =" "*(max (OO0000O0OO0OOOO0O .current_indent ,term_len (prefix ))+4 )#line:155
-            OO0000O0OO0OOOO0O .write (wrap_text (args ,OO0O00O0000000O0O ,initial_indent =OO00O0OO00O0OOOOO ,subsequent_indent =OO00O0OO00O0OOOOO ))#line:160
-        OO0000O0OO0OOOO0O .write ("\n")#line:162
-    def write_heading (OOO0000000O0OOO00 ,OO00O0OO0O0O000OO ):#line:164
-        ""#line:165
-        OOO0000000O0OOO00 .write ("{:>{w}}{}:\n".format ("",OO00O0OO0O0O000OO ,w =OOO0000000O0OOO00 .current_indent ))#line:166
-    def write_paragraph (O00O0000O000O0000 ):#line:168
-        ""#line:169
-        if O00O0000O000O0000 .buffer :#line:170
-            O00O0000O000O0000 .write ("\n")#line:171
-    def write_text (O00000000OOOO00OO ,O0O00O0000O0OOO00 ):#line:173
-        ""#line:176
-        O0O00O0OO00OO0OOO =max (O00000000OOOO00OO .width -O00000000OOOO00OO .current_indent ,11 )#line:177
-        OO00OO0OOO00O0OOO =" "*O00000000OOOO00OO .current_indent #line:178
-        O00000000OOOO00OO .write (wrap_text (O0O00O0000O0OOO00 ,O0O00O0OO00OO0OOO ,initial_indent =OO00OO0OOO00O0OOO ,subsequent_indent =OO00OO0OOO00O0OOO ,preserve_paragraphs =True ,))#line:187
-        O00000000OOOO00OO .write ("\n")#line:188
-    def write_dl (O0OO0O0O0O000OO00 ,OOOO0OO0O00O000OO ,col_max =30 ,col_spacing =2 ):#line:190
-        ""#line:198
-        OOOO0OO0O00O000OO =list (OOOO0OO0O00O000OO )#line:199
-        OO0OOOOOO0O0OO0O0 =measure_table (OOOO0OO0O00O000OO )#line:200
-        if len (OO0OOOOOO0O0OO0O0 )!=2 :#line:201
-            raise TypeError ("Expected two columns for definition list")#line:202
-        O0OO000O0000OOO00 =min (OO0OOOOOO0O0OO0O0 [0 ],col_max )+col_spacing #line:204
-        for O0O0O00O00O000OOO ,OOO00O00OOO00000O in iter_rows (OOOO0OO0O00O000OO ,len (OO0OOOOOO0O0OO0O0 )):#line:206
-            O0OO0O0O0O000OO00 .write ("{:>{w}}{}".format ("",O0O0O00O00O000OOO ,w =O0OO0O0O0O000OO00 .current_indent ))#line:207
-            if not OOO00O00OOO00000O :#line:208
-                O0OO0O0O0O000OO00 .write ("\n")#line:209
-                continue #line:210
-            if term_len (O0O0O00O00O000OOO )<=O0OO000O0000OOO00 -col_spacing :#line:211
-                O0OO0O0O0O000OO00 .write (" "*(O0OO000O0000OOO00 -term_len (O0O0O00O00O000OOO )))#line:212
-            else :#line:213
-                O0OO0O0O0O000OO00 .write ("\n")#line:214
-                O0OO0O0O0O000OO00 .write (" "*(O0OO000O0000OOO00 +O0OO0O0O0O000OO00 .current_indent ))#line:215
-            OO0OOO0O0O00OOO00 =max (O0OO0O0O0O000OO00 .width -O0OO000O0000OOO00 -2 ,10 )#line:217
-            O0O00000000OO00OO =wrap_text (OOO00O00OOO00000O ,OO0OOO0O0O00OOO00 ,preserve_paragraphs =True )#line:218
-            OOOOO000O00OOO0O0 =O0O00000000OO00OO .splitlines ()#line:219
-            if OOOOO000O00OOO0O0 :#line:221
-                O0OO0O0O0O000OO00 .write ("{}\n".format (OOOOO000O00OOO0O0 [0 ]))#line:222
-                for OO00000O0O0000O00 in OOOOO000O00OOO0O0 [1 :]:#line:224
-                    O0OO0O0O0O000OO00 .write ("{:>{w}}{}\n".format ("",OO00000O0O0000O00 ,w =O0OO000O0000OOO00 +O0OO0O0O0O000OO00 .current_indent ))#line:229
-                if len (OOOOO000O00OOO0O0 )>1 :#line:231
-                    O0OO0O0O0O000OO00 .write ("\n")#line:233
-            else :#line:234
-                O0OO0O0O0O000OO00 .write ("\n")#line:235
-    @contextmanager #line:237
-    def section (OO00000000000OO0O ,OOOO0O00OO0000O00 ):#line:238
-        ""#line:243
-        OO00000000000OO0O .write_paragraph ()#line:244
-        OO00000000000OO0O .write_heading (OOOO0O00OO0000O00 )#line:245
-        OO00000000000OO0O .indent ()#line:246
-        try :#line:247
-            yield #line:248
-        finally :#line:249
-            OO00000000000OO0O .dedent ()#line:250
-    @contextmanager #line:252
-    def indentation (OO00000O00000OO00 ):#line:253
-        ""#line:254
-        OO00000O00000OO00 .indent ()#line:255
-        try :#line:256
-            yield #line:257
-        finally :#line:258
-            OO00000O00000OO00 .dedent ()#line:259
-    def getvalue (OO0OOOO0O00OO00OO ):#line:261
-        ""#line:262
-        return "".join (OO0OOOO0O00OO00OO .buffer )#line:263
-def join_options (OOO0OO0O00O0OO0O0 ):#line:266
-    ""#line:271
-    O0O0O000O00O0OOO0 =[]#line:272
-    O000OO00OOO0000O0 =False #line:273
-    for OO0000O0OO0O0O00O in OOO0OO0O00O0OO0O0 :#line:274
-        OO0OOO0O000OOOOOO =split_opt (OO0000O0OO0O0O00O )[0 ]#line:275
-        if OO0OOO0O000OOOOOO =="/":#line:276
-            O000OO00OOO0000O0 =True #line:277
-        O0O0O000O00O0OOO0 .append ((len (OO0OOO0O000OOOOOO ),OO0000O0OO0O0O00O ))#line:278
-    O0O0O000O00O0OOO0 .sort (key =lambda O0OOOOO000O0O0OO0 :O0OOOOO000O0O0OO0 [0 ])#line:280
-    O0O0O000O00O0OOO0 =", ".join (O0000OOOOO0OOOO00 [1 ]for O0000OOOOO0OOOO00 in O0O0O000O00O0OOO0 )#line:282
-    return O0O0O000O00O0OOO0 ,O000OO00OOO0000O0 #line:283
+#!/usr/bin/env python3
+""#line:2
+import argparse #line:4
+def get_args ():#line:8
+    ""#line:9
+    OO0O00O0OO0OOO000 =argparse .ArgumentParser (description ='Gashlycrumb',formatter_class =argparse .ArgumentDefaultsHelpFormatter )#line:13
+    OO0O00O0OO0OOO000 .add_argument ('letter',help ='Letter(s)',metavar ='letter',nargs ='+',type =str )#line:19
+    OO0O00O0OO0OOO000 .add_argument ('-f','--file',help ='Input file',metavar ='FILE',type =argparse .FileType ('r'),default ='gashlycrumb.txt')#line:26
+    return OO0O00O0OO0OOO000 .parse_args ()#line:28
+def main ():#line:32
+    ""#line:33
+    O0OOO00OOOOO0O000 =get_args ()#line:35
+    O0O00O0OOO0OOO0O0 ={O0O00000O0OO00000 [0 ].upper ():O0O00000O0OO00000 .rstrip ()for O0O00000O0OO00000 in O0OOO00OOOOO0O000 .file }#line:36
+    for OOO0000O0O0OO0OOO in O0OOO00OOOOO0O000 .letter :#line:38
+        if OOO0000O0O0OO0OOO .upper ()in O0O00O0OOO0OOO0O0 :#line:39
+            print (O0O00O0OOO0OOO0O0 [OOO0000O0O0OO0OOO .upper ()])#line:40
+        else :#line:41
+            print (f'I do not know "{OOO0000O0O0OO0OOO}".')#line:42
+if __name__ =='__main__':#line:46
+    main ()#line:47

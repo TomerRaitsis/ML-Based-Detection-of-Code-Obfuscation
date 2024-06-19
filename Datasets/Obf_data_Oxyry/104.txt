@@ -1,114 +1,32 @@
-""#line:39:"""
-from __future__ import absolute_import #line:41:from __future__ import absolute_import
-import io #line:42:import io
-import logging #line:43:import logging
-import warnings #line:44:import warnings
-from ..packages .six .moves .urllib .parse import urljoin #line:45:from ..packages.six.moves.urllib.parse import urljoin
-from ..exceptions import (HTTPError ,HTTPWarning ,MaxRetryError ,ProtocolError ,TimeoutError ,SSLError )#line:54:)
-from ..request import RequestMethods #line:56:from ..request import RequestMethods
-from ..response import HTTPResponse #line:57:from ..response import HTTPResponse
-from ..util .timeout import Timeout #line:58:from ..util.timeout import Timeout
-from ..util .retry import Retry #line:59:from ..util.retry import Retry
-from .import _appengine_environ #line:60:from . import _appengine_environ
-try :#line:62:try:
-    from google .appengine .api import urlfetch #line:63:from google.appengine.api import urlfetch
-except ImportError :#line:64:except ImportError:
-    urlfetch =None #line:65:urlfetch = None
-log =logging .getLogger (__name__ )#line:68:log = logging.getLogger(__name__)
-class AppEnginePlatformWarning (HTTPWarning ):#line:71:class AppEnginePlatformWarning(HTTPWarning):
-    pass #line:72:pass
-class AppEnginePlatformError (HTTPError ):#line:75:class AppEnginePlatformError(HTTPError):
-    pass #line:76:pass
-class AppEngineManager (RequestMethods ):#line:79:class AppEngineManager(RequestMethods):
-    ""#line:97:"""
-    def __init__ (O00OOO00OO0O00O0O ,headers =None ,retries =None ,validate_certificate =True ,urlfetch_retries =True ):#line:100:urlfetch_retries=True):
-        if not urlfetch :#line:101:if not urlfetch:
-            raise AppEnginePlatformError ("URLFetch is not available in this environment.")#line:103:"URLFetch is not available in this environment.")
-        if is_prod_appengine_mvms ():#line:105:if is_prod_appengine_mvms():
-            raise AppEnginePlatformError ("Use normal urllib3.PoolManager instead of AppEngineManager" "on Managed VMs, as using URLFetch is not necessary in " "this environment.")#line:109:"this environment.")
-        warnings .warn ("urllib3 is using URLFetch on Google App Engine sandbox instead " "of sockets. To use sockets directly instead of URLFetch see " "https://urllib3.readthedocs.io/en/latest/reference/urllib3.contrib.html.",AppEnginePlatformWarning )#line:115:AppEnginePlatformWarning)
-        RequestMethods .__init__ (O00OOO00OO0O00O0O ,headers )#line:117:RequestMethods.__init__(self, headers)
-        O00OOO00OO0O00O0O .validate_certificate =validate_certificate #line:118:self.validate_certificate = validate_certificate
-        O00OOO00OO0O00O0O .urlfetch_retries =urlfetch_retries #line:119:self.urlfetch_retries = urlfetch_retries
-        O00OOO00OO0O00O0O .retries =retries or Retry .DEFAULT #line:121:self.retries = retries or Retry.DEFAULT
-    def __enter__ (O00000O000000O00O ):#line:123:def __enter__(self):
-        return O00000O000000O00O #line:124:return self
-    def __exit__ (OO0O0000OOO0O0O0O ,OO0OOO00O00OO0000 ,OO0O0O0OO0O0000OO ,O0O0O000O0O0O0000 ):#line:126:def __exit__(self, exc_type, exc_val, exc_tb):
-        return False #line:128:return False
-    def urlopen (O0OOOOO00O0O0OOO0 ,OOOOOOOO00OOO0000 ,OOO0OO00000O0OO0O ,body =None ,headers =None ,retries =None ,redirect =True ,timeout =Timeout .DEFAULT_TIMEOUT ,**OOOOOO0O0OOOOOO0O ):#line:132:**response_kw):
-        retries =O0OOOOO00O0O0OOO0 ._get_retries (retries ,redirect )#line:134:retries = self._get_retries(retries, redirect)
-        try :#line:136:try:
-            O00O0O0OOOO0000O0 =(redirect and retries .redirect !=0 and retries .total )#line:140:retries.total)
-            OOOOOO0OOOO0OOO0O =urlfetch .fetch (OOO0OO00000O0OO0O ,payload =body ,method =OOOOOOOO00OOO0000 ,headers =headers or {},allow_truncated =False ,follow_redirects =O0OOOOO00O0O0OOO0 .urlfetch_retries and O00O0O0OOOO0000O0 ,deadline =O0OOOOO00O0O0OOO0 ._get_absolute_timeout (timeout ),validate_certificate =O0OOOOO00O0O0OOO0 .validate_certificate ,)#line:150:)
-        except urlfetch .DeadlineExceededError as OO00OO0O0O0O00O00 :#line:151:except urlfetch.DeadlineExceededError as e:
-            raise TimeoutError (O0OOOOO00O0O0OOO0 ,OO00OO0O0O0O00O00 )#line:152:raise TimeoutError(self, e)
-        except urlfetch .InvalidURLError as OO00OO0O0O0O00O00 :#line:154:except urlfetch.InvalidURLError as e:
-            if 'too large'in str (OO00OO0O0O0O00O00 ):#line:155:if 'too large' in str(e):
-                raise AppEnginePlatformError ("URLFetch request too large, URLFetch only " "supports requests up to 10mb in size.",OO00OO0O0O0O00O00 )#line:158:"supports requests up to 10mb in size.", e)
-            raise ProtocolError (OO00OO0O0O0O00O00 )#line:159:raise ProtocolError(e)
-        except urlfetch .DownloadError as OO00OO0O0O0O00O00 :#line:161:except urlfetch.DownloadError as e:
-            if 'Too many redirects'in str (OO00OO0O0O0O00O00 ):#line:162:if 'Too many redirects' in str(e):
-                raise MaxRetryError (O0OOOOO00O0O0OOO0 ,OOO0OO00000O0OO0O ,reason =OO00OO0O0O0O00O00 )#line:163:raise MaxRetryError(self, url, reason=e)
-            raise ProtocolError (OO00OO0O0O0O00O00 )#line:164:raise ProtocolError(e)
-        except urlfetch .ResponseTooLargeError as OO00OO0O0O0O00O00 :#line:166:except urlfetch.ResponseTooLargeError as e:
-            raise AppEnginePlatformError ("URLFetch response too large, URLFetch only supports" "responses up to 32mb in size.",OO00OO0O0O0O00O00 )#line:169:"responses up to 32mb in size.", e)
-        except urlfetch .SSLCertificateError as OO00OO0O0O0O00O00 :#line:171:except urlfetch.SSLCertificateError as e:
-            raise SSLError (OO00OO0O0O0O00O00 )#line:172:raise SSLError(e)
-        except urlfetch .InvalidMethodError as OO00OO0O0O0O00O00 :#line:174:except urlfetch.InvalidMethodError as e:
-            raise AppEnginePlatformError ("URLFetch does not support method: %s"%OOOOOOOO00OOO0000 ,OO00OO0O0O0O00O00 )#line:176:"URLFetch does not support method: %s" % method, e)
-        OO0OOO00O0O0OO00O =O0OOOOO00O0O0OOO0 ._urlfetch_response_to_http_response (OOOOOO0OOOO0OOO0O ,retries =retries ,**OOOOOO0O0OOOOOO0O )#line:179:response, retries=retries, **response_kw)
-        O0OO000000O000OOO =redirect and OO0OOO00O0O0OO00O .get_redirect_location ()#line:182:redirect_location = redirect and http_response.get_redirect_location()
-        if O0OO000000O000OOO :#line:183:if redirect_location:
-            if (O0OOOOO00O0O0OOO0 .urlfetch_retries and retries .raise_on_redirect ):#line:185:if (self.urlfetch_retries and retries.raise_on_redirect):
-                raise MaxRetryError (O0OOOOO00O0O0OOO0 ,OOO0OO00000O0OO0O ,"too many redirects")#line:186:raise MaxRetryError(self, url, "too many redirects")
-            else :#line:187:else:
-                if OO0OOO00O0O0OO00O .status ==303 :#line:188:if http_response.status == 303:
-                    OOOOOOOO00OOO0000 ='GET'#line:189:method = 'GET'
-                try :#line:191:try:
-                    retries =retries .increment (OOOOOOOO00OOO0000 ,OOO0OO00000O0OO0O ,response =OO0OOO00O0O0OO00O ,_pool =O0OOOOO00O0O0OOO0 )#line:192:retries = retries.increment(method, url, response=http_response, _pool=self)
-                except MaxRetryError :#line:193:except MaxRetryError:
-                    if retries .raise_on_redirect :#line:194:if retries.raise_on_redirect:
-                        raise MaxRetryError (O0OOOOO00O0O0OOO0 ,OOO0OO00000O0OO0O ,"too many redirects")#line:195:raise MaxRetryError(self, url, "too many redirects")
-                    return OO0OOO00O0O0OO00O #line:196:return http_response
-                retries .sleep_for_retry (OO0OOO00O0O0OO00O )#line:198:retries.sleep_for_retry(http_response)
-                log .debug ("Redirecting %s -> %s",OOO0OO00000O0OO0O ,O0OO000000O000OOO )#line:199:log.debug("Redirecting %s -> %s", url, redirect_location)
-                OOOOOOOO0OO0OOOOO =urljoin (OOO0OO00000O0OO0O ,O0OO000000O000OOO )#line:200:redirect_url = urljoin(url, redirect_location)
-                return O0OOOOO00O0O0OOO0 .urlopen (OOOOOOOO00OOO0000 ,OOOOOOOO0OO0OOOOO ,body ,headers ,retries =retries ,redirect =redirect ,timeout =timeout ,**OOOOOO0O0OOOOOO0O )#line:204:timeout=timeout, **response_kw)
-        OOOO0OO000OOOOOOO =bool (OO0OOO00O0O0OO00O .getheader ('Retry-After'))#line:207:has_retry_after = bool(http_response.getheader('Retry-After'))
-        if retries .is_retry (OOOOOOOO00OOO0000 ,OO0OOO00O0O0OO00O .status ,OOOO0OO000OOOOOOO ):#line:208:if retries.is_retry(method, http_response.status, has_retry_after):
-            retries =retries .increment (OOOOOOOO00OOO0000 ,OOO0OO00000O0OO0O ,response =OO0OOO00O0O0OO00O ,_pool =O0OOOOO00O0O0OOO0 )#line:210:method, url, response=http_response, _pool=self)
-            log .debug ("Retry: %s",OOO0OO00000O0OO0O )#line:211:log.debug("Retry: %s", url)
-            retries .sleep (OO0OOO00O0O0OO00O )#line:212:retries.sleep(http_response)
-            return O0OOOOO00O0O0OOO0 .urlopen (OOOOOOOO00OOO0000 ,OOO0OO00000O0OO0O ,body =body ,headers =headers ,retries =retries ,redirect =redirect ,timeout =timeout ,**OOOOOO0O0OOOOOO0O )#line:217:timeout=timeout, **response_kw)
-        return OO0OOO00O0O0OO00O #line:219:return http_response
-    def _urlfetch_response_to_http_response (O000O00OOOOOOOOOO ,OO00OO00O000OOOO0 ,**O0OO000O0O0O00000 ):#line:221:def _urlfetch_response_to_http_response(self, urlfetch_resp, **response_kw):
-        if is_prod_appengine ():#line:223:if is_prod_appengine():
-            O0OO0O0000OOOOOOO =OO00OO00O000OOOO0 .headers .get ('content-encoding')#line:226:content_encoding = urlfetch_resp.headers.get('content-encoding')
-            if O0OO0O0000OOOOOOO =='deflate':#line:228:if content_encoding == 'deflate':
-                del OO00OO00O000OOOO0 .headers ['content-encoding']#line:229:del urlfetch_resp.headers['content-encoding']
-        O0O00O000OO0O000O =OO00OO00O000OOOO0 .headers .get ('transfer-encoding')#line:231:transfer_encoding = urlfetch_resp.headers.get('transfer-encoding')
-        if O0O00O000OO0O000O =='chunked':#line:234:if transfer_encoding == 'chunked':
-            O0O00O00O0OO0O0OO =O0O00O000OO0O000O .split (",")#line:235:encodings = transfer_encoding.split(",")
-            O0O00O00O0OO0O0OO .remove ('chunked')#line:236:encodings.remove('chunked')
-            OO00OO00O000OOOO0 .headers ['transfer-encoding']=','.join (O0O00O00O0OO0O0OO )#line:237:urlfetch_resp.headers['transfer-encoding'] = ','.join(encodings)
-        O0O0OO0000OOO000O =HTTPResponse (body =io .BytesIO (OO00OO00O000OOOO0 .content ),msg =OO00OO00O000OOOO0 .header_msg ,headers =OO00OO00O000OOOO0 .headers ,status =OO00OO00O000OOOO0 .status_code ,**O0OO000O0O0O00000 )#line:247:)
-        return HTTPResponse (body =io .BytesIO (OO00OO00O000OOOO0 .content ),headers =OO00OO00O000OOOO0 .headers ,status =OO00OO00O000OOOO0 .status_code ,original_response =O0O0OO0000OOO000O ,**O0OO000O0O0O00000 )#line:255:)
-    def _get_absolute_timeout (O00O0OO0OOO0O0000 ,O0OOOOOO00O00OO0O ):#line:257:def _get_absolute_timeout(self, timeout):
-        if O0OOOOOO00O00OO0O is Timeout .DEFAULT_TIMEOUT :#line:258:if timeout is Timeout.DEFAULT_TIMEOUT:
-            return None #line:259:return None  # Defer to URLFetch's default.
-        if isinstance (O0OOOOOO00O00OO0O ,Timeout ):#line:260:if isinstance(timeout, Timeout):
-            if O0OOOOOO00O00OO0O ._read is not None or O0OOOOOO00O00OO0O ._connect is not None :#line:261:if timeout._read is not None or timeout._connect is not None:
-                warnings .warn ("URLFetch does not support granular timeout settings, " "reverting to total or default URLFetch timeout.",AppEnginePlatformWarning )#line:265:AppEnginePlatformWarning)
-            return O0OOOOOO00O00OO0O .total #line:266:return timeout.total
-        return O0OOOOOO00O00OO0O #line:267:return timeout
-    def _get_retries (OOOO0O00O000O0OO0 ,OO0O0000O00O0O0OO ,OOO00O0OO00OO0O00 ):#line:269:def _get_retries(self, retries, redirect):
-        if not isinstance (OO0O0000O00O0O0OO ,Retry ):#line:270:if not isinstance(retries, Retry):
-            OO0O0000O00O0O0OO =Retry .from_int (OO0O0000O00O0O0OO ,redirect =OOO00O0OO00OO0O00 ,default =OOOO0O00O000O0OO0 .retries )#line:272:retries, redirect=redirect, default=self.retries)
-        if OO0O0000O00O0O0OO .connect or OO0O0000O00O0O0OO .read or OO0O0000O00O0O0OO .redirect :#line:274:if retries.connect or retries.read or retries.redirect:
-            warnings .warn ("URLFetch only supports total retries and does not " "recognize connect, read, or redirect retry parameters.",AppEnginePlatformWarning )#line:278:AppEnginePlatformWarning)
-        return OO0O0000O00O0O0OO #line:280:return retries
-is_appengine =_appengine_environ .is_appengine #line:285:is_appengine = _appengine_environ.is_appengine
-is_appengine_sandbox =_appengine_environ .is_appengine_sandbox #line:286:is_appengine_sandbox = _appengine_environ.is_appengine_sandbox
-is_local_appengine =_appengine_environ .is_local_appengine #line:287:is_local_appengine = _appengine_environ.is_local_appengine
-is_prod_appengine =_appengine_environ .is_prod_appengine #line:288:is_prod_appengine = _appengine_environ.is_prod_appengine
-is_prod_appengine_mvms =_appengine_environ .is_prod_appengine_mvms #line:289:is_prod_appengine_mvms = _appengine_environ.is_prod_appengine_mvms
+#!/usr/bin/env python3
+import cv2 #line:3
+import numpy as np #line:4
+import sys #line:6
+symbols_list =["#","-","*",".","+","o"]#line:8
+threshold_list =[0 ,50 ,100 ,150 ,200 ]#line:9
+def print_out_ascii (O0O00O0OOO00O0OO0 ):#line:11
+    ""#line:12
+    for OO0OO0OOO0OO0O000 in O0O00O0OOO00O0OO0 :#line:14
+        for OOOO0OO0O0OO0OO0O in OO0OO0OOO0OO0O000 :#line:15
+            print (symbols_list [int (OOOO0OO0O0OO0OO0O )%len (symbols_list )],end ="")#line:17
+        print ()#line:18
+def img_to_ascii (O0O0O0000000O0OO0 ):#line:21
+    ""#line:22
+    O0000O0OOOOOOO0O0 ,O0O000OO00O000O00 =O0O0O0000000O0OO0 .shape #line:26
+    O000OO000OOOOOO0O =int (O0O000OO00O000O00 /20 )#line:27
+    OO00OO00OO0O00000 =int (O0000O0OOOOOOO0O0 /40 )#line:28
+    OO00O00000000OOOO =cv2 .resize (O0O0O0000000O0OO0 ,(O000OO000OOOOOO0O ,OO00OO00OO0O00000 ),)#line:31
+    OOOO0000000O00OO0 =np .zeros (OO00O00000000OOOO .shape )#line:33
+    for OOOOO00O0OOO0O00O ,O00OO0OO00O00O000 in enumerate (threshold_list ):#line:35
+        OOOO0000000O00OO0 [OO00O00000000OOOO >O00OO0OO00O00O000 ]=OOOOO00O0OOO0O00O #line:37
+    return OOOO0000000O00OO0 #line:38
+if __name__ =="__main__":#line:41
+    if len (sys .argv )<2 :#line:43
+        print ("Image Path not specified : Using sample_image.png\n")#line:44
+        image_path ="sample_image.png"#line:45
+    if len (sys .argv )==2 :#line:47
+        print ("Using {} as Image Path\n".format (sys .argv [1 ]))#line:48
+        image_path =sys .argv [1 ]#line:49
+    image =cv2 .imread (image_path ,0 )#line:51
+    ascii_art =img_to_ascii (image )#line:53
+    print_out_ascii (ascii_art )#line:54

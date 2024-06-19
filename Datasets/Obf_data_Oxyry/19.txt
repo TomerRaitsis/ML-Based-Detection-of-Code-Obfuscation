@@ -1,479 +1,87 @@
-""#line:6:"""Access to Python's configuration information."""
-import codecs #line:8:import codecs
-import os #line:9:import os
-import re #line:10:import re
-import sys #line:11:import sys
-from os .path import pardir ,realpath #line:12:from os.path import pardir, realpath
-try :#line:13:try:
-    import configparser #line:14:import configparser
-except ImportError :#line:15:except ImportError:
-    import ConfigParser as configparser #line:16:import ConfigParser as configparser
-__all__ =['get_config_h_filename','get_config_var','get_config_vars','get_makefile_filename','get_path','get_path_names','get_paths','get_platform','get_python_version','get_scheme_names','parse_config_h',]#line:31:]
-def _OO0OO00O00O0OOOO0 (OO0OO0000O00O0OOO ):#line:34:def _safe_realpath(path):
-    try :#line:35:try:
-        return realpath (OO0OO0000O00O0OOO )#line:36:return realpath(path)
-    except OSError :#line:37:except OSError:
-        return OO0OO0000O00O0OOO #line:38:return path
-if sys .executable :#line:41:if sys.executable:
-    _OO00OO00000O00000 =os .path .dirname (_OO0OO00O00O0OOOO0 (sys .executable ))#line:42:_PROJECT_BASE = os.path.dirname(_safe_realpath(sys.executable))
-else :#line:43:else:
-    _OO00OO00000O00000 =_OO0OO00O00O0OOOO0 (os .getcwd ())#line:46:_PROJECT_BASE = _safe_realpath(os.getcwd())
-if os .name =="nt"and "pcbuild"in _OO00OO00000O00000 [-8 :].lower ():#line:48:if os.name == "nt" and "pcbuild" in _PROJECT_BASE[-8:].lower():
-    _OO00OO00000O00000 =_OO0OO00O00O0OOOO0 (os .path .join (_OO00OO00000O00000 ,pardir ))#line:49:_PROJECT_BASE = _safe_realpath(os.path.join(_PROJECT_BASE, pardir))
-if os .name =="nt"and "\\pc\\v"in _OO00OO00000O00000 [-10 :].lower ():#line:51:if os.name == "nt" and "\\pc\\v" in _PROJECT_BASE[-10:].lower():
-    _OO00OO00000O00000 =_OO0OO00O00O0OOOO0 (os .path .join (_OO00OO00000O00000 ,pardir ,pardir ))#line:52:_PROJECT_BASE = _safe_realpath(os.path.join(_PROJECT_BASE, pardir, pardir))
-if os .name =="nt"and "\\pcbuild\\amd64"in _OO00OO00000O00000 [-14 :].lower ():#line:54:if os.name == "nt" and "\\pcbuild\\amd64" in _PROJECT_BASE[-14:].lower():
-    _OO00OO00000O00000 =_OO0OO00O00O0OOOO0 (os .path .join (_OO00OO00000O00000 ,pardir ,pardir ))#line:55:_PROJECT_BASE = _safe_realpath(os.path.join(_PROJECT_BASE, pardir, pardir))
-def OOO000O00OOO0OOOO ():#line:58:def is_python_build():
-    for O0000000OO0OOOOOO in ("Setup.dist","Setup.local"):#line:59:for fn in ("Setup.dist", "Setup.local"):
-        if os .path .isfile (os .path .join (_OO00OO00000O00000 ,"Modules",O0000000OO0OOOOOO )):#line:60:if os.path.isfile(os.path.join(_PROJECT_BASE, "Modules", fn)):
-            return True #line:61:return True
-    return False #line:62:return False
-_OOO00000OO0OOO0O0 =OOO000O00OOO0OOOO ()#line:64:_PYTHON_BUILD = is_python_build()
-_O000O00OO00000OO0 =False #line:66:_cfg_read = False
-def _O00OO00O000O0OO00 ():#line:68:def _ensure_cfg_read():
-    global _O000O00OO00000OO0 #line:69:global _cfg_read
-    if not _O000O00OO00000OO0 :#line:70:if not _cfg_read:
-        from ..resources import finder #line:71:from ..resources import finder
-        OO00OOOO00OOO0OOO =__name__ .rsplit ('.',1 )[0 ]#line:72:backport_package = __name__.rsplit('.', 1)[0]
-        _OOO0O00O0O00OOOO0 =finder (OO00OOOO00OOO0OOO )#line:73:_finder = finder(backport_package)
-        _O000O0O0O000O00O0 =_OOO0O00O0O00OOOO0 .find ('sysconfig.cfg')#line:74:_cfgfile = _finder.find('sysconfig.cfg')
-        assert _O000O0O0O000O00O0 ,'sysconfig.cfg exists'#line:75:assert _cfgfile, 'sysconfig.cfg exists'
-        with _O000O0O0O000O00O0 .as_stream ()as OO0O0O0O00O0O0O0O :#line:76:with _cfgfile.as_stream() as s:
-            _OO0O0OOO0OO0000OO .readfp (OO0O0O0O00O0O0O0O )#line:77:_SCHEMES.readfp(s)
-        if _OOO00000OO0OOO0O0 :#line:78:if _PYTHON_BUILD:
-            for OO0O00OOOO0000OO0 in ('posix_prefix','posix_home'):#line:79:for scheme in ('posix_prefix', 'posix_home'):
-                _OO0O0OOO0OO0000OO .set (OO0O00OOOO0000OO0 ,'include','{srcdir}/Include')#line:80:_SCHEMES.set(scheme, 'include', '{srcdir}/Include')
-                _OO0O0OOO0OO0000OO .set (OO0O00OOOO0000OO0 ,'platinclude','{projectbase}/.')#line:81:_SCHEMES.set(scheme, 'platinclude', '{projectbase}/.')
-        _O000O00OO00000OO0 =True #line:83:_cfg_read = True
-_OO0O0OOO0OO0000OO =configparser .RawConfigParser ()#line:86:_SCHEMES = configparser.RawConfigParser()
-_OO0OOOOO0O0OO0O00 =re .compile (r'\{([^{]*?)\}')#line:87:_VAR_REPL = re.compile(r'\{([^{]*?)\}')
-def _O00O000OO0OO00OO0 (O0O0OO00OO00OO0O0 ):#line:89:def _expand_globals(config):
-    _O00OO00O000O0OO00 ()#line:90:_ensure_cfg_read()
-    if O0O0OO00OO00OO0O0 .has_section ('globals'):#line:91:if config.has_section('globals'):
-        O0O00O0OO0O0OO0O0 =O0O0OO00OO00OO0O0 .items ('globals')#line:92:globals = config.items('globals')
-    else :#line:93:else:
-        O0O00O0OO0O0OO0O0 =tuple ()#line:94:globals = tuple()
-    O0OO0O00O0O000O00 =O0O0OO00OO00OO0O0 .sections ()#line:96:sections = config.sections()
-    for OOO000OO0O00O00O0 in O0OO0O00O0O000O00 :#line:97:for section in sections:
-        if OOO000OO0O00O00O0 =='globals':#line:98:if section == 'globals':
-            continue #line:99:continue
-        for O0O000OOO00OOO0O0 ,OO00O0OO00OOO00O0 in O0O00O0OO0O0OO0O0 :#line:100:for option, value in globals:
-            if O0O0OO00OO00OO0O0 .has_option (OOO000OO0O00O00O0 ,O0O000OOO00OOO0O0 ):#line:101:if config.has_option(section, option):
-                continue #line:102:continue
-            O0O0OO00OO00OO0O0 .set (OOO000OO0O00O00O0 ,O0O000OOO00OOO0O0 ,OO00O0OO00OOO00O0 )#line:103:config.set(section, option, value)
-    O0O0OO00OO00OO0O0 .remove_section ('globals')#line:104:config.remove_section('globals')
-    for OOO000OO0O00O00O0 in O0O0OO00OO00OO0O0 .sections ():#line:108:for section in config.sections():
-        OO000OO0OOOO00O0O =dict (O0O0OO00OO00OO0O0 .items (OOO000OO0O00O00O0 ))#line:109:variables = dict(config.items(section))
-        def _OOO000OO00O00OOOO (O0OOOO00OOOOOO000 ):#line:111:def _replacer(matchobj):
-            OO00OO000OO000OO0 =O0OOOO00OOOOOO000 .group (1 )#line:112:name = matchobj.group(1)
-            if OO00OO000OO000OO0 in OO000OO0OOOO00O0O :#line:113:if name in variables:
-                return OO000OO0OOOO00O0O [OO00OO000OO000OO0 ]#line:114:return variables[name]
-            return O0OOOO00OOOOOO000 .group (0 )#line:115:return matchobj.group(0)
-        for O0O000OOO00OOO0O0 ,OO00O0OO00OOO00O0 in O0O0OO00OO00OO0O0 .items (OOO000OO0O00O00O0 ):#line:117:for option, value in config.items(section):
-            O0O0OO00OO00OO0O0 .set (OOO000OO0O00O00O0 ,O0O000OOO00OOO0O0 ,_OO0OOOOO0O0OO0O00 .sub (_OOO000OO00O00OOOO ,OO00O0OO00OOO00O0 ))#line:118:config.set(section, option, _VAR_REPL.sub(_replacer, value))
-_OO00OO000OOOOO00O =sys .version .split ()[0 ]#line:124:_PY_VERSION = sys.version.split()[0]
-_OO00O0OOOO00O000O =sys .version [:3 ]#line:125:_PY_VERSION_SHORT = sys.version[:3]
-_OO000O000O00000OO =_OO00OO000OOOOO00O [0 ]+_OO00OO000OOOOO00O [2 ]#line:126:_PY_VERSION_SHORT_NO_DOT = _PY_VERSION[0] + _PY_VERSION[2]
-_O0O00OOO000O0OOO0 =os .path .normpath (sys .prefix )#line:127:_PREFIX = os.path.normpath(sys.prefix)
-_OOO00OO000OO000O0 =os .path .normpath (sys .exec_prefix )#line:128:_EXEC_PREFIX = os.path.normpath(sys.exec_prefix)
-_OO00O0OOO00OOO00O =None #line:129:_CONFIG_VARS = None
-_OOOO00O0O0OO00OOO =None #line:130:_USER_BASE = None
-def _OOOO00000OOO00O0O (O000OOO00OO00O0O0 ,O000OOOOOOOO0OO0O ):#line:133:def _subst_vars(path, local_vars):
-    ""#line:138:"""
-    def _O0O0OOOOOOO00OOOO (OO0O000O00O00OO0O ):#line:139:def _replacer(matchobj):
-        OOO0O00OOOO0O000O =OO0O000O00O00OO0O .group (1 )#line:140:name = matchobj.group(1)
-        if OOO0O00OOOO0O000O in O000OOOOOOOO0OO0O :#line:141:if name in local_vars:
-            return O000OOOOOOOO0OO0O [OOO0O00OOOO0O000O ]#line:142:return local_vars[name]
-        elif OOO0O00OOOO0O000O in os .environ :#line:143:elif name in os.environ:
-            return os .environ [OOO0O00OOOO0O000O ]#line:144:return os.environ[name]
-        return OO0O000O00O00OO0O .group (0 )#line:145:return matchobj.group(0)
-    return _OO0OOOOO0O0OO0O00 .sub (_O0O0OOOOOOO00OOOO ,O000OOO00OO00O0O0 )#line:146:return _VAR_REPL.sub(_replacer, path)
-def _OO00OOO0OOOOOOOOO (OO0O000O00OOO0OO0 ,O0O0OO000OOOO0O00 ):#line:149:def _extend_dict(target_dict, other_dict):
-    O0O0O0OO0OOO0O0O0 =OO0O000O00OOO0OO0 .keys ()#line:150:target_keys = target_dict.keys()
-    for O0OO00OOOOOOO0OOO ,OO0O0OO0OOOO0OO0O in O0O0OO000OOOO0O00 .items ():#line:151:for key, value in other_dict.items():
-        if O0OO00OOOOOOO0OOO in O0O0O0OO0OOO0O0O0 :#line:152:if key in target_keys:
-            continue #line:153:continue
-        OO0O000O00OOO0OO0 [O0OO00OOOOOOO0OOO ]=OO0O0OO0OOOO0OO0O #line:154:target_dict[key] = value
-def _O00OO0OO0O0O0OO00 (O0O00O00O0OO00OO0 ,O0OOOO0O0OO0OOOOO ):#line:157:def _expand_vars(scheme, vars):
-    O000000O0000O00OO ={}#line:158:res = {}
-    if O0OOOO0O0OO0OOOOO is None :#line:159:if vars is None:
-        O0OOOO0O0OO0OOOOO ={}#line:160:vars = {}
-    _OO00OOO0OOOOOOOOO (O0OOOO0O0OO0OOOOO ,get_config_vars ())#line:161:_extend_dict(vars, get_config_vars())
-    for O00000O0OOOOO0OO0 ,O0O0O00OO0O0OOOOO in _OO0O0OOO0OO0000OO .items (O0O00O00O0OO00OO0 ):#line:163:for key, value in _SCHEMES.items(scheme):
-        if os .name in ('posix','nt'):#line:164:if os.name in ('posix', 'nt'):
-            O0O0O00OO0O0OOOOO =os .path .expanduser (O0O0O00OO0O0OOOOO )#line:165:value = os.path.expanduser(value)
-        O000000O0000O00OO [O00000O0OOOOO0OO0 ]=os .path .normpath (_OOOO00000OOO00O0O (O0O0O00OO0O0OOOOO ,O0OOOO0O0OO0OOOOO ))#line:166:res[key] = os.path.normpath(_subst_vars(value, vars))
-    return O000000O0000O00OO #line:167:return res
-def OO0OO000O0O0OO00O (OOOO00OO0O00OO0O0 ,O0OO0O00OO0O0O0OO ):#line:170:def format_value(value, vars):
-    def _O0OO0OO000O0O0000 (O00O00OOO0O00OOOO ):#line:171:def _replacer(matchobj):
-        O00O00O0O0O00O00O =O00O00OOO0O00OOOO .group (1 )#line:172:name = matchobj.group(1)
-        if O00O00O0O0O00O00O in O0OO0O00OO0O0O0OO :#line:173:if name in vars:
-            return O0OO0O00OO0O0O0OO [O00O00O0O0O00O00O ]#line:174:return vars[name]
-        return O00O00OOO0O00OOOO .group (0 )#line:175:return matchobj.group(0)
-    return _OO0OOOOO0O0OO0O00 .sub (_O0OO0OO000O0O0000 ,OOOO00OO0O00OO0O0 )#line:176:return _VAR_REPL.sub(_replacer, value)
-def _OO0O0O00OOOO0OO0O ():#line:179:def _get_default_scheme():
-    if os .name =='posix':#line:180:if os.name == 'posix':
-        return 'posix_prefix'#line:182:return 'posix_prefix'
-    return os .name #line:183:return os.name
-def _OOO00000O00O0OO0O ():#line:186:def _getuserbase():
-    O00OO0O00000O0OOO =os .environ .get ("PYTHONUSERBASE",None )#line:187:env_base = os.environ.get("PYTHONUSERBASE", None)
-    def OO00O0OO00OOOOOO0 (*O0OOO0OO0O0O000OO ):#line:189:def joinuser(*args):
-        return os .path .expanduser (os .path .join (*O0OOO0OO0O0O000OO ))#line:190:return os.path.expanduser(os.path.join(*args))
-    if os .name =="nt":#line:193:if os.name == "nt":
-        O0O000000O0OO0OO0 =os .environ .get ("APPDATA")or "~"#line:194:base = os.environ.get("APPDATA") or "~"
-        if O00OO0O00000O0OOO :#line:195:if env_base:
-            return O00OO0O00000O0OOO #line:196:return env_base
-        else :#line:197:else:
-            return OO00O0OO00OOOOOO0 (O0O000000O0OO0OO0 ,"Python")#line:198:return joinuser(base, "Python")
-    if sys .platform =="darwin":#line:200:if sys.platform == "darwin":
-        O0O00OOOOO0O0O000 =get_config_var ("PYTHONFRAMEWORK")#line:201:framework = get_config_var("PYTHONFRAMEWORK")
-        if O0O00OOOOO0O0O000 :#line:202:if framework:
-            if O00OO0O00000O0OOO :#line:203:if env_base:
-                return O00OO0O00000O0OOO #line:204:return env_base
-            else :#line:205:else:
-                return OO00O0OO00OOOOOO0 ("~","Library",O0O00OOOOO0O0O000 ,"%d.%d"%sys .version_info [:2 ])#line:207:sys.version_info[:2])
-    if O00OO0O00000O0OOO :#line:209:if env_base:
-        return O00OO0O00000O0OOO #line:210:return env_base
-    else :#line:211:else:
-        return OO00O0OO00OOOOOO0 ("~",".local")#line:212:return joinuser("~", ".local")
-def _O0O00OOO0OO00O0OO (OO0O0OO0O0OO0O0O0 ,vars =None ):#line:215:def _parse_makefile(filename, vars=None):
-    ""#line:221:"""
-    _O00O0OO0O00OOOO0O =re .compile (r"([a-zA-Z][a-zA-Z0-9_]+)\s*=\s*(.*)")#line:224:_variable_rx = re.compile(r"([a-zA-Z][a-zA-Z0-9_]+)\s*=\s*(.*)")
-    _O0OO00O0000O0000O =re .compile (r"\$\(([A-Za-z][A-Za-z0-9_]*)\)")#line:225:_findvar1_rx = re.compile(r"\$\(([A-Za-z][A-Za-z0-9_]*)\)")
-    _O0OO0O00O00OOO000 =re .compile (r"\${([A-Za-z][A-Za-z0-9_]*)}")#line:226:_findvar2_rx = re.compile(r"\${([A-Za-z][A-Za-z0-9_]*)}")
-    if vars is None :#line:228:if vars is None:
-        vars ={}#line:229:vars = {}
-    OO0OO00OOOOOOO00O ={}#line:230:done = {}
-    OO0OO00000O0O00O0 ={}#line:231:notdone = {}
-    with codecs .open (OO0O0OO0O0OO0O0O0 ,encoding ='utf-8',errors ="surrogateescape")as O0O000OOOO00O0O0O :#line:233:with codecs.open(filename, encoding='utf-8', errors="surrogateescape") as f:
-        OO00000OOO000O0OO =O0O000OOOO00O0O0O .readlines ()#line:234:lines = f.readlines()
-    for OO0OOOOOOO000OO00 in OO00000OOO000O0OO :#line:236:for line in lines:
-        if OO0OOOOOOO000OO00 .startswith ('#')or OO0OOOOOOO000OO00 .strip ()=='':#line:237:if line.startswith('#') or line.strip() == '':
-            continue #line:238:continue
-        O000OOO0OO00OO000 =_O00O0OO0O00OOOO0O .match (OO0OOOOOOO000OO00 )#line:239:m = _variable_rx.match(line)
-        if O000OOO0OO00OO000 :#line:240:if m:
-            OO0OO00O0O00OO0O0 ,O0O0O0OOOOO00O0OO =O000OOO0OO00OO000 .group (1 ,2 )#line:241:n, v = m.group(1, 2)
-            O0O0O0OOOOO00O0OO =O0O0O0OOOOO00O0OO .strip ()#line:242:v = v.strip()
-            O0OOOO0OOOO00O000 =O0O0O0OOOOO00O0OO .replace ('$$','')#line:244:tmpv = v.replace('$$', '')
-            if "$"in O0OOOO0OOOO00O000 :#line:246:if "$" in tmpv:
-                OO0OO00000O0O00O0 [OO0OO00O0O00OO0O0 ]=O0O0O0OOOOO00O0OO #line:247:notdone[n] = v
-            else :#line:248:else:
-                try :#line:249:try:
-                    O0O0O0OOOOO00O0OO =int (O0O0O0OOOOO00O0OO )#line:250:v = int(v)
-                except ValueError :#line:251:except ValueError:
-                    OO0OO00OOOOOOO00O [OO0OO00O0O00OO0O0 ]=O0O0O0OOOOO00O0OO .replace ('$$','$')#line:253:done[n] = v.replace('$$', '$')
-                else :#line:254:else:
-                    OO0OO00OOOOOOO00O [OO0OO00O0O00OO0O0 ]=O0O0O0OOOOO00O0OO #line:255:done[n] = v
-    OOO000O00OOO0OO00 =list (OO0OO00000O0O00O0 .keys ())#line:258:variables = list(notdone.keys())
-    OO00OO0OOO0000OOO =('CFLAGS','LDFLAGS','CPPFLAGS')#line:264:renamed_variables = ('CFLAGS', 'LDFLAGS', 'CPPFLAGS')
-    while len (OOO000O00OOO0OO00 )>0 :#line:266:while len(variables) > 0:
-        for OO0O00OO0O0O0O000 in tuple (OOO000O00OOO0OO00 ):#line:267:for name in tuple(variables):
-            OOOO0O00OO000OO00 =OO0OO00000O0O00O0 [OO0O00OO0O0O0O000 ]#line:268:value = notdone[name]
-            O000OOO0OO00OO000 =_O0OO00O0000O0000O .search (OOOO0O00OO000OO00 )or _O0OO0O00O00OOO000 .search (OOOO0O00OO000OO00 )#line:269:m = _findvar1_rx.search(value) or _findvar2_rx.search(value)
-            if O000OOO0OO00OO000 is not None :#line:270:if m is not None:
-                OO0OO00O0O00OO0O0 =O000OOO0OO00OO000 .group (1 )#line:271:n = m.group(1)
-                OOO0OO0OOOO0OOOO0 =True #line:272:found = True
-                if OO0OO00O0O00OO0O0 in OO0OO00OOOOOOO00O :#line:273:if n in done:
-                    O0OOO0OO0O0O0OOO0 =str (OO0OO00OOOOOOO00O [OO0OO00O0O00OO0O0 ])#line:274:item = str(done[n])
-                elif OO0OO00O0O00OO0O0 in OO0OO00000O0O00O0 :#line:275:elif n in notdone:
-                    OOO0OO0OOOO0OOOO0 =False #line:277:found = False
-                elif OO0OO00O0O00OO0O0 in os .environ :#line:278:elif n in os.environ:
-                    O0OOO0OO0O0O0OOO0 =os .environ [OO0OO00O0O00OO0O0 ]#line:280:item = os.environ[n]
-                elif OO0OO00O0O00OO0O0 in OO00OO0OOO0000OOO :#line:282:elif n in renamed_variables:
-                    if (OO0O00OO0O0O0O000 .startswith ('PY_')and OO0O00OO0O0O0O000 [3 :]in OO00OO0OOO0000OOO ):#line:284:name[3:] in renamed_variables):
-                        O0OOO0OO0O0O0OOO0 =""#line:285:item = ""
-                    elif 'PY_'+OO0OO00O0O00OO0O0 in OO0OO00000O0O00O0 :#line:287:elif 'PY_' + n in notdone:
-                        OOO0OO0OOOO0OOOO0 =False #line:288:found = False
-                    else :#line:290:else:
-                        O0OOO0OO0O0O0OOO0 =str (OO0OO00OOOOOOO00O ['PY_'+OO0OO00O0O00OO0O0 ])#line:291:item = str(done['PY_' + n])
-                else :#line:293:else:
-                    OO0OO00OOOOOOO00O [OO0OO00O0O00OO0O0 ]=O0OOO0OO0O0O0OOO0 =""#line:294:done[n] = item = ""
-                if OOO0OO0OOOO0OOOO0 :#line:296:if found:
-                    OO0OOO0OOO0OO00OO =OOOO0O00OO000OO00 [O000OOO0OO00OO000 .end ():]#line:297:after = value[m.end():]
-                    OOOO0O00OO000OO00 =OOOO0O00OO000OO00 [:O000OOO0OO00OO000 .start ()]+O0OOO0OO0O0O0OOO0 +OO0OOO0OOO0OO00OO #line:298:value = value[:m.start()] + item + after
-                    if "$"in OO0OOO0OOO0OO00OO :#line:299:if "$" in after:
-                        OO0OO00000O0O00O0 [OO0O00OO0O0O0O000 ]=OOOO0O00OO000OO00 #line:300:notdone[name] = value
-                    else :#line:301:else:
-                        try :#line:302:try:
-                            OOOO0O00OO000OO00 =int (OOOO0O00OO000OO00 )#line:303:value = int(value)
-                        except ValueError :#line:304:except ValueError:
-                            OO0OO00OOOOOOO00O [OO0O00OO0O0O0O000 ]=OOOO0O00OO000OO00 .strip ()#line:305:done[name] = value.strip()
-                        else :#line:306:else:
-                            OO0OO00OOOOOOO00O [OO0O00OO0O0O0O000 ]=OOOO0O00OO000OO00 #line:307:done[name] = value
-                        OOO000O00OOO0OO00 .remove (OO0O00OO0O0O0O000 )#line:308:variables.remove(name)
-                        if (OO0O00OO0O0O0O000 .startswith ('PY_')and OO0O00OO0O0O0O000 [3 :]in OO00OO0OOO0000OOO ):#line:311:name[3:] in renamed_variables):
-                            OO0O00OO0O0O0O000 =OO0O00OO0O0O0O000 [3 :]#line:313:name = name[3:]
-                            if OO0O00OO0O0O0O000 not in OO0OO00OOOOOOO00O :#line:314:if name not in done:
-                                OO0OO00OOOOOOO00O [OO0O00OO0O0O0O000 ]=OOOO0O00OO000OO00 #line:315:done[name] = value
-            else :#line:317:else:
-                OO0OO00OOOOOOO00O [OO0O00OO0O0O0O000 ]=OOOO0O00OO000OO00 #line:320:done[name] = value
-                OOO000O00OOO0OO00 .remove (OO0O00OO0O0O0O000 )#line:321:variables.remove(name)
-    for O00O0OOO0O0O00OO0 ,O0O0O0OOOOO00O0OO in OO0OO00OOOOOOO00O .items ():#line:324:for k, v in done.items():
-        if isinstance (O0O0O0OOOOO00O0OO ,str ):#line:325:if isinstance(v, str):
-            OO0OO00OOOOOOO00O [O00O0OOO0O0O00OO0 ]=O0O0O0OOOOO00O0OO .strip ()#line:326:done[k] = v.strip()
-    vars .update (OO0OO00OOOOOOO00O )#line:329:vars.update(done)
-    return vars #line:330:return vars
-def get_makefile_filename ():#line:333:def get_makefile_filename():
-    ""#line:334:"""Return the path of the Makefile."""
-    if _OOO00000OO0OOO0O0 :#line:335:if _PYTHON_BUILD:
-        return os .path .join (_OO00OO00000O00000 ,"Makefile")#line:336:return os.path.join(_PROJECT_BASE, "Makefile")
-    if hasattr (sys ,'abiflags'):#line:337:if hasattr(sys, 'abiflags'):
-        OO00000O0O00OOO00 ='config-%s%s'%(_OO00O0OOOO00O000O ,sys .abiflags )#line:338:config_dir_name = 'config-%s%s' % (_PY_VERSION_SHORT, sys.abiflags)
-    else :#line:339:else:
-        OO00000O0O00OOO00 ='config'#line:340:config_dir_name = 'config'
-    return os .path .join (get_path ('stdlib'),OO00000O0O00OOO00 ,'Makefile')#line:341:return os.path.join(get_path('stdlib'), config_dir_name, 'Makefile')
-def _OO0O00O0O0000OO0O (OOO0OOO00O0O0OOOO ):#line:344:def _init_posix(vars):
-    ""#line:345:"""Initialize the module as appropriate for POSIX systems."""
-    O0000000OO00O0000 =get_makefile_filename ()#line:347:makefile = get_makefile_filename()
-    try :#line:348:try:
-        _O0O00OOO0OO00O0OO (O0000000OO00O0000 ,OOO0OOO00O0O0OOOO )#line:349:_parse_makefile(makefile, vars)
-    except IOError as O00OOO0OOOO0OO00O :#line:350:except IOError as e:
-        OOO000000OOOO0OOO ="invalid Python installation: unable to open %s"%O0000000OO00O0000 #line:351:msg = "invalid Python installation: unable to open %s" % makefile
-        if hasattr (O00OOO0OOOO0OO00O ,"strerror"):#line:352:if hasattr(e, "strerror"):
-            OOO000000OOOO0OOO =OOO000000OOOO0OOO +" (%s)"%O00OOO0OOOO0OO00O .strerror #line:353:msg = msg + " (%s)" % e.strerror
-        raise IOError (OOO000000OOOO0OOO )#line:354:raise IOError(msg)
-    O0000O000000OO0OO =get_config_h_filename ()#line:356:config_h = get_config_h_filename()
-    try :#line:357:try:
-        with open (O0000O000000OO0OO )as O0OOOOO0OOOOO00OO :#line:358:with open(config_h) as f:
-            parse_config_h (O0OOOOO0OOOOO00OO ,OOO0OOO00O0O0OOOO )#line:359:parse_config_h(f, vars)
-    except IOError as O00OOO0OOOO0OO00O :#line:360:except IOError as e:
-        OOO000000OOOO0OOO ="invalid Python installation: unable to open %s"%O0000O000000OO0OO #line:361:msg = "invalid Python installation: unable to open %s" % config_h
-        if hasattr (O00OOO0OOOO0OO00O ,"strerror"):#line:362:if hasattr(e, "strerror"):
-            OOO000000OOOO0OOO =OOO000000OOOO0OOO +" (%s)"%O00OOO0OOOO0OO00O .strerror #line:363:msg = msg + " (%s)" % e.strerror
-        raise IOError (OOO000000OOOO0OOO )#line:364:raise IOError(msg)
-    if _OOO00000OO0OOO0O0 :#line:368:if _PYTHON_BUILD:
-        OOO0OOO00O0O0OOOO ['LDSHARED']=OOO0OOO00O0O0OOOO ['BLDSHARED']#line:369:vars['LDSHARED'] = vars['BLDSHARED']
-def _OO0OOOO0O0000000O (O0OOOOO000O0O0000 ):#line:372:def _init_non_posix(vars):
-    ""#line:373:"""Initialize the module as appropriate for NT"""
-    O0OOOOO000O0O0000 ['LIBDEST']=get_path ('stdlib')#line:375:vars['LIBDEST'] = get_path('stdlib')
-    O0OOOOO000O0O0000 ['BINLIBDEST']=get_path ('platstdlib')#line:376:vars['BINLIBDEST'] = get_path('platstdlib')
-    O0OOOOO000O0O0000 ['INCLUDEPY']=get_path ('include')#line:377:vars['INCLUDEPY'] = get_path('include')
-    O0OOOOO000O0O0000 ['SO']='.pyd'#line:378:vars['SO'] = '.pyd'
-    O0OOOOO000O0O0000 ['EXE']='.exe'#line:379:vars['EXE'] = '.exe'
-    O0OOOOO000O0O0000 ['VERSION']=_OO000O000O00000OO #line:380:vars['VERSION'] = _PY_VERSION_SHORT_NO_DOT
-    O0OOOOO000O0O0000 ['BINDIR']=os .path .dirname (_OO0OO00O00O0OOOO0 (sys .executable ))#line:381:vars['BINDIR'] = os.path.dirname(_safe_realpath(sys.executable))
-def parse_config_h (OO000OOO000OOOOO0 ,vars =None ):#line:388:def parse_config_h(fp, vars=None):
-    ""#line:394:"""
-    if vars is None :#line:395:if vars is None:
-        vars ={}#line:396:vars = {}
-    OOOO00OOOO0O0O0O0 =re .compile ("#define ([A-Z][A-Za-z0-9_]+) (.*)\n")#line:397:define_rx = re.compile("#define ([A-Z][A-Za-z0-9_]+) (.*)\n")
-    O0O00OOO0O0O0O000 =re .compile ("/[*] #undef ([A-Z][A-Za-z0-9_]+) [*]/\n")#line:398:undef_rx = re.compile("/[*] #undef ([A-Z][A-Za-z0-9_]+) [*]/\n")
-    while True :#line:400:while True:
-        OO000O0000OOO0O00 =OO000OOO000OOOOO0 .readline ()#line:401:line = fp.readline()
-        if not OO000O0000OOO0O00 :#line:402:if not line:
-            break #line:403:break
-        O0OO00OOO000OO0O0 =OOOO00OOOO0O0O0O0 .match (OO000O0000OOO0O00 )#line:404:m = define_rx.match(line)
-        if O0OO00OOO000OO0O0 :#line:405:if m:
-            O000O0O00OOO0O00O ,O00O0000OO0OOO0O0 =O0OO00OOO000OO0O0 .group (1 ,2 )#line:406:n, v = m.group(1, 2)
-            try :#line:407:try:
-                O00O0000OO0OOO0O0 =int (O00O0000OO0OOO0O0 )#line:408:v = int(v)
-            except ValueError :#line:409:except ValueError:
-                pass #line:410:pass
-            vars [O000O0O00OOO0O00O ]=O00O0000OO0OOO0O0 #line:411:vars[n] = v
-        else :#line:412:else:
-            O0OO00OOO000OO0O0 =O0O00OOO0O0O0O000 .match (OO000O0000OOO0O00 )#line:413:m = undef_rx.match(line)
-            if O0OO00OOO000OO0O0 :#line:414:if m:
-                vars [O0OO00OOO000OO0O0 .group (1 )]=0 #line:415:vars[m.group(1)] = 0
-    return vars #line:416:return vars
-def get_config_h_filename ():#line:419:def get_config_h_filename():
-    ""#line:420:"""Return the path of pyconfig.h."""
-    if _OOO00000OO0OOO0O0 :#line:421:if _PYTHON_BUILD:
-        if os .name =="nt":#line:422:if os.name == "nt":
-            O000O000O0OOOOOO0 =os .path .join (_OO00OO00000O00000 ,"PC")#line:423:inc_dir = os.path.join(_PROJECT_BASE, "PC")
-        else :#line:424:else:
-            O000O000O0OOOOOO0 =_OO00OO00000O00000 #line:425:inc_dir = _PROJECT_BASE
-    else :#line:426:else:
-        O000O000O0OOOOOO0 =get_path ('platinclude')#line:427:inc_dir = get_path('platinclude')
-    return os .path .join (O000O000O0OOOOOO0 ,'pyconfig.h')#line:428:return os.path.join(inc_dir, 'pyconfig.h')
-def get_scheme_names ():#line:431:def get_scheme_names():
-    ""#line:432:"""Return a tuple containing the schemes names."""
-    return tuple (sorted (_OO0O0OOO0OO0000OO .sections ()))#line:433:return tuple(sorted(_SCHEMES.sections()))
-def get_path_names ():#line:436:def get_path_names():
-    ""#line:437:"""Return a tuple containing the paths names."""
-    return _OO0O0OOO0OO0000OO .options ('posix_prefix')#line:439:return _SCHEMES.options('posix_prefix')
-def get_paths (scheme =_OO0O0O00OOOO0OO0O (),vars =None ,expand =True ):#line:442:def get_paths(scheme=_get_default_scheme(), vars=None, expand=True):
-    ""#line:447:"""
-    _O00OO00O000O0OO00 ()#line:448:_ensure_cfg_read()
-    if expand :#line:449:if expand:
-        return _O00OO0OO0O0O0OO00 (scheme ,vars )#line:450:return _expand_vars(scheme, vars)
-    else :#line:451:else:
-        return dict (_OO0O0OOO0OO0000OO .items (scheme ))#line:452:return dict(_SCHEMES.items(scheme))
-def get_path (O00O00OO000OO0OO0 ,scheme =_OO0O0O00OOOO0OO0O (),vars =None ,expand =True ):#line:455:def get_path(name, scheme=_get_default_scheme(), vars=None, expand=True):
-    ""#line:459:"""
-    return get_paths (scheme ,vars ,expand )[O00O00OO000OO0OO0 ]#line:460:return get_paths(scheme, vars, expand)[name]
-def get_config_vars (*O0O0O0O00O0O00OOO ):#line:463:def get_config_vars(*args):
-    ""#line:472:"""
-    global _OO00O0OOO00OOO00O #line:473:global _CONFIG_VARS
-    if _OO00O0OOO00OOO00O is None :#line:474:if _CONFIG_VARS is None:
-        _OO00O0OOO00OOO00O ={}#line:475:_CONFIG_VARS = {}
-        _OO00O0OOO00OOO00O ['prefix']=_O0O00OOO000O0OOO0 #line:479:_CONFIG_VARS['prefix'] = _PREFIX
-        _OO00O0OOO00OOO00O ['exec_prefix']=_OOO00OO000OO000O0 #line:480:_CONFIG_VARS['exec_prefix'] = _EXEC_PREFIX
-        _OO00O0OOO00OOO00O ['py_version']=_OO00OO000OOOOO00O #line:481:_CONFIG_VARS['py_version'] = _PY_VERSION
-        _OO00O0OOO00OOO00O ['py_version_short']=_OO00O0OOOO00O000O #line:482:_CONFIG_VARS['py_version_short'] = _PY_VERSION_SHORT
-        _OO00O0OOO00OOO00O ['py_version_nodot']=_OO00OO000OOOOO00O [0 ]+_OO00OO000OOOOO00O [2 ]#line:483:_CONFIG_VARS['py_version_nodot'] = _PY_VERSION[0] + _PY_VERSION[2]
-        _OO00O0OOO00OOO00O ['base']=_O0O00OOO000O0OOO0 #line:484:_CONFIG_VARS['base'] = _PREFIX
-        _OO00O0OOO00OOO00O ['platbase']=_OOO00OO000OO000O0 #line:485:_CONFIG_VARS['platbase'] = _EXEC_PREFIX
-        _OO00O0OOO00OOO00O ['projectbase']=_OO00OO00000O00000 #line:486:_CONFIG_VARS['projectbase'] = _PROJECT_BASE
-        try :#line:487:try:
-            _OO00O0OOO00OOO00O ['abiflags']=sys .abiflags #line:488:_CONFIG_VARS['abiflags'] = sys.abiflags
-        except AttributeError :#line:489:except AttributeError:
-            _OO00O0OOO00OOO00O ['abiflags']=''#line:491:_CONFIG_VARS['abiflags'] = ''
-        if os .name in ('nt','os2'):#line:493:if os.name in ('nt', 'os2'):
-            _OO0OOOO0O0000000O (_OO00O0OOO00OOO00O )#line:494:_init_non_posix(_CONFIG_VARS)
-        if os .name =='posix':#line:495:if os.name == 'posix':
-            _OO0O00O0O0000OO0O (_OO00O0OOO00OOO00O )#line:496:_init_posix(_CONFIG_VARS)
-        if sys .version >='2.6':#line:500:if sys.version >= '2.6':
-            _OO00O0OOO00OOO00O ['userbase']=_OOO00000O00O0OO0O ()#line:501:_CONFIG_VARS['userbase'] = _getuserbase()
-        if 'srcdir'not in _OO00O0OOO00OOO00O :#line:503:if 'srcdir' not in _CONFIG_VARS:
-            _OO00O0OOO00OOO00O ['srcdir']=_OO00OO00000O00000 #line:504:_CONFIG_VARS['srcdir'] = _PROJECT_BASE
-        else :#line:505:else:
-            _OO00O0OOO00OOO00O ['srcdir']=_OO0OO00O00O0OOOO0 (_OO00O0OOO00OOO00O ['srcdir'])#line:506:_CONFIG_VARS['srcdir'] = _safe_realpath(_CONFIG_VARS['srcdir'])
-        if _OOO00000OO0OOO0O0 and os .name =="posix":#line:512:if _PYTHON_BUILD and os.name == "posix":
-            O0OOO0O00O0OOO000 =_OO00OO00000O00000 #line:513:base = _PROJECT_BASE
-            try :#line:514:try:
-                OO0OOOO00O00O00OO =os .getcwd ()#line:515:cwd = os.getcwd()
-            except OSError :#line:516:except OSError:
-                OO0OOOO00O00O00OO =None #line:517:cwd = None
-            if (not os .path .isabs (_OO00O0OOO00OOO00O ['srcdir'])and O0OOO0O00O0OOO000 !=OO0OOOO00O00O00OO ):#line:519:base != cwd):
-                OO000O00OOO00O0OO =os .path .join (O0OOO0O00O0OOO000 ,_OO00O0OOO00OOO00O ['srcdir'])#line:523:srcdir = os.path.join(base, _CONFIG_VARS['srcdir'])
-                _OO00O0OOO00OOO00O ['srcdir']=os .path .normpath (OO000O00OOO00O0OO )#line:524:_CONFIG_VARS['srcdir'] = os.path.normpath(srcdir)
-        if sys .platform =='darwin':#line:526:if sys.platform == 'darwin':
-            OOO0O00O0000OO000 =os .uname ()[2 ]#line:527:kernel_version = os.uname()[2]  # Kernel version (8.4.3)
-            O0OOOO0O0OOOOO00O =int (OOO0O00O0000OO000 .split ('.')[0 ])#line:528:major_version = int(kernel_version.split('.')[0])
-            if O0OOOO0O0OOOOO00O <8 :#line:530:if major_version < 8:
-                for O0O0OOOOOOOO00O00 in ('LDFLAGS','BASECFLAGS','CFLAGS','PY_CFLAGS','BLDSHARED'):#line:538:'CFLAGS', 'PY_CFLAGS', 'BLDSHARED'):
-                    OOO00OOOOO0OOO0OO =_OO00O0OOO00OOO00O [O0O0OOOOOOOO00O00 ]#line:539:flags = _CONFIG_VARS[key]
-                    OOO00OOOOO0OOO0OO =re .sub (r'-arch\s+\w+\s',' ',OOO00OOOOO0OOO0OO )#line:540:flags = re.sub(r'-arch\s+\w+\s', ' ', flags)
-                    OOO00OOOOO0OOO0OO =re .sub ('-isysroot [^ \t]*',' ',OOO00OOOOO0OOO0OO )#line:541:flags = re.sub('-isysroot [^ \t]*', ' ', flags)
-                    _OO00O0OOO00OOO00O [O0O0OOOOOOOO00O00 ]=OOO00OOOOO0OOO0OO #line:542:_CONFIG_VARS[key] = flags
-            else :#line:543:else:
-                if 'ARCHFLAGS'in os .environ :#line:549:if 'ARCHFLAGS' in os.environ:
-                    OOO0O0OOO000O0OOO =os .environ ['ARCHFLAGS']#line:550:arch = os.environ['ARCHFLAGS']
-                    for O0O0OOOOOOOO00O00 in ('LDFLAGS','BASECFLAGS','CFLAGS','PY_CFLAGS','BLDSHARED'):#line:554:'CFLAGS', 'PY_CFLAGS', 'BLDSHARED'):
-                        OOO00OOOOO0OOO0OO =_OO00O0OOO00OOO00O [O0O0OOOOOOOO00O00 ]#line:556:flags = _CONFIG_VARS[key]
-                        OOO00OOOOO0OOO0OO =re .sub (r'-arch\s+\w+\s',' ',OOO00OOOOO0OOO0OO )#line:557:flags = re.sub(r'-arch\s+\w+\s', ' ', flags)
-                        OOO00OOOOO0OOO0OO =OOO00OOOOO0OOO0OO +' '+OOO0O0OOO000O0OOO #line:558:flags = flags + ' ' + arch
-                        _OO00O0OOO00OOO00O [O0O0OOOOOOOO00O00 ]=OOO00OOOOO0OOO0OO #line:559:_CONFIG_VARS[key] = flags
-                O0OO000OO000O00O0 =_OO00O0OOO00OOO00O .get ('CFLAGS','')#line:571:CFLAGS = _CONFIG_VARS.get('CFLAGS', '')
-                OO0OO0O0OO00O000O =re .search (r'-isysroot\s+(\S+)',O0OO000OO000O00O0 )#line:572:m = re.search(r'-isysroot\s+(\S+)', CFLAGS)
-                if OO0OO0O0OO00O000O is not None :#line:573:if m is not None:
-                    O0OOOOO0OOO00O00O =OO0OO0O0OO00O000O .group (1 )#line:574:sdk = m.group(1)
-                    if not os .path .exists (O0OOOOO0OOO00O00O ):#line:575:if not os.path.exists(sdk):
-                        for O0O0OOOOOOOO00O00 in ('LDFLAGS','BASECFLAGS','CFLAGS','PY_CFLAGS','BLDSHARED'):#line:579:'CFLAGS', 'PY_CFLAGS', 'BLDSHARED'):
-                            OOO00OOOOO0OOO0OO =_OO00O0OOO00OOO00O [O0O0OOOOOOOO00O00 ]#line:581:flags = _CONFIG_VARS[key]
-                            OOO00OOOOO0OOO0OO =re .sub (r'-isysroot\s+\S+(\s|$)',' ',OOO00OOOOO0OOO0OO )#line:582:flags = re.sub(r'-isysroot\s+\S+(\s|$)', ' ', flags)
-                            _OO00O0OOO00OOO00O [O0O0OOOOOOOO00O00 ]=OOO00OOOOO0OOO0OO #line:583:_CONFIG_VARS[key] = flags
-    if O0O0O0O00O0O00OOO :#line:585:if args:
-        O0OOO0O0OOOO00O0O =[]#line:586:vals = []
-        for O0OOOOO00O0OO0O00 in O0O0O0O00O0O00OOO :#line:587:for name in args:
-            O0OOO0O0OOOO00O0O .append (_OO00O0OOO00OOO00O .get (O0OOOOO00O0OO0O00 ))#line:588:vals.append(_CONFIG_VARS.get(name))
-        return O0OOO0O0OOOO00O0O #line:589:return vals
-    else :#line:590:else:
-        return _OO00O0OOO00OOO00O #line:591:return _CONFIG_VARS
-def get_config_var (O00O0O00O0000O000 ):#line:594:def get_config_var(name):
-    ""#line:599:"""
-    return get_config_vars ().get (O00O0O00O0000O000 )#line:600:return get_config_vars().get(name)
-def get_platform ():#line:603:def get_platform():
-    ""#line:627:"""
-    if os .name =='nt':#line:628:if os.name == 'nt':
-        O0O0OOOO0O0O0OO0O =" bit ("#line:630:prefix = " bit ("
-        OOO000O000000O0OO =sys .version .find (O0O0OOOO0O0O0OO0O )#line:631:i = sys.version.find(prefix)
-        if OOO000O000000O0OO ==-1 :#line:632:if i == -1:
-            return sys .platform #line:633:return sys.platform
-        OOOOOO00000000000 =sys .version .find (")",OOO000O000000O0OO )#line:634:j = sys.version.find(")", i)
-        O00OO0OOOOO00OO00 =sys .version [OOO000O000000O0OO +len (O0O0OOOO0O0O0OO0O ):OOOOOO00000000000 ].lower ()#line:635:look = sys.version[i+len(prefix):j].lower()
-        if O00OO0OOOOO00OO00 =='amd64':#line:636:if look == 'amd64':
-            return 'win-amd64'#line:637:return 'win-amd64'
-        if O00OO0OOOOO00OO00 =='itanium':#line:638:if look == 'itanium':
-            return 'win-ia64'#line:639:return 'win-ia64'
-        return sys .platform #line:640:return sys.platform
-    if os .name !="posix"or not hasattr (os ,'uname'):#line:642:if os.name != "posix" or not hasattr(os, 'uname'):
-        return sys .platform #line:645:return sys.platform
-    OOOOO00OO00O00O0O ,OOO00OOO00OO0O0OO ,OOOOOO000000OOO0O ,O000O00O0OO0O00OO ,OOOOOOO000000OO0O =os .uname ()#line:648:osname, host, release, version, machine = os.uname()
-    OOOOO00OO00O00O0O =OOOOO00OO00O00O0O .lower ().replace ('/','')#line:652:osname = osname.lower().replace('/', '')
-    OOOOOOO000000OO0O =OOOOOOO000000OO0O .replace (' ','_')#line:653:machine = machine.replace(' ', '_')
-    OOOOOOO000000OO0O =OOOOOOO000000OO0O .replace ('/','-')#line:654:machine = machine.replace('/', '-')
-    if OOOOO00OO00O00O0O [:5 ]=="linux":#line:656:if osname[:5] == "linux":
-        return "%s-%s"%(OOOOO00OO00O00O0O ,OOOOOOO000000OO0O )#line:660:return  "%s-%s" % (osname, machine)
-    elif OOOOO00OO00O00O0O [:5 ]=="sunos":#line:661:elif osname[:5] == "sunos":
-        if OOOOOO000000OOO0O [0 ]>="5":#line:662:if release[0] >= "5":           # SunOS 5 == Solaris 2
-            OOOOO00OO00O00O0O ="solaris"#line:663:osname = "solaris"
-            OOOOOO000000OOO0O ="%d.%s"%(int (OOOOOO000000OOO0O [0 ])-3 ,OOOOOO000000OOO0O [2 :])#line:664:release = "%d.%s" % (int(release[0]) - 3, release[2:])
-    elif OOOOO00OO00O00O0O [:4 ]=="irix":#line:666:elif osname[:4] == "irix":              # could be "irix64"!
-        return "%s-%s"%(OOOOO00OO00O00O0O ,OOOOOO000000OOO0O )#line:667:return "%s-%s" % (osname, release)
-    elif OOOOO00OO00O00O0O [:3 ]=="aix":#line:668:elif osname[:3] == "aix":
-        return "%s-%s.%s"%(OOOOO00OO00O00O0O ,O000O00O0OO0O00OO ,OOOOOO000000OOO0O )#line:669:return "%s-%s.%s" % (osname, version, release)
-    elif OOOOO00OO00O00O0O [:6 ]=="cygwin":#line:670:elif osname[:6] == "cygwin":
-        OOOOO00OO00O00O0O ="cygwin"#line:671:osname = "cygwin"
-        O0O0O0OO0O0000OOO =re .compile (r'[\d.]+')#line:672:rel_re = re.compile(r'[\d.]+')
-        OO0OO0000O0O0O0O0 =O0O0O0OO0O0000OOO .match (OOOOOO000000OOO0O )#line:673:m = rel_re.match(release)
-        if OO0OO0000O0O0O0O0 :#line:674:if m:
-            OOOOOO000000OOO0O =OO0OO0000O0O0O0O0 .group ()#line:675:release = m.group()
-    elif OOOOO00OO00O00O0O [:6 ]=="darwin":#line:676:elif osname[:6] == "darwin":
-        O00OOOO0O0O00O00O =get_config_vars ()#line:683:cfgvars = get_config_vars()
-        O0OO0OO000OOO0000 =O00OOOO0O0O00O00O .get ('MACOSX_DEPLOYMENT_TARGET')#line:684:macver = cfgvars.get('MACOSX_DEPLOYMENT_TARGET')
-        if True :#line:686:if True:
-            O0OO00O0OO00000OO =O0OO0OO000OOO0000 #line:690:macrelease = macver
-            try :#line:694:try:
-                O0OO0OOOO000O0OO0 =open ('/System/Library/CoreServices/SystemVersion.plist')#line:695:f = open('/System/Library/CoreServices/SystemVersion.plist')
-            except IOError :#line:696:except IOError:
-                pass #line:699:pass
-            else :#line:700:else:
-                try :#line:701:try:
-                    OO0OO0000O0O0O0O0 =re .search (r'<key>ProductUserVisibleVersion</key>\s*' r'<string>(.*?)</string>',O0OO0OOOO000O0OO0 .read ())#line:703:r'<string>(.*?)</string>', f.read())
-                finally :#line:704:finally:
-                    O0OO0OOOO000O0OO0 .close ()#line:705:f.close()
-                if OO0OO0000O0O0O0O0 is not None :#line:706:if m is not None:
-                    O0OO00O0OO00000OO ='.'.join (OO0OO0000O0O0O0O0 .group (1 ).split ('.')[:2 ])#line:707:macrelease = '.'.join(m.group(1).split('.')[:2])
-        if not O0OO0OO000OOO0000 :#line:710:if not macver:
-            O0OO0OO000OOO0000 =O0OO00O0OO00000OO #line:711:macver = macrelease
-        if O0OO0OO000OOO0000 :#line:713:if macver:
-            OOOOOO000000OOO0O =O0OO0OO000OOO0000 #line:714:release = macver
-            OOOOO00OO00O00O0O ="macosx"#line:715:osname = "macosx"
-            if ((O0OO00O0OO00000OO +'.')>='10.4.'and '-arch'in get_config_vars ().get ('CFLAGS','').strip ()):#line:718:'-arch' in get_config_vars().get('CFLAGS', '').strip()):
-                OOOOOOO000000OO0O ='fat'#line:725:machine = 'fat'
-                OOO0OO0OOOO0O0O00 =get_config_vars ().get ('CFLAGS')#line:726:cflags = get_config_vars().get('CFLAGS')
-                O00O000OOO0O0O0O0 =re .findall (r'-arch\s+(\S+)',OOO0OO0OOOO0O0O00 )#line:728:archs = re.findall(r'-arch\s+(\S+)', cflags)
-                O00O000OOO0O0O0O0 =tuple (sorted (set (O00O000OOO0O0O0O0 )))#line:729:archs = tuple(sorted(set(archs)))
-                if len (O00O000OOO0O0O0O0 )==1 :#line:731:if len(archs) == 1:
-                    OOOOOOO000000OO0O =O00O000OOO0O0O0O0 [0 ]#line:732:machine = archs[0]
-                elif O00O000OOO0O0O0O0 ==('i386','ppc'):#line:733:elif archs == ('i386', 'ppc'):
-                    OOOOOOO000000OO0O ='fat'#line:734:machine = 'fat'
-                elif O00O000OOO0O0O0O0 ==('i386','x86_64'):#line:735:elif archs == ('i386', 'x86_64'):
-                    OOOOOOO000000OO0O ='intel'#line:736:machine = 'intel'
-                elif O00O000OOO0O0O0O0 ==('i386','ppc','x86_64'):#line:737:elif archs == ('i386', 'ppc', 'x86_64'):
-                    OOOOOOO000000OO0O ='fat3'#line:738:machine = 'fat3'
-                elif O00O000OOO0O0O0O0 ==('ppc64','x86_64'):#line:739:elif archs == ('ppc64', 'x86_64'):
-                    OOOOOOO000000OO0O ='fat64'#line:740:machine = 'fat64'
-                elif O00O000OOO0O0O0O0 ==('i386','ppc','ppc64','x86_64'):#line:741:elif archs == ('i386', 'ppc', 'ppc64', 'x86_64'):
-                    OOOOOOO000000OO0O ='universal'#line:742:machine = 'universal'
-                else :#line:743:else:
-                    raise ValueError ("Don't know machine value for archs=%r"%(O00O000OOO0O0O0O0 ,))#line:745:"Don't know machine value for archs=%r" % (archs,))
-            elif OOOOOOO000000OO0O =='i386':#line:747:elif machine == 'i386':
-                if sys .maxsize >=2 **32 :#line:751:if sys.maxsize >= 2**32:
-                    OOOOOOO000000OO0O ='x86_64'#line:752:machine = 'x86_64'
-            elif OOOOOOO000000OO0O in ('PowerPC','Power_Macintosh'):#line:754:elif machine in ('PowerPC', 'Power_Macintosh'):
-                if sys .maxsize >=2 **32 :#line:757:if sys.maxsize >= 2**32:
-                    OOOOOOO000000OO0O ='ppc64'#line:758:machine = 'ppc64'
-                else :#line:759:else:
-                    OOOOOOO000000OO0O ='ppc'#line:760:machine = 'ppc'
-    return "%s-%s-%s"%(OOOOO00OO00O00O0O ,OOOOOO000000OOO0O ,OOOOOOO000000OO0O )#line:762:return "%s-%s-%s" % (osname, release, machine)
-def get_python_version ():#line:765:def get_python_version():
-    return _OO00O0OOOO00O000O #line:766:return _PY_VERSION_SHORT
-def _OOOOO0OOO0000O0O0 (O0O000OOO00O00O00 ,O00000OOO0OOO0000 ):#line:769:def _print_dict(title, data):
-    for O0O000O0OO0O00OO0 ,(O00OO00O00OOOOO00 ,OO0OO00O00OO000OO )in enumerate (sorted (O00000OOO0OOO0000 .items ())):#line:770:for index, (key, value) in enumerate(sorted(data.items())):
-        if O0O000O0OO0O00OO0 ==0 :#line:771:if index == 0:
-            print ('%s: '%(O0O000OOO00O00O00 ))#line:772:print('%s: ' % (title))
-        print ('\t%s = "%s"'%(O00OO00O00OOOOO00 ,OO0OO00O00OO000OO ))#line:773:print('\t%s = "%s"' % (key, value))
-def _OO0O0OOO0O00O0000 ():#line:776:def _main():
-    ""#line:777:"""Display all information sysconfig detains."""
-    print ('Platform: "%s"'%get_platform ())#line:778:print('Platform: "%s"' % get_platform())
-    print ('Python version: "%s"'%get_python_version ())#line:779:print('Python version: "%s"' % get_python_version())
-    print ('Current installation scheme: "%s"'%_OO0O0O00OOOO0OO0O ())#line:780:print('Current installation scheme: "%s"' % _get_default_scheme())
-    print ()#line:781:print()
-    _OOOOO0OOO0000O0O0 ('Paths',get_paths ())#line:782:_print_dict('Paths', get_paths())
-    print ()#line:783:print()
-    _OOOOO0OOO0000O0O0 ('Variables',get_config_vars ())#line:784:_print_dict('Variables', get_config_vars())
-if __name__ =='__main__':#line:787:if __name__ == '__main__':
-    _OO0O0OOO0O00O0000 ()#line:788:_main()
+from __future__ import absolute_import #line:1
+import logging #line:3
+from collections import OrderedDict #line:4
+from pip ._internal .exceptions import InstallationError #line:6
+from pip ._internal .utils .logging import indent_log #line:7
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:8
+from pip ._internal .wheel import Wheel #line:9
+if MYPY_CHECK_RUNNING :#line:11
+    from typing import Optional ,List ,Tuple ,Dict ,Iterable #line:12
+    from pip ._internal .req .req_install import InstallRequirement #line:13
+logger =logging .getLogger (__name__ )#line:16
+class RequirementSet (object ):#line:19
+    def __init__ (OO0O0000O0OOO000O ,require_hashes =False ,check_supported_wheels =True ):#line:21
+        ""#line:24
+        OO0O0000O0OOO000O .requirements =OrderedDict ()#line:26
+        OO0O0000O0OOO000O .require_hashes =require_hashes #line:27
+        OO0O0000O0OOO000O .check_supported_wheels =check_supported_wheels #line:28
+        OO0O0000O0OOO000O .requirement_aliases ={}#line:31
+        OO0O0000O0OOO000O .unnamed_requirements =[]#line:32
+        OO0O0000O0OOO000O .successfully_downloaded =[]#line:33
+        OO0O0000O0OOO000O .reqs_to_cleanup =[]#line:34
+    def __str__ (OO00OOO000O000000 ):#line:36
+        O0O0O0O00OO000O00 =[O00000000O0OOOO0O for O00000000O0OOOO0O in OO00OOO000O000000 .requirements .values ()if not O00000000O0OOOO0O .comes_from ]#line:38
+        O0O0O0O00OO000O00 .sort (key =lambda OO000OO00O00OOO0O :OO000OO00O00OOO0O .name .lower ())#line:39
+        return ' '.join ([str (O0O0OOOO0OO000O00 .req )for O0O0OOOO0OO000O00 in O0O0O0O00OO000O00 ])#line:40
+    def __repr__ (OOOO0O00OO0OO00O0 ):#line:42
+        O00000OO0000O000O =[OOO0O0OO00OO00OO0 for OOO0O0OO00OO00OO0 in OOOO0O00OO0OO00O0 .requirements .values ()]#line:43
+        O00000OO0000O000O .sort (key =lambda OO0O0O0OOO0O00OO0 :OO0O0O0OOO0O00OO0 .name .lower ())#line:44
+        O0O0OOOOO00O000O0 =', '.join ([str (O0O000OO0OO0000O0 .req )for O0O000OO0OO0000O0 in O00000OO0000O000O ])#line:45
+        return ('<%s object; %d requirement(s): %s>'%(OOOO0O00OO0OO00O0 .__class__ .__name__ ,len (O00000OO0000O000O ),O0O0OOOOO00O000O0 ))#line:47
+    def add_requirement (O0O000OO0000OO000 ,OOOO00O000O00OOOO ,parent_req_name =None ,extras_requested =None ):#line:54
+        ""#line:69
+        O000O0O00000OOO00 =OOOO00O000O00OOOO .name #line:70
+        if not OOOO00O000O00OOOO .match_markers (extras_requested ):#line:73
+            logger .info ("Ignoring %s: markers '%s' don't match your environment",O000O0O00000OOO00 ,OOOO00O000O00OOOO .markers ,)#line:77
+            return [],None #line:78
+        if OOOO00O000O00OOOO .link and OOOO00O000O00OOOO .link .is_wheel :#line:84
+            OOOO0OO0OOOOO000O =Wheel (OOOO00O000O00OOOO .link .filename )#line:85
+            if O0O000OO0000OO000 .check_supported_wheels and not OOOO0OO0OOOOO000O .supported ():#line:86
+                raise InstallationError ("%s is not a supported wheel on this platform."%OOOO0OO0OOOOO000O .filename )#line:90
+        assert OOOO00O000O00OOOO .is_direct ==(parent_req_name is None ),("a direct req shouldn't have a parent and also, " "a non direct req should have a parent")#line:96
+        if not O000O0O00000OOO00 :#line:100
+            O0O000OO0000OO000 .unnamed_requirements .append (OOOO00O000O00OOOO )#line:102
+            return [OOOO00O000O00OOOO ],None #line:103
+        try :#line:105
+            OOOO0O000OOOO00O0 =O0O000OO0000OO000 .get_requirement (O000O0O00000OOO00 )#line:106
+        except KeyError :#line:107
+            OOOO0O000OOOO00O0 =None #line:108
+        O00OO00000OOOO0OO =(parent_req_name is None and OOOO0O000OOOO00O0 and not OOOO0O000OOOO00O0 .constraint and OOOO0O000OOOO00O0 .extras ==OOOO00O000O00OOOO .extras and OOOO0O000OOOO00O0 .req .specifier !=OOOO00O000O00OOOO .req .specifier )#line:116
+        if O00OO00000OOOO0OO :#line:117
+            raise InstallationError ("Double requirement given: %s (already in %s, name=%r)"%(OOOO00O000O00OOOO ,OOOO0O000OOOO00O0 ,O000O0O00000OOO00 ))#line:121
+        if not OOOO0O000OOOO00O0 :#line:125
+            O0O000OO0000OO000 .requirements [O000O0O00000OOO00 ]=OOOO00O000O00OOOO #line:126
+            if O000O0O00000OOO00 .lower ()!=O000O0O00000OOO00 :#line:128
+                O0O000OO0000OO000 .requirement_aliases [O000O0O00000OOO00 .lower ()]=O000O0O00000OOO00 #line:129
+            return [OOOO00O000O00OOOO ],OOOO00O000O00OOOO #line:131
+        if OOOO00O000O00OOOO .constraint or not OOOO0O000OOOO00O0 .constraint :#line:135
+            return [],OOOO0O000OOOO00O0 #line:136
+        O0OOO0O0OOO000OO0 =(OOOO00O000O00OOOO .link and not (OOOO0O000OOOO00O0 .link and OOOO00O000O00OOOO .link .path ==OOOO0O000OOOO00O0 .link .path ))#line:144
+        if O0OOO0O0OOO000OO0 :#line:145
+            O0O000OO0000OO000 .reqs_to_cleanup .append (OOOO00O000O00OOOO )#line:146
+            raise InstallationError ("Could not satisfy constraints for '%s': " "installation from path or url cannot be " "constrained to a version"%O000O0O00000OOO00 ,)#line:151
+        OOOO0O000OOOO00O0 .constraint =False #line:154
+        OOOO0O000OOOO00O0 .extras =tuple (sorted (set (OOOO0O000OOOO00O0 .extras )|set (OOOO00O000O00OOOO .extras )))#line:157
+        logger .debug ("Setting %s extras to: %s",OOOO0O000OOOO00O0 ,OOOO0O000OOOO00O0 .extras ,)#line:161
+        return [OOOO0O000OOOO00O0 ],OOOO0O000OOOO00O0 #line:164
+    def has_requirement (OOOOOO000O0O0000O ,O00OOO0O000000O00 ):#line:166
+        OO0O0OOOO00O000O0 =O00OOO0O000000O00 .lower ()#line:168
+        if (OO0O0OOOO00O000O0 in OOOOOO000O0O0000O .requirements and not OOOOOO000O0O0000O .requirements [OO0O0OOOO00O000O0 ].constraint or OO0O0OOOO00O000O0 in OOOOOO000O0O0000O .requirement_aliases and not OOOOOO000O0O0000O .requirements [OOOOOO000O0O0000O .requirement_aliases [OO0O0OOOO00O000O0 ]].constraint ):#line:172
+            return True #line:173
+        return False #line:174
+    @property #line:176
+    def has_requirements (O0OO0OOOOO0O000O0 ):#line:177
+        return list (OOO0OO0OOOO0O000O for OOO0OO0OOOO0O000O in O0OO0OOOOO0O000O0 .requirements .values ()if not OOO0OO0OOOO0O000O .constraint )or O0OO0OOOOO0O000O0 .unnamed_requirements #line:180
+    def get_requirement (OO00O0O00O00000O0 ,O000O0OOO00OOOOO0 ):#line:182
+        for OOO0OO0O0O00OO0OO in O000O0OOO00OOOOO0 ,O000O0OOO00OOOOO0 .lower ():#line:184
+            if OOO0OO0O0O00OO0OO in OO00O0O00O00000O0 .requirements :#line:185
+                return OO00O0O00O00000O0 .requirements [OOO0OO0O0O00OO0OO ]#line:186
+            if OOO0OO0O0O00OO0OO in OO00O0O00O00000O0 .requirement_aliases :#line:187
+                return OO00O0O00O00000O0 .requirements [OO00O0O00O00000O0 .requirement_aliases [OOO0OO0O0O00OO0OO ]]#line:188
+        raise KeyError ("No project with the name %r"%O000O0OOO00OOOOO0 )#line:189
+    def cleanup_files (OOOO00O00OO0OO000 ):#line:191
+        ""#line:193
+        logger .debug ('Cleaning up...')#line:194
+        with indent_log ():#line:195
+            for O0OOOOOOO0OOOO0O0 in OOOO00O00OO0OO000 .reqs_to_cleanup :#line:196
+                O0OOOOOOO0OOOO0O0 .remove_temporary_source ()#line:197

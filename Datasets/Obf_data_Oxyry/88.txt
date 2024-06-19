@@ -1,187 +1,22 @@
-def default ():#line:8:def default():
-    print ("\nWelcome! Let's play TIC TAC TOE!\n")#line:10:print("\nWelcome! Let's play TIC TAC TOE!\n")
-def rules ():#line:13:def rules():
-    print ("The board will look like this!")#line:14:print("The board will look like this!")
-    print ("The positions of this 3 x 3 board is same as the right side of your key board.\n")#line:15:print("The positions of this 3 x 3 board is same as the right side of your key board.\n")
-    print (" 7 | 8 | 9 ")#line:16:print(" 7 | 8 | 9 ")
-    print ("-----------")#line:17:print("-----------")
-    print (" 4 | 5 | 6 ")#line:18:print(" 4 | 5 | 6 ")
-    print ("-----------")#line:19:print("-----------")
-    print (" 1 | 2 | 3 ")#line:20:print(" 1 | 2 | 3 ")
-    print ("\nYou just have to input the position(1-9).")#line:21:print("\nYou just have to input the position(1-9).")
-def play ():#line:24:def play():
-    return input ("\nAre you ready to play the game? Enter [Y]es or [N]o.\t").upper ().startswith ('Y')#line:26:return input("\nAre you ready to play the game? Enter [Y]es or [N]o.\t").upper().startswith('Y')
-def names ():#line:29:def names():
-    OOO00O0OO000OO0O0 =input ("\nEnter NAME of PLAYER 1:\t").capitalize ()#line:32:p1_name=input("\nEnter NAME of PLAYER 1:\t").capitalize()
-    O00OO0O0O0O0O0O00 =input ("Enter NAME of PLAYER 2:\t").capitalize ()#line:33:p2_name=input("Enter NAME of PLAYER 2:\t").capitalize()
-    return (OOO00O0OO000OO0O0 ,O00OO0O0O0O0O0O00 )#line:34:return (p1_name, p2_name)
-def choice ():#line:37:def choice():
-    OOOO00OO0O0OO00OO =' '#line:39:p1_choice = ' '
-    O0O0000OOO000O00O =' '#line:40:p2_choice = ' '
-    while OOOO00OO0O0OO00OO !='X'or OOOO00OO0O0OO00OO !='O':#line:41:while p1_choice != 'X' or p1_choice != 'O':          #while loop; if the entered value isn't X or O;
-        OOOO00OO0O0OO00OO =input (f"\n{p1_name}, Do you want to be X or O?\t")[0 ].upper ()#line:45:p1_choice = input(f"\n{p1_name}, Do you want to be X or O?\t")[0].upper()
-        if OOOO00OO0O0OO00OO =='X'or OOOO00OO0O0OO00OO =='O':#line:50:if p1_choice == 'X' or p1_choice == 'O':
-            break #line:52:break
-        print ("INVALID INPUT! Please Try Again!")#line:53:print("INVALID INPUT! Please Try Again!")
-    if OOOO00OO0O0OO00OO =='X':#line:58:if p1_choice == 'X':
-        O0O0000OOO000O00O ='O'#line:59:p2_choice = 'O'
-    elif OOOO00OO0O0OO00OO =='O':#line:60:elif p1_choice == 'O':
-        O0O0000OOO000O00O ='X'#line:61:p2_choice = 'X'
-    return (OOOO00OO0O0OO00OO ,O0O0000OOO000O00O )#line:63:return (p1_choice, p2_choice)
-def first_player ():#line:67:def first_player():
-    import random #line:69:import random
-    return random .choice ((0 ,1 ))#line:70:return random.choice((0, 1))
-def display_board (OO000O00O0O00OOOO ,OO0000O0O000O0OO0 ):#line:73:def display_board(board, avail):
-    print ("    "+" {} | {} | {} ".format (OO000O00O0O00OOOO [7 ],OO000O00O0O00OOOO [8 ],OO000O00O0O00OOOO [9 ])+"            "+" {} | {} | {} ".format (OO0000O0O000O0OO0 [7 ],OO0000O0O000O0OO0 [8 ],OO0000O0O000O0OO0 [9 ]))#line:74:print("    " + " {} | {} | {} ".format(board[7],board[8],board[9]) + "            " + " {} | {} | {} ".format(avail[7],avail[8],avail[9]))
-    print ("    "+"-----------"+"            "+"-----------")#line:75:print("    " + "-----------" + "            " + "-----------")
-    print ("    "+" {} | {} | {} ".format (OO000O00O0O00OOOO [4 ],OO000O00O0O00OOOO [5 ],OO000O00O0O00OOOO [6 ])+"            "+" {} | {} | {} ".format (OO0000O0O000O0OO0 [4 ],OO0000O0O000O0OO0 [5 ],OO0000O0O000O0OO0 [6 ]))#line:76:print("    " + " {} | {} | {} ".format(board[4],board[5],board[6]) + "            " + " {} | {} | {} ".format(avail[4],avail[5],avail[6]))
-    print ("    "+"-----------"+"            "+"-----------")#line:77:print("    " + "-----------" + "            " + "-----------")
-    print ("    "+" {} | {} | {} ".format (OO000O00O0O00OOOO [1 ],OO000O00O0O00OOOO [2 ],OO000O00O0O00OOOO [3 ])+"            "+" {} | {} | {} ".format (OO0000O0O000O0OO0 [1 ],OO0000O0O000O0OO0 [2 ],OO0000O0O000O0OO0 [3 ]))#line:78:print("    " + " {} | {} | {} ".format(board[1],board[2],board[3]) + "            " + " {} | {} | {} ".format(avail[1],avail[2],avail[3]))
-def player_choice (O0OO0OO0OO00O00O0 ,O0O0OO00OO000O0O0 ,O0000O0O00O00000O ):#line:81:def player_choice(board, name, choice):
-    O000O0O00O0O0OOO0 =0 #line:82:position = 0
-    while O000O0O00O0O0OOO0 not in [1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ]or not space_check (O0OO0OO0OO00O00O0 ,O000O0O00O0O0OOO0 ):#line:84:while position not in [1,2,3,4,5,6,7,8,9] or not space_check(board, position):
-        O000O0O00O0O0OOO0 =int (input (f'\n{O0O0OO00OO000O0O0} ({O0000O0O00O00000O}), Choose your next position: (1-9) \t'))#line:85:position = int(input(f'\n{name} ({choice}), Choose your next position: (1-9) \t'))
-        if O000O0O00O0O0OOO0 not in [1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ]or not space_check (O0OO0OO0OO00O00O0 ,O000O0O00O0O0OOO0 )or O000O0O00O0O0OOO0 =="":#line:87:if position not in [1,2,3,4,5,6,7,8,9] or not space_check(board, position) or position == "":
-            print (f"INVALID INPUT. Please Try Again!\n")#line:89:print(f"INVALID INPUT. Please Try Again!\n")
-    print ("\n")#line:90:print("\n")
-    return O000O0O00O0O0OOO0 #line:91:return position
-def CompAI (OO000OOO00O00O0O0 ,OOOOOO0O00O00000O ,O0O00O000O0OOOO00 ):#line:95:def CompAI(board, name, choice):
-    O00OOOO0O000OO0O0 =0 #line:96:position = 0
-    OO000O0O0OOO0O000 =[OO0OOOO0OO00O00O0 for OO0OOOO0OO00O00O0 ,O0000000O0OOOO00O in enumerate (OO000OOO00O00O0O0 )if O0000000O0OOOO00O ==' 'and OO0OOOO0OO00O00O0 !=0 ]#line:97:possibilities = [x for x, letter in enumerate(board) if letter == ' ' and x != 0]
-    for OOOOO00O0000O0000 in ['O','X']:#line:100:for let in ['O', 'X']:
-        for OO0OOOOOO0O00O00O in OO000O0O0OOO0O000 :#line:101:for i in possibilities:
-            OOO0000000OOO0OO0 =OO000OOO00O00O0O0 [:]#line:104:boardCopy = board[:]
-            OOO0000000OOO0OO0 [OO0OOOOOO0O00O00O ]=OOOOO00O0000O0000 #line:105:boardCopy[i] = let
-            if (win_check (OOO0000000OOO0OO0 ,OOOOO00O0000O0000 )):#line:106:if(win_check(boardCopy, let)):
-                O00OOOO0O000OO0O0 =OO0OOOOOO0O00O00O #line:107:position = i
-                return O00OOOO0O000OO0O0 #line:108:return position
-    O000O00O0OOO0000O =[OO0O0OO0OOO0O00OO for OO0O0OO0OOO0O00OO in OO000O0O0OOO0O000 if OO0O0OO0OOO0O00OO in [1 ,3 ,7 ,9 ]]#line:110:openCorners = [x for x in possibilities if x in [1, 3, 7, 9]]
-    if len (O000O00O0OOO0000O )>0 :#line:112:if len(openCorners) > 0:
-        O00OOOO0O000OO0O0 =selectRandom (O000O00O0OOO0000O )#line:113:position = selectRandom(openCorners)
-        return O00OOOO0O000OO0O0 #line:114:return position
-    if 5 in OO000O0O0OOO0O000 :#line:116:if 5 in possibilities:
-        O00OOOO0O000OO0O0 =5 #line:117:position = 5
-        return O00OOOO0O000OO0O0 #line:118:return position
-    O00O0000O0O00OO0O =[OOO0000O00O00OO0O for OOO0000O00O00OO0O in OO000O0O0OOO0O000 if OOO0000O00O00OO0O in [2 ,4 ,6 ,8 ]]#line:120:openEdges = [x for x in possibilities if x in [2, 4, 6, 8]]
-    if len (O00O0000O0O00OO0O )>0 :#line:122:if len(openEdges) > 0:
-        O00OOOO0O000OO0O0 =selectRandom (O00O0000O0O00OO0O )#line:123:position = selectRandom(openEdges)
-        return O00OOOO0O000OO0O0 #line:124:return position
-def selectRandom (OOO00O0000OO0OO0O ):#line:128:def selectRandom(board):
-    import random #line:129:import random
-    OOO0OOO0OOO0OOO0O =len (OOO00O0000OO0OO0O )#line:130:ln = len(board)
-    OO00OOOO0OO0O0000 =random .randrange (0 ,OOO0OOO0OOO0OOO0O )#line:131:r = random.randrange(0,ln)
-    return OOO00O0000OO0OO0O [OO00OOOO0OO0O0000 ]#line:132:return board[r]
-def place_marker (OOOO00OOO0O0O000O ,O00O0000000OOO000 ,OOOOOO0O0O0OO0O0O ,OOOO0O0O0000OO00O ):#line:135:def place_marker(board, avail, choice, position):
-    OOOO00OOO0O0O000O [OOOO0O0O0000OO00O ]=OOOOOO0O0O0OO0O0O #line:137:board[position] = choice
-    O00O0000000OOO000 [OOOO0O0O0000OO00O ]=' '#line:138:avail[position] = ' '
-def space_check (OOO0OOOO00OO00000 ,OOO00OO0O0OOOO000 ):#line:141:def space_check(board, position):
-    return OOO0OOOO00OO00000 [OOO00OO0O0OOOO000 ]==' '#line:143:return board[position] == ' '
-def full_board_check (OO00000O0OOO000O0 ):#line:146:def full_board_check(board):
-    for OOOOO00O00OOOO000 in range (1 ,10 ):#line:148:for i in range(1,10):
-        if space_check (OO00000O0OOO000O0 ,OOOOO00O00OOOO000 ):#line:149:if space_check(board, i):
-            return False #line:150:return False
-    return True #line:151:return True
-def win_check (OO0O0OO0O00O00OOO ,OOOOO00O0OO00O0O0 ):#line:154:def win_check(board, choice):
-    return ((OO0O0OO0O00O00OOO [1 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [2 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [3 ]==OOOOO00O0OO00O0O0 )or (OO0O0OO0O00O00OOO [4 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [5 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [6 ]==OOOOO00O0OO00O0O0 )or (OO0O0OO0O00O00OOO [7 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [8 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [9 ]==OOOOO00O0OO00O0O0 )or (OO0O0OO0O00O00OOO [1 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [4 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [7 ]==OOOOO00O0OO00O0O0 )or (OO0O0OO0O00O00OOO [2 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [5 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [8 ]==OOOOO00O0OO00O0O0 )or (OO0O0OO0O00O00OOO [3 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [6 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [9 ]==OOOOO00O0OO00O0O0 )or (OO0O0OO0O00O00OOO [1 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [5 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [9 ]==OOOOO00O0OO00O0O0 )or (OO0O0OO0O00O00OOO [3 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [5 ]==OOOOO00O0OO00O0O0 and OO0O0OO0O00O00OOO [7 ]==OOOOO00O0OO00O0O0 ))#line:168:or ( board[3] == choice and board[5] == choice and board[7] == choice )  )
-def delay (OOO0O00000O0O0O0O ):#line:170:def delay(mode):
-    if OOO0O00000O0O0O0O ==2 :#line:171:if mode == 2:
-        import time #line:172:import time
-        time .sleep (2 )#line:173:time.sleep(2)
-def replay ():#line:175:def replay():
-    return input ('\nDo you want to play again? Enter [Y]es or [N]o: ').lower ().startswith ('y')#line:177:return input('\nDo you want to play again? Enter [Y]es or [N]o: ').lower().startswith('y')
-print ("\n\t\t NAMASTE! \n")#line:185:print("\n\t\t NAMASTE! \n")
-input ("Press ENTER to start!")#line:186:input("Press ENTER to start!")
-default ()#line:188:default()
-rules ()#line:189:rules()
-while True :#line:192:while True:
-    theBoard =[' ']*10 #line:196:theBoard = [' ']*10
-    available =[str (O00OO0O00O0O0OO0O )for O00OO0O00O0O0OO0O in range (0 ,10 )]#line:199:available = [str(num) for num in range(0,10)] # a List Comprehension
-    print ("\n[0]. Player vs. Computer")#line:204:print("\n[0]. Player vs. Computer")
-    print ("[1]. Player vs. Player")#line:205:print("[1]. Player vs. Player")
-    print ("[2]. Computer vs. Computer")#line:206:print("[2]. Computer vs. Computer")
-    mode =int (input ("\nSelect an option [0]-[2]: "))#line:207:mode = int(input("\nSelect an option [0]-[2]: "))
-    if mode ==1 :#line:208:if mode == 1:
-        p1_name ,p2_name =names ()#line:210:p1_name, p2_name = names()
-        p1_choice ,p2_choice =choice ()#line:212:p1_choice, p2_choice = choice()
-        print (f"\n{p1_name}:",p1_choice )#line:213:print(f"\n{p1_name}:", p1_choice)
-        print (f"{p2_name}:",p2_choice )#line:214:print(f"{p2_name}:", p2_choice)
-    elif mode ==0 :#line:216:elif mode == 0:
-        p1_name =input ("\nEnter NAME of PLAYER who will go against the Computer:\t").capitalize ()#line:217:p1_name = input("\nEnter NAME of PLAYER who will go against the Computer:\t").capitalize()
-        p2_name ="Computer"#line:218:p2_name = "Computer"
-        p1_choice ,p2_choice =choice ()#line:220:p1_choice, p2_choice = choice()
-        print (f"\n{p1_name}:",p1_choice )#line:221:print(f"\n{p1_name}:", p1_choice)
-        print (f"{p2_name}:",p2_choice )#line:222:print(f"{p2_name}:", p2_choice)
-    else :#line:224:else:
-        p1_name ="Computer1"#line:225:p1_name = "Computer1"
-        p2_name ="Computer2"#line:226:p2_name = "Computer2"
-        p1_choice ,p2_choice ="X","O"#line:227:p1_choice, p2_choice = "X", "O"
-        print (f"\n{p1_name}:",p1_choice )#line:228:print(f"\n{p1_name}:", p1_choice)
-        print (f"\n{p2_name}:",p2_choice )#line:229:print(f"\n{p2_name}:", p2_choice)
-    if first_player ():#line:234:if first_player():
-        turn =p2_name #line:235:turn = p2_name
-    else :#line:236:else:
-        turn =p1_name #line:237:turn = p1_name
-    print (f"\n{turn} will go first!")#line:239:print(f"\n{turn} will go first!")
-    if (mode ==2 ):#line:242:if(mode == 2):
-        ent =input ("\nThis is going to be fast! Press Enter for the battle to begin!\n")#line:243:ent = input("\nThis is going to be fast! Press Enter for the battle to begin!\n")
-        play_game =1 #line:244:play_game = 1
-    else :#line:245:else:
-        play_game =play ()#line:246:play_game = play()
-    while play_game :#line:248:while play_game:
-        if turn ==p1_name :#line:252:if turn == p1_name:
-            display_board (theBoard ,available )#line:255:display_board(theBoard, available)
-            if mode !=2 :#line:258:if mode != 2:
-                position =player_choice (theBoard ,p1_name ,p1_choice )#line:259:position = player_choice(theBoard, p1_name, p1_choice)
-            else :#line:260:else:
-                position =CompAI (theBoard ,p1_name ,p1_choice )#line:261:position = CompAI(theBoard, p1_name, p1_choice)
-                print (f'\n{p1_name} ({p1_choice}) has placed on {position}\n')#line:262:print(f'\n{p1_name} ({p1_choice}) has placed on {position}\n')
-            place_marker (theBoard ,available ,p1_choice ,position )#line:265:place_marker(theBoard, available, p1_choice, position)
-            if win_check (theBoard ,p1_choice ):#line:268:if win_check(theBoard, p1_choice):
-                display_board (theBoard ,available )#line:269:display_board(theBoard, available)
-                print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")#line:270:print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                if (mode ):#line:271:if(mode):
-                    print (f'\n\nCONGRATULATIONS {p1_name}! YOU HAVE WON THE GAME!\n\n')#line:272:print(f'\n\nCONGRATULATIONS {p1_name}! YOU HAVE WON THE GAME!\n\n')
-                else :#line:273:else:
-                    print ('\n\nTHE Computer HAS WON THE GAME!\n\n')#line:274:print('\n\nTHE Computer HAS WON THE GAME!\n\n')
-                print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")#line:275:print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                play_game =False #line:276:play_game = False
-            else :#line:278:else:
-                if full_board_check (theBoard ):#line:280:if full_board_check(theBoard):
-                    display_board (theBoard ,available )#line:281:display_board(theBoard, available)
-                    print ("~~~~~~~~~~~~~~~~~~")#line:282:print("~~~~~~~~~~~~~~~~~~")
-                    print ('\nThe game is a DRAW!\n')#line:283:print('\nThe game is a DRAW!\n')
-                    print ("~~~~~~~~~~~~~~~~~~")#line:284:print("~~~~~~~~~~~~~~~~~~")
-                    break #line:285:break
-                else :#line:287:else:
-                    turn =p2_name #line:288:turn = p2_name
-        elif turn ==p2_name :#line:293:elif turn == p2_name:
-            display_board (theBoard ,available )#line:296:display_board(theBoard, available)
-            if (mode ==1 ):#line:299:if(mode == 1):
-                position =player_choice (theBoard ,p2_name ,p2_choice )#line:300:position = player_choice(theBoard, p2_name, p2_choice)
-            else :#line:301:else:
-                position =CompAI (theBoard ,p2_name ,p2_choice )#line:302:position = CompAI(theBoard, p2_name, p2_choice)
-                print (f'\n{p2_name} ({p2_choice}) has placed on {position}\n')#line:303:print(f'\n{p2_name} ({p2_choice}) has placed on {position}\n')
-            place_marker (theBoard ,available ,p2_choice ,position )#line:306:place_marker(theBoard, available, p2_choice, position)
-            if win_check (theBoard ,p2_choice ):#line:309:if win_check(theBoard, p2_choice):
-                display_board (theBoard ,available )#line:310:display_board(theBoard, available)
-                print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")#line:311:print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                if (mode ):#line:312:if(mode):
-                    print (f'\n\nCONGRATULATIONS {p2_name}! YOU HAVE WON THE GAME!\n\n')#line:313:print(f'\n\nCONGRATULATIONS {p2_name}! YOU HAVE WON THE GAME!\n\n')
-                else :#line:314:else:
-                    print ('\n\nTHE Computer HAS WON THE GAME!\n\n')#line:315:print('\n\nTHE Computer HAS WON THE GAME!\n\n')
-                print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")#line:316:print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                play_game =False #line:317:play_game = False
-            else :#line:319:else:
-                if full_board_check (theBoard ):#line:321:if full_board_check(theBoard):
-                    display_board (theBoard ,available )#line:322:display_board(theBoard, available)
-                    print ("~~~~~~~~~~~~~~~~~~")#line:323:print("~~~~~~~~~~~~~~~~~~")
-                    print ('\nThe game is a DRAW!\n')#line:324:print('\nThe game is a DRAW!\n')
-                    print ("~~~~~~~~~~~~~~~~~~")#line:325:print("~~~~~~~~~~~~~~~~~~")
-                    break #line:326:break
-                else :#line:328:else:
-                    turn =p1_name #line:329:turn = p1_name
-    if replay ():#line:333:if replay():
-        continue #line:335:continue
-    else :#line:336:else:
-        break #line:338:break
-print ("\n\n\t\t\tTHE END!")#line:342:print("\n\n\t\t\tTHE END!")
+import os #line:1
+import csv #line:2
+import openpyxl #line:5
+def excelToCsv (O0OOOO000O00O0OOO ):#line:8
+    ""#line:14
+    for O0O0O000OO00O0O0O in os .listdir (O0OOOO000O00O0OOO ):#line:15
+        if not O0O0O000OO00O0O0O .endswith ("xlsx"):#line:17
+            continue #line:18
+        O0O0O000O000OO0O0 =openpyxl .load_workbook (O0O0O000OO00O0O0O )#line:19
+        for OO0O0O0O00OOOO0O0 in O0O0O000O000OO0O0 .get_sheet_names ():#line:21
+            OO0OOOOOO0O0O0OOO =O0O0O000O000OO0O0 .get_sheet_by_name (OO0O0O0O00OOOO0O0 )#line:23
+            O00OOO0OOOO0OO00O =O0O0O000OO00O0O0O .split (".")[0 ]+"_"+OO0OOOOOO0O0O0OOO .title +".csv"#line:26
+            OO0OO000O0OOOO0OO =open (O00OOO0OOOO0OO00O ,"w",newline ="")#line:27
+            OO00OO00OO0O0O0O0 =csv .writer (OO0OO000O0OOOO0OO )#line:30
+            for OOO00000OOOOO00OO in OO0OOOOOO0O0O0OOO .rows :#line:33
+                OO0OOOOO0OO0OO000 =[]#line:34
+                for O0O0O0O0OO0OO0OO0 in OOO00000OOOOO00OO :#line:36
+                    OO0OOOOO0OO0OO000 .append (O0O0O0O0OO0OO0OO0 .value )#line:38
+                OO00OO00OO0O0O0O0 .writerow (OO0OOOOO0OO0OO000 )#line:40
+            OO0OO000O0OOOO0OO .close ()#line:42
+if __name__ =="__main__":#line:45
+    excelToCsv (".")#line:46

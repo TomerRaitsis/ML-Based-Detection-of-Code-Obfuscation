@@ -1,180 +1,32 @@
-""#line:12:"""
-import locale #line:14:import locale
-import logging #line:15:import logging
-import os #line:16:import os
-from pip ._vendor import six #line:18:from pip._vendor import six
-from pip ._vendor .six .moves import configparser #line:19:from pip._vendor.six.moves import configparser
-from pip ._internal .exceptions import (ConfigurationError ,ConfigurationFileCouldNotBeLoaded ,)#line:23:)
-from pip ._internal .locations import (legacy_config_file ,new_config_file ,running_under_virtualenv ,site_config_files ,venv_config_file ,)#line:27:)
-from pip ._internal .utils .misc import ensure_dir ,enum #line:28:from pip._internal.utils.misc import ensure_dir, enum
-from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:29:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-if MYPY_CHECK_RUNNING :#line:31:if MYPY_CHECK_RUNNING:
-    from typing import (Any ,Dict ,Iterable ,List ,NewType ,Optional ,Tuple )#line:34:)
-    RawConfigParser =configparser .RawConfigParser #line:36:RawConfigParser = configparser.RawConfigParser  # Shorthand
-    Kind =NewType ("Kind",str )#line:37:Kind = NewType("Kind", str)
-logger =logging .getLogger (__name__ )#line:39:logger = logging.getLogger(__name__)
-def _OOOO00000O0OOOO0O (OO0OOOO00O000O0OO ):#line:43:def _normalize_name(name):
-    ""#line:46:"""
-    OO0OOOO00O000O0OO =OO0OOOO00O000O0OO .lower ().replace ('_','-')#line:47:name = name.lower().replace('_', '-')
-    if OO0OOOO00O000O0OO .startswith ('--'):#line:48:if name.startswith('--'):
-        OO0OOOO00O000O0OO =OO0OOOO00O000O0OO [2 :]#line:49:name = name[2:]  # only prefer long opts
-    return OO0OOOO00O000O0OO #line:50:return name
-def _OO00OOOO00O000O0O (O0OO0OOOO0O00O0OO ):#line:53:def _disassemble_key(name):
-    return O0OO0OOOO0O00O0OO .split (".",1 )#line:55:return name.split(".", 1)
-kinds =enum (USER ="user",GLOBAL ="global",VENV ="venv",ENV ="env",ENV_VAR ="env-var",)#line:65:)
-class Configuration (object ):#line:68:class Configuration(object):
-    ""#line:80:"""
-    def __init__ (O0OO00OOOO0O0O0O0 ,OOOO00O0O00OOO000 ,load_only =None ):#line:82:def __init__(self, isolated, load_only=None):
-        super (Configuration ,O0OO00OOOO0O0O0O0 ).__init__ ()#line:84:super(Configuration, self).__init__()
-        _OO0O0O0OOOOOOOOOO =[kinds .USER ,kinds .GLOBAL ,kinds .VENV ,None ]#line:86:_valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.VENV, None]
-        if load_only not in _OO0O0O0OOOOOOOOOO :#line:87:if load_only not in _valid_load_only:
-            raise ConfigurationError ("Got invalid value for load_only - should be one of {}".format (", ".join (map (repr ,_OO0O0O0OOOOOOOOOO [:-1 ]))))#line:92:)
-        O0OO00OOOO0O0O0O0 .isolated =OOOO00O0O00OOO000 #line:93:self.isolated = isolated  # type: bool
-        O0OO00OOOO0O0O0O0 .load_only =load_only #line:94:self.load_only = load_only  # type: Optional[Kind]
-        O0OO00OOOO0O0O0O0 ._override_order =[kinds .GLOBAL ,kinds .USER ,kinds .VENV ,kinds .ENV ,kinds .ENV_VAR ]#line:99:]
-        O0OO00OOOO0O0O0O0 ._ignore_env_names =["version","help"]#line:101:self._ignore_env_names = ["version", "help"]
-        O0OO00OOOO0O0O0O0 ._parsers ={O0OOO0O0OO0OOO0O0 :[]for O0OOO0O0OO0OOO0O0 in O0OO00OOOO0O0O0O0 ._override_order }#line:106:}  # type: Dict[Kind, List[Tuple[str, RawConfigParser]]]
-        O0OO00OOOO0O0O0O0 ._config ={O00OOO00O0O0OO0OO :{}for O00OOO00O0O0OO0OO in O0OO00OOOO0O0O0O0 ._override_order }#line:109:}  # type: Dict[Kind, Dict[str, Any]]
-        O0OO00OOOO0O0O0O0 ._modified_parsers =[]#line:110:self._modified_parsers = []  # type: List[Tuple[str, RawConfigParser]]
-    def load (O0OOOO0O000O0O00O ):#line:112:def load(self):
-        ""#line:115:"""
-        O0OOOO0O000O0O00O ._load_config_files ()#line:116:self._load_config_files()
-        if not O0OOOO0O000O0O00O .isolated :#line:117:if not self.isolated:
-            O0OOOO0O000O0O00O ._load_environment_vars ()#line:118:self._load_environment_vars()
-    def get_file_to_edit (OO0000OO0OO0OO000 ):#line:120:def get_file_to_edit(self):
-        ""#line:123:"""
-        assert OO0000OO0OO0OO000 .load_only is not None ,"Need to be specified a file to be editing"#line:125:"Need to be specified a file to be editing"
-        try :#line:127:try:
-            return OO0000OO0OO0OO000 ._get_parser_to_modify ()[0 ]#line:128:return self._get_parser_to_modify()[0]
-        except IndexError :#line:129:except IndexError:
-            return None #line:130:return None
-    def items (OO000000OO0OO0OO0 ):#line:132:def items(self):
-        ""#line:136:"""
-        return OO000000OO0OO0OO0 ._dictionary .items ()#line:137:return self._dictionary.items()
-    def get_value (OO00O0O00OOO00OOO ,OO0OOO0O00O000OOO ):#line:139:def get_value(self, key):
-        ""#line:142:"""
-        try :#line:143:try:
-            return OO00O0O00OOO00OOO ._dictionary [OO0OOO0O00O000OOO ]#line:144:return self._dictionary[key]
-        except KeyError :#line:145:except KeyError:
-            raise ConfigurationError ("No such key - {}".format (OO0OOO0O00O000OOO ))#line:146:raise ConfigurationError("No such key - {}".format(key))
-    def set_value (OO0OO0O0000O00O00 ,OOO0O00OOO00OOOOO ,OOOO00OOOO000O0OO ):#line:148:def set_value(self, key, value):
-        ""#line:151:"""
-        OO0OO0O0000O00O00 ._ensure_have_load_only ()#line:152:self._ensure_have_load_only()
-        O00OOOO000O0O0O00 ,OOOOO0O0O00OO0OOO =OO0OO0O0000O00O00 ._get_parser_to_modify ()#line:154:fname, parser = self._get_parser_to_modify()
-        if OOOOO0O0O00OO0OOO is not None :#line:156:if parser is not None:
-            OOO0O0OOOO000OO0O ,O0OO0O0O000OOOOOO =_OO00OOOO00O000O0O (OOO0O00OOO00OOOOO )#line:157:section, name = _disassemble_key(key)
-            if not OOOOO0O0O00OO0OOO .has_section (OOO0O0OOOO000OO0O ):#line:160:if not parser.has_section(section):
-                OOOOO0O0O00OO0OOO .add_section (OOO0O0OOOO000OO0O )#line:161:parser.add_section(section)
-            OOOOO0O0O00OO0OOO .set (OOO0O0OOOO000OO0O ,O0OO0O0O000OOOOOO ,OOOO00OOOO000O0OO )#line:162:parser.set(section, name, value)
-        OO0OO0O0000O00O00 ._config [OO0OO0O0000O00O00 .load_only ][OOO0O00OOO00OOOOO ]=OOOO00OOOO000O0OO #line:164:self._config[self.load_only][key] = value
-        OO0OO0O0000O00O00 ._mark_as_modified (O00OOOO000O0O0O00 ,OOOOO0O0O00OO0OOO )#line:165:self._mark_as_modified(fname, parser)
-    def unset_value (O0O0OO00O0OOOO00O ,OOOO00O0000O0OOO0 ):#line:167:def unset_value(self, key):
-        ""#line:170:"""
-        O0O0OO00O0OOOO00O ._ensure_have_load_only ()#line:171:self._ensure_have_load_only()
-        if OOOO00O0000O0OOO0 not in O0O0OO00O0OOOO00O ._config [O0O0OO00O0OOOO00O .load_only ]:#line:173:if key not in self._config[self.load_only]:
-            raise ConfigurationError ("No such key - {}".format (OOOO00O0000O0OOO0 ))#line:174:raise ConfigurationError("No such key - {}".format(key))
-        O00000O0OO0OO0000 ,O0OOOOO0OO0000O00 =O0O0OO00O0OOOO00O ._get_parser_to_modify ()#line:176:fname, parser = self._get_parser_to_modify()
-        if O0OOOOO0OO0000O00 is not None :#line:178:if parser is not None:
-            OOO0OO000000OO0OO ,OOOO0O000O00O0000 =_OO00OOOO00O000O0O (OOOO00O0000O0OOO0 )#line:179:section, name = _disassemble_key(key)
-            OOOO00000000O0000 =False #line:182:modified_something = False
-            if O0OOOOO0OO0000O00 .has_section (OOO0OO000000OO0OO ):#line:183:if parser.has_section(section):
-                OOOO00000000O0000 =O0OOOOO0OO0000O00 .remove_option (OOO0OO000000OO0OO ,OOOO0O000O00O0000 )#line:185:modified_something = parser.remove_option(section, name)
-            if OOOO00000000O0000 :#line:187:if modified_something:
-                OO0OOO0O0OOO00O00 =iter (O0OOOOO0OO0000O00 .items (OOO0OO000000OO0OO ))#line:189:section_iter = iter(parser.items(section))
-                try :#line:190:try:
-                    O00000O00OOO0OOOO =six .next (OO0OOO0O0OOO00O00 )#line:191:val = six.next(section_iter)
-                except StopIteration :#line:192:except StopIteration:
-                    O00000O00OOO0OOOO =None #line:193:val = None
-                if O00000O00OOO0OOOO is None :#line:195:if val is None:
-                    O0OOOOO0OO0000O00 .remove_section (OOO0OO000000OO0OO )#line:196:parser.remove_section(section)
-                O0O0OO00O0OOOO00O ._mark_as_modified (O00000O0OO0OO0000 ,O0OOOOO0OO0000O00 )#line:198:self._mark_as_modified(fname, parser)
-            else :#line:199:else:
-                raise ConfigurationError ("Fatal Internal error [id=1]. Please report as a bug.")#line:202:)
-        del O0O0OO00O0OOOO00O ._config [O0O0OO00O0OOOO00O .load_only ][OOOO00O0000O0OOO0 ]#line:204:del self._config[self.load_only][key]
-    def save (O0O0O0O00OOOO00O0 ):#line:206:def save(self):
-        ""#line:209:"""
-        O0O0O0O00OOOO00O0 ._ensure_have_load_only ()#line:210:self._ensure_have_load_only()
-        for OO00OO0OO0O0OOO00 ,OOOOOOO0OOO000OOO in O0O0O0O00OOOO00O0 ._modified_parsers :#line:212:for fname, parser in self._modified_parsers:
-            logger .info ("Writing to %s",OO00OO0OO0O0OOO00 )#line:213:logger.info("Writing to %s", fname)
-            ensure_dir (os .path .dirname (OO00OO0OO0O0OOO00 ))#line:216:ensure_dir(os.path.dirname(fname))
-            with open (OO00OO0OO0O0OOO00 ,"w")as OOOOO0O00OOOO00OO :#line:218:with open(fname, "w") as f:
-                OOOOOOO0OOO000OOO .write (OOOOO0O00OOOO00OO )#line:219:parser.write(f)  # type: ignore
-    def _ensure_have_load_only (OO0OOOOOO0O00OO00 ):#line:225:def _ensure_have_load_only(self):
-        if OO0OOOOOO0O00OO00 .load_only is None :#line:227:if self.load_only is None:
-            raise ConfigurationError ("Needed a specific file to be modifying.")#line:228:raise ConfigurationError("Needed a specific file to be modifying.")
-        logger .debug ("Will be working with %s variant only",OO0OOOOOO0O00OO00 .load_only )#line:229:logger.debug("Will be working with %s variant only", self.load_only)
-    @property #line:231:@property
-    def _dictionary (O0OO00OOOO0O0OOOO ):#line:232:def _dictionary(self):
-        ""#line:235:"""
-        O00O00O000OOOOOO0 ={}#line:238:retval = {}
-        for O00OO0OO0000O0O00 in O0OO00OOOO0O0OOOO ._override_order :#line:240:for variant in self._override_order:
-            O00O00O000OOOOOO0 .update (O0OO00OOOO0O0OOOO ._config [O00OO0OO0000O0O00 ])#line:241:retval.update(self._config[variant])
-        return O00O00O000OOOOOO0 #line:243:return retval
-    def _load_config_files (OO00OOOOO0OOOOO00 ):#line:245:def _load_config_files(self):
-        ""#line:248:"""
-        OO0O0OOO0OO00OOOO =dict (OO00OOOOO0OOOOO00 ._iter_config_files ())#line:249:config_files = dict(self._iter_config_files())
-        if OO0O0OOO0OO00OOOO [kinds .ENV ][0 :1 ]==[os .devnull ]:#line:250:if config_files[kinds.ENV][0:1] == [os.devnull]:
-            logger .debug ("Skipping loading configuration files due to " "environment's PIP_CONFIG_FILE being os.devnull")#line:254:)
-            return #line:255:return
-        for OO00O0O000O000O00 ,OO00O00O000OO0O00 in OO0O0OOO0OO00OOOO .items ():#line:257:for variant, files in config_files.items():
-            for O00O0O00O0O000O0O in OO00O00O000OO0O00 :#line:258:for fname in files:
-                if OO00OOOOO0OOOOO00 .load_only is not None and OO00O0O000O000O00 !=OO00OOOOO0OOOOO00 .load_only :#line:261:if self.load_only is not None and variant != self.load_only:
-                    logger .debug ("Skipping file '%s' (variant: %s)",O00O0O00O0O000O0O ,OO00O0O000O000O00 )#line:264:)
-                    continue #line:265:continue
-                OOOO00000O0O00O0O =OO00OOOOO0OOOOO00 ._load_file (OO00O0O000O000O00 ,O00O0O00O0O000O0O )#line:267:parser = self._load_file(variant, fname)
-                OO00OOOOO0OOOOO00 ._parsers [OO00O0O000O000O00 ].append ((O00O0O00O0O000O0O ,OOOO00000O0O00O0O ))#line:270:self._parsers[variant].append((fname, parser))
-    def _load_file (OO0O0O00O0OOOOOO0 ,OOOO0O0O0OOO000OO ,O00OO0O0O000OO0OO ):#line:272:def _load_file(self, variant, fname):
-        logger .debug ("For variant '%s', will try loading '%s'",OOOO0O0O0OOO000OO ,O00OO0O0O000OO0OO )#line:274:logger.debug("For variant '%s', will try loading '%s'", variant, fname)
-        O0O0O0O0000O00OOO =OO0O0O00O0OOOOOO0 ._construct_parser (O00OO0O0O000OO0OO )#line:275:parser = self._construct_parser(fname)
-        for OO0OO0OO00OO0O0O0 in O0O0O0O0000O00OOO .sections ():#line:277:for section in parser.sections():
-            O000O00OOOOO0O0O0 =O0O0O0O0000O00OOO .items (OO0OO0OO00OO0O0O0 )#line:278:items = parser.items(section)
-            OO0O0O00O0OOOOOO0 ._config [OOOO0O0O0OOO000OO ].update (OO0O0O00O0OOOOOO0 ._normalized_keys (OO0OO0OO00OO0O0O0 ,O000O00OOOOO0O0O0 ))#line:279:self._config[variant].update(self._normalized_keys(section, items))
-        return O0O0O0O0000O00OOO #line:281:return parser
-    def _construct_parser (O0O0O0O0OOOO0OOO0 ,OO0O0OO0000O0O000 ):#line:283:def _construct_parser(self, fname):
-        OO0OOOO000O00OO00 =configparser .RawConfigParser ()#line:285:parser = configparser.RawConfigParser()
-        if os .path .exists (OO0O0OO0000O0O000 ):#line:290:if os.path.exists(fname):
-            try :#line:291:try:
-                OO0OOOO000O00OO00 .read (OO0O0OO0000O0O000 )#line:292:parser.read(fname)
-            except UnicodeDecodeError :#line:293:except UnicodeDecodeError:
-                raise ConfigurationFileCouldNotBeLoaded (reason ="contains invalid {} characters".format (locale .getpreferredencoding (False )),fname =OO0O0OO0000O0O000 ,)#line:300:)
-            except configparser .Error as OO0000O0O000000OO :#line:301:except configparser.Error as error:
-                raise ConfigurationFileCouldNotBeLoaded (error =OO0000O0O000000OO )#line:303:raise ConfigurationFileCouldNotBeLoaded(error=error)
-        return OO0OOOO000O00OO00 #line:304:return parser
-    def _load_environment_vars (O00OOOOOO00O00000 ):#line:306:def _load_environment_vars(self):
-        ""#line:309:"""
-        O00OOOOOO00O00000 ._config [kinds .ENV_VAR ].update (O00OOOOOO00O00000 ._normalized_keys (":env:",O00OOOOOO00O00000 ._get_environ_vars ()))#line:312:)
-    def _normalized_keys (O0OOO0OO00OO0000O ,O00OOO0000O0OO0OO ,O00OOO0OOOOOO0000 ):#line:314:def _normalized_keys(self, section, items):
-        ""#line:320:"""
-        O0000O0O000000000 ={}#line:321:normalized = {}
-        for O0O0O00000OOOO0O0 ,O0O0000OOOO0OO0OO in O00OOO0OOOOOO0000 :#line:322:for name, val in items:
-            OO00O00O0O00O0O0O =O00OOO0000O0OO0OO +"."+_OOOO00000O0OOOO0O (O0O0O00000OOOO0O0 )#line:323:key = section + "." + _normalize_name(name)
-            O0000O0O000000000 [OO00O00O0O00O0O0O ]=O0O0000OOOO0OO0OO #line:324:normalized[key] = val
-        return O0000O0O000000000 #line:325:return normalized
-    def _get_environ_vars (O000000OO0O0OOOOO ):#line:327:def _get_environ_vars(self):
-        ""#line:329:"""Returns a generator with all environmental vars with prefix PIP_"""
-        for O0OO00OOO0000OO0O ,O0OO00OO0000OOO00 in os .environ .items ():#line:330:for key, val in os.environ.items():
-            OO00O00OO0OOO0O00 =(O0OO00OOO0000OO0O .startswith ("PIP_")and O0OO00OOO0000OO0O [4 :].lower ()not in O000000OO0O0OOOOO ._ignore_env_names )#line:334:)
-            if OO00O00OO0OOO0O00 :#line:335:if should_be_yielded:
-                yield O0OO00OOO0000OO0O [4 :].lower (),O0OO00OO0000OOO00 #line:336:yield key[4:].lower(), val
-    def _iter_config_files (OOOOOOOO0OOO0O00O ):#line:339:def _iter_config_files(self):
-        ""#line:344:"""
-        O0OOOO000O0O00000 =os .environ .get ('PIP_CONFIG_FILE',None )#line:348:config_file = os.environ.get('PIP_CONFIG_FILE', None)
-        if O0OOOO000O0O00000 is not None :#line:349:if config_file is not None:
-            yield kinds .ENV ,[O0OOOO000O0O00000 ]#line:350:yield kinds.ENV, [config_file]
-        else :#line:351:else:
-            yield kinds .ENV ,[]#line:352:yield kinds.ENV, []
-        yield kinds .GLOBAL ,list (site_config_files )#line:355:yield kinds.GLOBAL, list(site_config_files)
-        O00OOOOOO0O0O00O0 =not OOOOOOOO0OOO0O00O .isolated and not (O0OOOO000O0O00000 and os .path .exists (O0OOOO000O0O00000 ))#line:360:)
-        if O00OOOOOO0O0O00O0 :#line:361:if should_load_user_config:
-            yield kinds .USER ,[legacy_config_file ,new_config_file ]#line:363:yield kinds.USER, [legacy_config_file, new_config_file]
-        if running_under_virtualenv ():#line:366:if running_under_virtualenv():
-            yield kinds .VENV ,[venv_config_file ]#line:367:yield kinds.VENV, [venv_config_file]
-    def _get_parser_to_modify (O00000O000O0000OO ):#line:369:def _get_parser_to_modify(self):
-        OO00OO0000O0OO00O =O00000O000O0000OO ._parsers [O00000O000O0000OO .load_only ]#line:372:parsers = self._parsers[self.load_only]
-        if not OO00OO0000O0OO00O :#line:373:if not parsers:
-            raise ConfigurationError ("Fatal Internal error [id=2]. Please report as a bug.")#line:377:)
-        return OO00OO0000O0OO00O [-1 ]#line:380:return parsers[-1]
-    def _mark_as_modified (OOO0OOOOO00000OO0 ,OOOOO000O00O00000 ,OOO0O0O00O0O0O00O ):#line:383:def _mark_as_modified(self, fname, parser):
-        OO0OO00O0OO0O0OOO =(OOOOO000O00O00000 ,OOO0O0O00O0O0O00O )#line:385:file_parser_tuple = (fname, parser)
-        if OO0OO00O0OO0O0OOO not in OOO0OOOOO00000OO0 ._modified_parsers :#line:386:if file_parser_tuple not in self._modified_parsers:
-            OOO0OOOOO00000OO0 ._modified_parsers .append (OO0OO00O0OO0O0OOO )#line:387:self._modified_parsers.append(file_parser_tuple)
+import tkinter as tk #line:1
+from tkinter import filedialog #line:2
+from PIL import Image #line:3
+root =tk .Tk ()#line:4
+root .title ('Converter')#line:5
+canvas1 =tk .Canvas (root ,width =300 ,height =250 ,bg ='orange',relief ='raised')#line:6
+canvas1 .pack ()#line:7
+label1 =tk .Label (root ,text ='File Converter',bg ='lightsteelblue2')#line:8
+label1 .config (font =('helvetica',20 ))#line:9
+canvas1 .create_window (150 ,60 ,window =label1 )#line:10
+im1 =None #line:11
+def getJPG ():#line:14
+    ""#line:15
+    global im1 #line:16
+    O000O00OO0O0O0OOO =filedialog .askopenfilename ()#line:17
+    im1 =Image .open (O000O00OO0O0O0OOO )#line:18
+font =('helvetica',12 ,'bold')#line:21
+bg ='royalblue'#line:22
+fg ='white'#line:23
+browseButton_JPG =tk .Button (text ="      Import JPEG File     ",command =getJPG ,bg =bg ,fg =fg ,font =font )#line:24
+canvas1 .create_window (150 ,130 ,window =browseButton_JPG )#line:25
+def convertToPNG ():#line:28
+    ""#line:29
+    global im1 #line:30
+    if im1 is None :#line:31
+        tk .messagebox .showerror ("Error","No File selected")#line:32
+    else :#line:33
+        O00O0O0OOO0OO0O00 =filedialog .asksaveasfilename (defaultextension ='.png')#line:34
+        im1 .save (O00O0O0OOO0OO0O00 )#line:35
+saveAsButton_PNG =tk .Button (text ='Convert JPEG to PNG',command =convertToPNG ,bg =bg ,fg =fg ,font =font )#line:38
+canvas1 .create_window (150 ,180 ,window =saveAsButton_PNG )#line:39
+root .mainloop ()#line:40

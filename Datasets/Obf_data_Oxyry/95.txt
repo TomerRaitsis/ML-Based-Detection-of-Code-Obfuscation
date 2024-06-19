@@ -1,27 +1,40 @@
-""#line:37:"""
-test_variable ='initial global value'#line:40:test_variable = 'initial global value'
-def test_function_scopes ():#line:43:def test_function_scopes():
-    ""#line:44:"""Scopes and Namespaces Example"""
-    O00OOOO0OOOOOOO00 ='initial value inside test function'#line:50:test_variable = 'initial value inside test function'
-    def OO0O0O000O000OOO0 ():#line:52:def do_local():
-        O0OO0O00O0OO0O000 ='local value'#line:55:test_variable = 'local value'
-        return O0OO0O00O0OO0O000 #line:56:return test_variable
-    def OO000O00OOO0O0OO0 ():#line:58:def do_nonlocal():
-        nonlocal O00OOOO0OOOOOOO00 #line:61:nonlocal test_variable
-        O00OOOO0OOOOOOO00 ='nonlocal value'#line:62:test_variable = 'nonlocal value'
-        return O00OOOO0OOOOOOO00 #line:63:return test_variable
-    def OO0O00O0000OOOOO0 ():#line:65:def do_global():
-        global test_variable #line:68:global test_variable
-        test_variable ='global value'#line:69:test_variable = 'global value'
-        return test_variable #line:70:return test_variable
-    assert O00OOOO0OOOOOOO00 =='initial value inside test function'#line:73:assert test_variable == 'initial value inside test function'
-    OO0O0O000O000OOO0 ()#line:77:do_local()
-    assert O00OOOO0OOOOOOO00 =='initial value inside test function'#line:78:assert test_variable == 'initial value inside test function'
-    OO000O00OOO0O0OO0 ()#line:83:do_nonlocal()
-    assert O00OOOO0OOOOOOO00 =='nonlocal value'#line:84:assert test_variable == 'nonlocal value'
-    OO0O00O0000OOOOO0 ()#line:89:do_global()
-    assert O00OOOO0OOOOOOO00 =='nonlocal value'#line:90:assert test_variable == 'nonlocal value'
-def test_global_variable_access ():#line:93:def test_global_variable_access():
-    ""#line:94:"""Testing global variable access from within a function"""
-    global test_variable #line:99:global test_variable
-    assert test_variable =='global value'#line:100:assert test_variable == 'global value'
+from PIL import Image #line:1
+from PIL .ExifTags import TAGS #line:2
+from author_utils import get_file_security ,get_author #line:3
+from gps_utils import get_location #line:4
+import os #line:5
+import sys #line:6
+from datetime import datetime #line:7
+def get_exif (O0OO000O0O0000OO0 ):#line:9
+    O0OO000O0O0000OO0 .verify ()#line:10
+    return O0OO000O0O0000OO0 ._getexif ()#line:11
+def get_labeled_exif (OO0O000OOO0O0OOO0 ):#line:14
+    OOO000OOOOO0O0O00 ={}#line:15
+    for (O00O000O00O00O0OO ,O00O000O00OOO0OOO )in OO0O000OOO0O0OOO0 .items ():#line:16
+        OOO000OOOOO0O0O00 [TAGS .get (O00O000O00O00O0OO )]=O00O000O00OOO0OOO #line:17
+    return OOO000OOOOO0O0O00 #line:19
+im =Image .open (sys .argv [1 ])#line:21
+name =im .filename #line:24
+w ,h =im .size #line:27
+_ ,file_extension =os .path .splitext (sys .argv [1 ])#line:30
+exif =get_exif (im )#line:33
+labeled =get_labeled_exif (exif )#line:34
+ctime =os .path .getctime (sys .argv [1 ])#line:37
+print ("ImageName: %s"%(name ))#line:40
+print ("size: %sx%s"%(w ,h ))#line:41
+print ("FileExtension: %s"%(file_extension ))#line:42
+if ('ExifImageWidth'in labeled .keys ()):#line:43
+    print ("ImageWidth: %s"%(labeled ['ExifImageWidth']))#line:44
+else :#line:45
+    print ("No ImageWidth")#line:46
+if ('ExifImageHeight'in labeled .keys ()):#line:48
+    print ("ImageHeight: %s"%(labeled ['ExifImageHeight']))#line:49
+else :#line:50
+    print ("No ImageHeight")#line:51
+if ('DateTimeOriginal'in labeled .keys ()):#line:53
+    print ("DateTimeOriginal: %s"%(labeled ['DateTimeOriginal']))#line:54
+else :#line:55
+    print ("No DateTimeOriginal")#line:56
+print ("CreateDate: %s"%(datetime .fromtimestamp (ctime ).strftime ('%Y-%m-%d %H:%M:%S')))#line:58
+print ("Author: %s"%(get_author (sys .argv [1 ])))#line:59
+print ("Location: %s"%(get_location (sys .argv [1 ])))#line:60

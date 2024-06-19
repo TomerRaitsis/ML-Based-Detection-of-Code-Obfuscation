@@ -1,269 +1,729 @@
-""#line:31:"""
-from __future__ import absolute_import #line:32:from __future__ import absolute_import
-import platform #line:34:import platform
-from ctypes .util import find_library #line:35:from ctypes.util import find_library
-from ctypes import (c_void_p ,c_int32 ,c_char_p ,c_size_t ,c_byte ,c_uint32 ,c_ulong ,c_long ,c_bool )#line:39:)
-from ctypes import CDLL ,POINTER ,CFUNCTYPE #line:40:from ctypes import CDLL, POINTER, CFUNCTYPE
-security_path =find_library ('Security')#line:43:security_path = find_library('Security')
-if not security_path :#line:44:if not security_path:
-    raise ImportError ('The library Security could not be found')#line:45:raise ImportError('The library Security could not be found')
-core_foundation_path =find_library ('CoreFoundation')#line:48:core_foundation_path = find_library('CoreFoundation')
-if not core_foundation_path :#line:49:if not core_foundation_path:
-    raise ImportError ('The library CoreFoundation could not be found')#line:50:raise ImportError('The library CoreFoundation could not be found')
-version =platform .mac_ver ()[0 ]#line:53:version = platform.mac_ver()[0]
-version_info =tuple (map (int ,version .split ('.')))#line:54:version_info = tuple(map(int, version.split('.')))
-if version_info <(10 ,8 ):#line:55:if version_info < (10, 8):
-    raise OSError ('Only OS X 10.8 and newer are supported, not %s.%s'%(version_info [0 ],version_info [1 ]))#line:60:)
-Security =CDLL (security_path ,use_errno =True )#line:62:Security = CDLL(security_path, use_errno=True)
-CoreFoundation =CDLL (core_foundation_path ,use_errno =True )#line:63:CoreFoundation = CDLL(core_foundation_path, use_errno=True)
-Boolean =c_bool #line:65:Boolean = c_bool
-CFIndex =c_long #line:66:CFIndex = c_long
-CFStringEncoding =c_uint32 #line:67:CFStringEncoding = c_uint32
-CFData =c_void_p #line:68:CFData = c_void_p
-CFString =c_void_p #line:69:CFString = c_void_p
-CFArray =c_void_p #line:70:CFArray = c_void_p
-CFMutableArray =c_void_p #line:71:CFMutableArray = c_void_p
-CFDictionary =c_void_p #line:72:CFDictionary = c_void_p
-CFError =c_void_p #line:73:CFError = c_void_p
-CFType =c_void_p #line:74:CFType = c_void_p
-CFTypeID =c_ulong #line:75:CFTypeID = c_ulong
-CFTypeRef =POINTER (CFType )#line:77:CFTypeRef = POINTER(CFType)
-CFAllocatorRef =c_void_p #line:78:CFAllocatorRef = c_void_p
-OSStatus =c_int32 #line:80:OSStatus = c_int32
-CFDataRef =POINTER (CFData )#line:82:CFDataRef = POINTER(CFData)
-CFStringRef =POINTER (CFString )#line:83:CFStringRef = POINTER(CFString)
-CFArrayRef =POINTER (CFArray )#line:84:CFArrayRef = POINTER(CFArray)
-CFMutableArrayRef =POINTER (CFMutableArray )#line:85:CFMutableArrayRef = POINTER(CFMutableArray)
-CFDictionaryRef =POINTER (CFDictionary )#line:86:CFDictionaryRef = POINTER(CFDictionary)
-CFArrayCallBacks =c_void_p #line:87:CFArrayCallBacks = c_void_p
-CFDictionaryKeyCallBacks =c_void_p #line:88:CFDictionaryKeyCallBacks = c_void_p
-CFDictionaryValueCallBacks =c_void_p #line:89:CFDictionaryValueCallBacks = c_void_p
-SecCertificateRef =POINTER (c_void_p )#line:91:SecCertificateRef = POINTER(c_void_p)
-SecExternalFormat =c_uint32 #line:92:SecExternalFormat = c_uint32
-SecExternalItemType =c_uint32 #line:93:SecExternalItemType = c_uint32
-SecIdentityRef =POINTER (c_void_p )#line:94:SecIdentityRef = POINTER(c_void_p)
-SecItemImportExportFlags =c_uint32 #line:95:SecItemImportExportFlags = c_uint32
-SecItemImportExportKeyParameters =c_void_p #line:96:SecItemImportExportKeyParameters = c_void_p
-SecKeychainRef =POINTER (c_void_p )#line:97:SecKeychainRef = POINTER(c_void_p)
-SSLProtocol =c_uint32 #line:98:SSLProtocol = c_uint32
-SSLCipherSuite =c_uint32 #line:99:SSLCipherSuite = c_uint32
-SSLContextRef =POINTER (c_void_p )#line:100:SSLContextRef = POINTER(c_void_p)
-SecTrustRef =POINTER (c_void_p )#line:101:SecTrustRef = POINTER(c_void_p)
-SSLConnectionRef =c_uint32 #line:102:SSLConnectionRef = c_uint32
-SecTrustResultType =c_uint32 #line:103:SecTrustResultType = c_uint32
-SecTrustOptionFlags =c_uint32 #line:104:SecTrustOptionFlags = c_uint32
-SSLProtocolSide =c_uint32 #line:105:SSLProtocolSide = c_uint32
-SSLConnectionType =c_uint32 #line:106:SSLConnectionType = c_uint32
-SSLSessionOption =c_uint32 #line:107:SSLSessionOption = c_uint32
-try :#line:110:try:
-    Security .SecItemImport .argtypes =[CFDataRef ,CFStringRef ,POINTER (SecExternalFormat ),POINTER (SecExternalItemType ),SecItemImportExportFlags ,POINTER (SecItemImportExportKeyParameters ),SecKeychainRef ,POINTER (CFArrayRef ),]#line:120:]
-    Security .SecItemImport .restype =OSStatus #line:121:Security.SecItemImport.restype = OSStatus
-    Security .SecCertificateGetTypeID .argtypes =[]#line:123:Security.SecCertificateGetTypeID.argtypes = []
-    Security .SecCertificateGetTypeID .restype =CFTypeID #line:124:Security.SecCertificateGetTypeID.restype = CFTypeID
-    Security .SecIdentityGetTypeID .argtypes =[]#line:126:Security.SecIdentityGetTypeID.argtypes = []
-    Security .SecIdentityGetTypeID .restype =CFTypeID #line:127:Security.SecIdentityGetTypeID.restype = CFTypeID
-    Security .SecKeyGetTypeID .argtypes =[]#line:129:Security.SecKeyGetTypeID.argtypes = []
-    Security .SecKeyGetTypeID .restype =CFTypeID #line:130:Security.SecKeyGetTypeID.restype = CFTypeID
-    Security .SecCertificateCreateWithData .argtypes =[CFAllocatorRef ,CFDataRef ]#line:135:]
-    Security .SecCertificateCreateWithData .restype =SecCertificateRef #line:136:Security.SecCertificateCreateWithData.restype = SecCertificateRef
-    Security .SecCertificateCopyData .argtypes =[SecCertificateRef ]#line:140:]
-    Security .SecCertificateCopyData .restype =CFDataRef #line:141:Security.SecCertificateCopyData.restype = CFDataRef
-    Security .SecCopyErrorMessageString .argtypes =[OSStatus ,c_void_p ]#line:146:]
-    Security .SecCopyErrorMessageString .restype =CFStringRef #line:147:Security.SecCopyErrorMessageString.restype = CFStringRef
-    Security .SecIdentityCreateWithCertificate .argtypes =[CFTypeRef ,SecCertificateRef ,POINTER (SecIdentityRef )]#line:153:]
-    Security .SecIdentityCreateWithCertificate .restype =OSStatus #line:154:Security.SecIdentityCreateWithCertificate.restype = OSStatus
-    Security .SecKeychainCreate .argtypes =[c_char_p ,c_uint32 ,c_void_p ,Boolean ,c_void_p ,POINTER (SecKeychainRef )]#line:163:]
-    Security .SecKeychainCreate .restype =OSStatus #line:164:Security.SecKeychainCreate.restype = OSStatus
-    Security .SecKeychainDelete .argtypes =[SecKeychainRef ]#line:168:]
-    Security .SecKeychainDelete .restype =OSStatus #line:169:Security.SecKeychainDelete.restype = OSStatus
-    Security .SecPKCS12Import .argtypes =[CFDataRef ,CFDictionaryRef ,POINTER (CFArrayRef )]#line:175:]
-    Security .SecPKCS12Import .restype =OSStatus #line:176:Security.SecPKCS12Import.restype = OSStatus
-    SSLReadFunc =CFUNCTYPE (OSStatus ,SSLConnectionRef ,c_void_p ,POINTER (c_size_t ))#line:178:SSLReadFunc = CFUNCTYPE(OSStatus, SSLConnectionRef, c_void_p, POINTER(c_size_t))
-    SSLWriteFunc =CFUNCTYPE (OSStatus ,SSLConnectionRef ,POINTER (c_byte ),POINTER (c_size_t ))#line:179:SSLWriteFunc = CFUNCTYPE(OSStatus, SSLConnectionRef, POINTER(c_byte), POINTER(c_size_t))
-    Security .SSLSetIOFuncs .argtypes =[SSLContextRef ,SSLReadFunc ,SSLWriteFunc ]#line:185:]
-    Security .SSLSetIOFuncs .restype =OSStatus #line:186:Security.SSLSetIOFuncs.restype = OSStatus
-    Security .SSLSetPeerID .argtypes =[SSLContextRef ,c_char_p ,c_size_t ]#line:192:]
-    Security .SSLSetPeerID .restype =OSStatus #line:193:Security.SSLSetPeerID.restype = OSStatus
-    Security .SSLSetCertificate .argtypes =[SSLContextRef ,CFArrayRef ]#line:198:]
-    Security .SSLSetCertificate .restype =OSStatus #line:199:Security.SSLSetCertificate.restype = OSStatus
-    Security .SSLSetCertificateAuthorities .argtypes =[SSLContextRef ,CFTypeRef ,Boolean ]#line:205:]
-    Security .SSLSetCertificateAuthorities .restype =OSStatus #line:206:Security.SSLSetCertificateAuthorities.restype = OSStatus
-    Security .SSLSetConnection .argtypes =[SSLContextRef ,SSLConnectionRef ]#line:211:]
-    Security .SSLSetConnection .restype =OSStatus #line:212:Security.SSLSetConnection.restype = OSStatus
-    Security .SSLSetPeerDomainName .argtypes =[SSLContextRef ,c_char_p ,c_size_t ]#line:218:]
-    Security .SSLSetPeerDomainName .restype =OSStatus #line:219:Security.SSLSetPeerDomainName.restype = OSStatus
-    Security .SSLHandshake .argtypes =[SSLContextRef ]#line:223:]
-    Security .SSLHandshake .restype =OSStatus #line:224:Security.SSLHandshake.restype = OSStatus
-    Security .SSLRead .argtypes =[SSLContextRef ,c_char_p ,c_size_t ,POINTER (c_size_t )]#line:231:]
-    Security .SSLRead .restype =OSStatus #line:232:Security.SSLRead.restype = OSStatus
-    Security .SSLWrite .argtypes =[SSLContextRef ,c_char_p ,c_size_t ,POINTER (c_size_t )]#line:239:]
-    Security .SSLWrite .restype =OSStatus #line:240:Security.SSLWrite.restype = OSStatus
-    Security .SSLClose .argtypes =[SSLContextRef ]#line:244:]
-    Security .SSLClose .restype =OSStatus #line:245:Security.SSLClose.restype = OSStatus
-    Security .SSLGetNumberSupportedCiphers .argtypes =[SSLContextRef ,POINTER (c_size_t )]#line:250:]
-    Security .SSLGetNumberSupportedCiphers .restype =OSStatus #line:251:Security.SSLGetNumberSupportedCiphers.restype = OSStatus
-    Security .SSLGetSupportedCiphers .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite ),POINTER (c_size_t )]#line:257:]
-    Security .SSLGetSupportedCiphers .restype =OSStatus #line:258:Security.SSLGetSupportedCiphers.restype = OSStatus
-    Security .SSLSetEnabledCiphers .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite ),c_size_t ]#line:264:]
-    Security .SSLSetEnabledCiphers .restype =OSStatus #line:265:Security.SSLSetEnabledCiphers.restype = OSStatus
-    Security .SSLGetNumberEnabledCiphers .argtype =[SSLContextRef ,POINTER (c_size_t )]#line:270:]
-    Security .SSLGetNumberEnabledCiphers .restype =OSStatus #line:271:Security.SSLGetNumberEnabledCiphers.restype = OSStatus
-    Security .SSLGetEnabledCiphers .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite ),POINTER (c_size_t )]#line:277:]
-    Security .SSLGetEnabledCiphers .restype =OSStatus #line:278:Security.SSLGetEnabledCiphers.restype = OSStatus
-    Security .SSLGetNegotiatedCipher .argtypes =[SSLContextRef ,POINTER (SSLCipherSuite )]#line:283:]
-    Security .SSLGetNegotiatedCipher .restype =OSStatus #line:284:Security.SSLGetNegotiatedCipher.restype = OSStatus
-    Security .SSLGetNegotiatedProtocolVersion .argtypes =[SSLContextRef ,POINTER (SSLProtocol )]#line:289:]
-    Security .SSLGetNegotiatedProtocolVersion .restype =OSStatus #line:290:Security.SSLGetNegotiatedProtocolVersion.restype = OSStatus
-    Security .SSLCopyPeerTrust .argtypes =[SSLContextRef ,POINTER (SecTrustRef )]#line:295:]
-    Security .SSLCopyPeerTrust .restype =OSStatus #line:296:Security.SSLCopyPeerTrust.restype = OSStatus
-    Security .SecTrustSetAnchorCertificates .argtypes =[SecTrustRef ,CFArrayRef ]#line:301:]
-    Security .SecTrustSetAnchorCertificates .restype =OSStatus #line:302:Security.SecTrustSetAnchorCertificates.restype = OSStatus
-    Security .SecTrustSetAnchorCertificatesOnly .argstypes =[SecTrustRef ,Boolean ]#line:307:]
-    Security .SecTrustSetAnchorCertificatesOnly .restype =OSStatus #line:308:Security.SecTrustSetAnchorCertificatesOnly.restype = OSStatus
-    Security .SecTrustEvaluate .argtypes =[SecTrustRef ,POINTER (SecTrustResultType )]#line:313:]
-    Security .SecTrustEvaluate .restype =OSStatus #line:314:Security.SecTrustEvaluate.restype = OSStatus
-    Security .SecTrustGetCertificateCount .argtypes =[SecTrustRef ]#line:318:]
-    Security .SecTrustGetCertificateCount .restype =CFIndex #line:319:Security.SecTrustGetCertificateCount.restype = CFIndex
-    Security .SecTrustGetCertificateAtIndex .argtypes =[SecTrustRef ,CFIndex ]#line:324:]
-    Security .SecTrustGetCertificateAtIndex .restype =SecCertificateRef #line:325:Security.SecTrustGetCertificateAtIndex.restype = SecCertificateRef
-    Security .SSLCreateContext .argtypes =[CFAllocatorRef ,SSLProtocolSide ,SSLConnectionType ]#line:331:]
-    Security .SSLCreateContext .restype =SSLContextRef #line:332:Security.SSLCreateContext.restype = SSLContextRef
-    Security .SSLSetSessionOption .argtypes =[SSLContextRef ,SSLSessionOption ,Boolean ]#line:338:]
-    Security .SSLSetSessionOption .restype =OSStatus #line:339:Security.SSLSetSessionOption.restype = OSStatus
-    Security .SSLSetProtocolVersionMin .argtypes =[SSLContextRef ,SSLProtocol ]#line:344:]
-    Security .SSLSetProtocolVersionMin .restype =OSStatus #line:345:Security.SSLSetProtocolVersionMin.restype = OSStatus
-    Security .SSLSetProtocolVersionMax .argtypes =[SSLContextRef ,SSLProtocol ]#line:350:]
-    Security .SSLSetProtocolVersionMax .restype =OSStatus #line:351:Security.SSLSetProtocolVersionMax.restype = OSStatus
-    Security .SecCopyErrorMessageString .argtypes =[OSStatus ,c_void_p ]#line:356:]
-    Security .SecCopyErrorMessageString .restype =CFStringRef #line:357:Security.SecCopyErrorMessageString.restype = CFStringRef
-    Security .SSLReadFunc =SSLReadFunc #line:359:Security.SSLReadFunc = SSLReadFunc
-    Security .SSLWriteFunc =SSLWriteFunc #line:360:Security.SSLWriteFunc = SSLWriteFunc
-    Security .SSLContextRef =SSLContextRef #line:361:Security.SSLContextRef = SSLContextRef
-    Security .SSLProtocol =SSLProtocol #line:362:Security.SSLProtocol = SSLProtocol
-    Security .SSLCipherSuite =SSLCipherSuite #line:363:Security.SSLCipherSuite = SSLCipherSuite
-    Security .SecIdentityRef =SecIdentityRef #line:364:Security.SecIdentityRef = SecIdentityRef
-    Security .SecKeychainRef =SecKeychainRef #line:365:Security.SecKeychainRef = SecKeychainRef
-    Security .SecTrustRef =SecTrustRef #line:366:Security.SecTrustRef = SecTrustRef
-    Security .SecTrustResultType =SecTrustResultType #line:367:Security.SecTrustResultType = SecTrustResultType
-    Security .SecExternalFormat =SecExternalFormat #line:368:Security.SecExternalFormat = SecExternalFormat
-    Security .OSStatus =OSStatus #line:369:Security.OSStatus = OSStatus
-    Security .kSecImportExportPassphrase =CFStringRef .in_dll (Security ,'kSecImportExportPassphrase')#line:373:)
-    Security .kSecImportItemIdentity =CFStringRef .in_dll (Security ,'kSecImportItemIdentity')#line:376:)
-    CoreFoundation .CFRetain .argtypes =[CFTypeRef ]#line:381:]
-    CoreFoundation .CFRetain .restype =CFTypeRef #line:382:CoreFoundation.CFRetain.restype = CFTypeRef
-    CoreFoundation .CFRelease .argtypes =[CFTypeRef ]#line:386:]
-    CoreFoundation .CFRelease .restype =None #line:387:CoreFoundation.CFRelease.restype = None
-    CoreFoundation .CFGetTypeID .argtypes =[CFTypeRef ]#line:391:]
-    CoreFoundation .CFGetTypeID .restype =CFTypeID #line:392:CoreFoundation.CFGetTypeID.restype = CFTypeID
-    CoreFoundation .CFStringCreateWithCString .argtypes =[CFAllocatorRef ,c_char_p ,CFStringEncoding ]#line:398:]
-    CoreFoundation .CFStringCreateWithCString .restype =CFStringRef #line:399:CoreFoundation.CFStringCreateWithCString.restype = CFStringRef
-    CoreFoundation .CFStringGetCStringPtr .argtypes =[CFStringRef ,CFStringEncoding ]#line:404:]
-    CoreFoundation .CFStringGetCStringPtr .restype =c_char_p #line:405:CoreFoundation.CFStringGetCStringPtr.restype = c_char_p
-    CoreFoundation .CFStringGetCString .argtypes =[CFStringRef ,c_char_p ,CFIndex ,CFStringEncoding ]#line:412:]
-    CoreFoundation .CFStringGetCString .restype =c_bool #line:413:CoreFoundation.CFStringGetCString.restype = c_bool
-    CoreFoundation .CFDataCreate .argtypes =[CFAllocatorRef ,c_char_p ,CFIndex ]#line:419:]
-    CoreFoundation .CFDataCreate .restype =CFDataRef #line:420:CoreFoundation.CFDataCreate.restype = CFDataRef
-    CoreFoundation .CFDataGetLength .argtypes =[CFDataRef ]#line:424:]
-    CoreFoundation .CFDataGetLength .restype =CFIndex #line:425:CoreFoundation.CFDataGetLength.restype = CFIndex
-    CoreFoundation .CFDataGetBytePtr .argtypes =[CFDataRef ]#line:429:]
-    CoreFoundation .CFDataGetBytePtr .restype =c_void_p #line:430:CoreFoundation.CFDataGetBytePtr.restype = c_void_p
-    CoreFoundation .CFDictionaryCreate .argtypes =[CFAllocatorRef ,POINTER (CFTypeRef ),POINTER (CFTypeRef ),CFIndex ,CFDictionaryKeyCallBacks ,CFDictionaryValueCallBacks ]#line:439:]
-    CoreFoundation .CFDictionaryCreate .restype =CFDictionaryRef #line:440:CoreFoundation.CFDictionaryCreate.restype = CFDictionaryRef
-    CoreFoundation .CFDictionaryGetValue .argtypes =[CFDictionaryRef ,CFTypeRef ]#line:445:]
-    CoreFoundation .CFDictionaryGetValue .restype =CFTypeRef #line:446:CoreFoundation.CFDictionaryGetValue.restype = CFTypeRef
-    CoreFoundation .CFArrayCreate .argtypes =[CFAllocatorRef ,POINTER (CFTypeRef ),CFIndex ,CFArrayCallBacks ,]#line:453:]
-    CoreFoundation .CFArrayCreate .restype =CFArrayRef #line:454:CoreFoundation.CFArrayCreate.restype = CFArrayRef
-    CoreFoundation .CFArrayCreateMutable .argtypes =[CFAllocatorRef ,CFIndex ,CFArrayCallBacks ]#line:460:]
-    CoreFoundation .CFArrayCreateMutable .restype =CFMutableArrayRef #line:461:CoreFoundation.CFArrayCreateMutable.restype = CFMutableArrayRef
-    CoreFoundation .CFArrayAppendValue .argtypes =[CFMutableArrayRef ,c_void_p ]#line:466:]
-    CoreFoundation .CFArrayAppendValue .restype =None #line:467:CoreFoundation.CFArrayAppendValue.restype = None
-    CoreFoundation .CFArrayGetCount .argtypes =[CFArrayRef ]#line:471:]
-    CoreFoundation .CFArrayGetCount .restype =CFIndex #line:472:CoreFoundation.CFArrayGetCount.restype = CFIndex
-    CoreFoundation .CFArrayGetValueAtIndex .argtypes =[CFArrayRef ,CFIndex ]#line:477:]
-    CoreFoundation .CFArrayGetValueAtIndex .restype =c_void_p #line:478:CoreFoundation.CFArrayGetValueAtIndex.restype = c_void_p
-    CoreFoundation .kCFAllocatorDefault =CFAllocatorRef .in_dll (CoreFoundation ,'kCFAllocatorDefault')#line:482:)
-    CoreFoundation .kCFTypeArrayCallBacks =c_void_p .in_dll (CoreFoundation ,'kCFTypeArrayCallBacks')#line:483:CoreFoundation.kCFTypeArrayCallBacks = c_void_p.in_dll(CoreFoundation, 'kCFTypeArrayCallBacks')
-    CoreFoundation .kCFTypeDictionaryKeyCallBacks =c_void_p .in_dll (CoreFoundation ,'kCFTypeDictionaryKeyCallBacks')#line:486:)
-    CoreFoundation .kCFTypeDictionaryValueCallBacks =c_void_p .in_dll (CoreFoundation ,'kCFTypeDictionaryValueCallBacks')#line:489:)
-    CoreFoundation .CFTypeRef =CFTypeRef #line:491:CoreFoundation.CFTypeRef = CFTypeRef
-    CoreFoundation .CFArrayRef =CFArrayRef #line:492:CoreFoundation.CFArrayRef = CFArrayRef
-    CoreFoundation .CFStringRef =CFStringRef #line:493:CoreFoundation.CFStringRef = CFStringRef
-    CoreFoundation .CFDictionaryRef =CFDictionaryRef #line:494:CoreFoundation.CFDictionaryRef = CFDictionaryRef
-except (AttributeError ):#line:496:except (AttributeError):
-    raise ImportError ('Error initializing ctypes')#line:497:raise ImportError('Error initializing ctypes')
-class CFConst (object ):#line:500:class CFConst(object):
-    ""#line:504:"""
-    kCFStringEncodingUTF8 =CFStringEncoding (0x08000100 )#line:505:kCFStringEncodingUTF8 = CFStringEncoding(0x08000100)
-class SecurityConst (object ):#line:508:class SecurityConst(object):
-    ""#line:511:"""
-    kSSLSessionOptionBreakOnServerAuth =0 #line:512:kSSLSessionOptionBreakOnServerAuth = 0
-    kSSLProtocol2 =1 #line:514:kSSLProtocol2 = 1
-    kSSLProtocol3 =2 #line:515:kSSLProtocol3 = 2
-    kTLSProtocol1 =4 #line:516:kTLSProtocol1 = 4
-    kTLSProtocol11 =7 #line:517:kTLSProtocol11 = 7
-    kTLSProtocol12 =8 #line:518:kTLSProtocol12 = 8
-    kSSLClientSide =1 #line:520:kSSLClientSide = 1
-    kSSLStreamType =0 #line:521:kSSLStreamType = 0
-    kSecFormatPEMSequence =10 #line:523:kSecFormatPEMSequence = 10
-    kSecTrustResultInvalid =0 #line:525:kSecTrustResultInvalid = 0
-    kSecTrustResultProceed =1 #line:526:kSecTrustResultProceed = 1
-    kSecTrustResultDeny =3 #line:529:kSecTrustResultDeny = 3
-    kSecTrustResultUnspecified =4 #line:530:kSecTrustResultUnspecified = 4
-    kSecTrustResultRecoverableTrustFailure =5 #line:531:kSecTrustResultRecoverableTrustFailure = 5
-    kSecTrustResultFatalTrustFailure =6 #line:532:kSecTrustResultFatalTrustFailure = 6
-    kSecTrustResultOtherError =7 #line:533:kSecTrustResultOtherError = 7
-    errSSLProtocol =-9800 #line:535:errSSLProtocol = -9800
-    errSSLWouldBlock =-9803 #line:536:errSSLWouldBlock = -9803
-    errSSLClosedGraceful =-9805 #line:537:errSSLClosedGraceful = -9805
-    errSSLClosedNoNotify =-9816 #line:538:errSSLClosedNoNotify = -9816
-    errSSLClosedAbort =-9806 #line:539:errSSLClosedAbort = -9806
-    errSSLXCertChainInvalid =-9807 #line:541:errSSLXCertChainInvalid = -9807
-    errSSLCrypto =-9809 #line:542:errSSLCrypto = -9809
-    errSSLInternal =-9810 #line:543:errSSLInternal = -9810
-    errSSLCertExpired =-9814 #line:544:errSSLCertExpired = -9814
-    errSSLCertNotYetValid =-9815 #line:545:errSSLCertNotYetValid = -9815
-    errSSLUnknownRootCert =-9812 #line:546:errSSLUnknownRootCert = -9812
-    errSSLNoRootCert =-9813 #line:547:errSSLNoRootCert = -9813
-    errSSLHostNameMismatch =-9843 #line:548:errSSLHostNameMismatch = -9843
-    errSSLPeerHandshakeFail =-9824 #line:549:errSSLPeerHandshakeFail = -9824
-    errSSLPeerUserCancelled =-9839 #line:550:errSSLPeerUserCancelled = -9839
-    errSSLWeakPeerEphemeralDHKey =-9850 #line:551:errSSLWeakPeerEphemeralDHKey = -9850
-    errSSLServerAuthCompleted =-9841 #line:552:errSSLServerAuthCompleted = -9841
-    errSSLRecordOverflow =-9847 #line:553:errSSLRecordOverflow = -9847
-    errSecVerifyFailed =-67808 #line:555:errSecVerifyFailed = -67808
-    errSecNoTrustSettings =-25263 #line:556:errSecNoTrustSettings = -25263
-    errSecItemNotFound =-25300 #line:557:errSecItemNotFound = -25300
-    errSecInvalidTrustSettings =-25262 #line:558:errSecInvalidTrustSettings = -25262
-    TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 =0xC02C #line:561:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = 0xC02C
-    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 =0xC030 #line:562:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = 0xC030
-    TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 =0xC02B #line:563:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = 0xC02B
-    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 =0xC02F #line:564:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = 0xC02F
-    TLS_DHE_DSS_WITH_AES_256_GCM_SHA384 =0x00A3 #line:565:TLS_DHE_DSS_WITH_AES_256_GCM_SHA384 = 0x00A3
-    TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 =0x009F #line:566:TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 = 0x009F
-    TLS_DHE_DSS_WITH_AES_128_GCM_SHA256 =0x00A2 #line:567:TLS_DHE_DSS_WITH_AES_128_GCM_SHA256 = 0x00A2
-    TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 =0x009E #line:568:TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 = 0x009E
-    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 =0xC024 #line:569:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 = 0xC024
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 =0xC028 #line:570:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 = 0xC028
-    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA =0xC00A #line:571:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA = 0xC00A
-    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA =0xC014 #line:572:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = 0xC014
-    TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 =0x006B #line:573:TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 = 0x006B
-    TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 =0x006A #line:574:TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 = 0x006A
-    TLS_DHE_RSA_WITH_AES_256_CBC_SHA =0x0039 #line:575:TLS_DHE_RSA_WITH_AES_256_CBC_SHA = 0x0039
-    TLS_DHE_DSS_WITH_AES_256_CBC_SHA =0x0038 #line:576:TLS_DHE_DSS_WITH_AES_256_CBC_SHA = 0x0038
-    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 =0xC023 #line:577:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 = 0xC023
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 =0xC027 #line:578:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 = 0xC027
-    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA =0xC009 #line:579:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA = 0xC009
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA =0xC013 #line:580:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA = 0xC013
-    TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 =0x0067 #line:581:TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 = 0x0067
-    TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 =0x0040 #line:582:TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 = 0x0040
-    TLS_DHE_RSA_WITH_AES_128_CBC_SHA =0x0033 #line:583:TLS_DHE_RSA_WITH_AES_128_CBC_SHA = 0x0033
-    TLS_DHE_DSS_WITH_AES_128_CBC_SHA =0x0032 #line:584:TLS_DHE_DSS_WITH_AES_128_CBC_SHA = 0x0032
-    TLS_RSA_WITH_AES_256_GCM_SHA384 =0x009D #line:585:TLS_RSA_WITH_AES_256_GCM_SHA384 = 0x009D
-    TLS_RSA_WITH_AES_128_GCM_SHA256 =0x009C #line:586:TLS_RSA_WITH_AES_128_GCM_SHA256 = 0x009C
-    TLS_RSA_WITH_AES_256_CBC_SHA256 =0x003D #line:587:TLS_RSA_WITH_AES_256_CBC_SHA256 = 0x003D
-    TLS_RSA_WITH_AES_128_CBC_SHA256 =0x003C #line:588:TLS_RSA_WITH_AES_128_CBC_SHA256 = 0x003C
-    TLS_RSA_WITH_AES_256_CBC_SHA =0x0035 #line:589:TLS_RSA_WITH_AES_256_CBC_SHA = 0x0035
-    TLS_RSA_WITH_AES_128_CBC_SHA =0x002F #line:590:TLS_RSA_WITH_AES_128_CBC_SHA = 0x002F
-    TLS_AES_128_GCM_SHA256 =0x1301 #line:591:TLS_AES_128_GCM_SHA256 = 0x1301
-    TLS_AES_256_GCM_SHA384 =0x1302 #line:592:TLS_AES_256_GCM_SHA384 = 0x1302
-    TLS_CHACHA20_POLY1305_SHA256 =0x1303 #line:593:TLS_CHACHA20_POLY1305_SHA256 = 0x1303
+""#line:1:"""Fallback pure Python implementation of msgpack"""
+import sys #line:3:import sys
+import struct #line:4:import struct
+import warnings #line:5:import warnings
+if sys .version_info [0 ]==3 :#line:7:if sys.version_info[0] == 3:
+    PY3 =True #line:8:PY3 = True
+    int_types =int #line:9:int_types = int
+    Unicode =str #line:10:Unicode = str
+    xrange =range #line:11:xrange = range
+    def dict_iteritems (OOO0OOOO0000O0OOO ):#line:12:def dict_iteritems(d):
+        return OOO0OOOO0000O0OOO .items ()#line:13:return d.items()
+else :#line:14:else:
+    PY3 =False #line:15:PY3 = False
+    int_types =(int ,long )#line:16:int_types = (int, long)
+    Unicode =unicode #line:17:Unicode = unicode
+    def dict_iteritems (O0OOOOOOO0O0O0000 ):#line:18:def dict_iteritems(d):
+        return O0OOOOOOO0O0O0000 .iteritems ()#line:19:return d.iteritems()
+if hasattr (sys ,'pypy_version_info'):#line:22:if hasattr(sys, 'pypy_version_info'):
+    from __pypy__ import newlist_hint #line:25:from __pypy__ import newlist_hint
+    try :#line:26:try:
+        from __pypy__ .builders import BytesBuilder as StringBuilder #line:27:from __pypy__.builders import BytesBuilder as StringBuilder
+    except ImportError :#line:28:except ImportError:
+        from __pypy__ .builders import StringBuilder #line:29:from __pypy__.builders import StringBuilder
+    USING_STRINGBUILDER =True #line:30:USING_STRINGBUILDER = True
+    class StringIO (object ):#line:31:class StringIO(object):
+        def __init__ (OO000O0OOOO0O0OOO ,s =b''):#line:32:def __init__(self, s=b''):
+            if s :#line:33:if s:
+                OO000O0OOOO0O0OOO .builder =StringBuilder (len (s ))#line:34:self.builder = StringBuilder(len(s))
+                OO000O0OOOO0O0OOO .builder .append (s )#line:35:self.builder.append(s)
+            else :#line:36:else:
+                OO000O0OOOO0O0OOO .builder =StringBuilder ()#line:37:self.builder = StringBuilder()
+        def write (O00000O00OOO00O00 ,O00OOO00000O00OOO ):#line:38:def write(self, s):
+            if isinstance (O00OOO00000O00OOO ,memoryview ):#line:39:if isinstance(s, memoryview):
+                O00OOO00000O00OOO =O00OOO00000O00OOO .tobytes ()#line:40:s = s.tobytes()
+            elif isinstance (O00OOO00000O00OOO ,bytearray ):#line:41:elif isinstance(s, bytearray):
+                O00OOO00000O00OOO =bytes (O00OOO00000O00OOO )#line:42:s = bytes(s)
+            O00000O00OOO00O00 .builder .append (O00OOO00000O00OOO )#line:43:self.builder.append(s)
+        def getvalue (OOO0OO00O00O00OO0 ):#line:44:def getvalue(self):
+            return OOO0OO00O00O00OO0 .builder .build ()#line:45:return self.builder.build()
+else :#line:46:else:
+    USING_STRINGBUILDER =False #line:47:USING_STRINGBUILDER = False
+    from io import BytesIO as StringIO #line:48:from io import BytesIO as StringIO
+    newlist_hint =lambda O0OOO00O0OO0OOO0O :[]#line:49:newlist_hint = lambda size: []
+from pip ._vendor .msgpack .exceptions import (BufferFull ,OutOfData ,UnpackValueError ,PackValueError ,PackOverflowError ,ExtraData )#line:58:ExtraData)
+from pip ._vendor .msgpack import ExtType #line:60:from pip._vendor.msgpack import ExtType
+EX_SKIP =0 #line:63:EX_SKIP                 = 0
+EX_CONSTRUCT =1 #line:64:EX_CONSTRUCT            = 1
+EX_READ_ARRAY_HEADER =2 #line:65:EX_READ_ARRAY_HEADER    = 2
+EX_READ_MAP_HEADER =3 #line:66:EX_READ_MAP_HEADER      = 3
+TYPE_IMMEDIATE =0 #line:68:TYPE_IMMEDIATE          = 0
+TYPE_ARRAY =1 #line:69:TYPE_ARRAY              = 1
+TYPE_MAP =2 #line:70:TYPE_MAP                = 2
+TYPE_RAW =3 #line:71:TYPE_RAW                = 3
+TYPE_BIN =4 #line:72:TYPE_BIN                = 4
+TYPE_EXT =5 #line:73:TYPE_EXT                = 5
+DEFAULT_RECURSE_LIMIT =511 #line:75:DEFAULT_RECURSE_LIMIT = 511
+def _OOOO00OO0O0O00O0O (O0OO0OO0O00O00O00 ,O000O00OOOO0O00O0 ,type =type ,tuple =tuple ):#line:78:def _check_type_strict(obj, t, type=type, tuple=tuple):
+    if type (O000O00OOOO0O00O0 )is tuple :#line:79:if type(t) is tuple:
+        return type (O0OO0OO0O00O00O00 )in O000O00OOOO0O00O0 #line:80:return type(obj) in t
+    else :#line:81:else:
+        return type (O0OO0OO0O00O00O00 )is O000O00OOOO0O00O0 #line:82:return type(obj) is t
+def _OOOO0OOOO00OOOO00 (O00OO0OOOO000OO00 ):#line:85:def _get_data_from_buffer(obj):
+    try :#line:86:try:
+        O000O000OO0O000OO =memoryview (O00OO0OOOO000OO00 )#line:87:view = memoryview(obj)
+    except TypeError :#line:88:except TypeError:
+        if not PY3 :#line:90:if not PY3:
+            O000O000OO0O000OO =memoryview (buffer (O00OO0OOOO000OO00 ))#line:91:view = memoryview(buffer(obj))
+            warnings .warn ("using old buffer interface to unpack %s; " "this leads to unpacking errors if slicing is used and " "will be removed in a future version"%type (O00OO0OOOO000OO00 ),RuntimeWarning )#line:95:RuntimeWarning)
+        else :#line:96:else:
+            raise #line:97:raise
+    if O000O000OO0O000OO .itemsize !=1 :#line:98:if view.itemsize != 1:
+        raise ValueError ("cannot unpack from multi-byte object")#line:99:raise ValueError("cannot unpack from multi-byte object")
+    return O000O000OO0O000OO #line:100:return view
+def unpack (O00O0OO00OO0000O0 ,**OO0O0O00000OOO0O0 ):#line:103:def unpack(stream, **kwargs):
+    warnings .warn ("Direct calling implementation's unpack() is deprecated, Use msgpack.unpack() or unpackb() instead.",PendingDeprecationWarning )#line:106:PendingDeprecationWarning)
+    O0O0O0O0OOO00OO00 =O00O0OO00OO0000O0 .read ()#line:107:data = stream.read()
+    return unpackb (O0O0O0O0OOO00OO00 ,**OO0O0O00000OOO0O0 )#line:108:return unpackb(data, **kwargs)
+def unpackb (OO0O0O0OO0O000000 ,**O00OO000O0000O000 ):#line:111:def unpackb(packed, **kwargs):
+    ""#line:117:"""
+    O0O00O0000O000OOO =Unpacker (None ,**O00OO000O0000O000 )#line:118:unpacker = Unpacker(None, **kwargs)
+    O0O00O0000O000OOO .feed (OO0O0O0OO0O000000 )#line:119:unpacker.feed(packed)
+    try :#line:120:try:
+        OO0OO00OO0O0OOOO0 =O0O00O0000O000OOO ._unpack ()#line:121:ret = unpacker._unpack()
+    except OutOfData :#line:122:except OutOfData:
+        raise UnpackValueError ("Data is not enough.")#line:123:raise UnpackValueError("Data is not enough.")
+    if O0O00O0000O000OOO ._got_extradata ():#line:124:if unpacker._got_extradata():
+        raise ExtraData (OO0OO00OO0O0OOOO0 ,O0O00O0000O000OOO ._get_extradata ())#line:125:raise ExtraData(ret, unpacker._get_extradata())
+    return OO0OO00OO0O0OOOO0 #line:126:return ret
+class Unpacker (object ):#line:129:class Unpacker(object):
+    ""#line:207:"""
+    def __init__ (OO00000OOOOOO0O00 ,file_like =None ,read_size =0 ,use_list =True ,raw =True ,object_hook =None ,object_pairs_hook =None ,list_hook =None ,encoding =None ,unicode_errors =None ,max_buffer_size =0 ,ext_hook =ExtType ,max_str_len =2147483647 ,max_bin_len =2147483647 ,max_array_len =2147483647 ,max_map_len =2147483647 ,max_ext_len =2147483647 ):#line:217:max_ext_len=2147483647):
+        if encoding is not None :#line:219:if encoding is not None:
+            warnings .warn ("encoding is deprecated, Use raw=False instead.",PendingDeprecationWarning )#line:222:PendingDeprecationWarning)
+        if unicode_errors is None :#line:224:if unicode_errors is None:
+            unicode_errors ='strict'#line:225:unicode_errors = 'strict'
+        if file_like is None :#line:227:if file_like is None:
+            OO00000OOOOOO0O00 ._feeding =True #line:228:self._feeding = True
+        else :#line:229:else:
+            if not callable (file_like .read ):#line:230:if not callable(file_like.read):
+                raise TypeError ("`file_like.read` must be callable")#line:231:raise TypeError("`file_like.read` must be callable")
+            OO00000OOOOOO0O00 .file_like =file_like #line:232:self.file_like = file_like
+            OO00000OOOOOO0O00 ._feeding =False #line:233:self._feeding = False
+        OO00000OOOOOO0O00 ._buffer =bytearray ()#line:236:self._buffer = bytearray()
+        if sys .version_info <(2 ,7 ,6 ):#line:239:if sys.version_info < (2, 7, 6):
+            OO00000OOOOOO0O00 ._buffer_view =buffer (OO00000OOOOOO0O00 ._buffer )#line:240:self._buffer_view = buffer(self._buffer)
+        else :#line:241:else:
+            OO00000OOOOOO0O00 ._buffer_view =OO00000OOOOOO0O00 ._buffer #line:242:self._buffer_view = self._buffer
+        OO00000OOOOOO0O00 ._buff_i =0 #line:244:self._buff_i = 0
+        OO00000OOOOOO0O00 ._buf_checkpoint =0 #line:253:self._buf_checkpoint = 0
+        OO00000OOOOOO0O00 ._max_buffer_size =max_buffer_size or 2 **31 -1 #line:255:self._max_buffer_size = max_buffer_size or 2**31-1
+        if read_size >OO00000OOOOOO0O00 ._max_buffer_size :#line:256:if read_size > self._max_buffer_size:
+            raise ValueError ("read_size must be smaller than max_buffer_size")#line:257:raise ValueError("read_size must be smaller than max_buffer_size")
+        OO00000OOOOOO0O00 ._read_size =read_size or min (OO00000OOOOOO0O00 ._max_buffer_size ,16 *1024 )#line:258:self._read_size = read_size or min(self._max_buffer_size, 16*1024)
+        OO00000OOOOOO0O00 ._raw =bool (raw )#line:259:self._raw = bool(raw)
+        OO00000OOOOOO0O00 ._encoding =encoding #line:260:self._encoding = encoding
+        OO00000OOOOOO0O00 ._unicode_errors =unicode_errors #line:261:self._unicode_errors = unicode_errors
+        OO00000OOOOOO0O00 ._use_list =use_list #line:262:self._use_list = use_list
+        OO00000OOOOOO0O00 ._list_hook =list_hook #line:263:self._list_hook = list_hook
+        OO00000OOOOOO0O00 ._object_hook =object_hook #line:264:self._object_hook = object_hook
+        OO00000OOOOOO0O00 ._object_pairs_hook =object_pairs_hook #line:265:self._object_pairs_hook = object_pairs_hook
+        OO00000OOOOOO0O00 ._ext_hook =ext_hook #line:266:self._ext_hook = ext_hook
+        OO00000OOOOOO0O00 ._max_str_len =max_str_len #line:267:self._max_str_len = max_str_len
+        OO00000OOOOOO0O00 ._max_bin_len =max_bin_len #line:268:self._max_bin_len = max_bin_len
+        OO00000OOOOOO0O00 ._max_array_len =max_array_len #line:269:self._max_array_len = max_array_len
+        OO00000OOOOOO0O00 ._max_map_len =max_map_len #line:270:self._max_map_len = max_map_len
+        OO00000OOOOOO0O00 ._max_ext_len =max_ext_len #line:271:self._max_ext_len = max_ext_len
+        OO00000OOOOOO0O00 ._stream_offset =0 #line:272:self._stream_offset = 0
+        if list_hook is not None and not callable (list_hook ):#line:274:if list_hook is not None and not callable(list_hook):
+            raise TypeError ('`list_hook` is not callable')#line:275:raise TypeError('`list_hook` is not callable')
+        if object_hook is not None and not callable (object_hook ):#line:276:if object_hook is not None and not callable(object_hook):
+            raise TypeError ('`object_hook` is not callable')#line:277:raise TypeError('`object_hook` is not callable')
+        if object_pairs_hook is not None and not callable (object_pairs_hook ):#line:278:if object_pairs_hook is not None and not callable(object_pairs_hook):
+            raise TypeError ('`object_pairs_hook` is not callable')#line:279:raise TypeError('`object_pairs_hook` is not callable')
+        if object_hook is not None and object_pairs_hook is not None :#line:280:if object_hook is not None and object_pairs_hook is not None:
+            raise TypeError ("object_pairs_hook and object_hook are mutually " "exclusive")#line:282:"exclusive")
+        if not callable (ext_hook ):#line:283:if not callable(ext_hook):
+            raise TypeError ("`ext_hook` is not callable")#line:284:raise TypeError("`ext_hook` is not callable")
+    def feed (OOOO0OOO000O0O00O ,O0O0O0OOOOOOO0O00 ):#line:286:def feed(self, next_bytes):
+        assert OOOO0OOO000O0O00O ._feeding #line:287:assert self._feeding
+        O000O0OO00O00O0O0 =_OOOO0OOOO00OOOO00 (O0O0O0OOOOOOO0O00 )#line:288:view = _get_data_from_buffer(next_bytes)
+        if (len (OOOO0OOO000O0O00O ._buffer )-OOOO0OOO000O0O00O ._buff_i +len (O000O0OO00O00O0O0 )>OOOO0OOO000O0O00O ._max_buffer_size ):#line:289:if (len(self._buffer) - self._buff_i + len(view) > self._max_buffer_size):
+            raise BufferFull #line:290:raise BufferFull
+        if OOOO0OOO000O0O00O ._buf_checkpoint >0 :#line:293:if self._buf_checkpoint > 0:
+            del OOOO0OOO000O0O00O ._buffer [:OOOO0OOO000O0O00O ._buf_checkpoint ]#line:294:del self._buffer[:self._buf_checkpoint]
+            OOOO0OOO000O0O00O ._buff_i -=OOOO0OOO000O0O00O ._buf_checkpoint #line:295:self._buff_i -= self._buf_checkpoint
+            OOOO0OOO000O0O00O ._buf_checkpoint =0 #line:296:self._buf_checkpoint = 0
+        OOOO0OOO000O0O00O ._buffer +=O000O0OO00O00O0O0 #line:298:self._buffer += view
+    def _consume (O00OO0O0OOO000000 ):#line:300:def _consume(self):
+        ""#line:301:""" Gets rid of the used parts of the buffer. """
+        O00OO0O0OOO000000 ._stream_offset +=O00OO0O0OOO000000 ._buff_i -O00OO0O0OOO000000 ._buf_checkpoint #line:302:self._stream_offset += self._buff_i - self._buf_checkpoint
+        O00OO0O0OOO000000 ._buf_checkpoint =O00OO0O0OOO000000 ._buff_i #line:303:self._buf_checkpoint = self._buff_i
+    def _got_extradata (OO000O00OO00OOOOO ):#line:305:def _got_extradata(self):
+        return OO000O00OO00OOOOO ._buff_i <len (OO000O00OO00OOOOO ._buffer )#line:306:return self._buff_i < len(self._buffer)
+    def _get_extradata (OOO000O0O0OOOO0OO ):#line:308:def _get_extradata(self):
+        return OOO000O0O0OOOO0OO ._buffer [OOO000O0O0OOOO0OO ._buff_i :]#line:309:return self._buffer[self._buff_i:]
+    def read_bytes (O0000O0O0OO000OO0 ,O00OO00OO0000O0O0 ):#line:311:def read_bytes(self, n):
+        return O0000O0O0OO000OO0 ._read (O00OO00OO0000O0O0 )#line:312:return self._read(n)
+    def _read (OO0OOO0O000OO00OO ,OOOOO0O0000OOOO00 ):#line:314:def _read(self, n):
+        OO0OOO0O000OO00OO ._reserve (OOOOO0O0000OOOO00 )#line:316:self._reserve(n)
+        OOO00O00O0O0OOO00 =OO0OOO0O000OO00OO ._buff_i #line:317:i = self._buff_i
+        OO0OOO0O000OO00OO ._buff_i =OOO00O00O0O0OOO00 +OOOOO0O0000OOOO00 #line:318:self._buff_i = i+n
+        return OO0OOO0O000OO00OO ._buffer [OOO00O00O0O0OOO00 :OOO00O00O0O0OOO00 +OOOOO0O0000OOOO00 ]#line:319:return self._buffer[i:i+n]
+    def _reserve (O00O0OOO000OO0000 ,OOOO0O0OOO00O0O0O ):#line:321:def _reserve(self, n):
+        OOO000OOOOOOOOO00 =len (O00O0OOO000OO0000 ._buffer )-O00O0OOO000OO0000 ._buff_i -OOOO0O0OOO00O0O0O #line:322:remain_bytes = len(self._buffer) - self._buff_i - n
+        if OOO000OOOOOOOOO00 >=0 :#line:325:if remain_bytes >= 0:
+            return #line:326:return
+        if O00O0OOO000OO0000 ._feeding :#line:328:if self._feeding:
+            O00O0OOO000OO0000 ._buff_i =O00O0OOO000OO0000 ._buf_checkpoint #line:329:self._buff_i = self._buf_checkpoint
+            raise OutOfData #line:330:raise OutOfData
+        if O00O0OOO000OO0000 ._buf_checkpoint >0 :#line:333:if self._buf_checkpoint > 0:
+            del O00O0OOO000OO0000 ._buffer [:O00O0OOO000OO0000 ._buf_checkpoint ]#line:334:del self._buffer[:self._buf_checkpoint]
+            O00O0OOO000OO0000 ._buff_i -=O00O0OOO000OO0000 ._buf_checkpoint #line:335:self._buff_i -= self._buf_checkpoint
+            O00O0OOO000OO0000 ._buf_checkpoint =0 #line:336:self._buf_checkpoint = 0
+        OOO000OOOOOOOOO00 =-OOO000OOOOOOOOO00 #line:339:remain_bytes = -remain_bytes
+        while OOO000OOOOOOOOO00 >0 :#line:340:while remain_bytes > 0:
+            O000O0O0O0O00OO00 =max (O00O0OOO000OO0000 ._read_size ,OOO000OOOOOOOOO00 )#line:341:to_read_bytes = max(self._read_size, remain_bytes)
+            O0000000OOO0OOO0O =O00O0OOO000OO0000 .file_like .read (O000O0O0O0O00OO00 )#line:342:read_data = self.file_like.read(to_read_bytes)
+            if not O0000000OOO0OOO0O :#line:343:if not read_data:
+                break #line:344:break
+            assert isinstance (O0000000OOO0OOO0O ,bytes )#line:345:assert isinstance(read_data, bytes)
+            O00O0OOO000OO0000 ._buffer +=O0000000OOO0OOO0O #line:346:self._buffer += read_data
+            OOO000OOOOOOOOO00 -=len (O0000000OOO0OOO0O )#line:347:remain_bytes -= len(read_data)
+        if len (O00O0OOO000OO0000 ._buffer )<OOOO0O0OOO00O0O0O +O00O0OOO000OO0000 ._buff_i :#line:349:if len(self._buffer) < n + self._buff_i:
+            O00O0OOO000OO0000 ._buff_i =0 #line:350:self._buff_i = 0  # rollback
+            raise OutOfData #line:351:raise OutOfData
+    def _read_header (OO00000O00OO0OO00 ,execute =EX_CONSTRUCT ):#line:353:def _read_header(self, execute=EX_CONSTRUCT):
+        O00OOOOO00O0O0000 =TYPE_IMMEDIATE #line:354:typ = TYPE_IMMEDIATE
+        OOO00O00OO0O00OOO =0 #line:355:n = 0
+        OOO0O0OOO000OOO00 =None #line:356:obj = None
+        OO00000O00OO0OO00 ._reserve (1 )#line:357:self._reserve(1)
+        OO0O0O0OOOO000OO0 =OO00000O00OO0OO00 ._buffer [OO00000O00OO0OO00 ._buff_i ]#line:358:b = self._buffer[self._buff_i]
+        OO00000O00OO0OO00 ._buff_i +=1 #line:359:self._buff_i += 1
+        if OO0O0O0OOOO000OO0 &0b10000000 ==0 :#line:360:if b & 0b10000000 == 0:
+            OOO0O0OOO000OOO00 =OO0O0O0OOOO000OO0 #line:361:obj = b
+        elif OO0O0O0OOOO000OO0 &0b11100000 ==0b11100000 :#line:362:elif b & 0b11100000 == 0b11100000:
+            OOO0O0OOO000OOO00 =-1 -(OO0O0O0OOOO000OO0 ^0xff )#line:363:obj = -1 - (b ^ 0xff)
+        elif OO0O0O0OOOO000OO0 &0b11100000 ==0b10100000 :#line:364:elif b & 0b11100000 == 0b10100000:
+            OOO00O00OO0O00OOO =OO0O0O0OOOO000OO0 &0b00011111 #line:365:n = b & 0b00011111
+            O00OOOOO00O0O0000 =TYPE_RAW #line:366:typ = TYPE_RAW
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_str_len :#line:367:if n > self._max_str_len:
+                raise UnpackValueError ("%s exceeds max_str_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_str_len )#line:368:raise UnpackValueError("%s exceeds max_str_len(%s)", n, self._max_str_len)
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (OOO00O00OO0O00OOO )#line:369:obj = self._read(n)
+        elif OO0O0O0OOOO000OO0 &0b11110000 ==0b10010000 :#line:370:elif b & 0b11110000 == 0b10010000:
+            OOO00O00OO0O00OOO =OO0O0O0OOOO000OO0 &0b00001111 #line:371:n = b & 0b00001111
+            O00OOOOO00O0O0000 =TYPE_ARRAY #line:372:typ = TYPE_ARRAY
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_array_len :#line:373:if n > self._max_array_len:
+                raise UnpackValueError ("%s exceeds max_array_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_array_len )#line:374:raise UnpackValueError("%s exceeds max_array_len(%s)", n, self._max_array_len)
+        elif OO0O0O0OOOO000OO0 &0b11110000 ==0b10000000 :#line:375:elif b & 0b11110000 == 0b10000000:
+            OOO00O00OO0O00OOO =OO0O0O0OOOO000OO0 &0b00001111 #line:376:n = b & 0b00001111
+            O00OOOOO00O0O0000 =TYPE_MAP #line:377:typ = TYPE_MAP
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_map_len :#line:378:if n > self._max_map_len:
+                raise UnpackValueError ("%s exceeds max_map_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_map_len )#line:379:raise UnpackValueError("%s exceeds max_map_len(%s)", n, self._max_map_len)
+        elif OO0O0O0OOOO000OO0 ==0xc0 :#line:380:elif b == 0xc0:
+            OOO0O0OOO000OOO00 =None #line:381:obj = None
+        elif OO0O0O0OOOO000OO0 ==0xc2 :#line:382:elif b == 0xc2:
+            OOO0O0OOO000OOO00 =False #line:383:obj = False
+        elif OO0O0O0OOOO000OO0 ==0xc3 :#line:384:elif b == 0xc3:
+            OOO0O0OOO000OOO00 =True #line:385:obj = True
+        elif OO0O0O0OOOO000OO0 ==0xc4 :#line:386:elif b == 0xc4:
+            O00OOOOO00O0O0000 =TYPE_BIN #line:387:typ = TYPE_BIN
+            OO00000O00OO0OO00 ._reserve (1 )#line:388:self._reserve(1)
+            OOO00O00OO0O00OOO =OO00000O00OO0OO00 ._buffer [OO00000O00OO0OO00 ._buff_i ]#line:389:n = self._buffer[self._buff_i]
+            OO00000O00OO0OO00 ._buff_i +=1 #line:390:self._buff_i += 1
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_bin_len :#line:391:if n > self._max_bin_len:
+                raise UnpackValueError ("%s exceeds max_bin_len(%s)"%(OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_bin_len ))#line:392:raise UnpackValueError("%s exceeds max_bin_len(%s)" % (n, self._max_bin_len))
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (OOO00O00OO0O00OOO )#line:393:obj = self._read(n)
+        elif OO0O0O0OOOO000OO0 ==0xc5 :#line:394:elif b == 0xc5:
+            O00OOOOO00O0O0000 =TYPE_BIN #line:395:typ = TYPE_BIN
+            OO00000O00OO0OO00 ._reserve (2 )#line:396:self._reserve(2)
+            OOO00O00OO0O00OOO =struct .unpack_from (">H",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:397:n = struct.unpack_from(">H", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=2 #line:398:self._buff_i += 2
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_bin_len :#line:399:if n > self._max_bin_len:
+                raise UnpackValueError ("%s exceeds max_bin_len(%s)"%(OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_bin_len ))#line:400:raise UnpackValueError("%s exceeds max_bin_len(%s)" % (n, self._max_bin_len))
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (OOO00O00OO0O00OOO )#line:401:obj = self._read(n)
+        elif OO0O0O0OOOO000OO0 ==0xc6 :#line:402:elif b == 0xc6:
+            O00OOOOO00O0O0000 =TYPE_BIN #line:403:typ = TYPE_BIN
+            OO00000O00OO0OO00 ._reserve (4 )#line:404:self._reserve(4)
+            OOO00O00OO0O00OOO =struct .unpack_from (">I",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:405:n = struct.unpack_from(">I", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=4 #line:406:self._buff_i += 4
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_bin_len :#line:407:if n > self._max_bin_len:
+                raise UnpackValueError ("%s exceeds max_bin_len(%s)"%(OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_bin_len ))#line:408:raise UnpackValueError("%s exceeds max_bin_len(%s)" % (n, self._max_bin_len))
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (OOO00O00OO0O00OOO )#line:409:obj = self._read(n)
+        elif OO0O0O0OOOO000OO0 ==0xc7 :#line:410:elif b == 0xc7:  # ext 8
+            O00OOOOO00O0O0000 =TYPE_EXT #line:411:typ = TYPE_EXT
+            OO00000O00OO0OO00 ._reserve (2 )#line:412:self._reserve(2)
+            O000O0OOOOO00OOO0 ,OOO00O00OO0O00OOO =struct .unpack_from ('Bb',OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:413:L, n = struct.unpack_from('Bb', self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=2 #line:414:self._buff_i += 2
+            if O000O0OOOOO00OOO0 >OO00000O00OO0OO00 ._max_ext_len :#line:415:if L > self._max_ext_len:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(O000O0OOOOO00OOO0 ,OO00000O00OO0OO00 ._max_ext_len ))#line:416:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (L, self._max_ext_len))
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (O000O0OOOOO00OOO0 )#line:417:obj = self._read(L)
+        elif OO0O0O0OOOO000OO0 ==0xc8 :#line:418:elif b == 0xc8:  # ext 16
+            O00OOOOO00O0O0000 =TYPE_EXT #line:419:typ = TYPE_EXT
+            OO00000O00OO0OO00 ._reserve (3 )#line:420:self._reserve(3)
+            O000O0OOOOO00OOO0 ,OOO00O00OO0O00OOO =struct .unpack_from ('>Hb',OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:421:L, n = struct.unpack_from('>Hb', self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=3 #line:422:self._buff_i += 3
+            if O000O0OOOOO00OOO0 >OO00000O00OO0OO00 ._max_ext_len :#line:423:if L > self._max_ext_len:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(O000O0OOOOO00OOO0 ,OO00000O00OO0OO00 ._max_ext_len ))#line:424:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (L, self._max_ext_len))
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (O000O0OOOOO00OOO0 )#line:425:obj = self._read(L)
+        elif OO0O0O0OOOO000OO0 ==0xc9 :#line:426:elif b == 0xc9:  # ext 32
+            O00OOOOO00O0O0000 =TYPE_EXT #line:427:typ = TYPE_EXT
+            OO00000O00OO0OO00 ._reserve (5 )#line:428:self._reserve(5)
+            O000O0OOOOO00OOO0 ,OOO00O00OO0O00OOO =struct .unpack_from ('>Ib',OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:429:L, n = struct.unpack_from('>Ib', self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=5 #line:430:self._buff_i += 5
+            if O000O0OOOOO00OOO0 >OO00000O00OO0OO00 ._max_ext_len :#line:431:if L > self._max_ext_len:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(O000O0OOOOO00OOO0 ,OO00000O00OO0OO00 ._max_ext_len ))#line:432:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (L, self._max_ext_len))
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (O000O0OOOOO00OOO0 )#line:433:obj = self._read(L)
+        elif OO0O0O0OOOO000OO0 ==0xca :#line:434:elif b == 0xca:
+            OO00000O00OO0OO00 ._reserve (4 )#line:435:self._reserve(4)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">f",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:436:obj = struct.unpack_from(">f", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=4 #line:437:self._buff_i += 4
+        elif OO0O0O0OOOO000OO0 ==0xcb :#line:438:elif b == 0xcb:
+            OO00000O00OO0OO00 ._reserve (8 )#line:439:self._reserve(8)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">d",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:440:obj = struct.unpack_from(">d", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=8 #line:441:self._buff_i += 8
+        elif OO0O0O0OOOO000OO0 ==0xcc :#line:442:elif b == 0xcc:
+            OO00000O00OO0OO00 ._reserve (1 )#line:443:self._reserve(1)
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._buffer [OO00000O00OO0OO00 ._buff_i ]#line:444:obj = self._buffer[self._buff_i]
+            OO00000O00OO0OO00 ._buff_i +=1 #line:445:self._buff_i += 1
+        elif OO0O0O0OOOO000OO0 ==0xcd :#line:446:elif b == 0xcd:
+            OO00000O00OO0OO00 ._reserve (2 )#line:447:self._reserve(2)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">H",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:448:obj = struct.unpack_from(">H", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=2 #line:449:self._buff_i += 2
+        elif OO0O0O0OOOO000OO0 ==0xce :#line:450:elif b == 0xce:
+            OO00000O00OO0OO00 ._reserve (4 )#line:451:self._reserve(4)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">I",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:452:obj = struct.unpack_from(">I", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=4 #line:453:self._buff_i += 4
+        elif OO0O0O0OOOO000OO0 ==0xcf :#line:454:elif b == 0xcf:
+            OO00000O00OO0OO00 ._reserve (8 )#line:455:self._reserve(8)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">Q",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:456:obj = struct.unpack_from(">Q", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=8 #line:457:self._buff_i += 8
+        elif OO0O0O0OOOO000OO0 ==0xd0 :#line:458:elif b == 0xd0:
+            OO00000O00OO0OO00 ._reserve (1 )#line:459:self._reserve(1)
+            OOO0O0OOO000OOO00 =struct .unpack_from ("b",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:460:obj = struct.unpack_from("b", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=1 #line:461:self._buff_i += 1
+        elif OO0O0O0OOOO000OO0 ==0xd1 :#line:462:elif b == 0xd1:
+            OO00000O00OO0OO00 ._reserve (2 )#line:463:self._reserve(2)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">h",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:464:obj = struct.unpack_from(">h", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=2 #line:465:self._buff_i += 2
+        elif OO0O0O0OOOO000OO0 ==0xd2 :#line:466:elif b == 0xd2:
+            OO00000O00OO0OO00 ._reserve (4 )#line:467:self._reserve(4)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">i",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:468:obj = struct.unpack_from(">i", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=4 #line:469:self._buff_i += 4
+        elif OO0O0O0OOOO000OO0 ==0xd3 :#line:470:elif b == 0xd3:
+            OO00000O00OO0OO00 ._reserve (8 )#line:471:self._reserve(8)
+            OOO0O0OOO000OOO00 =struct .unpack_from (">q",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )[0 ]#line:472:obj = struct.unpack_from(">q", self._buffer_view, self._buff_i)[0]
+            OO00000O00OO0OO00 ._buff_i +=8 #line:473:self._buff_i += 8
+        elif OO0O0O0OOOO000OO0 ==0xd4 :#line:474:elif b == 0xd4:  # fixext 1
+            O00OOOOO00O0O0000 =TYPE_EXT #line:475:typ = TYPE_EXT
+            if OO00000O00OO0OO00 ._max_ext_len <1 :#line:476:if self._max_ext_len < 1:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(1 ,OO00000O00OO0OO00 ._max_ext_len ))#line:477:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (1, self._max_ext_len))
+            OO00000O00OO0OO00 ._reserve (2 )#line:478:self._reserve(2)
+            OOO00O00OO0O00OOO ,OOO0O0OOO000OOO00 =struct .unpack_from ("b1s",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:479:n, obj = struct.unpack_from("b1s", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=2 #line:480:self._buff_i += 2
+        elif OO0O0O0OOOO000OO0 ==0xd5 :#line:481:elif b == 0xd5:  # fixext 2
+            O00OOOOO00O0O0000 =TYPE_EXT #line:482:typ = TYPE_EXT
+            if OO00000O00OO0OO00 ._max_ext_len <2 :#line:483:if self._max_ext_len < 2:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(2 ,OO00000O00OO0OO00 ._max_ext_len ))#line:484:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (2, self._max_ext_len))
+            OO00000O00OO0OO00 ._reserve (3 )#line:485:self._reserve(3)
+            OOO00O00OO0O00OOO ,OOO0O0OOO000OOO00 =struct .unpack_from ("b2s",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:486:n, obj = struct.unpack_from("b2s", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=3 #line:487:self._buff_i += 3
+        elif OO0O0O0OOOO000OO0 ==0xd6 :#line:488:elif b == 0xd6:  # fixext 4
+            O00OOOOO00O0O0000 =TYPE_EXT #line:489:typ = TYPE_EXT
+            if OO00000O00OO0OO00 ._max_ext_len <4 :#line:490:if self._max_ext_len < 4:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(4 ,OO00000O00OO0OO00 ._max_ext_len ))#line:491:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (4, self._max_ext_len))
+            OO00000O00OO0OO00 ._reserve (5 )#line:492:self._reserve(5)
+            OOO00O00OO0O00OOO ,OOO0O0OOO000OOO00 =struct .unpack_from ("b4s",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:493:n, obj = struct.unpack_from("b4s", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=5 #line:494:self._buff_i += 5
+        elif OO0O0O0OOOO000OO0 ==0xd7 :#line:495:elif b == 0xd7:  # fixext 8
+            O00OOOOO00O0O0000 =TYPE_EXT #line:496:typ = TYPE_EXT
+            if OO00000O00OO0OO00 ._max_ext_len <8 :#line:497:if self._max_ext_len < 8:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(8 ,OO00000O00OO0OO00 ._max_ext_len ))#line:498:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (8, self._max_ext_len))
+            OO00000O00OO0OO00 ._reserve (9 )#line:499:self._reserve(9)
+            OOO00O00OO0O00OOO ,OOO0O0OOO000OOO00 =struct .unpack_from ("b8s",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:500:n, obj = struct.unpack_from("b8s", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=9 #line:501:self._buff_i += 9
+        elif OO0O0O0OOOO000OO0 ==0xd8 :#line:502:elif b == 0xd8:  # fixext 16
+            O00OOOOO00O0O0000 =TYPE_EXT #line:503:typ = TYPE_EXT
+            if OO00000O00OO0OO00 ._max_ext_len <16 :#line:504:if self._max_ext_len < 16:
+                raise UnpackValueError ("%s exceeds max_ext_len(%s)"%(16 ,OO00000O00OO0OO00 ._max_ext_len ))#line:505:raise UnpackValueError("%s exceeds max_ext_len(%s)" % (16, self._max_ext_len))
+            OO00000O00OO0OO00 ._reserve (17 )#line:506:self._reserve(17)
+            OOO00O00OO0O00OOO ,OOO0O0OOO000OOO00 =struct .unpack_from ("b16s",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:507:n, obj = struct.unpack_from("b16s", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=17 #line:508:self._buff_i += 17
+        elif OO0O0O0OOOO000OO0 ==0xd9 :#line:509:elif b == 0xd9:
+            O00OOOOO00O0O0000 =TYPE_RAW #line:510:typ = TYPE_RAW
+            OO00000O00OO0OO00 ._reserve (1 )#line:511:self._reserve(1)
+            OOO00O00OO0O00OOO =OO00000O00OO0OO00 ._buffer [OO00000O00OO0OO00 ._buff_i ]#line:512:n = self._buffer[self._buff_i]
+            OO00000O00OO0OO00 ._buff_i +=1 #line:513:self._buff_i += 1
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_str_len :#line:514:if n > self._max_str_len:
+                raise UnpackValueError ("%s exceeds max_str_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_str_len )#line:515:raise UnpackValueError("%s exceeds max_str_len(%s)", n, self._max_str_len)
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (OOO00O00OO0O00OOO )#line:516:obj = self._read(n)
+        elif OO0O0O0OOOO000OO0 ==0xda :#line:517:elif b == 0xda:
+            O00OOOOO00O0O0000 =TYPE_RAW #line:518:typ = TYPE_RAW
+            OO00000O00OO0OO00 ._reserve (2 )#line:519:self._reserve(2)
+            OOO00O00OO0O00OOO ,=struct .unpack_from (">H",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:520:n, = struct.unpack_from(">H", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=2 #line:521:self._buff_i += 2
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_str_len :#line:522:if n > self._max_str_len:
+                raise UnpackValueError ("%s exceeds max_str_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_str_len )#line:523:raise UnpackValueError("%s exceeds max_str_len(%s)", n, self._max_str_len)
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (OOO00O00OO0O00OOO )#line:524:obj = self._read(n)
+        elif OO0O0O0OOOO000OO0 ==0xdb :#line:525:elif b == 0xdb:
+            O00OOOOO00O0O0000 =TYPE_RAW #line:526:typ = TYPE_RAW
+            OO00000O00OO0OO00 ._reserve (4 )#line:527:self._reserve(4)
+            OOO00O00OO0O00OOO ,=struct .unpack_from (">I",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:528:n, = struct.unpack_from(">I", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=4 #line:529:self._buff_i += 4
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_str_len :#line:530:if n > self._max_str_len:
+                raise UnpackValueError ("%s exceeds max_str_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_str_len )#line:531:raise UnpackValueError("%s exceeds max_str_len(%s)", n, self._max_str_len)
+            OOO0O0OOO000OOO00 =OO00000O00OO0OO00 ._read (OOO00O00OO0O00OOO )#line:532:obj = self._read(n)
+        elif OO0O0O0OOOO000OO0 ==0xdc :#line:533:elif b == 0xdc:
+            O00OOOOO00O0O0000 =TYPE_ARRAY #line:534:typ = TYPE_ARRAY
+            OO00000O00OO0OO00 ._reserve (2 )#line:535:self._reserve(2)
+            OOO00O00OO0O00OOO ,=struct .unpack_from (">H",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:536:n, = struct.unpack_from(">H", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=2 #line:537:self._buff_i += 2
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_array_len :#line:538:if n > self._max_array_len:
+                raise UnpackValueError ("%s exceeds max_array_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_array_len )#line:539:raise UnpackValueError("%s exceeds max_array_len(%s)", n, self._max_array_len)
+        elif OO0O0O0OOOO000OO0 ==0xdd :#line:540:elif b == 0xdd:
+            O00OOOOO00O0O0000 =TYPE_ARRAY #line:541:typ = TYPE_ARRAY
+            OO00000O00OO0OO00 ._reserve (4 )#line:542:self._reserve(4)
+            OOO00O00OO0O00OOO ,=struct .unpack_from (">I",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:543:n, = struct.unpack_from(">I", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=4 #line:544:self._buff_i += 4
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_array_len :#line:545:if n > self._max_array_len:
+                raise UnpackValueError ("%s exceeds max_array_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_array_len )#line:546:raise UnpackValueError("%s exceeds max_array_len(%s)", n, self._max_array_len)
+        elif OO0O0O0OOOO000OO0 ==0xde :#line:547:elif b == 0xde:
+            OO00000O00OO0OO00 ._reserve (2 )#line:548:self._reserve(2)
+            OOO00O00OO0O00OOO ,=struct .unpack_from (">H",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:549:n, = struct.unpack_from(">H", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=2 #line:550:self._buff_i += 2
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_map_len :#line:551:if n > self._max_map_len:
+                raise UnpackValueError ("%s exceeds max_map_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_map_len )#line:552:raise UnpackValueError("%s exceeds max_map_len(%s)", n, self._max_map_len)
+            O00OOOOO00O0O0000 =TYPE_MAP #line:553:typ = TYPE_MAP
+        elif OO0O0O0OOOO000OO0 ==0xdf :#line:554:elif b == 0xdf:
+            OO00000O00OO0OO00 ._reserve (4 )#line:555:self._reserve(4)
+            OOO00O00OO0O00OOO ,=struct .unpack_from (">I",OO00000O00OO0OO00 ._buffer_view ,OO00000O00OO0OO00 ._buff_i )#line:556:n, = struct.unpack_from(">I", self._buffer_view, self._buff_i)
+            OO00000O00OO0OO00 ._buff_i +=4 #line:557:self._buff_i += 4
+            if OOO00O00OO0O00OOO >OO00000O00OO0OO00 ._max_map_len :#line:558:if n > self._max_map_len:
+                raise UnpackValueError ("%s exceeds max_map_len(%s)",OOO00O00OO0O00OOO ,OO00000O00OO0OO00 ._max_map_len )#line:559:raise UnpackValueError("%s exceeds max_map_len(%s)", n, self._max_map_len)
+            O00OOOOO00O0O0000 =TYPE_MAP #line:560:typ = TYPE_MAP
+        else :#line:561:else:
+            raise UnpackValueError ("Unknown header: 0x%x"%OO0O0O0OOOO000OO0 )#line:562:raise UnpackValueError("Unknown header: 0x%x" % b)
+        return O00OOOOO00O0O0000 ,OOO00O00OO0O00OOO ,OOO0O0OOO000OOO00 #line:563:return typ, n, obj
+    def _unpack (OO00000O00O00O0OO ,execute =EX_CONSTRUCT ):#line:565:def _unpack(self, execute=EX_CONSTRUCT):
+        OOO0O00O0O0O00000 ,OOOO0O00OOO00000O ,O0O0000OOOO000000 =OO00000O00O00O0OO ._read_header (execute )#line:566:typ, n, obj = self._read_header(execute)
+        if execute ==EX_READ_ARRAY_HEADER :#line:568:if execute == EX_READ_ARRAY_HEADER:
+            if OOO0O00O0O0O00000 !=TYPE_ARRAY :#line:569:if typ != TYPE_ARRAY:
+                raise UnpackValueError ("Expected array")#line:570:raise UnpackValueError("Expected array")
+            return OOOO0O00OOO00000O #line:571:return n
+        if execute ==EX_READ_MAP_HEADER :#line:572:if execute == EX_READ_MAP_HEADER:
+            if OOO0O00O0O0O00000 !=TYPE_MAP :#line:573:if typ != TYPE_MAP:
+                raise UnpackValueError ("Expected map")#line:574:raise UnpackValueError("Expected map")
+            return OOOO0O00OOO00000O #line:575:return n
+        if OOO0O00O0O0O00000 ==TYPE_ARRAY :#line:577:if typ == TYPE_ARRAY:
+            if execute ==EX_SKIP :#line:578:if execute == EX_SKIP:
+                for O00OOOOO000O0OOO0 in xrange (OOOO0O00OOO00000O ):#line:579:for i in xrange(n):
+                    OO00000O00O00O0OO ._unpack (EX_SKIP )#line:581:self._unpack(EX_SKIP)
+                return #line:582:return
+            OOO000O0OO0O0OO00 =newlist_hint (OOOO0O00OOO00000O )#line:583:ret = newlist_hint(n)
+            for O00OOOOO000O0OOO0 in xrange (OOOO0O00OOO00000O ):#line:584:for i in xrange(n):
+                OOO000O0OO0O0OO00 .append (OO00000O00O00O0OO ._unpack (EX_CONSTRUCT ))#line:585:ret.append(self._unpack(EX_CONSTRUCT))
+            if OO00000O00O00O0OO ._list_hook is not None :#line:586:if self._list_hook is not None:
+                OOO000O0OO0O0OO00 =OO00000O00O00O0OO ._list_hook (OOO000O0OO0O0OO00 )#line:587:ret = self._list_hook(ret)
+            return OOO000O0OO0O0OO00 if OO00000O00O00O0OO ._use_list else tuple (OOO000O0OO0O0OO00 )#line:589:return ret if self._use_list else tuple(ret)
+        if OOO0O00O0O0O00000 ==TYPE_MAP :#line:590:if typ == TYPE_MAP:
+            if execute ==EX_SKIP :#line:591:if execute == EX_SKIP:
+                for O00OOOOO000O0OOO0 in xrange (OOOO0O00OOO00000O ):#line:592:for i in xrange(n):
+                    OO00000O00O00O0OO ._unpack (EX_SKIP )#line:594:self._unpack(EX_SKIP)
+                    OO00000O00O00O0OO ._unpack (EX_SKIP )#line:595:self._unpack(EX_SKIP)
+                return #line:596:return
+            if OO00000O00O00O0OO ._object_pairs_hook is not None :#line:597:if self._object_pairs_hook is not None:
+                OOO000O0OO0O0OO00 =OO00000O00O00O0OO ._object_pairs_hook ((OO00000O00O00O0OO ._unpack (EX_CONSTRUCT ),OO00000O00O00O0OO ._unpack (EX_CONSTRUCT ))for _OO0OO0OOO000OO0O0 in xrange (OOOO0O00OOO00000O ))#line:601:for _ in xrange(n))
+            else :#line:602:else:
+                OOO000O0OO0O0OO00 ={}#line:603:ret = {}
+                for _OO0OO0O0O0O000O0O in xrange (OOOO0O00OOO00000O ):#line:604:for _ in xrange(n):
+                    OOOO00O000O0O0O00 =OO00000O00O00O0OO ._unpack (EX_CONSTRUCT )#line:605:key = self._unpack(EX_CONSTRUCT)
+                    OOO000O0OO0O0OO00 [OOOO00O000O0O0O00 ]=OO00000O00O00O0OO ._unpack (EX_CONSTRUCT )#line:606:ret[key] = self._unpack(EX_CONSTRUCT)
+                if OO00000O00O00O0OO ._object_hook is not None :#line:607:if self._object_hook is not None:
+                    OOO000O0OO0O0OO00 =OO00000O00O00O0OO ._object_hook (OOO000O0OO0O0OO00 )#line:608:ret = self._object_hook(ret)
+            return OOO000O0OO0O0OO00 #line:609:return ret
+        if execute ==EX_SKIP :#line:610:if execute == EX_SKIP:
+            return #line:611:return
+        if OOO0O00O0O0O00000 ==TYPE_RAW :#line:612:if typ == TYPE_RAW:
+            if OO00000O00O00O0OO ._encoding is not None :#line:613:if self._encoding is not None:
+                O0O0000OOOO000000 =O0O0000OOOO000000 .decode (OO00000O00O00O0OO ._encoding ,OO00000O00O00O0OO ._unicode_errors )#line:614:obj = obj.decode(self._encoding, self._unicode_errors)
+            elif OO00000O00O00O0OO ._raw :#line:615:elif self._raw:
+                O0O0000OOOO000000 =bytes (O0O0000OOOO000000 )#line:616:obj = bytes(obj)
+            else :#line:617:else:
+                O0O0000OOOO000000 =O0O0000OOOO000000 .decode ('utf_8')#line:618:obj = obj.decode('utf_8')
+            return O0O0000OOOO000000 #line:619:return obj
+        if OOO0O00O0O0O00000 ==TYPE_EXT :#line:620:if typ == TYPE_EXT:
+            return OO00000O00O00O0OO ._ext_hook (OOOO0O00OOO00000O ,bytes (O0O0000OOOO000000 ))#line:621:return self._ext_hook(n, bytes(obj))
+        if OOO0O00O0O0O00000 ==TYPE_BIN :#line:622:if typ == TYPE_BIN:
+            return bytes (O0O0000OOOO000000 )#line:623:return bytes(obj)
+        assert OOO0O00O0O0O00000 ==TYPE_IMMEDIATE #line:624:assert typ == TYPE_IMMEDIATE
+        return O0O0000OOOO000000 #line:625:return obj
+    def __iter__ (O0OO0O000OOOO0O00 ):#line:627:def __iter__(self):
+        return O0OO0O000OOOO0O00 #line:628:return self
+    def __next__ (OOO00000OOO00O0OO ):#line:630:def __next__(self):
+        try :#line:631:try:
+            OOO0OOO000OO0OO00 =OOO00000OOO00O0OO ._unpack (EX_CONSTRUCT )#line:632:ret = self._unpack(EX_CONSTRUCT)
+            OOO00000OOO00O0OO ._consume ()#line:633:self._consume()
+            return OOO0OOO000OO0OO00 #line:634:return ret
+        except OutOfData :#line:635:except OutOfData:
+            OOO00000OOO00O0OO ._consume ()#line:636:self._consume()
+            raise StopIteration #line:637:raise StopIteration
+    next =__next__ #line:639:next = __next__
+    def skip (O0000000OOO0O000O ,write_bytes =None ):#line:641:def skip(self, write_bytes=None):
+        O0000000OOO0O000O ._unpack (EX_SKIP )#line:642:self._unpack(EX_SKIP)
+        if write_bytes is not None :#line:643:if write_bytes is not None:
+            warnings .warn ("`write_bytes` option is deprecated.  Use `.tell()` instead.",DeprecationWarning )#line:644:warnings.warn("`write_bytes` option is deprecated.  Use `.tell()` instead.", DeprecationWarning)
+            write_bytes (O0000000OOO0O000O ._buffer [O0000000OOO0O000O ._buf_checkpoint :O0000000OOO0O000O ._buff_i ])#line:645:write_bytes(self._buffer[self._buf_checkpoint:self._buff_i])
+        O0000000OOO0O000O ._consume ()#line:646:self._consume()
+    def unpack (OO000OOO00O0OO0OO ,write_bytes =None ):#line:648:def unpack(self, write_bytes=None):
+        OO0O000O0O0OOOOO0 =OO000OOO00O0OO0OO ._unpack (EX_CONSTRUCT )#line:649:ret = self._unpack(EX_CONSTRUCT)
+        if write_bytes is not None :#line:650:if write_bytes is not None:
+            warnings .warn ("`write_bytes` option is deprecated.  Use `.tell()` instead.",DeprecationWarning )#line:651:warnings.warn("`write_bytes` option is deprecated.  Use `.tell()` instead.", DeprecationWarning)
+            write_bytes (OO000OOO00O0OO0OO ._buffer [OO000OOO00O0OO0OO ._buf_checkpoint :OO000OOO00O0OO0OO ._buff_i ])#line:652:write_bytes(self._buffer[self._buf_checkpoint:self._buff_i])
+        OO000OOO00O0OO0OO ._consume ()#line:653:self._consume()
+        return OO0O000O0O0OOOOO0 #line:654:return ret
+    def read_array_header (O00O0O0OOOO0O0000 ,write_bytes =None ):#line:656:def read_array_header(self, write_bytes=None):
+        O000OO0OOOOO00000 =O00O0O0OOOO0O0000 ._unpack (EX_READ_ARRAY_HEADER )#line:657:ret = self._unpack(EX_READ_ARRAY_HEADER)
+        if write_bytes is not None :#line:658:if write_bytes is not None:
+            warnings .warn ("`write_bytes` option is deprecated.  Use `.tell()` instead.",DeprecationWarning )#line:659:warnings.warn("`write_bytes` option is deprecated.  Use `.tell()` instead.", DeprecationWarning)
+            write_bytes (O00O0O0OOOO0O0000 ._buffer [O00O0O0OOOO0O0000 ._buf_checkpoint :O00O0O0OOOO0O0000 ._buff_i ])#line:660:write_bytes(self._buffer[self._buf_checkpoint:self._buff_i])
+        O00O0O0OOOO0O0000 ._consume ()#line:661:self._consume()
+        return O000OO0OOOOO00000 #line:662:return ret
+    def read_map_header (O0O00OO0O0OOO0000 ,write_bytes =None ):#line:664:def read_map_header(self, write_bytes=None):
+        OO0O0O00O0O0OOOOO =O0O00OO0O0OOO0000 ._unpack (EX_READ_MAP_HEADER )#line:665:ret = self._unpack(EX_READ_MAP_HEADER)
+        if write_bytes is not None :#line:666:if write_bytes is not None:
+            warnings .warn ("`write_bytes` option is deprecated.  Use `.tell()` instead.",DeprecationWarning )#line:667:warnings.warn("`write_bytes` option is deprecated.  Use `.tell()` instead.", DeprecationWarning)
+            write_bytes (O0O00OO0O0OOO0000 ._buffer [O0O00OO0O0OOO0000 ._buf_checkpoint :O0O00OO0O0OOO0000 ._buff_i ])#line:668:write_bytes(self._buffer[self._buf_checkpoint:self._buff_i])
+        O0O00OO0O0OOO0000 ._consume ()#line:669:self._consume()
+        return OO0O0O00O0O0OOOOO #line:670:return ret
+    def tell (OO0OOO0000000OO00 ):#line:672:def tell(self):
+        return OO0OOO0000000OO00 ._stream_offset #line:673:return self._stream_offset
+class Packer (object ):#line:676:class Packer(object):
+    ""#line:716:"""
+    def __init__ (OO0OOOO0OOOOO0OO0 ,default =None ,encoding =None ,unicode_errors =None ,use_single_float =False ,autoreset =True ,use_bin_type =False ,strict_types =False ):#line:719:strict_types=False):
+        if encoding is None :#line:720:if encoding is None:
+            encoding ='utf_8'#line:721:encoding = 'utf_8'
+        else :#line:722:else:
+            warnings .warn ("encoding is deprecated, Use raw=False instead.",PendingDeprecationWarning )#line:725:PendingDeprecationWarning)
+        if unicode_errors is None :#line:727:if unicode_errors is None:
+            unicode_errors ='strict'#line:728:unicode_errors = 'strict'
+        OO0OOOO0OOOOO0OO0 ._strict_types =strict_types #line:730:self._strict_types = strict_types
+        OO0OOOO0OOOOO0OO0 ._use_float =use_single_float #line:731:self._use_float = use_single_float
+        OO0OOOO0OOOOO0OO0 ._autoreset =autoreset #line:732:self._autoreset = autoreset
+        OO0OOOO0OOOOO0OO0 ._use_bin_type =use_bin_type #line:733:self._use_bin_type = use_bin_type
+        OO0OOOO0OOOOO0OO0 ._encoding =encoding #line:734:self._encoding = encoding
+        OO0OOOO0OOOOO0OO0 ._unicode_errors =unicode_errors #line:735:self._unicode_errors = unicode_errors
+        OO0OOOO0OOOOO0OO0 ._buffer =StringIO ()#line:736:self._buffer = StringIO()
+        if default is not None :#line:737:if default is not None:
+            if not callable (default ):#line:738:if not callable(default):
+                raise TypeError ("default must be callable")#line:739:raise TypeError("default must be callable")
+        OO0OOOO0OOOOO0OO0 ._default =default #line:740:self._default = default
+    def _pack (O000OO00O0OOOO0OO ,OOO00000OOO000O00 ,nest_limit =DEFAULT_RECURSE_LIMIT ,check =isinstance ,check_type_strict =_OOOO00OO0O0O00O0O ):#line:743:check=isinstance, check_type_strict=_check_type_strict):
+        O0OOO00OOOOOOOOO0 =False #line:744:default_used = False
+        if O000OO00O0OOOO0OO ._strict_types :#line:745:if self._strict_types:
+            check =check_type_strict #line:746:check = check_type_strict
+            O0000000OO0O00O0O =list #line:747:list_types = list
+        else :#line:748:else:
+            O0000000OO0O00O0O =(list ,tuple )#line:749:list_types = (list, tuple)
+        while True :#line:750:while True:
+            if nest_limit <0 :#line:751:if nest_limit < 0:
+                raise PackValueError ("recursion limit exceeded")#line:752:raise PackValueError("recursion limit exceeded")
+            if OOO00000OOO000O00 is None :#line:753:if obj is None:
+                return O000OO00O0OOOO0OO ._buffer .write (b"\xc0")#line:754:return self._buffer.write(b"\xc0")
+            if check (OOO00000OOO000O00 ,bool ):#line:755:if check(obj, bool):
+                if OOO00000OOO000O00 :#line:756:if obj:
+                    return O000OO00O0OOOO0OO ._buffer .write (b"\xc3")#line:757:return self._buffer.write(b"\xc3")
+                return O000OO00O0OOOO0OO ._buffer .write (b"\xc2")#line:758:return self._buffer.write(b"\xc2")
+            if check (OOO00000OOO000O00 ,int_types ):#line:759:if check(obj, int_types):
+                if 0 <=OOO00000OOO000O00 <0x80 :#line:760:if 0 <= obj < 0x80:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack ("B",OOO00000OOO000O00 ))#line:761:return self._buffer.write(struct.pack("B", obj))
+                if -0x20 <=OOO00000OOO000O00 <0 :#line:762:if -0x20 <= obj < 0:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack ("b",OOO00000OOO000O00 ))#line:763:return self._buffer.write(struct.pack("b", obj))
+                if 0x80 <=OOO00000OOO000O00 <=0xff :#line:764:if 0x80 <= obj <= 0xff:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack ("BB",0xcc ,OOO00000OOO000O00 ))#line:765:return self._buffer.write(struct.pack("BB", 0xcc, obj))
+                if -0x80 <=OOO00000OOO000O00 <0 :#line:766:if -0x80 <= obj < 0:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">Bb",0xd0 ,OOO00000OOO000O00 ))#line:767:return self._buffer.write(struct.pack(">Bb", 0xd0, obj))
+                if 0xff <OOO00000OOO000O00 <=0xffff :#line:768:if 0xff < obj <= 0xffff:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">BH",0xcd ,OOO00000OOO000O00 ))#line:769:return self._buffer.write(struct.pack(">BH", 0xcd, obj))
+                if -0x8000 <=OOO00000OOO000O00 <-0x80 :#line:770:if -0x8000 <= obj < -0x80:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">Bh",0xd1 ,OOO00000OOO000O00 ))#line:771:return self._buffer.write(struct.pack(">Bh", 0xd1, obj))
+                if 0xffff <OOO00000OOO000O00 <=0xffffffff :#line:772:if 0xffff < obj <= 0xffffffff:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">BI",0xce ,OOO00000OOO000O00 ))#line:773:return self._buffer.write(struct.pack(">BI", 0xce, obj))
+                if -0x80000000 <=OOO00000OOO000O00 <-0x8000 :#line:774:if -0x80000000 <= obj < -0x8000:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">Bi",0xd2 ,OOO00000OOO000O00 ))#line:775:return self._buffer.write(struct.pack(">Bi", 0xd2, obj))
+                if 0xffffffff <OOO00000OOO000O00 <=0xffffffffffffffff :#line:776:if 0xffffffff < obj <= 0xffffffffffffffff:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">BQ",0xcf ,OOO00000OOO000O00 ))#line:777:return self._buffer.write(struct.pack(">BQ", 0xcf, obj))
+                if -0x8000000000000000 <=OOO00000OOO000O00 <-0x80000000 :#line:778:if -0x8000000000000000 <= obj < -0x80000000:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">Bq",0xd3 ,OOO00000OOO000O00 ))#line:779:return self._buffer.write(struct.pack(">Bq", 0xd3, obj))
+                if not O0OOO00OOOOOOOOO0 and O000OO00O0OOOO0OO ._default is not None :#line:780:if not default_used and self._default is not None:
+                    OOO00000OOO000O00 =O000OO00O0OOOO0OO ._default (OOO00000OOO000O00 )#line:781:obj = self._default(obj)
+                    O0OOO00OOOOOOOOO0 =True #line:782:default_used = True
+                    continue #line:783:continue
+                raise PackOverflowError ("Integer value out of range")#line:784:raise PackOverflowError("Integer value out of range")
+            if check (OOO00000OOO000O00 ,(bytes ,bytearray )):#line:785:if check(obj, (bytes, bytearray)):
+                OOO00OOOOO0OOO0OO =len (OOO00000OOO000O00 )#line:786:n = len(obj)
+                if OOO00OOOOO0OOO0OO >=2 **32 :#line:787:if n >= 2**32:
+                    raise PackValueError ("%s is too large"%type (OOO00000OOO000O00 ).__name__ )#line:788:raise PackValueError("%s is too large" % type(obj).__name__)
+                O000OO00O0OOOO0OO ._pack_bin_header (OOO00OOOOO0OOO0OO )#line:789:self._pack_bin_header(n)
+                return O000OO00O0OOOO0OO ._buffer .write (OOO00000OOO000O00 )#line:790:return self._buffer.write(obj)
+            if check (OOO00000OOO000O00 ,Unicode ):#line:791:if check(obj, Unicode):
+                if O000OO00O0OOOO0OO ._encoding is None :#line:792:if self._encoding is None:
+                    raise TypeError ("Can't encode unicode string: " "no encoding is specified")#line:795:"no encoding is specified")
+                OOO00000OOO000O00 =OOO00000OOO000O00 .encode (O000OO00O0OOOO0OO ._encoding ,O000OO00O0OOOO0OO ._unicode_errors )#line:796:obj = obj.encode(self._encoding, self._unicode_errors)
+                OOO00OOOOO0OOO0OO =len (OOO00000OOO000O00 )#line:797:n = len(obj)
+                if OOO00OOOOO0OOO0OO >=2 **32 :#line:798:if n >= 2**32:
+                    raise PackValueError ("String is too large")#line:799:raise PackValueError("String is too large")
+                O000OO00O0OOOO0OO ._pack_raw_header (OOO00OOOOO0OOO0OO )#line:800:self._pack_raw_header(n)
+                return O000OO00O0OOOO0OO ._buffer .write (OOO00000OOO000O00 )#line:801:return self._buffer.write(obj)
+            if check (OOO00000OOO000O00 ,memoryview ):#line:802:if check(obj, memoryview):
+                OOO00OOOOO0OOO0OO =len (OOO00000OOO000O00 )*OOO00000OOO000O00 .itemsize #line:803:n = len(obj) * obj.itemsize
+                if OOO00OOOOO0OOO0OO >=2 **32 :#line:804:if n >= 2**32:
+                    raise PackValueError ("Memoryview is too large")#line:805:raise PackValueError("Memoryview is too large")
+                O000OO00O0OOOO0OO ._pack_bin_header (OOO00OOOOO0OOO0OO )#line:806:self._pack_bin_header(n)
+                return O000OO00O0OOOO0OO ._buffer .write (OOO00000OOO000O00 )#line:807:return self._buffer.write(obj)
+            if check (OOO00000OOO000O00 ,float ):#line:808:if check(obj, float):
+                if O000OO00O0OOOO0OO ._use_float :#line:809:if self._use_float:
+                    return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">Bf",0xca ,OOO00000OOO000O00 ))#line:810:return self._buffer.write(struct.pack(">Bf", 0xca, obj))
+                return O000OO00O0OOOO0OO ._buffer .write (struct .pack (">Bd",0xcb ,OOO00000OOO000O00 ))#line:811:return self._buffer.write(struct.pack(">Bd", 0xcb, obj))
+            if check (OOO00000OOO000O00 ,ExtType ):#line:812:if check(obj, ExtType):
+                OO0OOOO0OOO000O0O =OOO00000OOO000O00 .code #line:813:code = obj.code
+                OO0OO0000O000O000 =OOO00000OOO000O00 .data #line:814:data = obj.data
+                assert isinstance (OO0OOOO0OOO000O0O ,int )#line:815:assert isinstance(code, int)
+                assert isinstance (OO0OO0000O000O000 ,bytes )#line:816:assert isinstance(data, bytes)
+                OO00O0OO00OOO000O =len (OO0OO0000O000O000 )#line:817:L = len(data)
+                if OO00O0OO00OOO000O ==1 :#line:818:if L == 1:
+                    O000OO00O0OOOO0OO ._buffer .write (b'\xd4')#line:819:self._buffer.write(b'\xd4')
+                elif OO00O0OO00OOO000O ==2 :#line:820:elif L == 2:
+                    O000OO00O0OOOO0OO ._buffer .write (b'\xd5')#line:821:self._buffer.write(b'\xd5')
+                elif OO00O0OO00OOO000O ==4 :#line:822:elif L == 4:
+                    O000OO00O0OOOO0OO ._buffer .write (b'\xd6')#line:823:self._buffer.write(b'\xd6')
+                elif OO00O0OO00OOO000O ==8 :#line:824:elif L == 8:
+                    O000OO00O0OOOO0OO ._buffer .write (b'\xd7')#line:825:self._buffer.write(b'\xd7')
+                elif OO00O0OO00OOO000O ==16 :#line:826:elif L == 16:
+                    O000OO00O0OOOO0OO ._buffer .write (b'\xd8')#line:827:self._buffer.write(b'\xd8')
+                elif OO00O0OO00OOO000O <=0xff :#line:828:elif L <= 0xff:
+                    O000OO00O0OOOO0OO ._buffer .write (struct .pack (">BB",0xc7 ,OO00O0OO00OOO000O ))#line:829:self._buffer.write(struct.pack(">BB", 0xc7, L))
+                elif OO00O0OO00OOO000O <=0xffff :#line:830:elif L <= 0xffff:
+                    O000OO00O0OOOO0OO ._buffer .write (struct .pack (">BH",0xc8 ,OO00O0OO00OOO000O ))#line:831:self._buffer.write(struct.pack(">BH", 0xc8, L))
+                else :#line:832:else:
+                    O000OO00O0OOOO0OO ._buffer .write (struct .pack (">BI",0xc9 ,OO00O0OO00OOO000O ))#line:833:self._buffer.write(struct.pack(">BI", 0xc9, L))
+                O000OO00O0OOOO0OO ._buffer .write (struct .pack ("b",OO0OOOO0OOO000O0O ))#line:834:self._buffer.write(struct.pack("b", code))
+                O000OO00O0OOOO0OO ._buffer .write (OO0OO0000O000O000 )#line:835:self._buffer.write(data)
+                return #line:836:return
+            if check (OOO00000OOO000O00 ,O0000000OO0O00O0O ):#line:837:if check(obj, list_types):
+                OOO00OOOOO0OOO0OO =len (OOO00000OOO000O00 )#line:838:n = len(obj)
+                O000OO00O0OOOO0OO ._pack_array_header (OOO00OOOOO0OOO0OO )#line:839:self._pack_array_header(n)
+                for OOOO0OOOOO0O00O00 in xrange (OOO00OOOOO0OOO0OO ):#line:840:for i in xrange(n):
+                    O000OO00O0OOOO0OO ._pack (OOO00000OOO000O00 [OOOO0OOOOO0O00O00 ],nest_limit -1 )#line:841:self._pack(obj[i], nest_limit - 1)
+                return #line:842:return
+            if check (OOO00000OOO000O00 ,dict ):#line:843:if check(obj, dict):
+                return O000OO00O0OOOO0OO ._pack_map_pairs (len (OOO00000OOO000O00 ),dict_iteritems (OOO00000OOO000O00 ),nest_limit -1 )#line:845:nest_limit - 1)
+            if not O0OOO00OOOOOOOOO0 and O000OO00O0OOOO0OO ._default is not None :#line:846:if not default_used and self._default is not None:
+                OOO00000OOO000O00 =O000OO00O0OOOO0OO ._default (OOO00000OOO000O00 )#line:847:obj = self._default(obj)
+                O0OOO00OOOOOOOOO0 =1 #line:848:default_used = 1
+                continue #line:849:continue
+            raise TypeError ("Cannot serialize %r"%(OOO00000OOO000O00 ,))#line:850:raise TypeError("Cannot serialize %r" % (obj, ))
+    def pack (OOO0O00OOOO0O0000 ,O0OOOOO0OO00OO00O ):#line:852:def pack(self, obj):
+        try :#line:853:try:
+            OOO0O00OOOO0O0000 ._pack (O0OOOOO0OO00OO00O )#line:854:self._pack(obj)
+        except :#line:855:except:
+            OOO0O00OOOO0O0000 ._buffer =StringIO ()#line:856:self._buffer = StringIO()  # force reset
+            raise #line:857:raise
+        OOO00O00OOO0O0O0O =OOO0O00OOOO0O0000 ._buffer .getvalue ()#line:858:ret = self._buffer.getvalue()
+        if OOO0O00OOOO0O0000 ._autoreset :#line:859:if self._autoreset:
+            OOO0O00OOOO0O0000 ._buffer =StringIO ()#line:860:self._buffer = StringIO()
+        elif USING_STRINGBUILDER :#line:861:elif USING_STRINGBUILDER:
+            OOO0O00OOOO0O0000 ._buffer =StringIO (OOO00O00OOO0O0O0O )#line:862:self._buffer = StringIO(ret)
+        return OOO00O00OOO0O0O0O #line:863:return ret
+    def pack_map_pairs (OOO0O0O0OOO0OOOOO ,OO0000OOOO00OOO0O ):#line:865:def pack_map_pairs(self, pairs):
+        OOO0O0O0OOO0OOOOO ._pack_map_pairs (len (OO0000OOOO00OOO0O ),OO0000OOOO00OOO0O )#line:866:self._pack_map_pairs(len(pairs), pairs)
+        OO000OO00OOOOOOO0 =OOO0O0O0OOO0OOOOO ._buffer .getvalue ()#line:867:ret = self._buffer.getvalue()
+        if OOO0O0O0OOO0OOOOO ._autoreset :#line:868:if self._autoreset:
+            OOO0O0O0OOO0OOOOO ._buffer =StringIO ()#line:869:self._buffer = StringIO()
+        elif USING_STRINGBUILDER :#line:870:elif USING_STRINGBUILDER:
+            OOO0O0O0OOO0OOOOO ._buffer =StringIO (OO000OO00OOOOOOO0 )#line:871:self._buffer = StringIO(ret)
+        return OO000OO00OOOOOOO0 #line:872:return ret
+    def pack_array_header (O00OO0OO0OOOO00OO ,O000OO0OOO0OO0000 ):#line:874:def pack_array_header(self, n):
+        if O000OO0OOO0OO0000 >=2 **32 :#line:875:if n >= 2**32:
+            raise PackValueError #line:876:raise PackValueError
+        O00OO0OO0OOOO00OO ._pack_array_header (O000OO0OOO0OO0000 )#line:877:self._pack_array_header(n)
+        OOO0O0O0O00OOO000 =O00OO0OO0OOOO00OO ._buffer .getvalue ()#line:878:ret = self._buffer.getvalue()
+        if O00OO0OO0OOOO00OO ._autoreset :#line:879:if self._autoreset:
+            O00OO0OO0OOOO00OO ._buffer =StringIO ()#line:880:self._buffer = StringIO()
+        elif USING_STRINGBUILDER :#line:881:elif USING_STRINGBUILDER:
+            O00OO0OO0OOOO00OO ._buffer =StringIO (OOO0O0O0O00OOO000 )#line:882:self._buffer = StringIO(ret)
+        return OOO0O0O0O00OOO000 #line:883:return ret
+    def pack_map_header (OOO0OO00O0O0O0OO0 ,OO0O0O000O00OO0O0 ):#line:885:def pack_map_header(self, n):
+        if OO0O0O000O00OO0O0 >=2 **32 :#line:886:if n >= 2**32:
+            raise PackValueError #line:887:raise PackValueError
+        OOO0OO00O0O0O0OO0 ._pack_map_header (OO0O0O000O00OO0O0 )#line:888:self._pack_map_header(n)
+        OO0O00O0O000OO00O =OOO0OO00O0O0O0OO0 ._buffer .getvalue ()#line:889:ret = self._buffer.getvalue()
+        if OOO0OO00O0O0O0OO0 ._autoreset :#line:890:if self._autoreset:
+            OOO0OO00O0O0O0OO0 ._buffer =StringIO ()#line:891:self._buffer = StringIO()
+        elif USING_STRINGBUILDER :#line:892:elif USING_STRINGBUILDER:
+            OOO0OO00O0O0O0OO0 ._buffer =StringIO (OO0O00O0O000OO00O )#line:893:self._buffer = StringIO(ret)
+        return OO0O00O0O000OO00O #line:894:return ret
+    def pack_ext_type (O0O0OO0O000OO000O ,O0O00OOOO00OO000O ,OOOO0O00OOO000O00 ):#line:896:def pack_ext_type(self, typecode, data):
+        if not isinstance (O0O00OOOO00OO000O ,int ):#line:897:if not isinstance(typecode, int):
+            raise TypeError ("typecode must have int type.")#line:898:raise TypeError("typecode must have int type.")
+        if not 0 <=O0O00OOOO00OO000O <=127 :#line:899:if not 0 <= typecode <= 127:
+            raise ValueError ("typecode should be 0-127")#line:900:raise ValueError("typecode should be 0-127")
+        if not isinstance (OOOO0O00OOO000O00 ,bytes ):#line:901:if not isinstance(data, bytes):
+            raise TypeError ("data must have bytes type")#line:902:raise TypeError("data must have bytes type")
+        OO0000O0OOO00000O =len (OOOO0O00OOO000O00 )#line:903:L = len(data)
+        if OO0000O0OOO00000O >0xffffffff :#line:904:if L > 0xffffffff:
+            raise PackValueError ("Too large data")#line:905:raise PackValueError("Too large data")
+        if OO0000O0OOO00000O ==1 :#line:906:if L == 1:
+            O0O0OO0O000OO000O ._buffer .write (b'\xd4')#line:907:self._buffer.write(b'\xd4')
+        elif OO0000O0OOO00000O ==2 :#line:908:elif L == 2:
+            O0O0OO0O000OO000O ._buffer .write (b'\xd5')#line:909:self._buffer.write(b'\xd5')
+        elif OO0000O0OOO00000O ==4 :#line:910:elif L == 4:
+            O0O0OO0O000OO000O ._buffer .write (b'\xd6')#line:911:self._buffer.write(b'\xd6')
+        elif OO0000O0OOO00000O ==8 :#line:912:elif L == 8:
+            O0O0OO0O000OO000O ._buffer .write (b'\xd7')#line:913:self._buffer.write(b'\xd7')
+        elif OO0000O0OOO00000O ==16 :#line:914:elif L == 16:
+            O0O0OO0O000OO000O ._buffer .write (b'\xd8')#line:915:self._buffer.write(b'\xd8')
+        elif OO0000O0OOO00000O <=0xff :#line:916:elif L <= 0xff:
+            O0O0OO0O000OO000O ._buffer .write (b'\xc7'+struct .pack ('B',OO0000O0OOO00000O ))#line:917:self._buffer.write(b'\xc7' + struct.pack('B', L))
+        elif OO0000O0OOO00000O <=0xffff :#line:918:elif L <= 0xffff:
+            O0O0OO0O000OO000O ._buffer .write (b'\xc8'+struct .pack ('>H',OO0000O0OOO00000O ))#line:919:self._buffer.write(b'\xc8' + struct.pack('>H', L))
+        else :#line:920:else:
+            O0O0OO0O000OO000O ._buffer .write (b'\xc9'+struct .pack ('>I',OO0000O0OOO00000O ))#line:921:self._buffer.write(b'\xc9' + struct.pack('>I', L))
+        O0O0OO0O000OO000O ._buffer .write (struct .pack ('B',O0O00OOOO00OO000O ))#line:922:self._buffer.write(struct.pack('B', typecode))
+        O0O0OO0O000OO000O ._buffer .write (OOOO0O00OOO000O00 )#line:923:self._buffer.write(data)
+    def _pack_array_header (O000O0000O000O0O0 ,OOOO0O0000O0O00O0 ):#line:925:def _pack_array_header(self, n):
+        if OOOO0O0000O0O00O0 <=0x0f :#line:926:if n <= 0x0f:
+            return O000O0000O000O0O0 ._buffer .write (struct .pack ('B',0x90 +OOOO0O0000O0O00O0 ))#line:927:return self._buffer.write(struct.pack('B', 0x90 + n))
+        if OOOO0O0000O0O00O0 <=0xffff :#line:928:if n <= 0xffff:
+            return O000O0000O000O0O0 ._buffer .write (struct .pack (">BH",0xdc ,OOOO0O0000O0O00O0 ))#line:929:return self._buffer.write(struct.pack(">BH", 0xdc, n))
+        if OOOO0O0000O0O00O0 <=0xffffffff :#line:930:if n <= 0xffffffff:
+            return O000O0000O000O0O0 ._buffer .write (struct .pack (">BI",0xdd ,OOOO0O0000O0O00O0 ))#line:931:return self._buffer.write(struct.pack(">BI", 0xdd, n))
+        raise PackValueError ("Array is too large")#line:932:raise PackValueError("Array is too large")
+    def _pack_map_header (O000O0O000O0OO0O0 ,OOO00OO00OO0OO000 ):#line:934:def _pack_map_header(self, n):
+        if OOO00OO00OO0OO000 <=0x0f :#line:935:if n <= 0x0f:
+            return O000O0O000O0OO0O0 ._buffer .write (struct .pack ('B',0x80 +OOO00OO00OO0OO000 ))#line:936:return self._buffer.write(struct.pack('B', 0x80 + n))
+        if OOO00OO00OO0OO000 <=0xffff :#line:937:if n <= 0xffff:
+            return O000O0O000O0OO0O0 ._buffer .write (struct .pack (">BH",0xde ,OOO00OO00OO0OO000 ))#line:938:return self._buffer.write(struct.pack(">BH", 0xde, n))
+        if OOO00OO00OO0OO000 <=0xffffffff :#line:939:if n <= 0xffffffff:
+            return O000O0O000O0OO0O0 ._buffer .write (struct .pack (">BI",0xdf ,OOO00OO00OO0OO000 ))#line:940:return self._buffer.write(struct.pack(">BI", 0xdf, n))
+        raise PackValueError ("Dict is too large")#line:941:raise PackValueError("Dict is too large")
+    def _pack_map_pairs (OO0OO0O0000O00OO0 ,O000OO0OO0OOO0OO0 ,O0OOOOOOO0000O00O ,nest_limit =DEFAULT_RECURSE_LIMIT ):#line:943:def _pack_map_pairs(self, n, pairs, nest_limit=DEFAULT_RECURSE_LIMIT):
+        OO0OO0O0000O00OO0 ._pack_map_header (O000OO0OO0OOO0OO0 )#line:944:self._pack_map_header(n)
+        for (OO0OO0OOOOO0OO0O0 ,O0OOOO0OO00000OOO )in O0OOOOOOO0000O00O :#line:945:for (k, v) in pairs:
+            OO0OO0O0000O00OO0 ._pack (OO0OO0OOOOO0OO0O0 ,nest_limit -1 )#line:946:self._pack(k, nest_limit - 1)
+            OO0OO0O0000O00OO0 ._pack (O0OOOO0OO00000OOO ,nest_limit -1 )#line:947:self._pack(v, nest_limit - 1)
+    def _pack_raw_header (O0O0OOOOO0OO0O00O ,OO00OO0OO0000O00O ):#line:949:def _pack_raw_header(self, n):
+        if OO00OO0OO0000O00O <=0x1f :#line:950:if n <= 0x1f:
+            O0O0OOOOO0OO0O00O ._buffer .write (struct .pack ('B',0xa0 +OO00OO0OO0000O00O ))#line:951:self._buffer.write(struct.pack('B', 0xa0 + n))
+        elif O0O0OOOOO0OO0O00O ._use_bin_type and OO00OO0OO0000O00O <=0xff :#line:952:elif self._use_bin_type and n <= 0xff:
+            O0O0OOOOO0OO0O00O ._buffer .write (struct .pack ('>BB',0xd9 ,OO00OO0OO0000O00O ))#line:953:self._buffer.write(struct.pack('>BB', 0xd9, n))
+        elif OO00OO0OO0000O00O <=0xffff :#line:954:elif n <= 0xffff:
+            O0O0OOOOO0OO0O00O ._buffer .write (struct .pack (">BH",0xda ,OO00OO0OO0000O00O ))#line:955:self._buffer.write(struct.pack(">BH", 0xda, n))
+        elif OO00OO0OO0000O00O <=0xffffffff :#line:956:elif n <= 0xffffffff:
+            O0O0OOOOO0OO0O00O ._buffer .write (struct .pack (">BI",0xdb ,OO00OO0OO0000O00O ))#line:957:self._buffer.write(struct.pack(">BI", 0xdb, n))
+        else :#line:958:else:
+            raise PackValueError ('Raw is too large')#line:959:raise PackValueError('Raw is too large')
+    def _pack_bin_header (OOO00OO0OO0O00O00 ,OO000O0O0000O0000 ):#line:961:def _pack_bin_header(self, n):
+        if not OOO00OO0OO0O00O00 ._use_bin_type :#line:962:if not self._use_bin_type:
+            return OOO00OO0OO0O00O00 ._pack_raw_header (OO000O0O0000O0000 )#line:963:return self._pack_raw_header(n)
+        elif OO000O0O0000O0000 <=0xff :#line:964:elif n <= 0xff:
+            return OOO00OO0OO0O00O00 ._buffer .write (struct .pack ('>BB',0xc4 ,OO000O0O0000O0000 ))#line:965:return self._buffer.write(struct.pack('>BB', 0xc4, n))
+        elif OO000O0O0000O0000 <=0xffff :#line:966:elif n <= 0xffff:
+            return OOO00OO0OO0O00O00 ._buffer .write (struct .pack (">BH",0xc5 ,OO000O0O0000O0000 ))#line:967:return self._buffer.write(struct.pack(">BH", 0xc5, n))
+        elif OO000O0O0000O0000 <=0xffffffff :#line:968:elif n <= 0xffffffff:
+            return OOO00OO0OO0O00O00 ._buffer .write (struct .pack (">BI",0xc6 ,OO000O0O0000O0000 ))#line:969:return self._buffer.write(struct.pack(">BI", 0xc6, n))
+        else :#line:970:else:
+            raise PackValueError ('Bin is too large')#line:971:raise PackValueError('Bin is too large')
+    def bytes (O0O00OOOOO0O0OO00 ):#line:973:def bytes(self):
+        return O0O00OOOOO0O0OO00 ._buffer .getvalue ()#line:974:return self._buffer.getvalue()
+    def reset (OO0000O0O0OOOOOOO ):#line:976:def reset(self):
+        OO0000O0O0OOOOOOO ._buffer =StringIO ()#line:977:self._buffer = StringIO()

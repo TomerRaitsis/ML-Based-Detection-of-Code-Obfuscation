@@ -1,230 +1,100 @@
-import inspect #line:1:import inspect
-import io #line:2:import io
-import itertools #line:3:import itertools
-import os #line:4:import os
-import struct #line:5:import struct
-import sys #line:6:import sys
-from ._compat import DEFAULT_COLUMNS #line:8:from ._compat import DEFAULT_COLUMNS
-from ._compat import get_winterm_size #line:9:from ._compat import get_winterm_size
-from ._compat import isatty #line:10:from ._compat import isatty
-from ._compat import raw_input #line:11:from ._compat import raw_input
-from ._compat import string_types #line:12:from ._compat import string_types
-from ._compat import strip_ansi #line:13:from ._compat import strip_ansi
-from ._compat import text_type #line:14:from ._compat import text_type
-from ._compat import WIN #line:15:from ._compat import WIN
-from .exceptions import Abort #line:16:from .exceptions import Abort
-from .exceptions import UsageError #line:17:from .exceptions import UsageError
-from .globals import resolve_color_default #line:18:from .globals import resolve_color_default
-from .types import Choice #line:19:from .types import Choice
-from .types import convert_type #line:20:from .types import convert_type
-from .types import Path #line:21:from .types import Path
-from .utils import echo #line:22:from .utils import echo
-from .utils import LazyFile #line:23:from .utils import LazyFile
-visible_prompt_func =raw_input #line:27:visible_prompt_func = raw_input
-_OO00O0OO0OO0O0O00 ={"black":30 ,"red":31 ,"green":32 ,"yellow":33 ,"blue":34 ,"magenta":35 ,"cyan":36 ,"white":37 ,"reset":39 ,"bright_black":90 ,"bright_red":91 ,"bright_green":92 ,"bright_yellow":93 ,"bright_blue":94 ,"bright_magenta":95 ,"bright_cyan":96 ,"bright_white":97 ,}#line:47:}
-_O000OOO000O00O0O0 ="\033[0m"#line:48:_ansi_reset_all = "\033[0m"
-def hidden_prompt_func (OO0OOOOOOO000OOO0 ):#line:51:def hidden_prompt_func(prompt):
-    import getpass #line:52:import getpass
-    return getpass .getpass (OO0OOOOOOO000OOO0 )#line:54:return getpass.getpass(prompt)
-def _OOOO0OOO000OOOO00 (OOO0O00OO00O00000 ,O000OOO00O0OOO00O ,show_default =False ,default =None ,show_choices =True ,type =None ):#line:59:):
-    OO0O0O00OOO00OO0O =OOO0O00OO00O00000 #line:60:prompt = text
-    if type is not None and show_choices and isinstance (type ,Choice ):#line:61:if type is not None and show_choices and isinstance(type, Choice):
-        OO0O0O00OOO00OO0O +=" ({})".format (", ".join (map (str ,type .choices )))#line:62:prompt += " ({})".format(", ".join(map(str, type.choices)))
-    if default is not None and show_default :#line:63:if default is not None and show_default:
-        OO0O0O00OOO00OO0O ="{} [{}]".format (OO0O0O00OOO00OO0O ,_O0O0OO0O00O0O0OO0 (default ))#line:64:prompt = "{} [{}]".format(prompt, _format_default(default))
-    return OO0O0O00OOO00OO0O +O000OOO00O0OOO00O #line:65:return prompt + suffix
-def _O0O0OO0O00O0O0OO0 (OO0O00O0O0OO0OOO0 ):#line:68:def _format_default(default):
-    if isinstance (OO0O00O0O0OO0OOO0 ,(io .IOBase ,LazyFile ))and hasattr (OO0O00O0O0OO0OOO0 ,"name"):#line:69:if isinstance(default, (io.IOBase, LazyFile)) and hasattr(default, "name"):
-        return OO0O00O0O0OO0OOO0 .name #line:70:return default.name
-    return OO0O00O0O0OO0OOO0 #line:72:return default
-def prompt (O0OO000OO00OO00O0 ,default =None ,hide_input =False ,confirmation_prompt =False ,type =None ,value_proc =None ,prompt_suffix =": ",show_default =True ,err =False ,show_choices =True ,):#line:86:):
-    ""#line:120:"""
-    OOOO0O000O0OOOO00 =None #line:121:result = None
-    def O0O0OOOO00O0O0O00 (OOO00OOOO0OOO00O0 ):#line:123:def prompt_func(text):
-        O0OO0OO0000OOOO0O =hidden_prompt_func if hide_input else visible_prompt_func #line:124:f = hidden_prompt_func if hide_input else visible_prompt_func
-        try :#line:125:try:
-            echo (OOO00OOOO0OOO00O0 ,nl =False ,err =err )#line:128:echo(text, nl=False, err=err)
-            return O0OO0OO0000OOOO0O ("")#line:129:return f("")
-        except (KeyboardInterrupt ,EOFError ):#line:130:except (KeyboardInterrupt, EOFError):
-            if hide_input :#line:134:if hide_input:
-                echo (None ,err =err )#line:135:echo(None, err=err)
-            raise Abort ()#line:136:raise Abort()
-    if value_proc is None :#line:138:if value_proc is None:
-        value_proc =convert_type (type ,default )#line:139:value_proc = convert_type(type, default)
-    O00O0O0000O0O00O0 =_OOOO0OOO000OOOO00 (O0OO000OO00OO00O0 ,prompt_suffix ,show_default ,default ,show_choices ,type )#line:143:)
-    while 1 :#line:145:while 1:
-        while 1 :#line:146:while 1:
-            OOOO0OOOO000O0O00 =O0O0OOOO00O0O0O00 (O00O0O0000O0O00O0 )#line:147:value = prompt_func(prompt)
-            if OOOO0OOOO000O0O00 :#line:148:if value:
-                break #line:149:break
-            elif default is not None :#line:150:elif default is not None:
-                if isinstance (value_proc ,Path ):#line:151:if isinstance(value_proc, Path):
-                    OOOO0OOOO000O0O00 =default #line:153:value = default
-                    break #line:154:break
-                return default #line:155:return default
-        try :#line:156:try:
-            OOOO0O000O0OOOO00 =value_proc (OOOO0OOOO000O0O00 )#line:157:result = value_proc(value)
-        except UsageError as O0OOOOOO0O0O000OO :#line:158:except UsageError as e:
-            echo ("Error: {}".format (O0OOOOOO0O0O000OO .message ),err =err )#line:159:echo("Error: {}".format(e.message), err=err)  # noqa: B306
-            continue #line:160:continue
-        if not confirmation_prompt :#line:161:if not confirmation_prompt:
-            return OOOO0O000O0OOOO00 #line:162:return result
-        while 1 :#line:163:while 1:
-            O0OO0O000OOO00OOO =O0O0OOOO00O0O0O00 ("Repeat for confirmation: ")#line:164:value2 = prompt_func("Repeat for confirmation: ")
-            if O0OO0O000OOO00OOO :#line:165:if value2:
-                break #line:166:break
-        if OOOO0OOOO000O0O00 ==O0OO0O000OOO00OOO :#line:167:if value == value2:
-            return OOOO0O000O0OOOO00 #line:168:return result
-        echo ("Error: the two entered values do not match",err =err )#line:169:echo("Error: the two entered values do not match", err=err)
-def confirm (O00O00OOOOOO000OO ,default =False ,abort =False ,prompt_suffix =": ",show_default =True ,err =False ):#line:174:):
-    ""#line:191:"""
-    OO0OO0OOOO0O0O00O =_OOOO0OOO000OOOO00 (O00O00OOOOOO000OO ,prompt_suffix ,show_default ,"Y/n"if default else "y/N")#line:194:)
-    while 1 :#line:195:while 1:
-        try :#line:196:try:
-            echo (OO0OO0OOOO0O0O00O ,nl =False ,err =err )#line:199:echo(prompt, nl=False, err=err)
-            O000OO00O0O0OOO0O =visible_prompt_func ("").lower ().strip ()#line:200:value = visible_prompt_func("").lower().strip()
-        except (KeyboardInterrupt ,EOFError ):#line:201:except (KeyboardInterrupt, EOFError):
-            raise Abort ()#line:202:raise Abort()
-        if O000OO00O0O0OOO0O in ("y","yes"):#line:203:if value in ("y", "yes"):
-            O00OOOO000O00O0O0 =True #line:204:rv = True
-        elif O000OO00O0O0OOO0O in ("n","no"):#line:205:elif value in ("n", "no"):
-            O00OOOO000O00O0O0 =False #line:206:rv = False
-        elif O000OO00O0O0OOO0O =="":#line:207:elif value == "":
-            O00OOOO000O00O0O0 =default #line:208:rv = default
-        else :#line:209:else:
-            echo ("Error: invalid input",err =err )#line:210:echo("Error: invalid input", err=err)
-            continue #line:211:continue
-        break #line:212:break
-    if abort and not O00OOOO000O00O0O0 :#line:213:if abort and not rv:
-        raise Abort ()#line:214:raise Abort()
-    return O00OOOO000O00O0O0 #line:215:return rv
-def get_terminal_size ():#line:218:def get_terminal_size():
-    ""#line:221:"""
-    if sys .version_info >=(3 ,3 ):#line:223:if sys.version_info >= (3, 3):
-        import shutil #line:224:import shutil
-        OO0OO000OO00OO00O =getattr (shutil ,"get_terminal_size",None )#line:226:shutil_get_terminal_size = getattr(shutil, "get_terminal_size", None)
-        if OO0OO000OO00OO00O :#line:227:if shutil_get_terminal_size:
-            O000O00OOO0O0OO0O =OO0OO000OO00OO00O ()#line:228:sz = shutil_get_terminal_size()
-            return O000O00OOO0O0OO0O .columns ,O000O00OOO0O0OO0O .lines #line:229:return sz.columns, sz.lines
-    if get_winterm_size is not None :#line:233:if get_winterm_size is not None:
-        O00OO0O000OOOO000 =get_winterm_size ()#line:234:size = get_winterm_size()
-        if O00OO0O000OOOO000 ==(0 ,0 ):#line:235:if size == (0, 0):
-            return (79 ,24 )#line:236:return (79, 24)
-        else :#line:237:else:
-            return O00OO0O000OOOO000 #line:238:return size
-    def O00O0OO0O00O00O0O (O0O0OOO00OOOOO0OO ):#line:240:def ioctl_gwinsz(fd):
-        try :#line:241:try:
-            import fcntl #line:242:import fcntl
-            import termios #line:243:import termios
-            OOOOOOO00000O000O =struct .unpack ("hh",fcntl .ioctl (O0O0OOO00OOOOO0OO ,termios .TIOCGWINSZ ,"1234"))#line:245:cr = struct.unpack("hh", fcntl.ioctl(fd, termios.TIOCGWINSZ, "1234"))
-        except Exception :#line:246:except Exception:
-            return #line:247:return
-        return OOOOOOO00000O000O #line:248:return cr
-    O0OO0O0O0OOO0OOO0 =O00O0OO0O00O00O0O (0 )or O00O0OO0O00O00O0O (1 )or O00O0OO0O00O00O0O (2 )#line:250:cr = ioctl_gwinsz(0) or ioctl_gwinsz(1) or ioctl_gwinsz(2)
-    if not O0OO0O0O0OOO0OOO0 :#line:251:if not cr:
-        try :#line:252:try:
-            OOO0OO0OOO0000000 =os .open (os .ctermid (),os .O_RDONLY )#line:253:fd = os.open(os.ctermid(), os.O_RDONLY)
-            try :#line:254:try:
-                O0OO0O0O0OOO0OOO0 =O00O0OO0O00O00O0O (OOO0OO0OOO0000000 )#line:255:cr = ioctl_gwinsz(fd)
-            finally :#line:256:finally:
-                os .close (OOO0OO0OOO0000000 )#line:257:os.close(fd)
-        except Exception :#line:258:except Exception:
-            pass #line:259:pass
-    if not O0OO0O0O0OOO0OOO0 or not O0OO0O0O0OOO0OOO0 [0 ]or not O0OO0O0O0OOO0OOO0 [1 ]:#line:260:if not cr or not cr[0] or not cr[1]:
-        O0OO0O0O0OOO0OOO0 =(os .environ .get ("LINES",25 ),os .environ .get ("COLUMNS",DEFAULT_COLUMNS ))#line:261:cr = (os.environ.get("LINES", 25), os.environ.get("COLUMNS", DEFAULT_COLUMNS))
-    return int (O0OO0O0O0OOO0OOO0 [1 ]),int (O0OO0O0O0OOO0OOO0 [0 ])#line:262:return int(cr[1]), int(cr[0])
-def echo_via_pager (O00OOOOOOO000OOOO ,color =None ):#line:265:def echo_via_pager(text_or_generator, color=None):
-    ""#line:276:"""
-    color =resolve_color_default (color )#line:277:color = resolve_color_default(color)
-    if inspect .isgeneratorfunction (O00OOOOOOO000OOOO ):#line:279:if inspect.isgeneratorfunction(text_or_generator):
-        O00O000OO0O0O0O0O =O00OOOOOOO000OOOO ()#line:280:i = text_or_generator()
-    elif isinstance (O00OOOOOOO000OOOO ,string_types ):#line:281:elif isinstance(text_or_generator, string_types):
-        O00O000OO0O0O0O0O =[O00OOOOOOO000OOOO ]#line:282:i = [text_or_generator]
-    else :#line:283:else:
-        O00O000OO0O0O0O0O =iter (O00OOOOOOO000OOOO )#line:284:i = iter(text_or_generator)
-    OOOOOO0O0O000OO00 =(OOO0O00O00O00OO0O if isinstance (OOO0O00O00O00OO0O ,string_types )else text_type (OOO0O00O00O00OO0O )for OOO0O00O00O00OO0O in O00O000OO0O0O0O0O )#line:287:text_generator = (el if isinstance(el, string_types) else text_type(el) for el in i)
-    from ._termui_impl import pager #line:289:from ._termui_impl import pager
-    return pager (itertools .chain (OOOOOO0O0O000OO00 ,"\n"),color )#line:291:return pager(itertools.chain(text_generator, "\n"), color)
-def progressbar (iterable =None ,length =None ,label =None ,show_eta =True ,show_percent =None ,show_pos =False ,item_show_func =None ,fill_char ="#",empty_char ="-",bar_template ="%(label)s  [%(bar)s]  %(info)s",info_sep ="  ",width =36 ,file =None ,color =None ,):#line:309:):
-    ""#line:393:"""
-    from ._termui_impl import ProgressBar #line:394:from ._termui_impl import ProgressBar
-    color =resolve_color_default (color )#line:396:color = resolve_color_default(color)
-    return ProgressBar (iterable =iterable ,length =length ,show_eta =show_eta ,show_percent =show_percent ,show_pos =show_pos ,item_show_func =item_show_func ,fill_char =fill_char ,empty_char =empty_char ,bar_template =bar_template ,info_sep =info_sep ,file =file ,label =label ,width =width ,color =color ,)#line:412:)
-def clear ():#line:415:def clear():
-    ""#line:421:"""
-    if not isatty (sys .stdout ):#line:422:if not isatty(sys.stdout):
-        return #line:423:return
-    if WIN :#line:427:if WIN:
-        os .system ("cls")#line:428:os.system("cls")
-    else :#line:429:else:
-        sys .stdout .write ("\033[2J\033[1;1H")#line:430:sys.stdout.write("\033[2J\033[1;1H")
-def style (O0O000OOO0OO0O0OO ,fg =None ,bg =None ,bold =None ,dim =None ,underline =None ,blink =None ,reverse =None ,reset =True ,):#line:443:):
-    ""#line:494:"""
-    O000OO000000O000O =[]#line:495:bits = []
-    if fg :#line:496:if fg:
-        try :#line:497:try:
-            O000OO000000O000O .append ("\033[{}m".format (_OO00O0OO0OO0O0O00 [fg ]))#line:498:bits.append("\033[{}m".format(_ansi_colors[fg]))
-        except KeyError :#line:499:except KeyError:
-            raise TypeError ("Unknown color '{}'".format (fg ))#line:500:raise TypeError("Unknown color '{}'".format(fg))
-    if bg :#line:501:if bg:
-        try :#line:502:try:
-            O000OO000000O000O .append ("\033[{}m".format (_OO00O0OO0OO0O0O00 [bg ]+10 ))#line:503:bits.append("\033[{}m".format(_ansi_colors[bg] + 10))
-        except KeyError :#line:504:except KeyError:
-            raise TypeError ("Unknown color '{}'".format (bg ))#line:505:raise TypeError("Unknown color '{}'".format(bg))
-    if bold is not None :#line:506:if bold is not None:
-        O000OO000000O000O .append ("\033[{}m".format (1 if bold else 22 ))#line:507:bits.append("\033[{}m".format(1 if bold else 22))
-    if dim is not None :#line:508:if dim is not None:
-        O000OO000000O000O .append ("\033[{}m".format (2 if dim else 22 ))#line:509:bits.append("\033[{}m".format(2 if dim else 22))
-    if underline is not None :#line:510:if underline is not None:
-        O000OO000000O000O .append ("\033[{}m".format (4 if underline else 24 ))#line:511:bits.append("\033[{}m".format(4 if underline else 24))
-    if blink is not None :#line:512:if blink is not None:
-        O000OO000000O000O .append ("\033[{}m".format (5 if blink else 25 ))#line:513:bits.append("\033[{}m".format(5 if blink else 25))
-    if reverse is not None :#line:514:if reverse is not None:
-        O000OO000000O000O .append ("\033[{}m".format (7 if reverse else 27 ))#line:515:bits.append("\033[{}m".format(7 if reverse else 27))
-    O000OO000000O000O .append (O0O000OOO0OO0O0OO )#line:516:bits.append(text)
-    if reset :#line:517:if reset:
-        O000OO000000O000O .append (_O000OOO000O00O0O0 )#line:518:bits.append(_ansi_reset_all)
-    return "".join (O000OO000000O000O )#line:519:return "".join(bits)
-def unstyle (OO0OOO0OO00OO00O0 ):#line:522:def unstyle(text):
-    ""#line:530:"""
-    return strip_ansi (OO0OOO0OO00OO00O0 )#line:531:return strip_ansi(text)
-def secho (message =None ,file =None ,nl =True ,err =False ,color =None ,**O000O00OOO00O000O ):#line:534:def secho(message=None, file=None, nl=True, err=False, color=None, **styles):
-    ""#line:545:"""
-    if message is not None :#line:546:if message is not None:
-        message =style (message ,**O000O00OOO00O000O )#line:547:message = style(message, **styles)
-    return echo (message ,file =file ,nl =nl ,err =err ,color =color )#line:548:return echo(message, file=file, nl=nl, err=err, color=color)
-def edit (text =None ,editor =None ,env =None ,require_save =True ,extension =".txt",filename =None ):#line:553:):
-    ""#line:580:"""
-    from ._termui_impl import Editor #line:581:from ._termui_impl import Editor
-    editor =Editor (editor =editor ,env =env ,require_save =require_save ,extension =extension )#line:585:)
-    if filename is None :#line:586:if filename is None:
-        return editor .edit (text )#line:587:return editor.edit(text)
-    editor .edit_file (filename )#line:588:editor.edit_file(filename)
-def launch (OO0000O00O0OO0O00 ,wait =False ,locate =False ):#line:591:def launch(url, wait=False, locate=False):
-    ""#line:612:"""
-    from ._termui_impl import open_url #line:613:from ._termui_impl import open_url
-    return open_url (OO0000O00O0OO0O00 ,wait =wait ,locate =locate )#line:615:return open_url(url, wait=wait, locate=locate)
-_OO00O0OO00O00000O =None #line:620:_getchar = None
-def getchar (echo =False ):#line:623:def getchar(echo=False):
-    ""#line:642:"""
-    f =_OO00O0OO00O00000O #line:643:f = _getchar
-    if f is None :#line:644:if f is None:
-        from ._termui_impl import getchar as f #line:645:from ._termui_impl import getchar as f
-    return f (echo )#line:646:return f(echo)
-def raw_terminal ():#line:649:def raw_terminal():
-    from ._termui_impl import raw_terminal as f #line:650:from ._termui_impl import raw_terminal as f
-    return f ()#line:652:return f()
-def pause (info ="Press any key to continue ...",err =False ):#line:655:def pause(info="Press any key to continue ...", err=False):
-    ""#line:669:"""
-    if not isatty (sys .stdin )or not isatty (sys .stdout ):#line:670:if not isatty(sys.stdin) or not isatty(sys.stdout):
-        return #line:671:return
-    try :#line:672:try:
-        if info :#line:673:if info:
-            echo (info ,nl =False ,err =err )#line:674:echo(info, nl=False, err=err)
-        try :#line:675:try:
-            getchar ()#line:676:getchar()
-        except (KeyboardInterrupt ,EOFError ):#line:677:except (KeyboardInterrupt, EOFError):
-            pass #line:678:pass
-    finally :#line:679:finally:
-        if info :#line:680:if info:
-            echo (err =err )#line:681:echo(err=err)
+import tkinter as tk #line:3
+from tkinter import ttk #line:4
+from datetime import datetime #line:5
+import pygame #line:6
+pygame .mixer .init (42050 ,-16 ,2 ,2048 )#line:9
+alarm_sound =pygame .mixer .Sound ("MyAlarm.wav")#line:10
+start_printed =False #line:12
+stop_printed =True #line:13
+done =False #line:14
+finished =False #line:15
+stop_clicked =False #line:16
+class AlarmApp (tk .Tk ):#line:18
+    def __init__ (O0O00OO0000OO0OOO ):#line:19
+        tk .Tk .__init__ (O0O00OO0000OO0OOO )#line:20
+        O0O00OO0000OO0OOO .title ("Alarm Clock")#line:23
+        O0O00OO0000OO0OOO .resizable (width =False ,height =False )#line:25
+        O0O00OO0000OO0OOO .hr =tk .IntVar (O0O00OO0000OO0OOO )#line:27
+        O0O00OO0000OO0OOO .min =tk .IntVar (O0O00OO0000OO0OOO )#line:28
+        O0O00OO0000OO0OOO .ampm =tk .StringVar (O0O00OO0000OO0OOO )#line:29
+        O0O00OO0000OO0OOO .hr .set ('12')#line:31
+        O0O00OO0000OO0OOO .min .set ("00")#line:32
+        O0O00OO0000OO0OOO .ampm .set ("AM")#line:33
+        O00O0OO00O0OOOOO0 =[]#line:35
+        OOOO00000O00OOO00 =[]#line:36
+        O0OO0O00O0OO000O0 =["AM","PM"]#line:37
+        for OOOOO000OOOO0O0OO in range (1 ,13 ):#line:39
+            O00O0OO00O0OOOOO0 .append (OOOOO000OOOO0O0OO )#line:40
+        for OO0OO0000O0O00000 in range (0 ,60 ):#line:42
+            OOOO00000O00OOO00 .append ("%02d"%(OO0OO0000O0O00000 ,))#line:43
+        O0O00OO0000OO0OOO .popmenuhours =tk .OptionMenu (O0O00OO0000OO0OOO ,O0O00OO0000OO0OOO .hr ,*O00O0OO00O0OOOOO0 )#line:45
+        O0O00OO0000OO0OOO .popmenuminutes =tk .OptionMenu (O0O00OO0000OO0OOO ,O0O00OO0000OO0OOO .min ,*OOOO00000O00OOO00 )#line:46
+        O0O00OO0000OO0OOO .popmenuAMPM =tk .OptionMenu (O0O00OO0000OO0OOO ,O0O00OO0000OO0OOO .ampm ,*O0OO0O00O0OO000O0 )#line:47
+        O0O00OO0000OO0OOO .popmenuhours .pack (side ="left")#line:49
+        O0O00OO0000OO0OOO .thing =tk .Label (text =":").pack (side ="left")#line:50
+        O0O00OO0000OO0OOO .popmenuminutes .pack (side ="left")#line:51
+        O0O00OO0000OO0OOO .popmenuAMPM .pack (side ="left")#line:52
+        O0O00OO0000OO0OOO .alarmbutton =tk .Button (O0O00OO0000OO0OOO ,text ="Set Alarm",command =O0O00OO0000OO0OOO .start_clock )#line:56
+        O0O00OO0000OO0OOO .cancelbutton =tk .Button (O0O00OO0000OO0OOO ,text ="Cancel Alarm",command =O0O00OO0000OO0OOO .stop_clock ,state ="disabled")#line:58
+        O0O00OO0000OO0OOO .stopalarmbutton =tk .Button (O0O00OO0000OO0OOO ,text ="Stop Alarm",command =O0O00OO0000OO0OOO .stop_audio ,state ="disabled")#line:59
+        O0O00OO0000OO0OOO .alarmbutton .pack ()#line:61
+        O0O00OO0000OO0OOO .cancelbutton .pack ()#line:62
+        O0O00OO0000OO0OOO .stopalarmbutton .pack ()#line:63
+    def start_clock (OOO0O0000O00OOO0O ):#line:65
+        global done ,start_printed ,stop_printed ,stop_clicked #line:67
+        if done ==False :#line:69
+            OOO0O0000O00OOO0O .cancelbutton .config (state ="active")#line:71
+            OOO0O0000O00OOO0O .alarmbutton .config (state ="disabled")#line:73
+            if start_printed ==False :#line:75
+                print ("Alarm set for {}:{}{}".format (OOO0O0000O00OOO0O .hr .get (),"%02d"%(OOO0O0000O00OOO0O .min .get ()),OOO0O0000O00OOO0O .ampm .get ()))#line:77
+                start_printed =True #line:79
+                stop_printed =False #line:81
+            if OOO0O0000O00OOO0O .ampm .get ()=="AM":#line:83
+                if OOO0O0000O00OOO0O .hr .get ()in range (1 ,12 ):#line:84
+                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()#line:85
+                else :#line:86
+                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()-12 #line:87
+            if OOO0O0000O00OOO0O .ampm .get ()=="PM":#line:88
+                if OOO0O0000O00OOO0O .hr .get ()in range (1 ,12 ):#line:89
+                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()+12 #line:90
+                else :#line:91
+                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()#line:92
+            OOO0O0000O00OOO0O .Alarm ("%02d"%(OO0OOOOOO0O0OO00O ,),"%02d"%(OOO0O0000O00OOO0O .min .get ()))#line:94
+        if stop_clicked ==True :#line:96
+            done =False #line:97
+            start_printed =False #line:98
+            stop_clicked =False #line:99
+    def stop_clock (O0O0O00O00OOOOOOO ):#line:101
+        global done ,stop_clicked #line:102
+        print ("Alarm set for {}:{}{} has been cancelled".format (O0O0O00O00OOOOOOO .hr .get (),"%02d"%(O0O0O00O00OOOOOOO .min .get ()),O0O0O00O00OOOOOOO .ampm .get ()))#line:104
+        stop_clicked =True #line:106
+        done =True #line:108
+        O0O0O00O00OOOOOOO .cancelbutton .config (state ="disabled")#line:110
+        O0O0O00O00OOOOOOO .alarmbutton .config (state ="active")#line:111
+    def stop_audio (OO00OO000OOO0OO0O ):#line:113
+        pygame .mixer .Sound .stop (alarm_sound )#line:115
+        OO00OO000OOO0OO0O .stopalarmbutton .config (state ="disabled")#line:117
+        OO00OO000OOO0OO0O .alarmbutton .config (state ="active")#line:118
+    def Alarm (OO00OOO00O0O0OO00 ,OO00O00OOOOO0O00O ,O0O0O0O00O00OO0O0 ):#line:122
+        global done ,start_printed ,finished #line:123
+        if done ==False :#line:125
+            OO00O00OOOOO0O00O ,O0O0O0O00O00OO0O0 =str (OO00O00OOOOO0O00O ),str (O0O0O0O00O00OO0O0 )#line:127
+            O00O0OOO0OOO00OOO =str (datetime .now ())#line:129
+            OO0O0000O0O0O0O00 =O00O0OOO0OOO00OOO .split (" ")[1 ].split (":")#line:130
+            O0O00O000O00O0000 =OO0O0000O0O0O0O00 [0 ]#line:131
+            OO00000OOOO0OOOO0 =OO0O0000O0O0O0O00 [1 ]#line:132
+            if O0O00O000O00O0000 ==OO00O00OOOOO0O00O and OO00000OOOO0OOOO0 ==O0O0O0O00O00OO0O0 :#line:134
+                pygame .mixer .Sound .play (alarm_sound ,loops =-1 )#line:136
+                print ("Alarm is ringing!")#line:137
+                done =True #line:139
+                finished =True #line:141
+                OO00OOO00O0O0OO00 .cancelbutton .config (state ="disabled")#line:144
+                OO00OOO00O0O0OO00 .stopalarmbutton .config (state ="active")#line:145
+            else :#line:147
+                OO00OOO00O0O0OO00 .after (1000 ,OO00OOO00O0O0OO00 .start_clock )#line:149
+            done =False #line:150
+        if finished ==True :#line:152
+            start_printed =False #line:153
+            finished =False #line:154
+app =AlarmApp ()#line:156
+app .mainloop ()#line:157

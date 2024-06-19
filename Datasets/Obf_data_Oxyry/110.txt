@@ -1,151 +1,35 @@
-from tinydb import Query #line:1
-import unittest #line:2
-import os #line:3
-from item import Category ,Item ,ItemsDB #line:5
-from expense_income_stats import ExpenseIncomeStats #line:6
-class TestItem (unittest .TestCase ):#line:9
-    def setUp (O0000O00O0O00O0O0 ):#line:10
-        pass #line:11
-    def test_create_item_without_category (OO0OO00000OO0OOOO ):#line:13
-        O0O000OOO00OOOOO0 =Item .create ("ItemName",100 ,"Some Description","2024-05-14",None )#line:14
-        OO0OO00000OO0OOOO .assertIsNone (O0O000OOO00OOOOO0 .category )#line:16
-    def test_create_item_with_category_without_subcategory (O00O00OOO000O00OO ):#line:18
-        O0O00O00O0OO00O00 =Category ("CategoryA")#line:19
-        O0OOO00OO0OOO0OO0 =Item .create ("ItemName",100 ,"Some Description","2024-05-14",O0O00O00O0OO00O00 )#line:20
-        O00O00OOO000O00OO .assertIsNotNone (O0OOO00OO0OOO0OO0 .category )#line:22
-        O00O00OOO000O00OO .assertEqual (O0OOO00OO0OOO0OO0 .category .name ,"CategoryA")#line:23
-        O00O00OOO000O00OO .assertIsNone (O0OOO00OO0OOO0OO0 .category .subcategory )#line:24
-    def test_create_item_with_category_with_subcategory (O0O00O0O00OO0O0OO ):#line:26
-        OO0O000OOO0000O00 =Category ("CategoryA","Subcategory1")#line:27
-        OO00O000OOOOOO0OO =Item .create ("ItemName",100 ,"Some Description","2024-05-14",OO0O000OOO0000O00 )#line:28
-        O0O00O0O00OO0O0OO .assertIsNotNone (OO00O000OOOOOO0OO .category )#line:30
-        O0O00O0O00OO0O0OO .assertEqual (OO00O000OOOOOO0OO .category .name ,"CategoryA")#line:31
-        O0O00O0O00OO0O0OO .assertIsNotNone (OO00O000OOOOOO0OO .category .subcategory )#line:32
-        O0O00O0O00OO0O0OO .assertEqual (OO00O000OOOOOO0OO .category .subcategory ,"Subcategory1")#line:33
-    def test_item_serialization_and_deserialization (OO0O00O0OOO00OO00 ):#line:35
-        O00OO0O0O00O0OO00 =Category ("CategoryA","Subcategory1")#line:36
-        O0O0O0OO0OOO0OOOO =Item .create ("ItemName",100 ,"Some Description","2024-05-14",O00OO0O0O00O0OO00 )#line:37
-        O0O0O0O000O000OOO =O0O0O0OO0OOO0OOOO .to_json_str ()#line:39
-        O0OOO0O0000O0OO0O =Item .from_json_str (O0O0O0O000O000OOO )#line:40
-        OO0O00O0OOO00OO00 .assertEqual (O0OOO0O0000O0OO0O ,O0O0O0OO0OOO0OOOO )#line:42
-        OO0O00O0OOO00OO00 .assertEqual (O0O0O0OO0OOO0OOOO .name ,O0OOO0O0000O0OO0O .name )#line:44
-        OO0O00O0OOO00OO00 .assertEqual (O0O0O0OO0OOO0OOOO .amount ,O0OOO0O0000O0OO0O .amount )#line:45
-        OO0O00O0OOO00OO00 .assertEqual (O0O0O0OO0OOO0OOOO .description ,O0OOO0O0000O0OO0O .description )#line:46
-        OO0O00O0OOO00OO00 .assertEqual (O0O0O0OO0OOO0OOOO .date ,O0OOO0O0000O0OO0O .date )#line:47
-        OO0O00O0OOO00OO00 .assertEqual (O0O0O0OO0OOO0OOOO .category ,O0OOO0O0000O0OO0O .category )#line:48
-class TestItemsDB (unittest .TestCase ):#line:51
-    def setUp (OO00OO0O000000OO0 ):#line:52
-        OO00OO0O000000OO0 .json_db_path =os .path .join (os .path .dirname (__file__ ),"items_db.json")#line:53
-        OO00OO0O000000OO0 .items_db =ItemsDB (OO00OO0O000000OO0 .json_db_path )#line:54
-        OO00OO0O000000OO0 .items =[Item .create_income_item ("Bitcoin",500 ,"Income from Bitcoin","2023-06-25",Category ("Personal Finance","Investing"),),Item .create_income_item ("Youtube Ads",5 ,"Income from Youtube Ads","2024-1-10",Category ("Youtube"),),Item .create_income_item ("Gift",30 ,"Gift from Relatives","2024-03-04"),Item .create_expense_item ("Pizza",50 ,"Pizza from Pizza Hut","2023-04-20",Category ("Food","Junk"),),Item .create_expense_item ("Bus",20 ,"Travel Expenses by Bus","2024-02-05",Category ("Transportation"),),Item .create_expense_item ("Bitcoin",-300 ,"Loss on Bitcoin Gambling.","2024-04-20"),]#line:89
-    def tearDown (O00O0OOOOOOOOOOOO ):#line:91
-        if os .path .exists (O00O0OOOOOOOOOOOO .json_db_path ):#line:92
-            os .remove (O00O0OOOOOOOOOOOO .json_db_path )#line:93
-    def test_insert_items (OO0OO0O0OO0000O00 ):#line:95
-        OO0OO0O0OO0000O00 .items_db .insert_items (OO0OO0O0OO0000O00 .items )#line:97
-        OO0OO0O0OO0000O00 .assertEqual (len (OO0OO0O0OO0000O00 .items_db ),6 )#line:98
-        OO00OOOO00O0000OO =Item .create_income_item ("APL Dividend",600 ,"Dividend from Apple Stock. The Fruit Company","2024-03-26",)#line:106
-        OO0OO0O0OO0000O00 .items_db .insert_item (OO00OOOO00O0000OO )#line:107
-        OO0OO0O0OO0000O00 .assertEqual (len (OO0OO0O0OO0000O00 .items_db ),7 )#line:108
-    def test_update_items (O0OOOO0OOOOOO0O0O ):#line:110
-        O0OOOO0OOOOOO0O0O .items_db .insert_items (O0OOOO0OOOOOO0O0O .items )#line:111
-        O0OOOO0OOOOOO0O0O .items_db .update_items ({"amount":-10 },Query ().name =="Bus")#line:113
-        O000OOO0O0OOO0000 =[OOO0OO00O000OO00O for OOO0OO00O000OO00O in O0OOOO0OOOOOO0O0O .items_db .get_all_items ()if OOO0OO00O000OO00O .name =="Bus"]#line:115
-        O0OOOO0OOOOOO0O0O .assertEqual (len (O000OOO0O0OOO0000 ),1 )#line:117
-        O0OOOO0OOOOOO0O0O .assertEqual (O000OOO0O0OOO0000 [0 ].amount ,-10 )#line:118
-        O0OOOO0OOOOOO0O0O .assertEqual (len (O0OOOO0OOOOOO0O0O .items_db ),len (O0OOOO0OOOOOO0O0O .items ))#line:120
-    def test_upsert_item (O0O0O0O0O0OOO00O0 ):#line:122
-        O0O0O0O0O0OOO00O0 .items_db .insert_items (O0O0O0O0O0OOO00O0 .items )#line:123
-        OO00O00O0O0O0OOO0 =Item .create_income_item ("APL Dividend",600 ,"Dividend from Apple Stock. The Fruit Company","2024-03-26",)#line:130
-        O0O0O0O0O0OOO00O0 .items_db .upsert_item (OO00O00O0O0O0OOO0 )#line:132
-        O0O0O0O0O0OOO00O0 .assertEqual (len (O0O0O0O0O0OOO00O0 .items_db ),7 )#line:133
-        O00000O00OO000000 =O0O0O0O0O0OOO00O0 .items [0 ]#line:135
-        O00000O00OO000000 .name ="Ethereum"#line:136
-        O0O0O0O0O0OOO00O0 .items_db .upsert_item (O00000O00OO000000 )#line:137
-        O0O0O0O0O0OOO00O0 .assertEqual (len (O0O0O0O0O0OOO00O0 .items_db ),7 )#line:138
-        O00OOOOOO0O000O00 =[O0O000000O0000O00 for O0O000000O0000O00 in O0O0O0O0O0OOO00O0 .items_db .get_all_items ()if O0O000000O0000O00 .name =="Ethereum"]#line:142
-        O0O0O0O0O0OOO00O0 .assertEqual (len (O00OOOOOO0O000O00 ),1 )#line:143
-        O0O0O0O0O0OOO00O0 .assertEqual (O00OOOOOO0O000O00 [0 ],O00000O00OO000000 )#line:144
-    def test_delete_item (O00OO000OO0000O00 ):#line:146
-        O00OO000OO0000O00 .items_db .insert_items (O00OO000OO0000O00 .items )#line:147
-        O0O0O00OOO00O000O =O00OO000OO0000O00 .items [0 ]#line:149
-        O00OO000OO0000O00 .items_db .delete_item (O0O0O00OOO00O000O )#line:150
-        OOOO0O0O0OOO0O0O0 =O00OO000OO0000O00 .items_db .get_all_items ()#line:152
-        O00OO000OO0000O00 .assertEqual (len (OOOO0O0O0OOO0O0O0 ),len (O00OO000OO0000O00 .items )-1 )#line:153
-    def test_delete_items (O000OO0O0O0OO0O00 ):#line:155
-        O000OO0O0O0OO0O00 .items_db .insert_items (O000OO0O0O0OO0O00 .items )#line:156
-        O000OO0O0O0OO0O00 .items_db .delete_items (Query ().amount <0 )#line:158
-        OOOO000OO00O0O0OO =O000OO0O0O0OO0O00 .items_db .get_all_items ()#line:160
-        O000OO0O0O0OO0O00 .assertEqual (len (OOOO000OO00O0O0OO ),3 )#line:161
-        for O0O0O000OO0OOO0O0 in O000OO0O0O0OO0O00 .items :#line:163
-            if O0O0O000OO0OOO0O0 .amount <0 :#line:164
-                O000OO0O0O0OO0O00 .assertNotIn (O0O0O000OO0OOO0O0 ,OOOO000OO00O0O0OO )#line:165
-    def test_delete_all_items (O0OO00O00O000O0O0 ):#line:167
-        O0OO00O00O000O0O0 .items_db .insert_items (O0OO00O00O000O0O0 .items )#line:168
-        O0OO00O00O000O0O0 .items_db .delete_all_items ()#line:170
-        O0OO0O0O000O0O0O0 =O0OO00O00O000O0O0 .items_db .get_all_items ()#line:172
-        O0OO00O00O000O0O0 .assertEqual (len (O0OO0O0O000O0O0O0 ),0 )#line:173
-    def test_get_all_items (OOO0O00OO0OOO000O ):#line:175
-        OOO0O00OO0OOO000O .items_db .insert_items (OOO0O00OO0OOO000O .items )#line:176
-        OOOO0OOOO0OO0OOO0 =OOO0O00OO0OOO000O .items_db .get_all_items ()#line:179
-        OOO0O00OO0OOO000O .assertEqual (len (OOOO0OOOO0OO0OOO0 ),len (OOO0O00OO0OOO000O .items ))#line:180
-        for OO00OO0O00OO00O00 in OOOO0OOOO0OO0OOO0 :#line:181
-            OOO0O00OO0OOO000O .assertIn (OO00OO0O00OO00O00 ,OOO0O00OO0OOO000O .items )#line:182
-    def test_get_items_by_date_range (O0O0OOOOOOOO0000O ):#line:184
-        O0O0OOOOOOOO0000O .items_db .insert_items (O0O0OOOOOOOO0000O .items )#line:185
-        O00OO0O0000O0O0O0 =O0O0OOOOOOOO0000O .items_db .get_items_by_date_range ("2024-01-01","2024-12-30")#line:188
-        O0O0OOOOOOOO0000O .assertEqual (len (O00OO0O0000O0O0O0 ),4 )#line:189
-        O00OO0O0000O0O0O0 =O0O0OOOOOOOO0000O .items_db .get_items_by_date_range ("2023-01-01","2023-12-30")#line:192
-        O0O0OOOOOOOO0000O .assertEqual (len (O00OO0O0000O0O0O0 ),2 )#line:193
-    def test_get_category_names (O00O0OO0O00OOO0O0 ):#line:195
-        O00O0OO0O00OOO0O0 .items_db .insert_items (O00O0OO0O00OOO0O0 .items )#line:196
-        O0000O0000O000000 =O00O0OO0O00OOO0O0 .items_db .get_category_names ()#line:198
-        O00O0OO0O00OOO0O0 .assertIsInstance (O0000O0000O000000 ,set )#line:200
-        O00O0OO0O00OOO0O0 .assertEqual (len (O0000O0000O000000 ),4 )#line:201
-    def test_get_subcategory_names (OO0O0O0OOO00OO00O ):#line:203
-        OO0O0O0OOO00OO00O .items_db .insert_items (OO0O0O0OOO00OO00O .items )#line:204
-        OO0000OO0000000O0 =OO0O0O0OOO00OO00O .items_db .get_subcategory_names ("Personal Finance")#line:207
-        OO0O0O0OOO00OO00O .assertIsInstance (OO0000OO0000000O0 ,set )#line:208
-        OO0O0O0OOO00OO00O .assertEqual (len (OO0000OO0000000O0 ),1 )#line:209
-        OO0000OO0000000O0 =OO0O0O0OOO00OO00O .items_db .get_subcategory_names ("Transportation")#line:212
-        OO0O0O0OOO00OO00O .assertIsInstance (OO0000OO0000000O0 ,set )#line:213
-        OO0O0O0OOO00OO00O .assertEqual (len (OO0000OO0000000O0 ),0 )#line:214
-    def test_get_items_by_category (OOO00O00O0O000O00 ):#line:216
-        OOO00O00O0O000O00 .items_db .insert_items (OOO00O00O0O000O00 .items )#line:217
-        for OO0OOO0OO0OOO0O00 in OOO00O00O0O000O00 .items_db .get_category_names ():#line:219
-            OO00OOOOOO00OOO00 =OOO00O00O0O000O00 .items_db .get_items_by_category (OO0OOO0OO0OOO0O00 )#line:220
-            OOO00O00O0O000O00 .assertEqual (len (OO00OOOOOO00OOO00 ),1 )#line:221
-    def test_get_items_uncategorized (OOO00OO0OO00O0OOO ):#line:223
-        OOO00OO0OO00O0OOO .items_db .insert_items (OOO00OO0OO00O0OOO .items )#line:224
-        O00O0OO0OO00OOOO0 =OOO00OO0OO00O0OOO .items_db .get_items_uncategorized ()#line:226
-        OOO00OO0OO00O0OOO .assertEqual (len (O00O0OO0OO00OOOO0 ),2 )#line:227
-    def test_get_items_without_subcategory (OOO00000O0000OOOO ):#line:229
-        OOO00000O0000OOOO .items_db .insert_items (OOO00000O0000OOOO .items )#line:230
-        O0OOOOO0O0O00O00O =OOO00000O0000OOOO .items_db .get_items_without_subcategory ("Youtube")#line:232
-        OOO00000O0000OOOO .assertEqual (len (O0OOOOO0O0O00O00O ),1 )#line:233
-        O0OOOOO0O0O00O00O =OOO00000O0000OOOO .items_db .get_items_without_subcategory ("Personal Finance")#line:235
-        OOO00000O0000OOOO .assertEqual (len (O0OOOOO0O0O00O00O ),0 )#line:236
-class TestExpenseIncomeStats (unittest .TestCase ):#line:239
-    def setUp (O0000OO0OO0O0O000 ):#line:240
-        O0000OO0OO0O0O000 .json_db_path =os .path .join (os .path .dirname (__file__ ),"items_db.json")#line:241
-        O0000OO0OO0O0O000 .items_db =ItemsDB (O0000OO0OO0O0O000 .json_db_path )#line:242
-        O0000OO0OO0O0O000 .items =[Item .create_income_item ("Bitcoin",500 ,"Income from Bitcoin","2023-06-25",Category ("Personal Finance","Investing"),),Item .create_income_item ("Stock Dividends",5 ,"Income from Stock Dividends","2024-1-10",Category ("Personal Finance","Investing"),),Item .create_income_item ("Gift",30 ,"Gift from Relatives","2024-03-04"),Item .create_expense_item ("Pizza",-50 ,"Pizza from Pizza Hut","2023-04-20",Category ("Food","Junk"),),Item .create_expense_item ("Bus",-20 ,"Travel Expenses by Bus","2024-02-05",Category ("Transportation","Public Transport"),),Item .create_expense_item ("Car Gas",-300 ,"Car Gas Expense","2024-04-20",Category ("Transportation"),),]#line:280
-        O0000OO0OO0O0O000 .items_db .insert_items (O0000OO0OO0O0O000 .items )#line:281
-        O0000OO0OO0O0O000 .stats =ExpenseIncomeStats (O0000OO0OO0O0O000 .json_db_path )#line:283
-    def tearDown (OO0OOOOOO0O0OO000 ):#line:285
-        if os .path .exists (OO0OOOOOO0O0OO000 .json_db_path ):#line:286
-            os .remove (OO0OOOOOO0O0OO000 .json_db_path )#line:287
-    def test_get_stats_all_items (O000O0000000000O0 ):#line:289
-        O0O0OOO00000O00OO =O000O0000000000O0 .stats .get_stats_all_items ()#line:290
-        O000O0000000000O0 .assertAlmostEqual (O0O0OOO00000O00OO ["average_expense"],-123.33 ,places =2 )#line:291
-        O000O0000000000O0 .assertEqual (O0O0OOO00000O00OO ["min_expense"],-20 )#line:292
-        O000O0000000000O0 .assertEqual (O0O0OOO00000O00OO ["max_expense"],-300 )#line:293
-        O000O0000000000O0 .assertAlmostEqual (O0O0OOO00000O00OO ["average_income"],178.33 ,places =2 )#line:294
-        O000O0000000000O0 .assertEqual (O0O0OOO00000O00OO ["min_income"],5 )#line:295
-        O000O0000000000O0 .assertEqual (O0O0OOO00000O00OO ["max_income"],500 )#line:296
-    def test_get_stats_by_category (O0OO00OOO0OO0O00O ):#line:298
-        OOOO0O0O00O000OO0 =O0OO00OOO0OO0O00O .stats .get_stats_by_category ()#line:299
-        import json #line:301
-        print (json .dumps (OOOO0O0O00O000OO0 ,indent =4 ))#line:303
-if __name__ =="__main__":#line:306
-    unittest .main ()#line:307
+import pyttsx3 #line:1
+import PyPDF2 #line:2
+from tkinter import filedialog #line:3
+location =filedialog .askopenfilename ()#line:5
+full_text =""#line:6
+with open (location ,'rb')as book :#line:8
+	try :#line:10
+		reader =PyPDF2 .PdfFileReader (book )#line:11
+		audio =pyttsx3 .init ()#line:13
+		print ('\n')#line:15
+		print ('Recommended Speed ------> 115')#line:16
+		set_speed =input ('Please Enter Your Prefered Reading Speed --------> ')#line:18
+		audio .setProperty ('rate',int (set_speed ))#line:19
+		total_pages =reader .numPages #line:21
+		print ('\n')#line:23
+		print ('Location of File  -------> '+location )#line:24
+		print ('\n')#line:25
+		print ('Total Number of Pages -------> '+str (total_pages ))#line:26
+		try :#line:28
+			for page in range (total_pages ):#line:29
+				next_page =reader .getPage (page )#line:30
+				content =next_page .extractText ()#line:31
+				full_text +=content #line:32
+			audio .save_to_file (full_text ,'output.mp3')#line:34
+			print ("Converting... \n Please Wait....")#line:35
+			audio .runAndWait ()#line:36
+		except :#line:38
+			print ('Task Failed Successfully! ')#line:39
+	except :#line:41
+		print ('\n')#line:42
+		print ('---------> Cannot Read PDF <---------')#line:43
+		print ('\n')#line:44
+		print ('--------->Invalid PDF format <--------')#line:45
+		print ('\n')#line:46
+		print ('OR maybe there is something wrong with your brain that you are trying \n to convert a file that is not in .pdf format')

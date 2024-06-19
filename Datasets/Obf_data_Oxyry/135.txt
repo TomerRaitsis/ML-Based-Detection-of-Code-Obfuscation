@@ -1,100 +1,24 @@
-import tkinter as tk #line:3
-from tkinter import ttk #line:4
-from datetime import datetime #line:5
-import pygame #line:6
-pygame .mixer .init (42050 ,-16 ,2 ,2048 )#line:9
-alarm_sound =pygame .mixer .Sound ("MyAlarm.wav")#line:10
-start_printed =False #line:12
-stop_printed =True #line:13
-done =False #line:14
-finished =False #line:15
-stop_clicked =False #line:16
-class AlarmApp (tk .Tk ):#line:18
-    def __init__ (O0O00OO0000OO0OOO ):#line:19
-        tk .Tk .__init__ (O0O00OO0000OO0OOO )#line:20
-        O0O00OO0000OO0OOO .title ("Alarm Clock")#line:23
-        O0O00OO0000OO0OOO .resizable (width =False ,height =False )#line:25
-        O0O00OO0000OO0OOO .hr =tk .IntVar (O0O00OO0000OO0OOO )#line:27
-        O0O00OO0000OO0OOO .min =tk .IntVar (O0O00OO0000OO0OOO )#line:28
-        O0O00OO0000OO0OOO .ampm =tk .StringVar (O0O00OO0000OO0OOO )#line:29
-        O0O00OO0000OO0OOO .hr .set ('12')#line:31
-        O0O00OO0000OO0OOO .min .set ("00")#line:32
-        O0O00OO0000OO0OOO .ampm .set ("AM")#line:33
-        O00O0OO00O0OOOOO0 =[]#line:35
-        OOOO00000O00OOO00 =[]#line:36
-        O0OO0O00O0OO000O0 =["AM","PM"]#line:37
-        for OOOOO000OOOO0O0OO in range (1 ,13 ):#line:39
-            O00O0OO00O0OOOOO0 .append (OOOOO000OOOO0O0OO )#line:40
-        for OO0OO0000O0O00000 in range (0 ,60 ):#line:42
-            OOOO00000O00OOO00 .append ("%02d"%(OO0OO0000O0O00000 ,))#line:43
-        O0O00OO0000OO0OOO .popmenuhours =tk .OptionMenu (O0O00OO0000OO0OOO ,O0O00OO0000OO0OOO .hr ,*O00O0OO00O0OOOOO0 )#line:45
-        O0O00OO0000OO0OOO .popmenuminutes =tk .OptionMenu (O0O00OO0000OO0OOO ,O0O00OO0000OO0OOO .min ,*OOOO00000O00OOO00 )#line:46
-        O0O00OO0000OO0OOO .popmenuAMPM =tk .OptionMenu (O0O00OO0000OO0OOO ,O0O00OO0000OO0OOO .ampm ,*O0OO0O00O0OO000O0 )#line:47
-        O0O00OO0000OO0OOO .popmenuhours .pack (side ="left")#line:49
-        O0O00OO0000OO0OOO .thing =tk .Label (text =":").pack (side ="left")#line:50
-        O0O00OO0000OO0OOO .popmenuminutes .pack (side ="left")#line:51
-        O0O00OO0000OO0OOO .popmenuAMPM .pack (side ="left")#line:52
-        O0O00OO0000OO0OOO .alarmbutton =tk .Button (O0O00OO0000OO0OOO ,text ="Set Alarm",command =O0O00OO0000OO0OOO .start_clock )#line:56
-        O0O00OO0000OO0OOO .cancelbutton =tk .Button (O0O00OO0000OO0OOO ,text ="Cancel Alarm",command =O0O00OO0000OO0OOO .stop_clock ,state ="disabled")#line:58
-        O0O00OO0000OO0OOO .stopalarmbutton =tk .Button (O0O00OO0000OO0OOO ,text ="Stop Alarm",command =O0O00OO0000OO0OOO .stop_audio ,state ="disabled")#line:59
-        O0O00OO0000OO0OOO .alarmbutton .pack ()#line:61
-        O0O00OO0000OO0OOO .cancelbutton .pack ()#line:62
-        O0O00OO0000OO0OOO .stopalarmbutton .pack ()#line:63
-    def start_clock (OOO0O0000O00OOO0O ):#line:65
-        global done ,start_printed ,stop_printed ,stop_clicked #line:67
-        if done ==False :#line:69
-            OOO0O0000O00OOO0O .cancelbutton .config (state ="active")#line:71
-            OOO0O0000O00OOO0O .alarmbutton .config (state ="disabled")#line:73
-            if start_printed ==False :#line:75
-                print ("Alarm set for {}:{}{}".format (OOO0O0000O00OOO0O .hr .get (),"%02d"%(OOO0O0000O00OOO0O .min .get ()),OOO0O0000O00OOO0O .ampm .get ()))#line:77
-                start_printed =True #line:79
-                stop_printed =False #line:81
-            if OOO0O0000O00OOO0O .ampm .get ()=="AM":#line:83
-                if OOO0O0000O00OOO0O .hr .get ()in range (1 ,12 ):#line:84
-                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()#line:85
-                else :#line:86
-                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()-12 #line:87
-            if OOO0O0000O00OOO0O .ampm .get ()=="PM":#line:88
-                if OOO0O0000O00OOO0O .hr .get ()in range (1 ,12 ):#line:89
-                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()+12 #line:90
-                else :#line:91
-                    OO0OOOOOO0O0OO00O =OOO0O0000O00OOO0O .hr .get ()#line:92
-            OOO0O0000O00OOO0O .Alarm ("%02d"%(OO0OOOOOO0O0OO00O ,),"%02d"%(OOO0O0000O00OOO0O .min .get ()))#line:94
-        if stop_clicked ==True :#line:96
-            done =False #line:97
-            start_printed =False #line:98
-            stop_clicked =False #line:99
-    def stop_clock (O0O0O00O00OOOOOOO ):#line:101
-        global done ,stop_clicked #line:102
-        print ("Alarm set for {}:{}{} has been cancelled".format (O0O0O00O00OOOOOOO .hr .get (),"%02d"%(O0O0O00O00OOOOOOO .min .get ()),O0O0O00O00OOOOOOO .ampm .get ()))#line:104
-        stop_clicked =True #line:106
-        done =True #line:108
-        O0O0O00O00OOOOOOO .cancelbutton .config (state ="disabled")#line:110
-        O0O0O00O00OOOOOOO .alarmbutton .config (state ="active")#line:111
-    def stop_audio (OO00OO000OOO0OO0O ):#line:113
-        pygame .mixer .Sound .stop (alarm_sound )#line:115
-        OO00OO000OOO0OO0O .stopalarmbutton .config (state ="disabled")#line:117
-        OO00OO000OOO0OO0O .alarmbutton .config (state ="active")#line:118
-    def Alarm (OO00OOO00O0O0OO00 ,OO00O00OOOOO0O00O ,O0O0O0O00O00OO0O0 ):#line:122
-        global done ,start_printed ,finished #line:123
-        if done ==False :#line:125
-            OO00O00OOOOO0O00O ,O0O0O0O00O00OO0O0 =str (OO00O00OOOOO0O00O ),str (O0O0O0O00O00OO0O0 )#line:127
-            O00O0OOO0OOO00OOO =str (datetime .now ())#line:129
-            OO0O0000O0O0O0O00 =O00O0OOO0OOO00OOO .split (" ")[1 ].split (":")#line:130
-            O0O00O000O00O0000 =OO0O0000O0O0O0O00 [0 ]#line:131
-            OO00000OOOO0OOOO0 =OO0O0000O0O0O0O00 [1 ]#line:132
-            if O0O00O000O00O0000 ==OO00O00OOOOO0O00O and OO00000OOOO0OOOO0 ==O0O0O0O00O00OO0O0 :#line:134
-                pygame .mixer .Sound .play (alarm_sound ,loops =-1 )#line:136
-                print ("Alarm is ringing!")#line:137
-                done =True #line:139
-                finished =True #line:141
-                OO00OOO00O0O0OO00 .cancelbutton .config (state ="disabled")#line:144
-                OO00OOO00O0O0OO00 .stopalarmbutton .config (state ="active")#line:145
-            else :#line:147
-                OO00OOO00O0O0OO00 .after (1000 ,OO00OOO00O0O0OO00 .start_clock )#line:149
-            done =False #line:150
-        if finished ==True :#line:152
-            start_printed =False #line:153
-            finished =False #line:154
-app =AlarmApp ()#line:156
-app .mainloop ()#line:157
+#!/usr/bin/env python3
+""#line:2
+import argparse #line:4
+import os #line:5
+import re #line:6
+def get_args ():#line:10
+    ""#line:11
+    O0OOOOOO0O0O0O0OO =argparse .ArgumentParser (description ='Apples and bananas',formatter_class =argparse .ArgumentDefaultsHelpFormatter )#line:15
+    O0OOOOOO0O0O0O0OO .add_argument ('text',metavar ='text',help ='Input text or file')#line:17
+    O0OOOOOO0O0O0O0OO .add_argument ('-v','--vowel',help ='The vowel to substitute',metavar ='vowel',type =str ,default ='a',choices =list ('aeiou'))#line:25
+    OO0OOO0OO0OOO000O =O0OOOOOO0O0O0O0OO .parse_args ()#line:27
+    if os .path .isfile (OO0OOO0OO0OOO000O .text ):#line:29
+        OO0OOO0OO0OOO000O .text =open (OO0OOO0OO0OOO000O .text ).read ().rstrip ()#line:30
+    return OO0OOO0OO0OOO000O #line:32
+def main ():#line:36
+    ""#line:37
+    O0O0OO0000O0O0O00 =get_args ()#line:39
+    OO0OO0O0OO00OO000 =O0O0OO0000O0O0O00 .text #line:40
+    OOOOOOOO0OO00OOO0 =O0O0OO0000O0O0O00 .vowel #line:41
+    OO0OO0O0OO00OO000 =re .sub ('[aeiou]',OOOOOOOO0OO00OOO0 ,OO0OO0O0OO00OO000 )#line:42
+    OO0OO0O0OO00OO000 =re .sub ('[AEIOU]',OOOOOOOO0OO00OOO0 .upper (),OO0OO0O0OO00OO000 )#line:43
+    print (OO0OO0O0OO00OO000 )#line:44
+if __name__ =='__main__':#line:48
+    main ()#line:49

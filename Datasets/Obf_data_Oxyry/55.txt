@@ -1,494 +1,318 @@
-""#line:9:"""
-import codecs #line:11:import codecs
-import contextlib #line:12:import contextlib
-import io #line:13:import io
-import os #line:14:import os
-import re #line:15:import re
-import socket #line:16:import socket
-import struct #line:17:import struct
-import sys #line:18:import sys
-import tempfile #line:19:import tempfile
-import warnings #line:20:import warnings
-import zipfile #line:21:import zipfile
-from .__version__ import __version__ #line:23:from .__version__ import __version__
-from .import certs #line:24:from . import certs
-from ._internal_utils import to_native_string #line:26:from ._internal_utils import to_native_string
-from .compat import parse_http_list as _parse_list_header #line:27:from .compat import parse_http_list as _parse_list_header
-from .compat import (quote ,urlparse ,bytes ,str ,OrderedDict ,unquote ,getproxies ,proxy_bypass ,urlunparse ,basestring ,integer_types ,is_py3 ,proxy_bypass_environment ,getproxies_environment ,Mapping )#line:31:proxy_bypass_environment, getproxies_environment, Mapping)
-from .cookies import cookiejar_from_dict #line:32:from .cookies import cookiejar_from_dict
-from .structures import CaseInsensitiveDict #line:33:from .structures import CaseInsensitiveDict
-from .exceptions import (InvalidURL ,InvalidHeader ,FileModeWarning ,UnrewindableBodyError )#line:35:InvalidURL, InvalidHeader, FileModeWarning, UnrewindableBodyError)
-NETRC_FILES =('.netrc','_netrc')#line:37:NETRC_FILES = ('.netrc', '_netrc')
-DEFAULT_CA_BUNDLE_PATH =certs .where ()#line:39:DEFAULT_CA_BUNDLE_PATH = certs.where()
-DEFAULT_PORTS ={'http':80 ,'https':443 }#line:41:DEFAULT_PORTS = {'http': 80, 'https': 443}
-if sys .platform =='win32':#line:44:if sys.platform == 'win32':
-    def proxy_bypass_registry (OO0OOOO0OOO0OO00O ):#line:47:def proxy_bypass_registry(host):
-        try :#line:48:try:
-            if is_py3 :#line:49:if is_py3:
-                import winreg #line:50:import winreg
-            else :#line:51:else:
-                import _winreg as winreg #line:52:import _winreg as winreg
-        except ImportError :#line:53:except ImportError:
-            return False #line:54:return False
-        try :#line:56:try:
-            O0OOO0O0OO0OO0OO0 =winreg .OpenKey (winreg .HKEY_CURRENT_USER ,r'Software\Microsoft\Windows\CurrentVersion\Internet Settings')#line:58:r'Software\Microsoft\Windows\CurrentVersion\Internet Settings')
-            OOO0O0O0O0O0OOO0O =int (winreg .QueryValueEx (O0OOO0O0OO0OO0OO0 ,'ProxyEnable')[0 ])#line:61:'ProxyEnable')[0])
-            OO00OOOO0O00OOO00 =winreg .QueryValueEx (O0OOO0O0OO0OO0OO0 ,'ProxyOverride')[0 ]#line:64:'ProxyOverride')[0]
-        except OSError :#line:65:except OSError:
-            return False #line:66:return False
-        if not OOO0O0O0O0O0OOO0O or not OO00OOOO0O00OOO00 :#line:67:if not proxyEnable or not proxyOverride:
-            return False #line:68:return False
-        OO00OOOO0O00OOO00 =OO00OOOO0O00OOO00 .split (';')#line:73:proxyOverride = proxyOverride.split(';')
-        for O0O00OO0O0OO0O00O in OO00OOOO0O00OOO00 :#line:75:for test in proxyOverride:
-            if O0O00OO0O0OO0O00O =='<local>':#line:76:if test == '<local>':
-                if '.'not in OO0OOOO0OOO0OO00O :#line:77:if '.' not in host:
-                    return True #line:78:return True
-            O0O00OO0O0OO0O00O =O0O00OO0O0OO0O00O .replace (".",r"\.")#line:79:test = test.replace(".", r"\.")     # mask dots
-            O0O00OO0O0OO0O00O =O0O00OO0O0OO0O00O .replace ("*",r".*")#line:80:test = test.replace("*", r".*")     # change glob sequence
-            O0O00OO0O0OO0O00O =O0O00OO0O0OO0O00O .replace ("?",r".")#line:81:test = test.replace("?", r".")      # change glob char
-            if re .match (O0O00OO0O0OO0O00O ,OO0OOOO0OOO0OO00O ,re .I ):#line:82:if re.match(test, host, re.I):
-                return True #line:83:return True
-        return False #line:84:return False
-    def proxy_bypass (O00000O00000OOOO0 ):#line:86:def proxy_bypass(host):  # noqa
-        ""#line:91:"""
-        if getproxies_environment ():#line:92:if getproxies_environment():
-            return proxy_bypass_environment (O00000O00000OOOO0 )#line:93:return proxy_bypass_environment(host)
-        else :#line:94:else:
-            return proxy_bypass_registry (O00000O00000OOOO0 )#line:95:return proxy_bypass_registry(host)
-def dict_to_sequence (O0O00OOO0OOO000OO ):#line:98:def dict_to_sequence(d):
-    ""#line:99:"""Returns an internal sequence dictionary update."""
-    if hasattr (O0O00OOO0OOO000OO ,'items'):#line:101:if hasattr(d, 'items'):
-        O0O00OOO0OOO000OO =O0O00OOO0OOO000OO .items ()#line:102:d = d.items()
-    return O0O00OOO0OOO000OO #line:104:return d
-def super_len (OO00000000OO00OO0 ):#line:107:def super_len(o):
-    OO000OO00O0OO0O0O =None #line:108:total_length = None
-    OO0OOO0OO0OOOOO00 =0 #line:109:current_position = 0
-    if hasattr (OO00000000OO00OO0 ,'__len__'):#line:111:if hasattr(o, '__len__'):
-        OO000OO00O0OO0O0O =len (OO00000000OO00OO0 )#line:112:total_length = len(o)
-    elif hasattr (OO00000000OO00OO0 ,'len'):#line:114:elif hasattr(o, 'len'):
-        OO000OO00O0OO0O0O =OO00000000OO00OO0 .len #line:115:total_length = o.len
-    elif hasattr (OO00000000OO00OO0 ,'fileno'):#line:117:elif hasattr(o, 'fileno'):
-        try :#line:118:try:
-            O000OO0000OOO0O00 =OO00000000OO00OO0 .fileno ()#line:119:fileno = o.fileno()
-        except io .UnsupportedOperation :#line:120:except io.UnsupportedOperation:
-            pass #line:121:pass
-        else :#line:122:else:
-            OO000OO00O0OO0O0O =os .fstat (O000OO0000OOO0O00 ).st_size #line:123:total_length = os.fstat(fileno).st_size
-            if 'b'not in OO00000000OO00OO0 .mode :#line:127:if 'b' not in o.mode:
-                warnings .warn (("Requests has determined the content-length for this " "request using the binary size of the file: however, the " "file has been opened in text mode (i.e. without the 'b' " "flag in the mode). This may lead to an incorrect " "content-length. In Requests 3.0, support will be removed " "for files in text mode."),FileModeWarning )#line:136:)
-    if hasattr (OO00000000OO00OO0 ,'tell'):#line:138:if hasattr(o, 'tell'):
-        try :#line:139:try:
-            OO0OOO0OO0OOOOO00 =OO00000000OO00OO0 .tell ()#line:140:current_position = o.tell()
-        except (OSError ,IOError ):#line:141:except (OSError, IOError):
-            if OO000OO00O0OO0O0O is not None :#line:146:if total_length is not None:
-                OO0OOO0OO0OOOOO00 =OO000OO00O0OO0O0O #line:147:current_position = total_length
-        else :#line:148:else:
-            if hasattr (OO00000000OO00OO0 ,'seek')and OO000OO00O0OO0O0O is None :#line:149:if hasattr(o, 'seek') and total_length is None:
-                try :#line:151:try:
-                    OO00000000OO00OO0 .seek (0 ,2 )#line:153:o.seek(0, 2)
-                    OO000OO00O0OO0O0O =OO00000000OO00OO0 .tell ()#line:154:total_length = o.tell()
-                    OO00000000OO00OO0 .seek (OO0OOO0OO0OOOOO00 or 0 )#line:158:o.seek(current_position or 0)
-                except (OSError ,IOError ):#line:159:except (OSError, IOError):
-                    OO000OO00O0OO0O0O =0 #line:160:total_length = 0
-    if OO000OO00O0OO0O0O is None :#line:162:if total_length is None:
-        OO000OO00O0OO0O0O =0 #line:163:total_length = 0
-    return max (0 ,OO000OO00O0OO0O0O -OO0OOO0OO0OOOOO00 )#line:165:return max(0, total_length - current_position)
-def get_netrc_auth (O000000OOOO0O00OO ,raise_errors =False ):#line:168:def get_netrc_auth(url, raise_errors=False):
-    ""#line:169:"""Returns the Requests tuple auth for a given url from netrc."""
-    try :#line:171:try:
-        from netrc import netrc ,NetrcParseError #line:172:from netrc import netrc, NetrcParseError
-        O00OOO00OOOO0OOO0 =None #line:174:netrc_path = None
-        for O00OO00O000O0OO00 in NETRC_FILES :#line:176:for f in NETRC_FILES:
-            try :#line:177:try:
-                OO000O0O0OO000OO0 =os .path .expanduser ('~/{}'.format (O00OO00O000O0OO00 ))#line:178:loc = os.path.expanduser('~/{}'.format(f))
-            except KeyError :#line:179:except KeyError:
-                return #line:183:return
-            if os .path .exists (OO000O0O0OO000OO0 ):#line:185:if os.path.exists(loc):
-                O00OOO00OOOO0OOO0 =OO000O0O0OO000OO0 #line:186:netrc_path = loc
-                break #line:187:break
-        if O00OOO00OOOO0OOO0 is None :#line:190:if netrc_path is None:
-            return #line:191:return
-        O0OOO0OOO0OOOOOOO =urlparse (O000000OOOO0O00OO )#line:193:ri = urlparse(url)
-        O00OOO0O000O0O00O =b':'#line:197:splitstr = b':'
-        if isinstance (O000000OOOO0O00OO ,str ):#line:198:if isinstance(url, str):
-            O00OOO0O000O0O00O =O00OOO0O000O0O00O .decode ('ascii')#line:199:splitstr = splitstr.decode('ascii')
-        OO0000O00000OOOOO =O0OOO0OOO0OOOOOOO .netloc .split (O00OOO0O000O0O00O )[0 ]#line:200:host = ri.netloc.split(splitstr)[0]
-        try :#line:202:try:
-            _OO00OOOOO0O0O0OO0 =netrc (O00OOO00OOOO0OOO0 ).authenticators (OO0000O00000OOOOO )#line:203:_netrc = netrc(netrc_path).authenticators(host)
-            if _OO00OOOOO0O0O0OO0 :#line:204:if _netrc:
-                OOO00000OOOO0OO00 =(0 if _OO00OOOOO0O0O0OO0 [0 ]else 1 )#line:206:login_i = (0 if _netrc[0] else 1)
-                return (_OO00OOOOO0O0O0OO0 [OOO00000OOOO0OO00 ],_OO00OOOOO0O0O0OO0 [2 ])#line:207:return (_netrc[login_i], _netrc[2])
-        except (NetrcParseError ,IOError ):#line:208:except (NetrcParseError, IOError):
-            if raise_errors :#line:211:if raise_errors:
-                raise #line:212:raise
-    except (ImportError ,AttributeError ):#line:215:except (ImportError, AttributeError):
-        pass #line:216:pass
-def guess_filename (OO0000000O0OOOO0O ):#line:219:def guess_filename(obj):
-    ""#line:220:"""Tries to guess the filename of the given object."""
-    O000OOOO0O000OOOO =getattr (OO0000000O0OOOO0O ,'name',None )#line:221:name = getattr(obj, 'name', None)
-    if (O000OOOO0O000OOOO and isinstance (O000OOOO0O000OOOO ,basestring )and O000OOOO0O000OOOO [0 ]!='<'and O000OOOO0O000OOOO [-1 ]!='>'):#line:223:name[-1] != '>'):
-        return os .path .basename (O000OOOO0O000OOOO )#line:224:return os.path.basename(name)
-def extract_zipped_paths (O00O0OOO0O00OOOO0 ):#line:227:def extract_zipped_paths(path):
-    ""#line:231:"""
-    if os .path .exists (O00O0OOO0O00OOOO0 ):#line:232:if os.path.exists(path):
-        return O00O0OOO0O00OOOO0 #line:234:return path
-    O00O000O0OO0O0O0O ,O0OOO00OOOO0OOOOO =os .path .split (O00O0OOO0O00OOOO0 )#line:238:archive, member = os.path.split(path)
-    while O00O000O0OO0O0O0O and not os .path .exists (O00O000O0OO0O0O0O ):#line:239:while archive and not os.path.exists(archive):
-        O00O000O0OO0O0O0O ,OO00O0O0O0OOOO000 =os .path .split (O00O000O0OO0O0O0O )#line:240:archive, prefix = os.path.split(archive)
-        O0OOO00OOOO0OOOOO ='/'.join ([OO00O0O0O0OOOO000 ,O0OOO00OOOO0OOOOO ])#line:241:member = '/'.join([prefix, member])
-    if not zipfile .is_zipfile (O00O000O0OO0O0O0O ):#line:243:if not zipfile.is_zipfile(archive):
-        return O00O0OOO0O00OOOO0 #line:244:return path
-    O00O0OO0O0O00000O =zipfile .ZipFile (O00O000O0OO0O0O0O )#line:246:zip_file = zipfile.ZipFile(archive)
-    if O0OOO00OOOO0OOOOO not in O00O0OO0O0O00000O .namelist ():#line:247:if member not in zip_file.namelist():
-        return O00O0OOO0O00OOOO0 #line:248:return path
-    O0000OOOOOOO000OO =tempfile .gettempdir ()#line:251:tmp = tempfile.gettempdir()
-    OO0O000O00O0OO00O =os .path .join (O0000OOOOOOO000OO ,*O0OOO00OOOO0OOOOO .split ('/'))#line:252:extracted_path = os.path.join(tmp, *member.split('/'))
-    if not os .path .exists (OO0O000O00O0OO00O ):#line:253:if not os.path.exists(extracted_path):
-        OO0O000O00O0OO00O =O00O0OO0O0O00000O .extract (O0OOO00OOOO0OOOOO ,path =O0000OOOOOOO000OO )#line:254:extracted_path = zip_file.extract(member, path=tmp)
-    return OO0O000O00O0OO00O #line:256:return extracted_path
-def from_key_val_list (OOOOO0O00OO0O000O ):#line:259:def from_key_val_list(value):
-    ""#line:274:"""
-    if OOOOO0O00OO0O000O is None :#line:275:if value is None:
-        return None #line:276:return None
-    if isinstance (OOOOO0O00OO0O000O ,(str ,bytes ,bool ,int )):#line:278:if isinstance(value, (str, bytes, bool, int)):
-        raise ValueError ('cannot encode objects that are not 2-tuples')#line:279:raise ValueError('cannot encode objects that are not 2-tuples')
-    return OrderedDict (OOOOO0O00OO0O000O )#line:281:return OrderedDict(value)
-def to_key_val_list (OOOO0OO0000OOO0O0 ):#line:284:def to_key_val_list(value):
-    ""#line:298:"""
-    if OOOO0OO0000OOO0O0 is None :#line:299:if value is None:
-        return None #line:300:return None
-    if isinstance (OOOO0OO0000OOO0O0 ,(str ,bytes ,bool ,int )):#line:302:if isinstance(value, (str, bytes, bool, int)):
-        raise ValueError ('cannot encode objects that are not 2-tuples')#line:303:raise ValueError('cannot encode objects that are not 2-tuples')
-    if isinstance (OOOO0OO0000OOO0O0 ,Mapping ):#line:305:if isinstance(value, Mapping):
-        OOOO0OO0000OOO0O0 =OOOO0OO0000OOO0O0 .items ()#line:306:value = value.items()
-    return list (OOOO0OO0000OOO0O0 )#line:308:return list(value)
-def parse_list_header (O0000O00O000OO00O ):#line:312:def parse_list_header(value):
-    ""#line:334:"""
-    OO0OO0OOO000000O0 =[]#line:335:result = []
-    for OOO0O0O0O0O0000O0 in _parse_list_header (O0000O00O000OO00O ):#line:336:for item in _parse_list_header(value):
-        if OOO0O0O0O0O0000O0 [:1 ]==OOO0O0O0O0O0000O0 [-1 :]=='"':#line:337:if item[:1] == item[-1:] == '"':
-            OOO0O0O0O0O0000O0 =unquote_header_value (OOO0O0O0O0O0000O0 [1 :-1 ])#line:338:item = unquote_header_value(item[1:-1])
-        OO0OO0OOO000000O0 .append (OOO0O0O0O0O0000O0 )#line:339:result.append(item)
-    return OO0OO0OOO000000O0 #line:340:return result
-def parse_dict_header (OOOOOO0OOO0OOOO0O ):#line:344:def parse_dict_header(value):
-    ""#line:365:"""
-    O0OO0OO0OO00O0O0O ={}#line:366:result = {}
-    for OO00O00O0O0O00OO0 in _parse_list_header (OOOOOO0OOO0OOOO0O ):#line:367:for item in _parse_list_header(value):
-        if '='not in OO00O00O0O0O00OO0 :#line:368:if '=' not in item:
-            O0OO0OO0OO00O0O0O [OO00O00O0O0O00OO0 ]=None #line:369:result[item] = None
-            continue #line:370:continue
-        O0000O000OOOOOOOO ,OOOOOO0OOO0OOOO0O =OO00O00O0O0O00OO0 .split ('=',1 )#line:371:name, value = item.split('=', 1)
-        if OOOOOO0OOO0OOOO0O [:1 ]==OOOOOO0OOO0OOOO0O [-1 :]=='"':#line:372:if value[:1] == value[-1:] == '"':
-            OOOOOO0OOO0OOOO0O =unquote_header_value (OOOOOO0OOO0OOOO0O [1 :-1 ])#line:373:value = unquote_header_value(value[1:-1])
-        O0OO0OO0OO00O0O0O [O0000O000OOOOOOOO ]=OOOOOO0OOO0OOOO0O #line:374:result[name] = value
-    return O0OO0OO0OO00O0O0O #line:375:return result
-def unquote_header_value (OO00O0O00O0OO00O0 ,is_filename =False ):#line:379:def unquote_header_value(value, is_filename=False):
-    ""#line:386:"""
-    if OO00O0O00O0OO00O0 and OO00O0O00O0OO00O0 [0 ]==OO00O0O00O0OO00O0 [-1 ]=='"':#line:387:if value and value[0] == value[-1] == '"':
-        OO00O0O00O0OO00O0 =OO00O0O00O0OO00O0 [1 :-1 ]#line:392:value = value[1:-1]
-        if not is_filename or OO00O0O00O0OO00O0 [:2 ]!='\\\\':#line:399:if not is_filename or value[:2] != '\\\\':
-            return OO00O0O00O0OO00O0 .replace ('\\\\','\\').replace ('\\"','"')#line:400:return value.replace('\\\\', '\\').replace('\\"', '"')
-    return OO00O0O00O0OO00O0 #line:401:return value
-def dict_from_cookiejar (O00OO000OO000000O ):#line:404:def dict_from_cookiejar(cj):
-    ""#line:409:"""
-    O00O00O00OOOOO00O ={}#line:411:cookie_dict = {}
-    for OO00000000O0OO000 in O00OO000OO000000O :#line:413:for cookie in cj:
-        O00O00O00OOOOO00O [OO00000000O0OO000 .name ]=OO00000000O0OO000 .value #line:414:cookie_dict[cookie.name] = cookie.value
-    return O00O00O00OOOOO00O #line:416:return cookie_dict
-def add_dict_to_cookiejar (OO00O0000OOOOO00O ,O00O0O00OO0O00OOO ):#line:419:def add_dict_to_cookiejar(cj, cookie_dict):
-    ""#line:425:"""
-    return cookiejar_from_dict (O00O0O00OO0O00OOO ,OO00O0000OOOOO00O )#line:427:return cookiejar_from_dict(cookie_dict, cj)
-def get_encodings_from_content (O00000OOO00OO000O ):#line:430:def get_encodings_from_content(content):
-    ""#line:434:"""
-    warnings .warn (('In requests 3.0, get_encodings_from_content will be removed. For ' 'more information, please see the discussion on issue #2266. (This' ' warning should only appear once.)'),DeprecationWarning )#line:439:DeprecationWarning)
-    OOO0000000OOOO0O0 =re .compile (r'<meta.*?charset=["\']*(.+?)["\'>]',flags =re .I )#line:441:charset_re = re.compile(r'<meta.*?charset=["\']*(.+?)["\'>]', flags=re.I)
-    OO0O0O0O0OOO0OOOO =re .compile (r'<meta.*?content=["\']*;?charset=(.+?)["\'>]',flags =re .I )#line:442:pragma_re = re.compile(r'<meta.*?content=["\']*;?charset=(.+?)["\'>]', flags=re.I)
-    OOO0O0000O0O0000O =re .compile (r'^<\?xml.*?encoding=["\']*(.+?)["\'>]')#line:443:xml_re = re.compile(r'^<\?xml.*?encoding=["\']*(.+?)["\'>]')
-    return (OOO0000000OOOO0O0 .findall (O00000OOO00OO000O )+OO0O0O0O0OOO0OOOO .findall (O00000OOO00OO000O )+OOO0O0000O0O0000O .findall (O00000OOO00OO000O ))#line:447:xml_re.findall(content))
-def _O000O0OOO0000O0O0 (O0O00OO0000O0OOOO ):#line:450:def _parse_content_type_header(header):
-    ""#line:456:"""
-    OO0O0O0O0OO00O00O =O0O00OO0000O0OOOO .split (';')#line:458:tokens = header.split(';')
-    O000O00OOOOO000O0 ,OO0O0O0OOOO0OO000 =OO0O0O0O0OO00O00O [0 ].strip (),OO0O0O0O0OO00O00O [1 :]#line:459:content_type, params = tokens[0].strip(), tokens[1:]
-    OO0OOOOOOOO0O0000 ={}#line:460:params_dict = {}
-    O00OO00O0OO0O0O0O ="\"' "#line:461:items_to_strip = "\"' "
-    for O0OOO00OO0OOO0OO0 in OO0O0O0OOOO0OO000 :#line:463:for param in params:
-        O0OOO00OO0OOO0OO0 =O0OOO00OO0OOO0OO0 .strip ()#line:464:param = param.strip()
-        if O0OOO00OO0OOO0OO0 :#line:465:if param:
-            O000OO0OO000OOOOO ,O0000OOO0O0OOO000 =O0OOO00OO0OOO0OO0 ,True #line:466:key, value = param, True
-            OO0O0OO00OOO000O0 =O0OOO00OO0OOO0OO0 .find ("=")#line:467:index_of_equals = param.find("=")
-            if OO0O0OO00OOO000O0 !=-1 :#line:468:if index_of_equals != -1:
-                O000OO0OO000OOOOO =O0OOO00OO0OOO0OO0 [:OO0O0OO00OOO000O0 ].strip (O00OO00O0OO0O0O0O )#line:469:key = param[:index_of_equals].strip(items_to_strip)
-                O0000OOO0O0OOO000 =O0OOO00OO0OOO0OO0 [OO0O0OO00OOO000O0 +1 :].strip (O00OO00O0OO0O0O0O )#line:470:value = param[index_of_equals + 1:].strip(items_to_strip)
-            OO0OOOOOOOO0O0000 [O000OO0OO000OOOOO .lower ()]=O0000OOO0O0OOO000 #line:471:params_dict[key.lower()] = value
-    return O000O00OOOOO000O0 ,OO0OOOOOOOO0O0000 #line:472:return content_type, params_dict
-def get_encoding_from_headers (O00O0O00OOOO00OOO ):#line:475:def get_encoding_from_headers(headers):
-    ""#line:480:"""
-    OOO0OOOO0O000O00O =O00O0O00OOOO00OOO .get ('content-type')#line:482:content_type = headers.get('content-type')
-    if not OOO0OOOO0O000O00O :#line:484:if not content_type:
-        return None #line:485:return None
-    OOO0OOOO0O000O00O ,O00O00O0OOOOOO000 =_O000O0OOO0000O0O0 (OOO0OOOO0O000O00O )#line:487:content_type, params = _parse_content_type_header(content_type)
-    if 'charset'in O00O00O0OOOOOO000 :#line:489:if 'charset' in params:
-        return O00O00O0OOOOOO000 ['charset'].strip ("'\"")#line:490:return params['charset'].strip("'\"")
-    if 'text'in OOO0OOOO0O000O00O :#line:492:if 'text' in content_type:
-        return 'ISO-8859-1'#line:493:return 'ISO-8859-1'
-def stream_decode_response_unicode (O0000O0OOOOO0O00O ,O00O000O0OOOOO0OO ):#line:496:def stream_decode_response_unicode(iterator, r):
-    ""#line:497:"""Stream decodes a iterator."""
-    if O00O000O0OOOOO0OO .encoding is None :#line:499:if r.encoding is None:
-        for OOO0OO00O00OOO0OO in O0000O0OOOOO0O00O :#line:500:for item in iterator:
-            yield OOO0OO00O00OOO0OO #line:501:yield item
-        return #line:502:return
-    O0OOOO0OOOO00O0O0 =codecs .getincrementaldecoder (O00O000O0OOOOO0OO .encoding )(errors ='replace')#line:504:decoder = codecs.getincrementaldecoder(r.encoding)(errors='replace')
-    for O0O00O0O00O00O0O0 in O0000O0OOOOO0O00O :#line:505:for chunk in iterator:
-        OO00OOOO000000OO0 =O0OOOO0OOOO00O0O0 .decode (O0O00O0O00O00O0O0 )#line:506:rv = decoder.decode(chunk)
-        if OO00OOOO000000OO0 :#line:507:if rv:
-            yield OO00OOOO000000OO0 #line:508:yield rv
-    OO00OOOO000000OO0 =O0OOOO0OOOO00O0O0 .decode (b'',final =True )#line:509:rv = decoder.decode(b'', final=True)
-    if OO00OOOO000000OO0 :#line:510:if rv:
-        yield OO00OOOO000000OO0 #line:511:yield rv
-def iter_slices (O0OO0O0000OO0000O ,O00OOOOO0O0OOO0OO ):#line:514:def iter_slices(string, slice_length):
-    ""#line:515:"""Iterate over slices of a string."""
-    OO0O00O0OOOOO0OOO =0 #line:516:pos = 0
-    if O00OOOOO0O0OOO0OO is None or O00OOOOO0O0OOO0OO <=0 :#line:517:if slice_length is None or slice_length <= 0:
-        O00OOOOO0O0OOO0OO =len (O0OO0O0000OO0000O )#line:518:slice_length = len(string)
-    while OO0O00O0OOOOO0OOO <len (O0OO0O0000OO0000O ):#line:519:while pos < len(string):
-        yield O0OO0O0000OO0000O [OO0O00O0OOOOO0OOO :OO0O00O0OOOOO0OOO +O00OOOOO0O0OOO0OO ]#line:520:yield string[pos:pos + slice_length]
-        OO0O00O0OOOOO0OOO +=O00OOOOO0O0OOO0OO #line:521:pos += slice_length
-def get_unicode_from_response (O00O0OO00O000OO0O ):#line:524:def get_unicode_from_response(r):
-    ""#line:535:"""
-    warnings .warn (('In requests 3.0, get_unicode_from_response will be removed. For ' 'more information, please see the discussion on issue #2266. (This' ' warning should only appear once.)'),DeprecationWarning )#line:540:DeprecationWarning)
-    O0000OO0OOO00OOO0 =[]#line:542:tried_encodings = []
-    O00OO000OO00OO0OO =get_encoding_from_headers (O00O0OO00O000OO0O .headers )#line:545:encoding = get_encoding_from_headers(r.headers)
-    if O00OO000OO00OO0OO :#line:547:if encoding:
-        try :#line:548:try:
-            return str (O00O0OO00O000OO0O .content ,O00OO000OO00OO0OO )#line:549:return str(r.content, encoding)
-        except UnicodeError :#line:550:except UnicodeError:
-            O0000OO0OOO00OOO0 .append (O00OO000OO00OO0OO )#line:551:tried_encodings.append(encoding)
-    try :#line:554:try:
-        return str (O00O0OO00O000OO0O .content ,O00OO000OO00OO0OO ,errors ='replace')#line:555:return str(r.content, encoding, errors='replace')
-    except TypeError :#line:556:except TypeError:
-        return O00O0OO00O000OO0O .content #line:557:return r.content
-UNRESERVED_SET =frozenset ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"+"0123456789-._~")#line:562:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" + "0123456789-._~")
-def unquote_unreserved (OO0OO0OO0O0OO000O ):#line:565:def unquote_unreserved(uri):
-    ""#line:570:"""
-    OOO00O000O0OO000O =OO0OO0OO0O0OO000O .split ('%')#line:571:parts = uri.split('%')
-    for OO00O000000OO000O in range (1 ,len (OOO00O000O0OO000O )):#line:572:for i in range(1, len(parts)):
-        OOOO0OOOOOO0OOOO0 =OOO00O000O0OO000O [OO00O000000OO000O ][0 :2 ]#line:573:h = parts[i][0:2]
-        if len (OOOO0OOOOOO0OOOO0 )==2 and OOOO0OOOOOO0OOOO0 .isalnum ():#line:574:if len(h) == 2 and h.isalnum():
-            try :#line:575:try:
-                OOO0O0O000OO0OOO0 =chr (int (OOOO0OOOOOO0OOOO0 ,16 ))#line:576:c = chr(int(h, 16))
-            except ValueError :#line:577:except ValueError:
-                raise InvalidURL ("Invalid percent-escape sequence: '%s'"%OOOO0OOOOOO0OOOO0 )#line:578:raise InvalidURL("Invalid percent-escape sequence: '%s'" % h)
-            if OOO0O0O000OO0OOO0 in UNRESERVED_SET :#line:580:if c in UNRESERVED_SET:
-                OOO00O000O0OO000O [OO00O000000OO000O ]=OOO0O0O000OO0OOO0 +OOO00O000O0OO000O [OO00O000000OO000O ][2 :]#line:581:parts[i] = c + parts[i][2:]
-            else :#line:582:else:
-                OOO00O000O0OO000O [OO00O000000OO000O ]='%'+OOO00O000O0OO000O [OO00O000000OO000O ]#line:583:parts[i] = '%' + parts[i]
-        else :#line:584:else:
-            OOO00O000O0OO000O [OO00O000000OO000O ]='%'+OOO00O000O0OO000O [OO00O000000OO000O ]#line:585:parts[i] = '%' + parts[i]
-    return ''.join (OOO00O000O0OO000O )#line:586:return ''.join(parts)
-def requote_uri (O0OO0O0000O00OOOO ):#line:589:def requote_uri(uri):
-    ""#line:596:"""
-    O0O0O0OO00O0O00O0 ="!#$%&'()*+,/:;=?@[]~"#line:597:safe_with_percent = "!#$%&'()*+,/:;=?@[]~"
-    OOOO0OOOOO00OO0O0 ="!#$&'()*+,/:;=?@[]~"#line:598:safe_without_percent = "!#$&'()*+,/:;=?@[]~"
-    try :#line:599:try:
-        return quote (unquote_unreserved (O0OO0O0000O00OOOO ),safe =O0O0O0OO00O0O00O0 )#line:603:return quote(unquote_unreserved(uri), safe=safe_with_percent)
-    except InvalidURL :#line:604:except InvalidURL:
-        return quote (O0OO0O0000O00OOOO ,safe =OOOO0OOOOO00OO0O0 )#line:608:return quote(uri, safe=safe_without_percent)
-def address_in_network (OO00O0000O0OO0000 ,OOOO0O0O000O0000O ):#line:611:def address_in_network(ip, net):
-    ""#line:618:"""
-    OO0OO00O000OOO0OO =struct .unpack ('=L',socket .inet_aton (OO00O0000O0OO0000 ))[0 ]#line:619:ipaddr = struct.unpack('=L', socket.inet_aton(ip))[0]
-    OO00O0OOOOO0OOO0O ,O0OOOO0000O0OOOOO =OOOO0O0O000O0000O .split ('/')#line:620:netaddr, bits = net.split('/')
-    O0OOO00000000O000 =struct .unpack ('=L',socket .inet_aton (dotted_netmask (int (O0OOOO0000O0OOOOO ))))[0 ]#line:621:netmask = struct.unpack('=L', socket.inet_aton(dotted_netmask(int(bits))))[0]
-    O0O0O0OOOO00O0O00 =struct .unpack ('=L',socket .inet_aton (OO00O0OOOOO0OOO0O ))[0 ]&O0OOO00000000O000 #line:622:network = struct.unpack('=L', socket.inet_aton(netaddr))[0] & netmask
-    return (OO0OO00O000OOO0OO &O0OOO00000000O000 )==(O0O0O0OOOO00O0O00 &O0OOO00000000O000 )#line:623:return (ipaddr & netmask) == (network & netmask)
-def dotted_netmask (O00000O0OOOO0000O ):#line:626:def dotted_netmask(mask):
-    ""#line:632:"""
-    OO0O00OO0OOO00OO0 =0xffffffff ^(1 <<32 -O00000O0OOOO0000O )-1 #line:633:bits = 0xffffffff ^ (1 << 32 - mask) - 1
-    return socket .inet_ntoa (struct .pack ('>I',OO0O00OO0OOO00OO0 ))#line:634:return socket.inet_ntoa(struct.pack('>I', bits))
-def is_ipv4_address (OO0000O0OOOOO0O0O ):#line:637:def is_ipv4_address(string_ip):
-    ""#line:640:"""
-    try :#line:641:try:
-        socket .inet_aton (OO0000O0OOOOO0O0O )#line:642:socket.inet_aton(string_ip)
-    except socket .error :#line:643:except socket.error:
-        return False #line:644:return False
-    return True #line:645:return True
-def is_valid_cidr (O00O0O0000OOO0000 ):#line:648:def is_valid_cidr(string_network):
-    ""#line:653:"""
-    if O00O0O0000OOO0000 .count ('/')==1 :#line:654:if string_network.count('/') == 1:
-        try :#line:655:try:
-            OO00O00O00O00OO0O =int (O00O0O0000OOO0000 .split ('/')[1 ])#line:656:mask = int(string_network.split('/')[1])
-        except ValueError :#line:657:except ValueError:
-            return False #line:658:return False
-        if OO00O00O00O00OO0O <1 or OO00O00O00O00OO0O >32 :#line:660:if mask < 1 or mask > 32:
-            return False #line:661:return False
-        try :#line:663:try:
-            socket .inet_aton (O00O0O0000OOO0000 .split ('/')[0 ])#line:664:socket.inet_aton(string_network.split('/')[0])
-        except socket .error :#line:665:except socket.error:
-            return False #line:666:return False
-    else :#line:667:else:
-        return False #line:668:return False
-    return True #line:669:return True
-@contextlib .contextmanager #line:672:@contextlib.contextmanager
-def set_environ (OOO0OO00O0O0OO00O ,O0O0O000O0O0OOO00 ):#line:673:def set_environ(env_name, value):
-    ""#line:679:If 'value' is None, do nothing"""
-    OO0000000O000OOOO =O0O0O000O0O0OOO00 is not None #line:680:value_changed = value is not None
-    if OO0000000O000OOOO :#line:681:if value_changed:
-        O00O0OO000OO0OOO0 =os .environ .get (OOO0OO00O0O0OO00O )#line:682:old_value = os.environ.get(env_name)
-        os .environ [OOO0OO00O0O0OO00O ]=O0O0O000O0O0OOO00 #line:683:os.environ[env_name] = value
-    try :#line:684:try:
-        yield #line:685:yield
-    finally :#line:686:finally:
-        if OO0000000O000OOOO :#line:687:if value_changed:
-            if O00O0OO000OO0OOO0 is None :#line:688:if old_value is None:
-                del os .environ [OOO0OO00O0O0OO00O ]#line:689:del os.environ[env_name]
-            else :#line:690:else:
-                os .environ [OOO0OO00O0O0OO00O ]=O00O0OO000OO0OOO0 #line:691:os.environ[env_name] = old_value
-def should_bypass_proxies (O0000O00O00OO0OOO ,OO000OOO0O0O00O00 ):#line:694:def should_bypass_proxies(url, no_proxy):
-    ""#line:699:"""
-    O0OOO000O00OOO0O0 =lambda OOOOO00000O0O00OO :os .environ .get (OOOOO00000O0O00OO )or os .environ .get (OOOOO00000O0O00OO .upper ())#line:702:get_proxy = lambda k: os.environ.get(k) or os.environ.get(k.upper())
-    O000OO0OO0O0O0000 =OO000OOO0O0O00O00 #line:706:no_proxy_arg = no_proxy
-    if OO000OOO0O0O00O00 is None :#line:707:if no_proxy is None:
-        OO000OOO0O0O00O00 =O0OOO000O00OOO0O0 ('no_proxy')#line:708:no_proxy = get_proxy('no_proxy')
-    O00OOO0OO00OO0OO0 =urlparse (O0000O00O00OO0OOO )#line:709:parsed = urlparse(url)
-    if O00OOO0OO00OO0OO0 .hostname is None :#line:711:if parsed.hostname is None:
-        return True #line:713:return True
-    if OO000OOO0O0O00O00 :#line:715:if no_proxy:
-        OO000OOO0O0O00O00 =(OO00OO0O0OO00O0OO for OO00OO0O0OO00O0OO in OO000OOO0O0O00O00 .replace (' ','').split (',')if OO00OO0O0OO00O0OO )#line:720:)
-        if is_ipv4_address (O00OOO0OO00OO0OO0 .hostname ):#line:722:if is_ipv4_address(parsed.hostname):
-            for O000OO0OOO0OOOOO0 in OO000OOO0O0O00O00 :#line:723:for proxy_ip in no_proxy:
-                if is_valid_cidr (O000OO0OOO0OOOOO0 ):#line:724:if is_valid_cidr(proxy_ip):
-                    if address_in_network (O00OOO0OO00OO0OO0 .hostname ,O000OO0OOO0OOOOO0 ):#line:725:if address_in_network(parsed.hostname, proxy_ip):
-                        return True #line:726:return True
-                elif O00OOO0OO00OO0OO0 .hostname ==O000OO0OOO0OOOOO0 :#line:727:elif parsed.hostname == proxy_ip:
-                    return True #line:730:return True
-        else :#line:731:else:
-            O0O0O00OO0OOOO0O0 =O00OOO0OO00OO0OO0 .hostname #line:732:host_with_port = parsed.hostname
-            if O00OOO0OO00OO0OO0 .port :#line:733:if parsed.port:
-                O0O0O00OO0OOOO0O0 +=':{}'.format (O00OOO0OO00OO0OO0 .port )#line:734:host_with_port += ':{}'.format(parsed.port)
-            for O00OO0O0OO0O000OO in OO000OOO0O0O00O00 :#line:736:for host in no_proxy:
-                if O00OOO0OO00OO0OO0 .hostname .endswith (O00OO0O0OO0O000OO )or O0O0O00OO0OOOO0O0 .endswith (O00OO0O0OO0O000OO ):#line:737:if parsed.hostname.endswith(host) or host_with_port.endswith(host):
-                    return True #line:740:return True
-    with set_environ ('no_proxy',O000OO0OO0O0O0000 ):#line:742:with set_environ('no_proxy', no_proxy_arg):
-        try :#line:744:try:
-            O0O000O0O0OOOOOOO =proxy_bypass (O00OOO0OO00OO0OO0 .hostname )#line:745:bypass = proxy_bypass(parsed.hostname)
-        except (TypeError ,socket .gaierror ):#line:746:except (TypeError, socket.gaierror):
-            O0O000O0O0OOOOOOO =False #line:747:bypass = False
-    if O0O000O0O0OOOOOOO :#line:749:if bypass:
-        return True #line:750:return True
-    return False #line:752:return False
-def get_environ_proxies (OO0O0OOOO0OOOOOOO ,no_proxy =None ):#line:755:def get_environ_proxies(url, no_proxy=None):
-    ""#line:760:"""
-    if should_bypass_proxies (OO0O0OOOO0OOOOOOO ,no_proxy =no_proxy ):#line:761:if should_bypass_proxies(url, no_proxy=no_proxy):
-        return {}#line:762:return {}
-    else :#line:763:else:
-        return getproxies ()#line:764:return getproxies()
-def select_proxy (O00000OO0O0O00O0O ,OOOO00OOOO000O0O0 ):#line:767:def select_proxy(url, proxies):
-    ""#line:772:"""
-    OOOO00OOOO000O0O0 =OOOO00OOOO000O0O0 or {}#line:773:proxies = proxies or {}
-    OO00OO00OO00O0OOO =urlparse (O00000OO0O0O00O0O )#line:774:urlparts = urlparse(url)
-    if OO00OO00OO00O0OOO .hostname is None :#line:775:if urlparts.hostname is None:
-        return OOOO00OOOO000O0O0 .get (OO00OO00OO00O0OOO .scheme ,OOOO00OOOO000O0O0 .get ('all'))#line:776:return proxies.get(urlparts.scheme, proxies.get('all'))
-    OOOOOOO0O00000O0O =[OO00OO00OO00O0OOO .scheme +'://'+OO00OO00OO00O0OOO .hostname ,OO00OO00OO00O0OOO .scheme ,'all://'+OO00OO00OO00O0OOO .hostname ,'all',]#line:783:]
-    O000000O0O0O0O000 =None #line:784:proxy = None
-    for OO00OOOOO0O0O00OO in OOOOOOO0O00000O0O :#line:785:for proxy_key in proxy_keys:
-        if OO00OOOOO0O0O00OO in OOOO00OOOO000O0O0 :#line:786:if proxy_key in proxies:
-            O000000O0O0O0O000 =OOOO00OOOO000O0O0 [OO00OOOOO0O0O00OO ]#line:787:proxy = proxies[proxy_key]
-            break #line:788:break
-    return O000000O0O0O0O000 #line:790:return proxy
-def default_user_agent (name ="python-requests"):#line:793:def default_user_agent(name="python-requests"):
-    ""#line:798:"""
-    return '%s/%s'%(name ,__version__ )#line:799:return '%s/%s' % (name, __version__)
-def default_headers ():#line:802:def default_headers():
-    ""#line:805:"""
-    return CaseInsensitiveDict ({'User-Agent':default_user_agent (),'Accept-Encoding':', '.join (('gzip','deflate')),'Accept':'*/*','Connection':'keep-alive',})#line:811:})
-def parse_header_links (O0OO0000OO00O00O0 ):#line:814:def parse_header_links(value):
-    ""#line:820:"""
-    OOO0OO0O000O00O00 =[]#line:822:links = []
-    OOOOO0OO00OOO00O0 =' \'"'#line:824:replace_chars = ' \'"'
-    O0OO0000OO00O00O0 =O0OO0000OO00O00O0 .strip (OOOOO0OO00OOO00O0 )#line:826:value = value.strip(replace_chars)
-    if not O0OO0000OO00O00O0 :#line:827:if not value:
-        return OOO0OO0O000O00O00 #line:828:return links
-    for OOOOO0OOO00O0OO00 in re .split (', *<',O0OO0000OO00O00O0 ):#line:830:for val in re.split(', *<', value):
-        try :#line:831:try:
-            OO000OOO00OOO0O00 ,OO0O00OO00OO000O0 =OOOOO0OOO00O0OO00 .split (';',1 )#line:832:url, params = val.split(';', 1)
-        except ValueError :#line:833:except ValueError:
-            OO000OOO00OOO0O00 ,OO0O00OO00OO000O0 =OOOOO0OOO00O0OO00 ,''#line:834:url, params = val, ''
-        O0OOOO0O0OOO0O000 ={'url':OO000OOO00OOO0O00 .strip ('<> \'"')}#line:836:link = {'url': url.strip('<> \'"')}
-        for OO0O0O000O000O00O in OO0O00OO00OO000O0 .split (';'):#line:838:for param in params.split(';'):
-            try :#line:839:try:
-                OO0OOO000OO00O0O0 ,O0OO0000OO00O00O0 =OO0O0O000O000O00O .split ('=')#line:840:key, value = param.split('=')
-            except ValueError :#line:841:except ValueError:
-                break #line:842:break
-            O0OOOO0O0OOO0O000 [OO0OOO000OO00O0O0 .strip (OOOOO0OO00OOO00O0 )]=O0OO0000OO00O00O0 .strip (OOOOO0OO00OOO00O0 )#line:844:link[key.strip(replace_chars)] = value.strip(replace_chars)
-        OOO0OO0O000O00O00 .append (O0OOOO0O0OOO0O000 )#line:846:links.append(link)
-    return OOO0OO0O000O00O00 #line:848:return links
-_OO0O0000OO00OO00O ='\x00'.encode ('ascii')#line:852:_null = '\x00'.encode('ascii')  # encoding to ASCII for Python 3
-_O00O0O0OOO000OO0O =_OO0O0000OO00OO00O *2 #line:853:_null2 = _null * 2
-_O0OO0O000OO0000O0 =_OO0O0000OO00OO00O *3 #line:854:_null3 = _null * 3
-def guess_json_utf (O0OO00O00O000OO00 ):#line:857:def guess_json_utf(data):
-    ""#line:860:"""
-    OOO0O00OO00OO000O =O0OO00O00O000OO00 [:4 ]#line:864:sample = data[:4]
-    if OOO0O00OO00OO000O in (codecs .BOM_UTF32_LE ,codecs .BOM_UTF32_BE ):#line:865:if sample in (codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE):
-        return 'utf-32'#line:866:return 'utf-32'     # BOM included
-    if OOO0O00OO00OO000O [:3 ]==codecs .BOM_UTF8 :#line:867:if sample[:3] == codecs.BOM_UTF8:
-        return 'utf-8-sig'#line:868:return 'utf-8-sig'  # BOM included, MS style (discouraged)
-    if OOO0O00OO00OO000O [:2 ]in (codecs .BOM_UTF16_LE ,codecs .BOM_UTF16_BE ):#line:869:if sample[:2] in (codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE):
-        return 'utf-16'#line:870:return 'utf-16'     # BOM included
-    O000OOO0OO0O0000O =OOO0O00OO00OO000O .count (_OO0O0000OO00OO00O )#line:871:nullcount = sample.count(_null)
-    if O000OOO0OO0O0000O ==0 :#line:872:if nullcount == 0:
-        return 'utf-8'#line:873:return 'utf-8'
-    if O000OOO0OO0O0000O ==2 :#line:874:if nullcount == 2:
-        if OOO0O00OO00OO000O [::2 ]==_O00O0O0OOO000OO0O :#line:875:if sample[::2] == _null2:   # 1st and 3rd are null
-            return 'utf-16-be'#line:876:return 'utf-16-be'
-        if OOO0O00OO00OO000O [1 ::2 ]==_O00O0O0OOO000OO0O :#line:877:if sample[1::2] == _null2:  # 2nd and 4th are null
-            return 'utf-16-le'#line:878:return 'utf-16-le'
-    if O000OOO0OO0O0000O ==3 :#line:880:if nullcount == 3:
-        if OOO0O00OO00OO000O [:3 ]==_O0OO0O000OO0000O0 :#line:881:if sample[:3] == _null3:
-            return 'utf-32-be'#line:882:return 'utf-32-be'
-        if OOO0O00OO00OO000O [1 :]==_O0OO0O000OO0000O0 :#line:883:if sample[1:] == _null3:
-            return 'utf-32-le'#line:884:return 'utf-32-le'
-    return None #line:886:return None
-def prepend_scheme_if_needed (OO00OOO00OOOO0OOO ,OOOOO00O0O0O0000O ):#line:889:def prepend_scheme_if_needed(url, new_scheme):
-    ""#line:894:"""
-    O0O00OOOOO0OOOOOO ,OO00OO0O0OOOOO0OO ,OOOO0O0OO000OO00O ,OOOO0000OO0000O00 ,OO00O0O0O00OO0000 ,OO00O0OO0OO0OO0O0 =urlparse (OO00OOO00OOOO0OOO ,OOOOO00O0O0O0000O )#line:895:scheme, netloc, path, params, query, fragment = urlparse(url, new_scheme)
-    if not OO00OO0O0OOOOO0OO :#line:900:if not netloc:
-        OO00OO0O0OOOOO0OO ,OOOO0O0OO000OO00O =OOOO0O0OO000OO00O ,OO00OO0O0OOOOO0OO #line:901:netloc, path = path, netloc
-    return urlunparse ((O0O00OOOOO0OOOOOO ,OO00OO0O0OOOOO0OO ,OOOO0O0OO000OO00O ,OOOO0000OO0000O00 ,OO00O0O0O00OO0000 ,OO00O0OO0OO0OO0O0 ))#line:903:return urlunparse((scheme, netloc, path, params, query, fragment))
-def get_auth_from_url (O0O0OO0O00O0OO0OO ):#line:906:def get_auth_from_url(url):
-    ""#line:911:"""
-    O0000O0O0O00000O0 =urlparse (O0O0OO0O00O0OO0OO )#line:912:parsed = urlparse(url)
-    try :#line:914:try:
-        O0O0O0O00O00O00OO =(unquote (O0000O0O0O00000O0 .username ),unquote (O0000O0O0O00000O0 .password ))#line:915:auth = (unquote(parsed.username), unquote(parsed.password))
-    except (AttributeError ,TypeError ):#line:916:except (AttributeError, TypeError):
-        O0O0O0O00O00O00OO =('','')#line:917:auth = ('', '')
-    return O0O0O0O00O00O00OO #line:919:return auth
-_OOOO0O0OOO00O0O00 =re .compile (b'^\\S[^\\r\\n]*$|^$')#line:923:_CLEAN_HEADER_REGEX_BYTE = re.compile(b'^\\S[^\\r\\n]*$|^$')
-_OOOO0OOOOO0OOO0OO =re .compile (r'^\S[^\r\n]*$|^$')#line:924:_CLEAN_HEADER_REGEX_STR = re.compile(r'^\S[^\r\n]*$|^$')
-def check_header_validity (O000O00O00OOOOO00 ):#line:927:def check_header_validity(header):
-    ""#line:933:"""
-    O000OO0000O00OOOO ,O0OOO0O0O0O0O0000 =O000O00O00OOOOO00 #line:934:name, value = header
-    if isinstance (O0OOO0O0O0O0O0000 ,bytes ):#line:936:if isinstance(value, bytes):
-        OOOO000O0000OOO00 =_OOOO0O0OOO00O0O00 #line:937:pat = _CLEAN_HEADER_REGEX_BYTE
-    else :#line:938:else:
-        OOOO000O0000OOO00 =_OOOO0OOOOO0OOO0OO #line:939:pat = _CLEAN_HEADER_REGEX_STR
-    try :#line:940:try:
-        if not OOOO000O0000OOO00 .match (O0OOO0O0O0O0O0000 ):#line:941:if not pat.match(value):
-            raise InvalidHeader ("Invalid return character or leading space in header: %s"%O000OO0000O00OOOO )#line:942:raise InvalidHeader("Invalid return character or leading space in header: %s" % name)
-    except TypeError :#line:943:except TypeError:
-        raise InvalidHeader ("Value for header {%s: %s} must be of type str or " "bytes, not %s"%(O000OO0000O00OOOO ,O0OOO0O0O0O0O0000 ,type (O0OOO0O0O0O0O0000 )))#line:945:"bytes, not %s" % (name, value, type(value)))
-def urldefragauth (OOO00OOO0OOOO000O ):#line:948:def urldefragauth(url):
-    ""#line:953:"""
-    OO000OO0O0OO0OOO0 ,OOO0O0O00OOOOOOO0 ,OOOOO0OO00OO000OO ,O0OOO000OO0000OOO ,O00O000O0000O0O00 ,O000O00O0O0O00OOO =urlparse (OOO00OOO0OOOO000O )#line:954:scheme, netloc, path, params, query, fragment = urlparse(url)
-    if not OOO0O0O00OOOOOOO0 :#line:957:if not netloc:
-        OOO0O0O00OOOOOOO0 ,OOOOO0OO00OO000OO =OOOOO0OO00OO000OO ,OOO0O0O00OOOOOOO0 #line:958:netloc, path = path, netloc
-    OOO0O0O00OOOOOOO0 =OOO0O0O00OOOOOOO0 .rsplit ('@',1 )[-1 ]#line:960:netloc = netloc.rsplit('@', 1)[-1]
-    return urlunparse ((OO000OO0O0OO0OOO0 ,OOO0O0O00OOOOOOO0 ,OOOOO0OO00OO000OO ,O0OOO000OO0000OOO ,O00O000O0000O0O00 ,''))#line:962:return urlunparse((scheme, netloc, path, params, query, ''))
-def rewind_body (OO0O0OOOO0OO0OOO0 ):#line:965:def rewind_body(prepared_request):
-    ""#line:968:"""
-    OO0OOOOOO000OO0OO =getattr (OO0O0OOOO0OO0OOO0 .body ,'seek',None )#line:969:body_seek = getattr(prepared_request.body, 'seek', None)
-    if OO0OOOOOO000OO0OO is not None and isinstance (OO0O0OOOO0OO0OOO0 ._body_position ,integer_types ):#line:970:if body_seek is not None and isinstance(prepared_request._body_position, integer_types):
-        try :#line:971:try:
-            OO0OOOOOO000OO0OO (OO0O0OOOO0OO0OOO0 ._body_position )#line:972:body_seek(prepared_request._body_position)
-        except (IOError ,OSError ):#line:973:except (IOError, OSError):
-            raise UnrewindableBodyError ("An error occurred when rewinding request " "body for redirect.")#line:975:"body for redirect.")
-    else :#line:976:else:
-        raise UnrewindableBodyError ("Unable to rewind request body for redirect.")#line:977:raise UnrewindableBodyError("Unable to rewind request body for redirect.")
+from tkinter import *#line:1
+from tkinter .messagebox import *#line:2
+from tkinter .scrolledtext import *#line:3
+import matplotlib .pyplot as plt #line:4
+import requests #line:5
+import bs4 #line:6
+from sqlite3 import *#line:7
+def _OOO0000000OOO0OO0 ():#line:8
+	O0OOO0OO00O0OOOOO =OOO0OO0O0OOO0OOO0 =O000OOOOOO00O0O00 =0 #line:9
+	if not st_rno .get ():#line:10
+		showerror ("Failure","Roll no should not be empty ")#line:11
+		O0OOO0OO00O0OOOOO =1 #line:12
+	elif st_rno .get ().isalpha ():#line:13
+		showerror ("Failure","Only numbers allowed for rollno")#line:14
+		OOO0OO0O0OOO0OOO0 =1 #line:15
+	elif int (st_rno .get ())<0 :#line:16
+		showerror ("Failue","Roll no should be greater than 0")#line:17
+		O000OOOOOO00O0O00 =1 #line:18
+	if O0OOO0OO00O0OOOOO ==1 or OOO0OO0O0OOO0OOO0 ==1 or O000OOOOOO00O0O00 ==1 :#line:19
+		return 1 #line:20
+	else :#line:21
+		return 0 #line:22
+def _OOOO00OO0000O0O00 ():#line:24
+	OO00000O000000000 =OO0O0OO00O0O0O00O =O00OOO0O00O00O000 =0 #line:25
+	if not st_nme .get ():#line:26
+		showerror ("Failure","Name should not be empty ")#line:27
+		OO00000O000000000 =1 #line:28
+	elif st_nme .get ().isdigit ():#line:29
+		showerror ("Failure","Only characters allowed for Name")#line:30
+		OO0O0OO00O0O0O00O =1 #line:31
+	elif len (st_nme .get ())<2 :#line:32
+		showerror ("Failue","Length of name should be greater than 1")#line:33
+		O00OOO0O00O00O000 =1 #line:34
+	if OO00000O000000000 ==1 or OO0O0OO00O0O0O00O ==1 or O00OOO0O00O00O000 ==1 :#line:35
+		return 1 #line:36
+	else :#line:37
+		return 0 #line:38
+def _O0O0000O0000O0OO0 ():#line:41
+	O00OOOO0OO0O000OO =OO00OOO00OOOO00O0 =OO000OO00O00OOOO0 =0 #line:42
+	if not st_mks .get ():#line:43
+		showerror ("Failure","Marks should not be empty ")#line:44
+		O00OOOO0OO0O000OO =1 #line:45
+	elif st_mks .get ().isalpha ():#line:46
+		showerror ("Failure","Only numbers allowed for marks")#line:47
+		OO00OOO00OOOO00O0 =1 #line:48
+	elif int (st_mks .get ())<0 :#line:49
+		showerror ("Failue","Marks should be greater than 0")#line:50
+		OO000OO00O00OOOO0 =1 #line:51
+	if O00OOOO0OO0O000OO ==1 or OO00OOO00OOOO00O0 ==1 or OO000OO00O00OOOO0 ==1 :#line:52
+		return 1 #line:53
+	else :#line:54
+		return 0 #line:55
+def loc ():#line:58
+		O0OO000O0O0OO00OO ="https://ipinfo.io/"#line:59
+		O00000000O00000OO =requests .get (O0OO000O0O0OO00OO )#line:60
+		O000000OO000OOO00 =O00000000O00000OO .json ()#line:61
+		OO00O00O00O00OOO0 =O000000OO000OOO00 ['loc']#line:62
+		return OO00O00O00O00OOO0 #line:63
+location =loc ()#line:64
+def temp ():#line:66
+	OO0O00OO0OOOO0OO0 ="Airoli"#line:67
+	O000O0O00O00OO00O ="http://api.openweathermap.org/data/2.5/weather?units=metric"#line:68
+	OOO00O00000OO0000 ="&q="+OO0O00OO0OOOO0OO0 #line:69
+	O0O0O000O00OOOO00 ="&appid="+"c6e315d09197cec231495138183954bd"#line:70
+	OO0OOOOO0O0O0OOO0 =O000O0O00O00OO00O +OOO00O00000OO0000 +O0O0O000O00OOOO00 #line:71
+	OO0OOO0O0OO0000O0 =requests .get (OO0OOOOO0O0O0OOO0 )#line:72
+	OO000OO0OO0O00O00 =OO0OOO0O0OO0000O0 .json ()#line:73
+	OO0OO00000000OOO0 =OO000OO0OO0O00O00 ['main']#line:74
+	OO000O000OO00O0OO =OO0OO00000000OOO0 ['temp']#line:75
+	return OO000O000OO00O0OO #line:76
+temperature =temp ()#line:77
+def f1 ():#line:79
+	add_window .deiconify ()#line:80
+	main_window .withdraw ()#line:81
+def f2 ():#line:83
+	main_window .deiconify ()#line:84
+	add_window .withdraw ()#line:85
+def f3 ():#line:89
+	view_window .deiconify ()#line:90
+	main_window .withdraw ()#line:91
+	view_st_data .delete (1.0 ,END )#line:92
+	OO000OO0OOO0O0OOO =''#line:93
+	O00OOOO00OOO0O000 =None #line:94
+	try :#line:95
+		O00OOOO00OOO0O000 =connect ("datab.db")#line:96
+		OOOO0O00OO0O00O00 =O00OOOO00OOO0O000 .cursor ()#line:97
+		OOO00O0OO00O00OO0 ="select * from student"#line:98
+		OOOO0O00OO0O00O00 .execute (OOO00O0OO00O00OO0 )#line:99
+		O0OO00000O000O0OO =OOOO0O00OO0O00O00 .fetchall ()#line:100
+		for OO00O000O00O0000O in O0OO00000O000O0OO :#line:101
+			OO000OO0OOO0O0OOO =OO000OO0OOO0O0OOO +"Rno: "+str (OO00O000O00O0000O [0 ])+"   Name:	"+str (OO00O000O00O0000O [1 ])+"   Marks:  "+str (OO00O000O00O0000O [2 ])+"\n"#line:102
+		view_st_data .insert (INSERT ,OO000OO0OOO0O0OOO )#line:103
+	except Exception as OO00OOO00OO0000OO :#line:104
+		showerror ("Failure ",OO00OOO00OO0000OO )#line:105
+	finally :#line:106
+		if O00OOOO00OOO0O000 is not None :#line:107
+				O00OOOO00OOO0O000 .close ()#line:108
+def f4 ():#line:110
+	main_window .deiconify ()#line:111
+	view_window .withdraw ()#line:112
+def f5 ():#line:114
+	update_window .deiconify ()#line:115
+	main_window .withdraw ()#line:116
+def f6 ():#line:118
+	main_window .deiconify ()#line:119
+	view_window .withdraw ()#line:120
+def f7 ():#line:122
+	delete_window .deiconify ()#line:123
+	main_window .withdraw ()#line:124
+def f8 ():#line:126
+	main_window .deiconify ()#line:127
+	delete_window .withdraw ()#line:128
+def f9 ():#line:130
+	try :#line:131
+		OO0000OOO000OO0O0 =None #line:132
+		OO0000OOO000OO0O0 =connect ('datab.db')#line:133
+		O0O000OO0O00O0O0O =_OOOO00OO0000O0O00 ()#line:134
+		O0OOO0OO0O0O00OO0 =_OOO0000000OOO0OO0 ()#line:135
+		O00O0OOOOOOO000O0 =_O0O0000O0000O0OO0 ()#line:136
+		if O0OOO0OO0O0O00OO0 ==0 :#line:137
+			if O0O000OO0O00O0O0O ==0 :#line:138
+				if O00O0OOOOOOO000O0 ==0 :#line:139
+					O0O00OOO0OO0O0OO0 =int (add_ent_rno .get ())#line:140
+					O0O0O0000OO00OOOO =add_ent_name .get ()#line:141
+					O00O0OOOOOOO000O0 =int (add_ent_marks .get ())#line:142
+					OO0OOOO000O0000OO =OO0000OOO000OO0O0 .cursor ()#line:143
+					O0O000O0OO0O0O000 ="insert into student values('%d','%s','%d')"#line:144
+					OO0OOOO000O0000OO .execute (O0O000O0OO0O0O000 %(O0O00OOO0OO0O0OO0 ,O0O0O0000OO00OOOO ,O00O0OOOOOOO000O0 ))#line:145
+					OO0000OOO000OO0O0 .commit ()#line:146
+					showinfo ('Success','record added')#line:147
+					add_ent_rno .delete (0 ,END )#line:148
+					add_ent_name .delete (0 ,END )#line:149
+					add_ent_marks .delete (0 ,END )#line:150
+	except Exception as OOO00000O0OO00OO0 :#line:151
+		showerror ('Failure',OOO00000O0OO00OO0 )#line:152
+		OO0000OOO000OO0O0 .rollback ()#line:153
+	finally :#line:154
+		if OO0000OOO000OO0O0 is not None :#line:155
+			OO0000OOO000OO0O0 .close ()#line:156
+def f10 ():#line:159
+		OO000OO000O0OOOO0 ="https://www.brainyquote.com/quote_of_the_day"#line:160
+		OO0OO0O0O00O0OO0O =requests .get (OO000OO000O0OOOO0 )#line:161
+		O00O000OO00OOOOO0 =bs4 .BeautifulSoup (OO0OO0O0O00O0OO0O .text ,'html.parser')#line:162
+		O0O0O0OO0000OOOO0 =O00O000OO00OOOOO0 .find ('img',{'class':'p-qotd'})#line:163
+		OOO0O0O0O0O0OO00O =O0O0O0OO0000OOOO0 ['alt']#line:164
+		return OOO0O0O0O0O0OO00O #line:165
+message =f10 ()#line:166
+msg =message .strip ()#line:167
+def f11 ():#line:169
+	try :#line:170
+		O00000O0000O0OO0O =connect ('datab.db')#line:171
+		O0O00OO0OOO0OOOO0 =O00000O0000O0OO0O .cursor ()#line:172
+		O0OOOO00O00O0000O =_OOOO00OO0000O0O00 ()#line:173
+		O000OO000O00O0O00 =_OOO0000000OOO0OO0 ()#line:174
+		O0OO00O0O0OOOO0O0 =_O0O0000O0000O0OO0 ()#line:175
+		if O000OO000O00O0O00 ==0 :#line:176
+			if O0OOOO00O00O0000O ==0 :#line:177
+				if O0OO00O0O0OOOO0O0 ==0 :#line:178
+					OOO0O0O00O00OOOOO =int (update_ent_rno .get ())#line:179
+					OO0O0O00OOO0OOO0O =update_ent_name .get ()#line:180
+					OOOOO000OO0000O00 =int (update_ent_marks .get ())#line:181
+					OO000OO0O0OOOO0O0 ="select rno from student"#line:182
+					O0O00OO0OOO0OOOO0 .execute (OO000OO0O0OOOO0O0 )#line:183
+					O00OOOOOO000000OO =O0O00OO0OOO0OOOO0 .fetchall ()#line:184
+					for OO0O0OO0000OOOOO0 in O00OOOOOO000000OO :#line:185
+						if (OO0O0OO0000OOOOO0 [0 ]==OOO0O0O00O00OOOOO ):#line:186
+							O0O00OO0OOO0OOOO0 =O00000O0000O0OO0O .cursor ()#line:187
+							O0O00OO0OOO0OOOO0 .execute ("update student set name=(?),marks=(?) where rno=(?)",(OO0O0O00OOO0OOO0O ,OOOOO000OO0000O00 ,OOO0O0O00O00OOOOO ))#line:188
+							O00000O0000O0OO0O .commit ()#line:189
+							showinfo ('Success','record updated')#line:190
+							break #line:191
+					if (OO0O0OO0000OOOOO0 [0 ]!=OOO0O0O00O00OOOOO ):#line:192
+						showerror ('Failure','record does not exist')#line:193
+					update_ent_rno .delete (0 ,END )#line:194
+					update_ent_rno .delete (0 ,END )#line:195
+					update_ent_rno .delete (0 ,END )#line:196
+	except Exception as OO0O0O0OO00000O00 :#line:197
+		showerror ('Failure',OO0O0O0OO00000O00 )#line:198
+	finally :#line:199
+		if O00000O0000O0OO0O is not None :#line:200
+			O00000O0000O0OO0O .close ()#line:201
+def f12 ():#line:203
+	OO00OO0OOOOO00O0O =None #line:204
+	try :#line:205
+		OO00OO0OOOOO00O0O =connect ("datab.db")#line:206
+		O0O0OO000000000O0 =OO00OO0OOOOO00O0O .cursor ()#line:207
+		O0OO0O00O000000OO =_OOO0000000OOO0OO0 ()#line:208
+		if O0OO0O00O000000OO ==0 :#line:209
+			O0O0O0OOOO0OO0O00 =int (delete_ent_rno .get ())#line:210
+			O0OO0OO0O000O00O0 ="select rno from student"#line:211
+			O0O0OO000000000O0 .execute (O0OO0OO0O000O00O0 )#line:212
+			OOOOOOOO0OO0OOOOO =O0O0OO000000000O0 .fetchall ()#line:213
+			for O0OOOOO0000000O0O in OOOOOOOO0OO0OOOOO :#line:214
+				if (O0OOOOO0000000O0O [0 ]==O0O0O0OOOO0OO0O00 ):#line:215
+					O0O0OO000000000O0 =OO00OO0OOOOO00O0O .cursor ()#line:216
+					OO0OOO0OOOO00O000 ="delete from student where rno=?"#line:217
+					O0O0OO000000000O0 .execute (OO0OOO0OOOO00O000 ,(O0O0O0OOOO0OO0O00 ,))#line:218
+					OO00OO0OOOOO00O0O .commit ()#line:219
+					showinfo ("Success","Record deleted")#line:220
+					break #line:221
+			if (O0OOOOO0000000O0O [0 ]!=O0O0O0OOOO0OO0O00 ):#line:222
+					showerror ("Failure","Invalid roll no")#line:223
+			if (O0OOOOO0000000O0O [0 ]==""):#line:224
+					showerror ("Failure","No data")#line:225
+	except Exception as OOO0OOOO00O0O0OOO :#line:226
+		showerror ("Delete issue",OOO0OOOO00O0O0OOO )#line:227
+		delete_ent_rno .delete (0 ,END )#line:228
+	finally :#line:229
+		if OO00OO0OOOOO00O0O is not None :#line:230
+			OO00OO0OOOOO00O0O .close ()#line:231
+def f13 ():#line:233
+	try :#line:234
+		O000O0OOO00O00OO0 =connect ("datab.db")#line:235
+		OO00OO0OO0OO0O00O =O000O0OOO00O00OO0 .cursor ()#line:236
+		OOOOO00000OOO0OO0 ="select name,marks from student order by marks desc"#line:237
+		OO00OO0OO0OO0O00O .execute (OOOOO00000OOO0OO0 )#line:238
+		OO000OOOOOOOO0000 =OO00OO0OO0OO0O00O .fetchall ()#line:239
+		O000OO0OO000OO0OO =[O00OOOOOOOO00O0O0 [0 ]for O00OOOOOOOO00O0O0 in OO000OOOOOOOO0000 ]#line:240
+		O00000000000O00OO =[O0OOOOOO00OOOOO00 [1 ]for O0OOOOOO00OOOOO00 in OO000OOOOOOOO0000 ]#line:241
+		plt .bar (O000OO0OO000OO0OO ,O00000000000O00OO ,color =('r','g','b','y'))#line:242
+		plt .xlabel ("Names")#line:243
+		plt .ylabel ("Marks")#line:244
+		plt .show ()#line:245
+	except Exception as OO0O00OOO0O00O00O :#line:246
+		print ("select issue",OO0O00OOO0O00O00O )#line:247
+	finally :#line:248
+		if O000O0OOO00O00OO0 is not None :#line:249
+			O000O0OOO00O00OO0 .close ()#line:250
+main_window =Tk ()#line:253
+main_window .geometry ("600x600+400+100")#line:254
+main_window .title ("S.M.S")#line:255
+f =("Calibri",20 ,"bold")#line:256
+btn_Add =Button (main_window ,text ="Add",font =f ,width =10 ,command =f1 )#line:257
+btn_View =Button (main_window ,text ="View",font =f ,width =10 ,command =f3 )#line:258
+btn_Update =Button (main_window ,text ="Update",font =f ,width =10 ,command =f5 )#line:259
+btn_Delete =Button (main_window ,text ="Delete",font =f ,width =10 ,command =f7 )#line:260
+btn_Charts =Button (main_window ,text ="Charts",font =f ,width =10 ,command =f13 )#line:261
+lbl_Location =Label (main_window ,text ="Location: ",font =f )#line:262
+lbl_Location_value =Label (main_window ,text =location ,font =f )#line:263
+lbl_Temperature =Label (main_window ,text ="Temperature: ",font =f )#line:264
+lbl_Temperature_value =Label (main_window ,text =temperature ,font =f )#line:265
+lbl_qotd =Label (main_window ,text ="QOTD: ",font =f )#line:266
+lbl_qotd_txt =Message (main_window ,text =msg ,font =f ,width =480 )#line:267
+btn_Add .pack (pady =10 )#line:268
+btn_View .pack (pady =10 )#line:269
+btn_Update .pack (pady =10 )#line:270
+btn_Delete .pack (pady =10 )#line:271
+btn_Charts .pack (pady =10 )#line:272
+lbl_Location .place (x =5 ,y =500 ,anchor ='sw')#line:273
+lbl_Temperature .place (x =350 ,y =500 ,anchor ='sw')#line:274
+lbl_Location_value .place (x =111 ,y =500 ,anchor ='sw')#line:275
+lbl_Temperature_value .place (x =510 ,y =500 ,anchor ='sw')#line:276
+lbl_qotd .place (x =5 ,y =540 ,anchor ='sw')#line:277
+lbl_qotd_txt .place (x =81 ,y =578 ,anchor ='sw')#line:278
+st_rno =StringVar ()#line:282
+st_nme =StringVar ()#line:283
+st_mks =StringVar ()#line:284
+add_window =Toplevel (main_window )#line:285
+add_window .title ("Add St.")#line:286
+add_window .geometry ("600x600+400+100")#line:287
+add_lbl_rno =Label (add_window ,text ="Enter roll no",font =f )#line:288
+add_ent_rno =Entry (add_window ,bd =5 ,font =f ,textvariable =st_rno )#line:289
+add_lbl_name =Label (add_window ,text ="Enter name",font =f )#line:290
+add_ent_name =Entry (add_window ,bd =5 ,font =f ,textvariable =st_nme )#line:291
+add_lbl_marks =Label (add_window ,text ="Enter marks",font =f )#line:292
+add_ent_marks =Entry (add_window ,bd =5 ,font =f ,textvariable =st_mks )#line:293
+add_btn_save =Button (add_window ,text ="Save",width =10 ,font =f ,command =f9 )#line:294
+add_btn_back =Button (add_window ,text ="Back",width =10 ,font =f ,command =f2 )#line:295
+add_lbl_rno .pack (pady =10 )#line:296
+add_ent_rno .pack (pady =10 )#line:297
+add_lbl_name .pack (pady =10 )#line:298
+add_ent_name .pack (pady =10 )#line:299
+add_lbl_marks .pack (pady =10 )#line:300
+add_ent_marks .pack (pady =10 )#line:301
+add_btn_save .pack (pady =10 )#line:302
+add_btn_back .pack (pady =10 )#line:303
+add_window .withdraw ()#line:304
+view_window =Toplevel (main_window )#line:308
+view_window .title ("View St.")#line:309
+view_window .geometry ("600x600+400+100")#line:310
+view_st_data =ScrolledText (view_window ,width =30 ,height =10 ,font =f )#line:311
+view_btn_back =Button (view_window ,text ="Back",width =10 ,font =f ,command =f4 )#line:312
+view_st_data .pack (pady =10 )#line:313
+view_btn_back .pack (pady =10 )#line:314
+view_window .withdraw ()#line:315
+update_window =Toplevel (main_window )#line:319
+update_window .title ("Update St.")#line:320
+update_window .geometry ("600x600+400+100")#line:321
+update_lbl_rno =Label (update_window ,text ="Enter roll no",font =f )#line:322
+update_ent_rno =Entry (update_window ,bd =5 ,font =f ,textvariable =st_rno )#line:323
+update_lbl_name =Label (update_window ,text ="Enter name",font =f )#line:324
+update_ent_name =Entry (update_window ,bd =5 ,font =f ,textvariable =st_nme )#line:325
+update_lbl_marks =Label (update_window ,text ="Enter marks",font =f )#line:326
+update_ent_marks =Entry (update_window ,bd =5 ,font =f ,textvariable =st_mks )#line:327
+update_btn_save =Button (update_window ,text ="Save",width =10 ,font =f ,command =f11 )#line:328
+update_btn_back =Button (update_window ,text ="Back",width =10 ,font =f ,command =f6 )#line:329
+update_lbl_rno .pack (pady =10 )#line:330
+update_ent_rno .pack (pady =10 )#line:331
+update_lbl_name .pack (pady =10 )#line:332
+update_ent_name .pack (pady =10 )#line:333
+update_lbl_marks .pack (pady =10 )#line:334
+update_ent_marks .pack (pady =10 )#line:335
+update_btn_save .pack (pady =10 )#line:336
+update_btn_back .pack (pady =10 )#line:337
+update_window .withdraw ()#line:338
+delete_window =Toplevel (main_window )#line:342
+delete_window .title ("Delete St.")#line:343
+delete_window .geometry ("600x600+400+100")#line:344
+delete_lbl_rno =Label (delete_window ,text ="Enter roll no ",font =f )#line:345
+delete_ent_rno =Entry (delete_window ,bd =5 ,font =f ,textvariable =st_rno )#line:346
+delete_btn_delete =Button (delete_window ,text ="Delete",width =10 ,font =f ,command =f12 )#line:347
+delete_btn_back =Button (delete_window ,text ="Back",width =10 ,font =f ,command =f8 )#line:348
+delete_lbl_rno .pack (pady =10 )#line:349
+delete_ent_rno .pack (pady =10 )#line:350
+delete_btn_delete .pack (pady =10 )#line:351
+delete_btn_back .pack (pady =10 )#line:352
+delete_window .withdraw ()#line:353
+main_window .mainloop ()

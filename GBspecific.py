@@ -2,11 +2,10 @@ import os
 import math
 import numpy as np
 from collections import Counter
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
-import seaborn as sns
 import re
 
 # Paths to your data
@@ -56,18 +55,29 @@ def extract_features(text):
     return [entropy, avg_token_length, median_token_length, std_token_length, unique_token_ratio, keyword_count, string_entropy, comment_density]
 
 # Load the data
-corpus = []
-labels = []
-features = []
-folder_label_map = {"Non_Obfuscated": 0, "Obf_data_Jlaive": 1, "Obf_data_Oxyry": 1, "Obf_data_PyArmor": 1, "Obf_data_Pyobfuscate": 1, "Obf_data_FCTPyobfuscator": 1}
+folder_label_map = {
+    "Non_Obfuscated": 0,
+    "Obf_data_Jlaive": 1,
+    "Obf_data_Oxyry": 2,
+    "Obf_data_PyArmor": 3,
+    "Obf_data_Pyobfuscate": 4,
+    "Obf_data_FCTPyobfuscator": 5
+}
 
 X_train_combined, X_test_combined, y_train_combined, y_test_combined = [], [], [], []
+
+total_files = 0
+folder_file_counts = {}
 
 # Reading files and extracting features
 for folder in folders:
     folder_path = os.path.join(base_path, folder)
     label = folder_label_map[folder]
     files = os.listdir(folder_path)
+    
+    # Update file counts
+    total_files += len(files)
+    folder_file_counts[folder] = len(files)
     
     # Temporary lists to store data from the current folder
     folder_features = []
@@ -92,10 +102,11 @@ for folder in folders:
     y_train_combined.extend(y_train)
     y_test_combined.extend(y_test)
 
-print("X_train=", len(X_train_combined))
-print("X_test=", len(X_test_combined))
-print("y_train=", len(y_train_combined))
-print("y_test=", len(y_test_combined))
+# Print file counts
+print(f"Total files: {total_files}")
+print("Files per folder:")
+for folder, count in folder_file_counts.items():
+    print(f"  {folder}: {count} files")
 
 # Convert lists to numpy arrays
 X_train_combined = np.array(X_train_combined)
@@ -103,43 +114,18 @@ X_test_combined = np.array(X_test_combined)
 y_train_combined = np.array(y_train_combined)
 y_test_combined = np.array(y_test_combined)
 
-# Create and train Random Forest model
-clf = RandomForestClassifier(n_estimators=100, random_state=42)
+# Create and train Gradient Boosting model
+clf = GradientBoostingClassifier(n_estimators=100, random_state=42)
 clf.fit(X_train_combined, y_train_combined)
 
 # Predict on the test set
 y_test_pred = clf.predict(X_test_combined)
 
-# Print accuracy, confusion matrix, and classification report
+# Print accuracy, confusion matrix
 accuracy = accuracy_score(y_test_combined, y_test_pred)
 conf_matrix = confusion_matrix(y_test_combined, y_test_pred)
-report = classification_report(y_test_combined, y_test_pred)
 
 print(f"\nAccuracy: {accuracy}")
 print("\nConfusion Matrix:\n")
 print(conf_matrix)
-print("\nClassification Report:\n")
-print(report)
-
-# Plot confusion matrix
-plt.figure(figsize=(10, 7))
-sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Non-Obfuscated', 'Obfuscated'], yticklabels=['Non-Obfuscated', 'Obfuscated'])
-plt.xlabel('Predicted')
-plt.ylabel('True')
-plt.title('Confusion Matrix')
-plt.show()
-
-# Plot feature importances
-feature_names = ['Entropy', 'Avg Token Length', 'Median Token Length', 'Std Token Length', 'Unique Token Ratio', 'Keyword Count', 'String Entropy', 'Comment Density']
-importances = clf.feature_importances_
-indices = np.argsort(importances)[::-1]
-
-plt.figure(figsize=(12, 8))
-plt.title("Feature Importances")
-plt.bar(range(len(importances)), importances[indices], align="center")
-plt.xticks(range(len(importances)), [feature_names[i] for i in indices], rotation=45, ha='right')
-plt.xlabel("Feature")
-plt.ylabel("Importance")
-plt.tight_layout()
-plt.show()
 

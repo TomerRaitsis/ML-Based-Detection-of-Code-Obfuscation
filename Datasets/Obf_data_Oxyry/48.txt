@@ -1,1313 +1,158 @@
-from __future__ import absolute_import ,division ,unicode_literals #line:1:from __future__ import absolute_import, division, unicode_literals
-from pip ._vendor .six import unichr as chr #line:3:from pip._vendor.six import unichr as chr
-from collections import deque #line:5:from collections import deque
-from .constants import spaceCharacters #line:7:from .constants import spaceCharacters
-from .constants import entities #line:8:from .constants import entities
-from .constants import asciiLetters ,asciiUpper2Lower #line:9:from .constants import asciiLetters, asciiUpper2Lower
-from .constants import digits ,hexDigits ,EOF #line:10:from .constants import digits, hexDigits, EOF
-from .constants import tokenTypes ,tagTokenTypes #line:11:from .constants import tokenTypes, tagTokenTypes
-from .constants import replacementCharacters #line:12:from .constants import replacementCharacters
-from ._inputstream import HTMLInputStream #line:14:from ._inputstream import HTMLInputStream
-from ._trie import Trie #line:16:from ._trie import Trie
-entitiesTrie =Trie (entities )#line:18:entitiesTrie = Trie(entities)
-class HTMLTokenizer (object ):#line:21:class HTMLTokenizer(object):
-    ""#line:32:"""
-    def __init__ (OO00OOO00O0O0O0OO ,OOOOO0O0OOO0OOO0O ,parser =None ,**O000O00000OOO0000 ):#line:34:def __init__(self, stream, parser=None, **kwargs):
-        OO00OOO00O0O0O0OO .stream =HTMLInputStream (OOOOO0O0OOO0OOO0O ,**O000O00000OOO0000 )#line:36:self.stream = HTMLInputStream(stream, **kwargs)
-        OO00OOO00O0O0O0OO .parser =parser #line:37:self.parser = parser
-        OO00OOO00O0O0O0OO .escapeFlag =False #line:40:self.escapeFlag = False
-        OO00OOO00O0O0O0OO .lastFourChars =[]#line:41:self.lastFourChars = []
-        OO00OOO00O0O0O0OO .state =OO00OOO00O0O0O0OO .dataState #line:42:self.state = self.dataState
-        OO00OOO00O0O0O0OO .escape =False #line:43:self.escape = False
-        OO00OOO00O0O0O0OO .currentToken =None #line:46:self.currentToken = None
-        super (HTMLTokenizer ,OO00OOO00O0O0O0OO ).__init__ ()#line:47:super(HTMLTokenizer, self).__init__()
-    def __iter__ (O0OO0OO0OOOO0O000 ):#line:49:def __iter__(self):
-        ""#line:55:"""
-        O0OO0OO0OOOO0O000 .tokenQueue =deque ([])#line:56:self.tokenQueue = deque([])
-        while O0OO0OO0OOOO0O000 .state ():#line:59:while self.state():
-            while O0OO0OO0OOOO0O000 .stream .errors :#line:60:while self.stream.errors:
-                yield {"type":tokenTypes ["ParseError"],"data":O0OO0OO0OOOO0O000 .stream .errors .pop (0 )}#line:61:yield {"type": tokenTypes["ParseError"], "data": self.stream.errors.pop(0)}
-            while O0OO0OO0OOOO0O000 .tokenQueue :#line:62:while self.tokenQueue:
-                yield O0OO0OO0OOOO0O000 .tokenQueue .popleft ()#line:63:yield self.tokenQueue.popleft()
-    def consumeNumberEntity (O00OO0OOOO0000OOO ,O0OO00OO0OO0OO00O ):#line:65:def consumeNumberEntity(self, isHex):
-        ""#line:69:"""
-        O0O000OOOO0O0OOOO =digits #line:71:allowed = digits
-        O0O000OO0O000OOO0 =10 #line:72:radix = 10
-        if O0OO00OO0OO0OO00O :#line:73:if isHex:
-            O0O000OOOO0O0OOOO =hexDigits #line:74:allowed = hexDigits
-            O0O000OO0O000OOO0 =16 #line:75:radix = 16
-        O00O0OOO00O0OOOOO =[]#line:77:charStack = []
-        OO0O000OOOOOOO0OO =O00OO0OOOO0000OOO .stream .char ()#line:81:c = self.stream.char()
-        while OO0O000OOOOOOO0OO in O0O000OOOO0O0OOOO and OO0O000OOOOOOO0OO is not EOF :#line:82:while c in allowed and c is not EOF:
-            O00O0OOO00O0OOOOO .append (OO0O000OOOOOOO0OO )#line:83:charStack.append(c)
-            OO0O000OOOOOOO0OO =O00OO0OOOO0000OOO .stream .char ()#line:84:c = self.stream.char()
-        O0O000O0OOOOO0000 =int ("".join (O00O0OOO00O0OOOOO ),O0O000OO0O000OOO0 )#line:87:charAsInt = int("".join(charStack), radix)
-        if O0O000O0OOOOO0000 in replacementCharacters :#line:90:if charAsInt in replacementCharacters:
-            OO000O0O0000OO00O =replacementCharacters [O0O000O0OOOOO0000 ]#line:91:char = replacementCharacters[charAsInt]
-            O00OO0OOOO0000OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"illegal-codepoint-for-numeric-entity","datavars":{"charAsInt":O0O000O0OOOOO0000 }})#line:94:"datavars": {"charAsInt": charAsInt}})
-        elif ((0xD800 <=O0O000O0OOOOO0000 <=0xDFFF )or (O0O000O0OOOOO0000 >0x10FFFF )):#line:96:(charAsInt > 0x10FFFF)):
-            OO000O0O0000OO00O ="\uFFFD"#line:97:char = "\uFFFD"
-            O00OO0OOOO0000OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"illegal-codepoint-for-numeric-entity","datavars":{"charAsInt":O0O000O0OOOOO0000 }})#line:100:"datavars": {"charAsInt": charAsInt}})
-        else :#line:101:else:
-            if ((0x0001 <=O0O000O0OOOOO0000 <=0x0008 )or (0x000E <=O0O000O0OOOOO0000 <=0x001F )or (0x007F <=O0O000O0OOOOO0000 <=0x009F )or (0xFDD0 <=O0O000O0OOOOO0000 <=0xFDEF )or O0O000O0OOOOO0000 in frozenset ([0x000B ,0xFFFE ,0xFFFF ,0x1FFFE ,0x1FFFF ,0x2FFFE ,0x2FFFF ,0x3FFFE ,0x3FFFF ,0x4FFFE ,0x4FFFF ,0x5FFFE ,0x5FFFF ,0x6FFFE ,0x6FFFF ,0x7FFFE ,0x7FFFF ,0x8FFFE ,0x8FFFF ,0x9FFFE ,0x9FFFF ,0xAFFFE ,0xAFFFF ,0xBFFFE ,0xBFFFF ,0xCFFFE ,0xCFFFF ,0xDFFFE ,0xDFFFF ,0xEFFFE ,0xEFFFF ,0xFFFFE ,0xFFFFF ,0x10FFFE ,0x10FFFF ])):#line:115:0xFFFFF, 0x10FFFE, 0x10FFFF])):
-                O00OO0OOOO0000OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"illegal-codepoint-for-numeric-entity","datavars":{"charAsInt":O0O000O0OOOOO0000 }})#line:119:"datavars": {"charAsInt": charAsInt}})
-            try :#line:120:try:
-                OO000O0O0000OO00O =chr (O0O000O0OOOOO0000 )#line:123:char = chr(charAsInt)
-            except ValueError :#line:124:except ValueError:
-                O00OOO00OOOOO0000 =O0O000O0OOOOO0000 -0x10000 #line:125:v = charAsInt - 0x10000
-                OO000O0O0000OO00O =chr (0xD800 |(O00OOO00OOOOO0000 >>10 ))+chr (0xDC00 |(O00OOO00OOOOO0000 &0x3FF ))#line:126:char = chr(0xD800 | (v >> 10)) + chr(0xDC00 | (v & 0x3FF))
-        if OO0O000OOOOOOO0OO !=";":#line:130:if c != ";":
-            O00OO0OOOO0000OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"numeric-entity-without-semicolon"})#line:132:"numeric-entity-without-semicolon"})
-            O00OO0OOOO0000OOO .stream .unget (OO0O000OOOOOOO0OO )#line:133:self.stream.unget(c)
-        return OO000O0O0000OO00O #line:135:return char
-    def consumeEntity (O0O000O0OO00O0O0O ,allowedChar =None ,fromAttribute =False ):#line:137:def consumeEntity(self, allowedChar=None, fromAttribute=False):
-        O0OOO000OO00OOO00 ="&"#line:139:output = "&"
-        OOOO0O000OO00OO00 =[O0O000O0OO00O0O0O .stream .char ()]#line:141:charStack = [self.stream.char()]
-        if (OOOO0O000OO00OO00 [0 ]in spaceCharacters or OOOO0O000OO00OO00 [0 ]in (EOF ,"<","&")or (allowedChar is not None and allowedChar ==OOOO0O000OO00OO00 [0 ])):#line:143:(allowedChar is not None and allowedChar == charStack[0])):
-            O0O000O0OO00O0O0O .stream .unget (OOOO0O000OO00OO00 [0 ])#line:144:self.stream.unget(charStack[0])
-        elif OOOO0O000OO00OO00 [0 ]=="#":#line:146:elif charStack[0] == "#":
-            OO00O0000O00000OO =False #line:148:hex = False
-            OOOO0O000OO00OO00 .append (O0O000O0OO00O0O0O .stream .char ())#line:149:charStack.append(self.stream.char())
-            if OOOO0O000OO00OO00 [-1 ]in ("x","X"):#line:150:if charStack[-1] in ("x", "X"):
-                OO00O0000O00000OO =True #line:151:hex = True
-                OOOO0O000OO00OO00 .append (O0O000O0OO00O0O0O .stream .char ())#line:152:charStack.append(self.stream.char())
-            if (OO00O0000O00000OO and OOOO0O000OO00OO00 [-1 ]in hexDigits )or (not OO00O0000O00000OO and OOOO0O000OO00OO00 [-1 ]in digits ):#line:156:or (not hex and charStack[-1] in digits):
-                O0O000O0OO00O0O0O .stream .unget (OOOO0O000OO00OO00 [-1 ])#line:158:self.stream.unget(charStack[-1])
-                O0OOO000OO00OOO00 =O0O000O0OO00O0O0O .consumeNumberEntity (OO00O0000O00000OO )#line:159:output = self.consumeNumberEntity(hex)
-            else :#line:160:else:
-                O0O000O0OO00O0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-numeric-entity"})#line:163:"data": "expected-numeric-entity"})
-                O0O000O0OO00O0O0O .stream .unget (OOOO0O000OO00OO00 .pop ())#line:164:self.stream.unget(charStack.pop())
-                O0OOO000OO00OOO00 ="&"+"".join (OOOO0O000OO00OO00 )#line:165:output = "&" + "".join(charStack)
-        else :#line:167:else:
-            while (OOOO0O000OO00OO00 [-1 ]is not EOF ):#line:173:while (charStack[-1] is not EOF):
-                if not entitiesTrie .has_keys_with_prefix ("".join (OOOO0O000OO00OO00 )):#line:174:if not entitiesTrie.has_keys_with_prefix("".join(charStack)):
-                    break #line:175:break
-                OOOO0O000OO00OO00 .append (O0O000O0OO00O0O0O .stream .char ())#line:176:charStack.append(self.stream.char())
-            try :#line:182:try:
-                OOOOOOOO00OO0OOOO =entitiesTrie .longest_prefix ("".join (OOOO0O000OO00OO00 [:-1 ]))#line:183:entityName = entitiesTrie.longest_prefix("".join(charStack[:-1]))
-                O0O0O0000O00O0OO0 =len (OOOOOOOO00OO0OOOO )#line:184:entityLength = len(entityName)
-            except KeyError :#line:185:except KeyError:
-                OOOOOOOO00OO0OOOO =None #line:186:entityName = None
-            if OOOOOOOO00OO0OOOO is not None :#line:188:if entityName is not None:
-                if OOOOOOOO00OO0OOOO [-1 ]!=";":#line:189:if entityName[-1] != ";":
-                    O0O000O0OO00O0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"named-entity-without-semicolon"})#line:191:"named-entity-without-semicolon"})
-                if (OOOOOOOO00OO0OOOO [-1 ]!=";"and fromAttribute and (OOOO0O000OO00OO00 [O0O0O0000O00O0OO0 ]in asciiLetters or OOOO0O000OO00OO00 [O0O0O0000O00O0OO0 ]in digits or OOOO0O000OO00OO00 [O0O0O0000O00O0OO0 ]=="=")):#line:195:charStack[entityLength] == "=")):
-                    O0O000O0OO00O0O0O .stream .unget (OOOO0O000OO00OO00 .pop ())#line:196:self.stream.unget(charStack.pop())
-                    O0OOO000OO00OOO00 ="&"+"".join (OOOO0O000OO00OO00 )#line:197:output = "&" + "".join(charStack)
-                else :#line:198:else:
-                    O0OOO000OO00OOO00 =entities [OOOOOOOO00OO0OOOO ]#line:199:output = entities[entityName]
-                    O0O000O0OO00O0O0O .stream .unget (OOOO0O000OO00OO00 .pop ())#line:200:self.stream.unget(charStack.pop())
-                    O0OOO000OO00OOO00 +="".join (OOOO0O000OO00OO00 [O0O0O0000O00O0OO0 :])#line:201:output += "".join(charStack[entityLength:])
-            else :#line:202:else:
-                O0O000O0OO00O0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-named-entity"})#line:204:"expected-named-entity"})
-                O0O000O0OO00O0O0O .stream .unget (OOOO0O000OO00OO00 .pop ())#line:205:self.stream.unget(charStack.pop())
-                O0OOO000OO00OOO00 ="&"+"".join (OOOO0O000OO00OO00 )#line:206:output = "&" + "".join(charStack)
-        if fromAttribute :#line:208:if fromAttribute:
-            O0O000O0OO00O0O0O .currentToken ["data"][-1 ][1 ]+=O0OOO000OO00OOO00 #line:209:self.currentToken["data"][-1][1] += output
-        else :#line:210:else:
-            if O0OOO000OO00OOO00 in spaceCharacters :#line:211:if output in spaceCharacters:
-                OO0OOOO00O0O00O0O ="SpaceCharacters"#line:212:tokenType = "SpaceCharacters"
-            else :#line:213:else:
-                OO0OOOO00O0O00O0O ="Characters"#line:214:tokenType = "Characters"
-            O0O000O0OO00O0O0O .tokenQueue .append ({"type":tokenTypes [OO0OOOO00O0O00O0O ],"data":O0OOO000OO00OOO00 })#line:215:self.tokenQueue.append({"type": tokenTypes[tokenType], "data": output})
-    def processEntityInAttribute (O0OOOOO0OOOOO0OO0 ,O0OO0000O0OOO0000 ):#line:217:def processEntityInAttribute(self, allowedChar):
-        ""#line:219:"""
-        O0OOOOO0OOOOO0OO0 .consumeEntity (allowedChar =O0OO0000O0OOO0000 ,fromAttribute =True )#line:220:self.consumeEntity(allowedChar=allowedChar, fromAttribute=True)
-    def emitCurrentToken (O00OOO000OOO00OO0 ):#line:222:def emitCurrentToken(self):
-        ""#line:226:"""
-        O0OO0O0OO0O000000 =O00OOO000OOO00OO0 .currentToken #line:227:token = self.currentToken
-        if (O0OO0O0OO0O000000 ["type"]in tagTokenTypes ):#line:229:if (token["type"] in tagTokenTypes):
-            O0OO0O0OO0O000000 ["name"]=O0OO0O0OO0O000000 ["name"].translate (asciiUpper2Lower )#line:230:token["name"] = token["name"].translate(asciiUpper2Lower)
-            if O0OO0O0OO0O000000 ["type"]==tokenTypes ["EndTag"]:#line:231:if token["type"] == tokenTypes["EndTag"]:
-                if O0OO0O0OO0O000000 ["data"]:#line:232:if token["data"]:
-                    O00OOO000OOO00OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"attributes-in-end-tag"})#line:234:"data": "attributes-in-end-tag"})
-                if O0OO0O0OO0O000000 ["selfClosing"]:#line:235:if token["selfClosing"]:
-                    O00OOO000OOO00OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"self-closing-flag-on-end-tag"})#line:237:"data": "self-closing-flag-on-end-tag"})
-        O00OOO000OOO00OO0 .tokenQueue .append (O0OO0O0OO0O000000 )#line:238:self.tokenQueue.append(token)
-        O00OOO000OOO00OO0 .state =O00OOO000OOO00OO0 .dataState #line:239:self.state = self.dataState
-    def dataState (OO00000OOO0O0OO0O ):#line:242:def dataState(self):
-        O00O0O0000000OO0O =OO00000OOO0O0OO0O .stream .char ()#line:243:data = self.stream.char()
-        if O00O0O0000000OO0O =="&":#line:244:if data == "&":
-            OO00000OOO0O0OO0O .state =OO00000OOO0O0OO0O .entityDataState #line:245:self.state = self.entityDataState
-        elif O00O0O0000000OO0O =="<":#line:246:elif data == "<":
-            OO00000OOO0O0OO0O .state =OO00000OOO0O0OO0O .tagOpenState #line:247:self.state = self.tagOpenState
-        elif O00O0O0000000OO0O =="\u0000":#line:248:elif data == "\u0000":
-            OO00000OOO0O0OO0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:250:"data": "invalid-codepoint"})
-            OO00000OOO0O0OO0O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\u0000"})#line:252:"data": "\u0000"})
-        elif O00O0O0000000OO0O is EOF :#line:253:elif data is EOF:
-            return False #line:255:return False
-        elif O00O0O0000000OO0O in spaceCharacters :#line:256:elif data in spaceCharacters:
-            OO00000OOO0O0OO0O .tokenQueue .append ({"type":tokenTypes ["SpaceCharacters"],"data":O00O0O0000000OO0O +OO00000OOO0O0OO0O .stream .charsUntil (spaceCharacters ,True )})#line:261:data + self.stream.charsUntil(spaceCharacters, True)})
-        else :#line:265:else:
-            OO000OO0O00O0000O =OO00000OOO0O0OO0O .stream .charsUntil (("&","<","\u0000"))#line:266:chars = self.stream.charsUntil(("&", "<", "\u0000"))
-            OO00000OOO0O0OO0O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":O00O0O0000000OO0O +OO000OO0O00O0000O })#line:268:data + chars})
-        return True #line:269:return True
-    def entityDataState (OOO0O000O000O0OOO ):#line:271:def entityDataState(self):
-        OOO0O000O000O0OOO .consumeEntity ()#line:272:self.consumeEntity()
-        OOO0O000O000O0OOO .state =OOO0O000O000O0OOO .dataState #line:273:self.state = self.dataState
-        return True #line:274:return True
-    def rcdataState (OO00OO00OOOO0OOO0 ):#line:276:def rcdataState(self):
-        OO000O0000O0OO00O =OO00OO00OOOO0OOO0 .stream .char ()#line:277:data = self.stream.char()
-        if OO000O0000O0OO00O =="&":#line:278:if data == "&":
-            OO00OO00OOOO0OOO0 .state =OO00OO00OOOO0OOO0 .characterReferenceInRcdata #line:279:self.state = self.characterReferenceInRcdata
-        elif OO000O0000O0OO00O =="<":#line:280:elif data == "<":
-            OO00OO00OOOO0OOO0 .state =OO00OO00OOOO0OOO0 .rcdataLessThanSignState #line:281:self.state = self.rcdataLessThanSignState
-        elif OO000O0000O0OO00O ==EOF :#line:282:elif data == EOF:
-            return False #line:284:return False
-        elif OO000O0000O0OO00O =="\u0000":#line:285:elif data == "\u0000":
-            OO00OO00OOOO0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:287:"data": "invalid-codepoint"})
-            OO00OO00OOOO0OOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:289:"data": "\uFFFD"})
-        elif OO000O0000O0OO00O in spaceCharacters :#line:290:elif data in spaceCharacters:
-            OO00OO00OOOO0OOO0 .tokenQueue .append ({"type":tokenTypes ["SpaceCharacters"],"data":OO000O0000O0OO00O +OO00OO00OOOO0OOO0 .stream .charsUntil (spaceCharacters ,True )})#line:295:data + self.stream.charsUntil(spaceCharacters, True)})
-        else :#line:299:else:
-            O000OOOOOO000O0OO =OO00OO00OOOO0OOO0 .stream .charsUntil (("&","<","\u0000"))#line:300:chars = self.stream.charsUntil(("&", "<", "\u0000"))
-            OO00OO00OOOO0OOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OO000O0000O0OO00O +O000OOOOOO000O0OO })#line:302:data + chars})
-        return True #line:303:return True
-    def characterReferenceInRcdata (O0O0OO00O00O0O000 ):#line:305:def characterReferenceInRcdata(self):
-        O0O0OO00O00O0O000 .consumeEntity ()#line:306:self.consumeEntity()
-        O0O0OO00O00O0O000 .state =O0O0OO00O00O0O000 .rcdataState #line:307:self.state = self.rcdataState
-        return True #line:308:return True
-    def rawtextState (OO0OOOO00OOO00OOO ):#line:310:def rawtextState(self):
-        OO0O0000OO0O0O00O =OO0OOOO00OOO00OOO .stream .char ()#line:311:data = self.stream.char()
-        if OO0O0000OO0O0O00O =="<":#line:312:if data == "<":
-            OO0OOOO00OOO00OOO .state =OO0OOOO00OOO00OOO .rawtextLessThanSignState #line:313:self.state = self.rawtextLessThanSignState
-        elif OO0O0000OO0O0O00O =="\u0000":#line:314:elif data == "\u0000":
-            OO0OOOO00OOO00OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:316:"data": "invalid-codepoint"})
-            OO0OOOO00OOO00OOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:318:"data": "\uFFFD"})
-        elif OO0O0000OO0O0O00O ==EOF :#line:319:elif data == EOF:
-            return False #line:321:return False
-        else :#line:322:else:
-            OOO00O0OOOOOO0000 =OO0OOOO00OOO00OOO .stream .charsUntil (("<","\u0000"))#line:323:chars = self.stream.charsUntil(("<", "\u0000"))
-            OO0OOOO00OOO00OOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OO0O0000OO0O0O00O +OOO00O0OOOOOO0000 })#line:325:data + chars})
-        return True #line:326:return True
-    def scriptDataState (OO00O0O00000000OO ):#line:328:def scriptDataState(self):
-        OOOOO0OO000OOO000 =OO00O0O00000000OO .stream .char ()#line:329:data = self.stream.char()
-        if OOOOO0OO000OOO000 =="<":#line:330:if data == "<":
-            OO00O0O00000000OO .state =OO00O0O00000000OO .scriptDataLessThanSignState #line:331:self.state = self.scriptDataLessThanSignState
-        elif OOOOO0OO000OOO000 =="\u0000":#line:332:elif data == "\u0000":
-            OO00O0O00000000OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:334:"data": "invalid-codepoint"})
-            OO00O0O00000000OO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:336:"data": "\uFFFD"})
-        elif OOOOO0OO000OOO000 ==EOF :#line:337:elif data == EOF:
-            return False #line:339:return False
-        else :#line:340:else:
-            OO0OOO0OOOOOO0OOO =OO00O0O00000000OO .stream .charsUntil (("<","\u0000"))#line:341:chars = self.stream.charsUntil(("<", "\u0000"))
-            OO00O0O00000000OO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OOOOO0OO000OOO000 +OO0OOO0OOOOOO0OOO })#line:343:data + chars})
-        return True #line:344:return True
-    def plaintextState (OOO0000O00O0OOO00 ):#line:346:def plaintextState(self):
-        O0O00OO00OO0OOOOO =OOO0000O00O0OOO00 .stream .char ()#line:347:data = self.stream.char()
-        if O0O00OO00OO0OOOOO ==EOF :#line:348:if data == EOF:
-            return False #line:350:return False
-        elif O0O00OO00OO0OOOOO =="\u0000":#line:351:elif data == "\u0000":
-            OOO0000O00O0OOO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:353:"data": "invalid-codepoint"})
-            OOO0000O00O0OOO00 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:355:"data": "\uFFFD"})
-        else :#line:356:else:
-            OOO0000O00O0OOO00 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":O0O00OO00OO0OOOOO +OOO0000O00O0OOO00 .stream .charsUntil ("\u0000")})#line:358:data + self.stream.charsUntil("\u0000")})
-        return True #line:359:return True
-    def tagOpenState (OO0O0000O00O0O0OO ):#line:361:def tagOpenState(self):
-        O000O000O0O00O000 =OO0O0000O00O0O0OO .stream .char ()#line:362:data = self.stream.char()
-        if O000O000O0O00O000 =="!":#line:363:if data == "!":
-            OO0O0000O00O0O0OO .state =OO0O0000O00O0O0OO .markupDeclarationOpenState #line:364:self.state = self.markupDeclarationOpenState
-        elif O000O000O0O00O000 =="/":#line:365:elif data == "/":
-            OO0O0000O00O0O0OO .state =OO0O0000O00O0O0OO .closeTagOpenState #line:366:self.state = self.closeTagOpenState
-        elif O000O000O0O00O000 in asciiLetters :#line:367:elif data in asciiLetters:
-            OO0O0000O00O0O0OO .currentToken ={"type":tokenTypes ["StartTag"],"name":O000O000O0O00O000 ,"data":[],"selfClosing":False ,"selfClosingAcknowledged":False }#line:371:"selfClosingAcknowledged": False}
-            OO0O0000O00O0O0OO .state =OO0O0000O00O0O0OO .tagNameState #line:372:self.state = self.tagNameState
-        elif O000O000O0O00O000 ==">":#line:373:elif data == ">":
-            OO0O0000O00O0O0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-tag-name-but-got-right-bracket"})#line:377:"expected-tag-name-but-got-right-bracket"})
-            OO0O0000O00O0O0OO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<>"})#line:378:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<>"})
-            OO0O0000O00O0O0OO .state =OO0O0000O00O0O0OO .dataState #line:379:self.state = self.dataState
-        elif O000O000O0O00O000 =="?":#line:380:elif data == "?":
-            OO0O0000O00O0O0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-tag-name-but-got-question-mark"})#line:384:"expected-tag-name-but-got-question-mark"})
-            OO0O0000O00O0O0OO .stream .unget (O000O000O0O00O000 )#line:385:self.stream.unget(data)
-            OO0O0000O00O0O0OO .state =OO0O0000O00O0O0OO .bogusCommentState #line:386:self.state = self.bogusCommentState
-        else :#line:387:else:
-            OO0O0000O00O0O0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-tag-name"})#line:390:"expected-tag-name"})
-            OO0O0000O00O0O0OO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:391:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            OO0O0000O00O0O0OO .stream .unget (O000O000O0O00O000 )#line:392:self.stream.unget(data)
-            OO0O0000O00O0O0OO .state =OO0O0000O00O0O0OO .dataState #line:393:self.state = self.dataState
-        return True #line:394:return True
-    def closeTagOpenState (O0OOO00O0OO000O0O ):#line:396:def closeTagOpenState(self):
-        OO00OO00O0O000OO0 =O0OOO00O0OO000O0O .stream .char ()#line:397:data = self.stream.char()
-        if OO00OO00O0O000OO0 in asciiLetters :#line:398:if data in asciiLetters:
-            O0OOO00O0OO000O0O .currentToken ={"type":tokenTypes ["EndTag"],"name":OO00OO00O0O000OO0 ,"data":[],"selfClosing":False }#line:400:"data": [], "selfClosing": False}
-            O0OOO00O0OO000O0O .state =O0OOO00O0OO000O0O .tagNameState #line:401:self.state = self.tagNameState
-        elif OO00OO00O0O000OO0 ==">":#line:402:elif data == ">":
-            O0OOO00O0OO000O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-closing-tag-but-got-right-bracket"})#line:404:"expected-closing-tag-but-got-right-bracket"})
-            O0OOO00O0OO000O0O .state =O0OOO00O0OO000O0O .dataState #line:405:self.state = self.dataState
-        elif OO00OO00O0O000OO0 is EOF :#line:406:elif data is EOF:
-            O0OOO00O0OO000O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-closing-tag-but-got-eof"})#line:408:"expected-closing-tag-but-got-eof"})
-            O0OOO00O0OO000O0O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"})#line:409:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "</"})
-            O0OOO00O0OO000O0O .state =O0OOO00O0OO000O0O .dataState #line:410:self.state = self.dataState
-        else :#line:411:else:
-            O0OOO00O0OO000O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-closing-tag-but-got-char","datavars":{"data":OO00OO00O0O000OO0 }})#line:415:"datavars": {"data": data}})
-            O0OOO00O0OO000O0O .stream .unget (OO00OO00O0O000OO0 )#line:416:self.stream.unget(data)
-            O0OOO00O0OO000O0O .state =O0OOO00O0OO000O0O .bogusCommentState #line:417:self.state = self.bogusCommentState
-        return True #line:418:return True
-    def tagNameState (O0000OOO0000000O0 ):#line:420:def tagNameState(self):
-        O0000OOOO0OO0O0OO =O0000OOO0000000O0 .stream .char ()#line:421:data = self.stream.char()
-        if O0000OOOO0OO0O0OO in spaceCharacters :#line:422:if data in spaceCharacters:
-            O0000OOO0000000O0 .state =O0000OOO0000000O0 .beforeAttributeNameState #line:423:self.state = self.beforeAttributeNameState
-        elif O0000OOOO0OO0O0OO ==">":#line:424:elif data == ">":
-            O0000OOO0000000O0 .emitCurrentToken ()#line:425:self.emitCurrentToken()
-        elif O0000OOOO0OO0O0OO is EOF :#line:426:elif data is EOF:
-            O0000OOO0000000O0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-tag-name"})#line:428:"eof-in-tag-name"})
-            O0000OOO0000000O0 .state =O0000OOO0000000O0 .dataState #line:429:self.state = self.dataState
-        elif O0000OOOO0OO0O0OO =="/":#line:430:elif data == "/":
-            O0000OOO0000000O0 .state =O0000OOO0000000O0 .selfClosingStartTagState #line:431:self.state = self.selfClosingStartTagState
-        elif O0000OOOO0OO0O0OO =="\u0000":#line:432:elif data == "\u0000":
-            O0000OOO0000000O0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:434:"data": "invalid-codepoint"})
-            O0000OOO0000000O0 .currentToken ["name"]+="\uFFFD"#line:435:self.currentToken["name"] += "\uFFFD"
-        else :#line:436:else:
-            O0000OOO0000000O0 .currentToken ["name"]+=O0000OOOO0OO0O0OO #line:437:self.currentToken["name"] += data
-        return True #line:440:return True
-    def rcdataLessThanSignState (OO00000OOO0OOO0OO ):#line:442:def rcdataLessThanSignState(self):
-        O0O0O0OO0O0OOOO00 =OO00000OOO0OOO0OO .stream .char ()#line:443:data = self.stream.char()
-        if O0O0O0OO0O0OOOO00 =="/":#line:444:if data == "/":
-            OO00000OOO0OOO0OO .temporaryBuffer =""#line:445:self.temporaryBuffer = ""
-            OO00000OOO0OOO0OO .state =OO00000OOO0OOO0OO .rcdataEndTagOpenState #line:446:self.state = self.rcdataEndTagOpenState
-        else :#line:447:else:
-            OO00000OOO0OOO0OO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:448:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            OO00000OOO0OOO0OO .stream .unget (O0O0O0OO0O0OOOO00 )#line:449:self.stream.unget(data)
-            OO00000OOO0OOO0OO .state =OO00000OOO0OOO0OO .rcdataState #line:450:self.state = self.rcdataState
-        return True #line:451:return True
-    def rcdataEndTagOpenState (O00O000000OO00O00 ):#line:453:def rcdataEndTagOpenState(self):
-        OO000O00O00O0OOO0 =O00O000000OO00O00 .stream .char ()#line:454:data = self.stream.char()
-        if OO000O00O00O0OOO0 in asciiLetters :#line:455:if data in asciiLetters:
-            O00O000000OO00O00 .temporaryBuffer +=OO000O00O00O0OOO0 #line:456:self.temporaryBuffer += data
-            O00O000000OO00O00 .state =O00O000000OO00O00 .rcdataEndTagNameState #line:457:self.state = self.rcdataEndTagNameState
-        else :#line:458:else:
-            O00O000000OO00O00 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"})#line:459:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "</"})
-            O00O000000OO00O00 .stream .unget (OO000O00O00O0OOO0 )#line:460:self.stream.unget(data)
-            O00O000000OO00O00 .state =O00O000000OO00O00 .rcdataState #line:461:self.state = self.rcdataState
-        return True #line:462:return True
-    def rcdataEndTagNameState (O000OOO000O0000O0 ):#line:464:def rcdataEndTagNameState(self):
-        O00000O00OOO00O0O =O000OOO000O0000O0 .currentToken and O000OOO000O0000O0 .currentToken ["name"].lower ()==O000OOO000O0000O0 .temporaryBuffer .lower ()#line:465:appropriate = self.currentToken and self.currentToken["name"].lower() == self.temporaryBuffer.lower()
-        O0O00000OOO000000 =O000OOO000O0000O0 .stream .char ()#line:466:data = self.stream.char()
-        if O0O00000OOO000000 in spaceCharacters and O00000O00OOO00O0O :#line:467:if data in spaceCharacters and appropriate:
-            O000OOO000O0000O0 .currentToken ={"type":tokenTypes ["EndTag"],"name":O000OOO000O0000O0 .temporaryBuffer ,"data":[],"selfClosing":False }#line:470:"data": [], "selfClosing": False}
-            O000OOO000O0000O0 .state =O000OOO000O0000O0 .beforeAttributeNameState #line:471:self.state = self.beforeAttributeNameState
-        elif O0O00000OOO000000 =="/"and O00000O00OOO00O0O :#line:472:elif data == "/" and appropriate:
-            O000OOO000O0000O0 .currentToken ={"type":tokenTypes ["EndTag"],"name":O000OOO000O0000O0 .temporaryBuffer ,"data":[],"selfClosing":False }#line:475:"data": [], "selfClosing": False}
-            O000OOO000O0000O0 .state =O000OOO000O0000O0 .selfClosingStartTagState #line:476:self.state = self.selfClosingStartTagState
-        elif O0O00000OOO000000 ==">"and O00000O00OOO00O0O :#line:477:elif data == ">" and appropriate:
-            O000OOO000O0000O0 .currentToken ={"type":tokenTypes ["EndTag"],"name":O000OOO000O0000O0 .temporaryBuffer ,"data":[],"selfClosing":False }#line:480:"data": [], "selfClosing": False}
-            O000OOO000O0000O0 .emitCurrentToken ()#line:481:self.emitCurrentToken()
-            O000OOO000O0000O0 .state =O000OOO000O0000O0 .dataState #line:482:self.state = self.dataState
-        elif O0O00000OOO000000 in asciiLetters :#line:483:elif data in asciiLetters:
-            O000OOO000O0000O0 .temporaryBuffer +=O0O00000OOO000000 #line:484:self.temporaryBuffer += data
-        else :#line:485:else:
-            O000OOO000O0000O0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"+O000OOO000O0000O0 .temporaryBuffer })#line:487:"data": "</" + self.temporaryBuffer})
-            O000OOO000O0000O0 .stream .unget (O0O00000OOO000000 )#line:488:self.stream.unget(data)
-            O000OOO000O0000O0 .state =O000OOO000O0000O0 .rcdataState #line:489:self.state = self.rcdataState
-        return True #line:490:return True
-    def rawtextLessThanSignState (O00O0O0O00OO0000O ):#line:492:def rawtextLessThanSignState(self):
-        O0OOOO0O00OOOO000 =O00O0O0O00OO0000O .stream .char ()#line:493:data = self.stream.char()
-        if O0OOOO0O00OOOO000 =="/":#line:494:if data == "/":
-            O00O0O0O00OO0000O .temporaryBuffer =""#line:495:self.temporaryBuffer = ""
-            O00O0O0O00OO0000O .state =O00O0O0O00OO0000O .rawtextEndTagOpenState #line:496:self.state = self.rawtextEndTagOpenState
-        else :#line:497:else:
-            O00O0O0O00OO0000O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:498:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            O00O0O0O00OO0000O .stream .unget (O0OOOO0O00OOOO000 )#line:499:self.stream.unget(data)
-            O00O0O0O00OO0000O .state =O00O0O0O00OO0000O .rawtextState #line:500:self.state = self.rawtextState
-        return True #line:501:return True
-    def rawtextEndTagOpenState (O0O0OO00OO0O0OO00 ):#line:503:def rawtextEndTagOpenState(self):
-        OO0O00O0OOOOO00OO =O0O0OO00OO0O0OO00 .stream .char ()#line:504:data = self.stream.char()
-        if OO0O00O0OOOOO00OO in asciiLetters :#line:505:if data in asciiLetters:
-            O0O0OO00OO0O0OO00 .temporaryBuffer +=OO0O00O0OOOOO00OO #line:506:self.temporaryBuffer += data
-            O0O0OO00OO0O0OO00 .state =O0O0OO00OO0O0OO00 .rawtextEndTagNameState #line:507:self.state = self.rawtextEndTagNameState
-        else :#line:508:else:
-            O0O0OO00OO0O0OO00 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"})#line:509:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "</"})
-            O0O0OO00OO0O0OO00 .stream .unget (OO0O00O0OOOOO00OO )#line:510:self.stream.unget(data)
-            O0O0OO00OO0O0OO00 .state =O0O0OO00OO0O0OO00 .rawtextState #line:511:self.state = self.rawtextState
-        return True #line:512:return True
-    def rawtextEndTagNameState (O0O00OO0O0000000O ):#line:514:def rawtextEndTagNameState(self):
-        OOOOOOO0OOO0OOO00 =O0O00OO0O0000000O .currentToken and O0O00OO0O0000000O .currentToken ["name"].lower ()==O0O00OO0O0000000O .temporaryBuffer .lower ()#line:515:appropriate = self.currentToken and self.currentToken["name"].lower() == self.temporaryBuffer.lower()
-        OO000O0OOO0O00OO0 =O0O00OO0O0000000O .stream .char ()#line:516:data = self.stream.char()
-        if OO000O0OOO0O00OO0 in spaceCharacters and OOOOOOO0OOO0OOO00 :#line:517:if data in spaceCharacters and appropriate:
-            O0O00OO0O0000000O .currentToken ={"type":tokenTypes ["EndTag"],"name":O0O00OO0O0000000O .temporaryBuffer ,"data":[],"selfClosing":False }#line:520:"data": [], "selfClosing": False}
-            O0O00OO0O0000000O .state =O0O00OO0O0000000O .beforeAttributeNameState #line:521:self.state = self.beforeAttributeNameState
-        elif OO000O0OOO0O00OO0 =="/"and OOOOOOO0OOO0OOO00 :#line:522:elif data == "/" and appropriate:
-            O0O00OO0O0000000O .currentToken ={"type":tokenTypes ["EndTag"],"name":O0O00OO0O0000000O .temporaryBuffer ,"data":[],"selfClosing":False }#line:525:"data": [], "selfClosing": False}
-            O0O00OO0O0000000O .state =O0O00OO0O0000000O .selfClosingStartTagState #line:526:self.state = self.selfClosingStartTagState
-        elif OO000O0OOO0O00OO0 ==">"and OOOOOOO0OOO0OOO00 :#line:527:elif data == ">" and appropriate:
-            O0O00OO0O0000000O .currentToken ={"type":tokenTypes ["EndTag"],"name":O0O00OO0O0000000O .temporaryBuffer ,"data":[],"selfClosing":False }#line:530:"data": [], "selfClosing": False}
-            O0O00OO0O0000000O .emitCurrentToken ()#line:531:self.emitCurrentToken()
-            O0O00OO0O0000000O .state =O0O00OO0O0000000O .dataState #line:532:self.state = self.dataState
-        elif OO000O0OOO0O00OO0 in asciiLetters :#line:533:elif data in asciiLetters:
-            O0O00OO0O0000000O .temporaryBuffer +=OO000O0OOO0O00OO0 #line:534:self.temporaryBuffer += data
-        else :#line:535:else:
-            O0O00OO0O0000000O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"+O0O00OO0O0000000O .temporaryBuffer })#line:537:"data": "</" + self.temporaryBuffer})
-            O0O00OO0O0000000O .stream .unget (OO000O0OOO0O00OO0 )#line:538:self.stream.unget(data)
-            O0O00OO0O0000000O .state =O0O00OO0O0000000O .rawtextState #line:539:self.state = self.rawtextState
-        return True #line:540:return True
-    def scriptDataLessThanSignState (OOO00O0O000O000OO ):#line:542:def scriptDataLessThanSignState(self):
-        OO000OOO00O00O0O0 =OOO00O0O000O000OO .stream .char ()#line:543:data = self.stream.char()
-        if OO000OOO00O00O0O0 =="/":#line:544:if data == "/":
-            OOO00O0O000O000OO .temporaryBuffer =""#line:545:self.temporaryBuffer = ""
-            OOO00O0O000O000OO .state =OOO00O0O000O000OO .scriptDataEndTagOpenState #line:546:self.state = self.scriptDataEndTagOpenState
-        elif OO000OOO00O00O0O0 =="!":#line:547:elif data == "!":
-            OOO00O0O000O000OO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<!"})#line:548:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<!"})
-            OOO00O0O000O000OO .state =OOO00O0O000O000OO .scriptDataEscapeStartState #line:549:self.state = self.scriptDataEscapeStartState
-        else :#line:550:else:
-            OOO00O0O000O000OO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:551:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            OOO00O0O000O000OO .stream .unget (OO000OOO00O00O0O0 )#line:552:self.stream.unget(data)
-            OOO00O0O000O000OO .state =OOO00O0O000O000OO .scriptDataState #line:553:self.state = self.scriptDataState
-        return True #line:554:return True
-    def scriptDataEndTagOpenState (OOO0O0OOOO00O000O ):#line:556:def scriptDataEndTagOpenState(self):
-        O00O0OOOOO0OO0O0O =OOO0O0OOOO00O000O .stream .char ()#line:557:data = self.stream.char()
-        if O00O0OOOOO0OO0O0O in asciiLetters :#line:558:if data in asciiLetters:
-            OOO0O0OOOO00O000O .temporaryBuffer +=O00O0OOOOO0OO0O0O #line:559:self.temporaryBuffer += data
-            OOO0O0OOOO00O000O .state =OOO0O0OOOO00O000O .scriptDataEndTagNameState #line:560:self.state = self.scriptDataEndTagNameState
-        else :#line:561:else:
-            OOO0O0OOOO00O000O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"})#line:562:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "</"})
-            OOO0O0OOOO00O000O .stream .unget (O00O0OOOOO0OO0O0O )#line:563:self.stream.unget(data)
-            OOO0O0OOOO00O000O .state =OOO0O0OOOO00O000O .scriptDataState #line:564:self.state = self.scriptDataState
-        return True #line:565:return True
-    def scriptDataEndTagNameState (OOOOO00O0O0O0O00O ):#line:567:def scriptDataEndTagNameState(self):
-        O00O00000O000OO00 =OOOOO00O0O0O0O00O .currentToken and OOOOO00O0O0O0O00O .currentToken ["name"].lower ()==OOOOO00O0O0O0O00O .temporaryBuffer .lower ()#line:568:appropriate = self.currentToken and self.currentToken["name"].lower() == self.temporaryBuffer.lower()
-        OOOOO0OOO00OOOOOO =OOOOO00O0O0O0O00O .stream .char ()#line:569:data = self.stream.char()
-        if OOOOO0OOO00OOOOOO in spaceCharacters and O00O00000O000OO00 :#line:570:if data in spaceCharacters and appropriate:
-            OOOOO00O0O0O0O00O .currentToken ={"type":tokenTypes ["EndTag"],"name":OOOOO00O0O0O0O00O .temporaryBuffer ,"data":[],"selfClosing":False }#line:573:"data": [], "selfClosing": False}
-            OOOOO00O0O0O0O00O .state =OOOOO00O0O0O0O00O .beforeAttributeNameState #line:574:self.state = self.beforeAttributeNameState
-        elif OOOOO0OOO00OOOOOO =="/"and O00O00000O000OO00 :#line:575:elif data == "/" and appropriate:
-            OOOOO00O0O0O0O00O .currentToken ={"type":tokenTypes ["EndTag"],"name":OOOOO00O0O0O0O00O .temporaryBuffer ,"data":[],"selfClosing":False }#line:578:"data": [], "selfClosing": False}
-            OOOOO00O0O0O0O00O .state =OOOOO00O0O0O0O00O .selfClosingStartTagState #line:579:self.state = self.selfClosingStartTagState
-        elif OOOOO0OOO00OOOOOO ==">"and O00O00000O000OO00 :#line:580:elif data == ">" and appropriate:
-            OOOOO00O0O0O0O00O .currentToken ={"type":tokenTypes ["EndTag"],"name":OOOOO00O0O0O0O00O .temporaryBuffer ,"data":[],"selfClosing":False }#line:583:"data": [], "selfClosing": False}
-            OOOOO00O0O0O0O00O .emitCurrentToken ()#line:584:self.emitCurrentToken()
-            OOOOO00O0O0O0O00O .state =OOOOO00O0O0O0O00O .dataState #line:585:self.state = self.dataState
-        elif OOOOO0OOO00OOOOOO in asciiLetters :#line:586:elif data in asciiLetters:
-            OOOOO00O0O0O0O00O .temporaryBuffer +=OOOOO0OOO00OOOOOO #line:587:self.temporaryBuffer += data
-        else :#line:588:else:
-            OOOOO00O0O0O0O00O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"+OOOOO00O0O0O0O00O .temporaryBuffer })#line:590:"data": "</" + self.temporaryBuffer})
-            OOOOO00O0O0O0O00O .stream .unget (OOOOO0OOO00OOOOOO )#line:591:self.stream.unget(data)
-            OOOOO00O0O0O0O00O .state =OOOOO00O0O0O0O00O .scriptDataState #line:592:self.state = self.scriptDataState
-        return True #line:593:return True
-    def scriptDataEscapeStartState (OOOO0OO00OOOOOOO0 ):#line:595:def scriptDataEscapeStartState(self):
-        O000OO0OOO000000O =OOOO0OO00OOOOOOO0 .stream .char ()#line:596:data = self.stream.char()
-        if O000OO0OOO000000O =="-":#line:597:if data == "-":
-            OOOO0OO00OOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:598:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-            OOOO0OO00OOOOOOO0 .state =OOOO0OO00OOOOOOO0 .scriptDataEscapeStartDashState #line:599:self.state = self.scriptDataEscapeStartDashState
-        else :#line:600:else:
-            OOOO0OO00OOOOOOO0 .stream .unget (O000OO0OOO000000O )#line:601:self.stream.unget(data)
-            OOOO0OO00OOOOOOO0 .state =OOOO0OO00OOOOOOO0 .scriptDataState #line:602:self.state = self.scriptDataState
-        return True #line:603:return True
-    def scriptDataEscapeStartDashState (O0OOOOOOO000O0OOO ):#line:605:def scriptDataEscapeStartDashState(self):
-        OOOO00O0O0O00O00O =O0OOOOOOO000O0OOO .stream .char ()#line:606:data = self.stream.char()
-        if OOOO00O0O0O00O00O =="-":#line:607:if data == "-":
-            O0OOOOOOO000O0OOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:608:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-            O0OOOOOOO000O0OOO .state =O0OOOOOOO000O0OOO .scriptDataEscapedDashDashState #line:609:self.state = self.scriptDataEscapedDashDashState
-        else :#line:610:else:
-            O0OOOOOOO000O0OOO .stream .unget (OOOO00O0O0O00O00O )#line:611:self.stream.unget(data)
-            O0OOOOOOO000O0OOO .state =O0OOOOOOO000O0OOO .scriptDataState #line:612:self.state = self.scriptDataState
-        return True #line:613:return True
-    def scriptDataEscapedState (OOO0000O0OO0O0OO0 ):#line:615:def scriptDataEscapedState(self):
-        O0000O000OOO0000O =OOO0000O0OO0O0OO0 .stream .char ()#line:616:data = self.stream.char()
-        if O0000O000OOO0000O =="-":#line:617:if data == "-":
-            OOO0000O0OO0O0OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:618:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-            OOO0000O0OO0O0OO0 .state =OOO0000O0OO0O0OO0 .scriptDataEscapedDashState #line:619:self.state = self.scriptDataEscapedDashState
-        elif O0000O000OOO0000O =="<":#line:620:elif data == "<":
-            OOO0000O0OO0O0OO0 .state =OOO0000O0OO0O0OO0 .scriptDataEscapedLessThanSignState #line:621:self.state = self.scriptDataEscapedLessThanSignState
-        elif O0000O000OOO0000O =="\u0000":#line:622:elif data == "\u0000":
-            OOO0000O0OO0O0OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:624:"data": "invalid-codepoint"})
-            OOO0000O0OO0O0OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:626:"data": "\uFFFD"})
-        elif O0000O000OOO0000O ==EOF :#line:627:elif data == EOF:
-            OOO0000O0OO0O0OO0 .state =OOO0000O0OO0O0OO0 .dataState #line:628:self.state = self.dataState
-        else :#line:629:else:
-            O0O0OOO00OOOOOOO0 =OOO0000O0OO0O0OO0 .stream .charsUntil (("<","-","\u0000"))#line:630:chars = self.stream.charsUntil(("<", "-", "\u0000"))
-            OOO0000O0OO0O0OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":O0000O000OOO0000O +O0O0OOO00OOOOOOO0 })#line:632:data + chars})
-        return True #line:633:return True
-    def scriptDataEscapedDashState (O0000O000O0O0OOO0 ):#line:635:def scriptDataEscapedDashState(self):
-        O00OO0000OO00OOOO =O0000O000O0O0OOO0 .stream .char ()#line:636:data = self.stream.char()
-        if O00OO0000OO00OOOO =="-":#line:637:if data == "-":
-            O0000O000O0O0OOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:638:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-            O0000O000O0O0OOO0 .state =O0000O000O0O0OOO0 .scriptDataEscapedDashDashState #line:639:self.state = self.scriptDataEscapedDashDashState
-        elif O00OO0000OO00OOOO =="<":#line:640:elif data == "<":
-            O0000O000O0O0OOO0 .state =O0000O000O0O0OOO0 .scriptDataEscapedLessThanSignState #line:641:self.state = self.scriptDataEscapedLessThanSignState
-        elif O00OO0000OO00OOOO =="\u0000":#line:642:elif data == "\u0000":
-            O0000O000O0O0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:644:"data": "invalid-codepoint"})
-            O0000O000O0O0OOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:646:"data": "\uFFFD"})
-            O0000O000O0O0OOO0 .state =O0000O000O0O0OOO0 .scriptDataEscapedState #line:647:self.state = self.scriptDataEscapedState
-        elif O00OO0000OO00OOOO ==EOF :#line:648:elif data == EOF:
-            O0000O000O0O0OOO0 .state =O0000O000O0O0OOO0 .dataState #line:649:self.state = self.dataState
-        else :#line:650:else:
-            O0000O000O0O0OOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":O00OO0000OO00OOOO })#line:651:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            O0000O000O0O0OOO0 .state =O0000O000O0O0OOO0 .scriptDataEscapedState #line:652:self.state = self.scriptDataEscapedState
-        return True #line:653:return True
-    def scriptDataEscapedDashDashState (O00OO0OOOOOO00OOO ):#line:655:def scriptDataEscapedDashDashState(self):
-        OO00O000O00OOO00O =O00OO0OOOOOO00OOO .stream .char ()#line:656:data = self.stream.char()
-        if OO00O000O00OOO00O =="-":#line:657:if data == "-":
-            O00OO0OOOOOO00OOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:658:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-        elif OO00O000O00OOO00O =="<":#line:659:elif data == "<":
-            O00OO0OOOOOO00OOO .state =O00OO0OOOOOO00OOO .scriptDataEscapedLessThanSignState #line:660:self.state = self.scriptDataEscapedLessThanSignState
-        elif OO00O000O00OOO00O ==">":#line:661:elif data == ">":
-            O00OO0OOOOOO00OOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":">"})#line:662:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": ">"})
-            O00OO0OOOOOO00OOO .state =O00OO0OOOOOO00OOO .scriptDataState #line:663:self.state = self.scriptDataState
-        elif OO00O000O00OOO00O =="\u0000":#line:664:elif data == "\u0000":
-            O00OO0OOOOOO00OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:666:"data": "invalid-codepoint"})
-            O00OO0OOOOOO00OOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:668:"data": "\uFFFD"})
-            O00OO0OOOOOO00OOO .state =O00OO0OOOOOO00OOO .scriptDataEscapedState #line:669:self.state = self.scriptDataEscapedState
-        elif OO00O000O00OOO00O ==EOF :#line:670:elif data == EOF:
-            O00OO0OOOOOO00OOO .state =O00OO0OOOOOO00OOO .dataState #line:671:self.state = self.dataState
-        else :#line:672:else:
-            O00OO0OOOOOO00OOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OO00O000O00OOO00O })#line:673:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            O00OO0OOOOOO00OOO .state =O00OO0OOOOOO00OOO .scriptDataEscapedState #line:674:self.state = self.scriptDataEscapedState
-        return True #line:675:return True
-    def scriptDataEscapedLessThanSignState (OO00O0OOOO000OO00 ):#line:677:def scriptDataEscapedLessThanSignState(self):
-        O00OOOOO00O0000OO =OO00O0OOOO000OO00 .stream .char ()#line:678:data = self.stream.char()
-        if O00OOOOO00O0000OO =="/":#line:679:if data == "/":
-            OO00O0OOOO000OO00 .temporaryBuffer =""#line:680:self.temporaryBuffer = ""
-            OO00O0OOOO000OO00 .state =OO00O0OOOO000OO00 .scriptDataEscapedEndTagOpenState #line:681:self.state = self.scriptDataEscapedEndTagOpenState
-        elif O00OOOOO00O0000OO in asciiLetters :#line:682:elif data in asciiLetters:
-            OO00O0OOOO000OO00 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"+O00OOOOO00O0000OO })#line:683:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<" + data})
-            OO00O0OOOO000OO00 .temporaryBuffer =O00OOOOO00O0000OO #line:684:self.temporaryBuffer = data
-            OO00O0OOOO000OO00 .state =OO00O0OOOO000OO00 .scriptDataDoubleEscapeStartState #line:685:self.state = self.scriptDataDoubleEscapeStartState
-        else :#line:686:else:
-            OO00O0OOOO000OO00 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:687:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            OO00O0OOOO000OO00 .stream .unget (O00OOOOO00O0000OO )#line:688:self.stream.unget(data)
-            OO00O0OOOO000OO00 .state =OO00O0OOOO000OO00 .scriptDataEscapedState #line:689:self.state = self.scriptDataEscapedState
-        return True #line:690:return True
-    def scriptDataEscapedEndTagOpenState (O000OOO00OO000OO0 ):#line:692:def scriptDataEscapedEndTagOpenState(self):
-        O00O0O000OOOOO000 =O000OOO00OO000OO0 .stream .char ()#line:693:data = self.stream.char()
-        if O00O0O000OOOOO000 in asciiLetters :#line:694:if data in asciiLetters:
-            O000OOO00OO000OO0 .temporaryBuffer =O00O0O000OOOOO000 #line:695:self.temporaryBuffer = data
-            O000OOO00OO000OO0 .state =O000OOO00OO000OO0 .scriptDataEscapedEndTagNameState #line:696:self.state = self.scriptDataEscapedEndTagNameState
-        else :#line:697:else:
-            O000OOO00OO000OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"})#line:698:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "</"})
-            O000OOO00OO000OO0 .stream .unget (O00O0O000OOOOO000 )#line:699:self.stream.unget(data)
-            O000OOO00OO000OO0 .state =O000OOO00OO000OO0 .scriptDataEscapedState #line:700:self.state = self.scriptDataEscapedState
-        return True #line:701:return True
-    def scriptDataEscapedEndTagNameState (O000OO0OOO00OO00O ):#line:703:def scriptDataEscapedEndTagNameState(self):
-        O00O00OOO0OOO0O0O =O000OO0OOO00OO00O .currentToken and O000OO0OOO00OO00O .currentToken ["name"].lower ()==O000OO0OOO00OO00O .temporaryBuffer .lower ()#line:704:appropriate = self.currentToken and self.currentToken["name"].lower() == self.temporaryBuffer.lower()
-        O0O0O0OO000000OO0 =O000OO0OOO00OO00O .stream .char ()#line:705:data = self.stream.char()
-        if O0O0O0OO000000OO0 in spaceCharacters and O00O00OOO0OOO0O0O :#line:706:if data in spaceCharacters and appropriate:
-            O000OO0OOO00OO00O .currentToken ={"type":tokenTypes ["EndTag"],"name":O000OO0OOO00OO00O .temporaryBuffer ,"data":[],"selfClosing":False }#line:709:"data": [], "selfClosing": False}
-            O000OO0OOO00OO00O .state =O000OO0OOO00OO00O .beforeAttributeNameState #line:710:self.state = self.beforeAttributeNameState
-        elif O0O0O0OO000000OO0 =="/"and O00O00OOO0OOO0O0O :#line:711:elif data == "/" and appropriate:
-            O000OO0OOO00OO00O .currentToken ={"type":tokenTypes ["EndTag"],"name":O000OO0OOO00OO00O .temporaryBuffer ,"data":[],"selfClosing":False }#line:714:"data": [], "selfClosing": False}
-            O000OO0OOO00OO00O .state =O000OO0OOO00OO00O .selfClosingStartTagState #line:715:self.state = self.selfClosingStartTagState
-        elif O0O0O0OO000000OO0 ==">"and O00O00OOO0OOO0O0O :#line:716:elif data == ">" and appropriate:
-            O000OO0OOO00OO00O .currentToken ={"type":tokenTypes ["EndTag"],"name":O000OO0OOO00OO00O .temporaryBuffer ,"data":[],"selfClosing":False }#line:719:"data": [], "selfClosing": False}
-            O000OO0OOO00OO00O .emitCurrentToken ()#line:720:self.emitCurrentToken()
-            O000OO0OOO00OO00O .state =O000OO0OOO00OO00O .dataState #line:721:self.state = self.dataState
-        elif O0O0O0OO000000OO0 in asciiLetters :#line:722:elif data in asciiLetters:
-            O000OO0OOO00OO00O .temporaryBuffer +=O0O0O0OO000000OO0 #line:723:self.temporaryBuffer += data
-        else :#line:724:else:
-            O000OO0OOO00OO00O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"</"+O000OO0OOO00OO00O .temporaryBuffer })#line:726:"data": "</" + self.temporaryBuffer})
-            O000OO0OOO00OO00O .stream .unget (O0O0O0OO000000OO0 )#line:727:self.stream.unget(data)
-            O000OO0OOO00OO00O .state =O000OO0OOO00OO00O .scriptDataEscapedState #line:728:self.state = self.scriptDataEscapedState
-        return True #line:729:return True
-    def scriptDataDoubleEscapeStartState (O0OO0O0000O00OOO0 ):#line:731:def scriptDataDoubleEscapeStartState(self):
-        OO0OO0O000O0O0O0O =O0OO0O0000O00OOO0 .stream .char ()#line:732:data = self.stream.char()
-        if OO0OO0O000O0O0O0O in (spaceCharacters |frozenset (("/",">"))):#line:733:if data in (spaceCharacters | frozenset(("/", ">"))):
-            O0OO0O0000O00OOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OO0OO0O000O0O0O0O })#line:734:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            if O0OO0O0000O00OOO0 .temporaryBuffer .lower ()=="script":#line:735:if self.temporaryBuffer.lower() == "script":
-                O0OO0O0000O00OOO0 .state =O0OO0O0000O00OOO0 .scriptDataDoubleEscapedState #line:736:self.state = self.scriptDataDoubleEscapedState
-            else :#line:737:else:
-                O0OO0O0000O00OOO0 .state =O0OO0O0000O00OOO0 .scriptDataEscapedState #line:738:self.state = self.scriptDataEscapedState
-        elif OO0OO0O000O0O0O0O in asciiLetters :#line:739:elif data in asciiLetters:
-            O0OO0O0000O00OOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OO0OO0O000O0O0O0O })#line:740:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            O0OO0O0000O00OOO0 .temporaryBuffer +=OO0OO0O000O0O0O0O #line:741:self.temporaryBuffer += data
-        else :#line:742:else:
-            O0OO0O0000O00OOO0 .stream .unget (OO0OO0O000O0O0O0O )#line:743:self.stream.unget(data)
-            O0OO0O0000O00OOO0 .state =O0OO0O0000O00OOO0 .scriptDataEscapedState #line:744:self.state = self.scriptDataEscapedState
-        return True #line:745:return True
-    def scriptDataDoubleEscapedState (O00OO0000O0O00OO0 ):#line:747:def scriptDataDoubleEscapedState(self):
-        OOO00O00O00000O00 =O00OO0000O0O00OO0 .stream .char ()#line:748:data = self.stream.char()
-        if OOO00O00O00000O00 =="-":#line:749:if data == "-":
-            O00OO0000O0O00OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:750:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-            O00OO0000O0O00OO0 .state =O00OO0000O0O00OO0 .scriptDataDoubleEscapedDashState #line:751:self.state = self.scriptDataDoubleEscapedDashState
-        elif OOO00O00O00000O00 =="<":#line:752:elif data == "<":
-            O00OO0000O0O00OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:753:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            O00OO0000O0O00OO0 .state =O00OO0000O0O00OO0 .scriptDataDoubleEscapedLessThanSignState #line:754:self.state = self.scriptDataDoubleEscapedLessThanSignState
-        elif OOO00O00O00000O00 =="\u0000":#line:755:elif data == "\u0000":
-            O00OO0000O0O00OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:757:"data": "invalid-codepoint"})
-            O00OO0000O0O00OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:759:"data": "\uFFFD"})
-        elif OOO00O00O00000O00 ==EOF :#line:760:elif data == EOF:
-            O00OO0000O0O00OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-script-in-script"})#line:762:"eof-in-script-in-script"})
-            O00OO0000O0O00OO0 .state =O00OO0000O0O00OO0 .dataState #line:763:self.state = self.dataState
-        else :#line:764:else:
-            O00OO0000O0O00OO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OOO00O00O00000O00 })#line:765:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-        return True #line:766:return True
-    def scriptDataDoubleEscapedDashState (OOOOO0OOOOOOOOOO0 ):#line:768:def scriptDataDoubleEscapedDashState(self):
-        O0O0O0000O0OO0O00 =OOOOO0OOOOOOOOOO0 .stream .char ()#line:769:data = self.stream.char()
-        if O0O0O0000O0OO0O00 =="-":#line:770:if data == "-":
-            OOOOO0OOOOOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:771:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-            OOOOO0OOOOOOOOOO0 .state =OOOOO0OOOOOOOOOO0 .scriptDataDoubleEscapedDashDashState #line:772:self.state = self.scriptDataDoubleEscapedDashDashState
-        elif O0O0O0000O0OO0O00 =="<":#line:773:elif data == "<":
-            OOOOO0OOOOOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:774:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            OOOOO0OOOOOOOOOO0 .state =OOOOO0OOOOOOOOOO0 .scriptDataDoubleEscapedLessThanSignState #line:775:self.state = self.scriptDataDoubleEscapedLessThanSignState
-        elif O0O0O0000O0OO0O00 =="\u0000":#line:776:elif data == "\u0000":
-            OOOOO0OOOOOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:778:"data": "invalid-codepoint"})
-            OOOOO0OOOOOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:780:"data": "\uFFFD"})
-            OOOOO0OOOOOOOOOO0 .state =OOOOO0OOOOOOOOOO0 .scriptDataDoubleEscapedState #line:781:self.state = self.scriptDataDoubleEscapedState
-        elif O0O0O0000O0OO0O00 ==EOF :#line:782:elif data == EOF:
-            OOOOO0OOOOOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-script-in-script"})#line:784:"eof-in-script-in-script"})
-            OOOOO0OOOOOOOOOO0 .state =OOOOO0OOOOOOOOOO0 .dataState #line:785:self.state = self.dataState
-        else :#line:786:else:
-            OOOOO0OOOOOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":O0O0O0000O0OO0O00 })#line:787:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            OOOOO0OOOOOOOOOO0 .state =OOOOO0OOOOOOOOOO0 .scriptDataDoubleEscapedState #line:788:self.state = self.scriptDataDoubleEscapedState
-        return True #line:789:return True
-    def scriptDataDoubleEscapedDashDashState (O0O0OOO0O0OOOOOOO ):#line:791:def scriptDataDoubleEscapedDashDashState(self):
-        OOOO00O0OO0O00O0O =O0O0OOO0O0OOOOOOO .stream .char ()#line:792:data = self.stream.char()
-        if OOOO00O0OO0O00O0O =="-":#line:793:if data == "-":
-            O0O0OOO0O0OOOOOOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"-"})#line:794:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "-"})
-        elif OOOO00O0OO0O00O0O =="<":#line:795:elif data == "<":
-            O0O0OOO0O0OOOOOOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"<"})#line:796:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "<"})
-            O0O0OOO0O0OOOOOOO .state =O0O0OOO0O0OOOOOOO .scriptDataDoubleEscapedLessThanSignState #line:797:self.state = self.scriptDataDoubleEscapedLessThanSignState
-        elif OOOO00O0OO0O00O0O ==">":#line:798:elif data == ">":
-            O0O0OOO0O0OOOOOOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":">"})#line:799:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": ">"})
-            O0O0OOO0O0OOOOOOO .state =O0O0OOO0O0OOOOOOO .scriptDataState #line:800:self.state = self.scriptDataState
-        elif OOOO00O0OO0O00O0O =="\u0000":#line:801:elif data == "\u0000":
-            O0O0OOO0O0OOOOOOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:803:"data": "invalid-codepoint"})
-            O0O0OOO0O0OOOOOOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"\uFFFD"})#line:805:"data": "\uFFFD"})
-            O0O0OOO0O0OOOOOOO .state =O0O0OOO0O0OOOOOOO .scriptDataDoubleEscapedState #line:806:self.state = self.scriptDataDoubleEscapedState
-        elif OOOO00O0OO0O00O0O ==EOF :#line:807:elif data == EOF:
-            O0O0OOO0O0OOOOOOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-script-in-script"})#line:809:"eof-in-script-in-script"})
-            O0O0OOO0O0OOOOOOO .state =O0O0OOO0O0OOOOOOO .dataState #line:810:self.state = self.dataState
-        else :#line:811:else:
-            O0O0OOO0O0OOOOOOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OOOO00O0OO0O00O0O })#line:812:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            O0O0OOO0O0OOOOOOO .state =O0O0OOO0O0OOOOOOO .scriptDataDoubleEscapedState #line:813:self.state = self.scriptDataDoubleEscapedState
-        return True #line:814:return True
-    def scriptDataDoubleEscapedLessThanSignState (O000O0O000OO0OOOO ):#line:816:def scriptDataDoubleEscapedLessThanSignState(self):
-        O0OO0000OOOOO0OOO =O000O0O000OO0OOOO .stream .char ()#line:817:data = self.stream.char()
-        if O0OO0000OOOOO0OOO =="/":#line:818:if data == "/":
-            O000O0O000OO0OOOO .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":"/"})#line:819:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": "/"})
-            O000O0O000OO0OOOO .temporaryBuffer =""#line:820:self.temporaryBuffer = ""
-            O000O0O000OO0OOOO .state =O000O0O000OO0OOOO .scriptDataDoubleEscapeEndState #line:821:self.state = self.scriptDataDoubleEscapeEndState
-        else :#line:822:else:
-            O000O0O000OO0OOOO .stream .unget (O0OO0000OOOOO0OOO )#line:823:self.stream.unget(data)
-            O000O0O000OO0OOOO .state =O000O0O000OO0OOOO .scriptDataDoubleEscapedState #line:824:self.state = self.scriptDataDoubleEscapedState
-        return True #line:825:return True
-    def scriptDataDoubleEscapeEndState (O0OOOOO0O00OOO00O ):#line:827:def scriptDataDoubleEscapeEndState(self):
-        OO0O000OOOOOO0OOO =O0OOOOO0O00OOO00O .stream .char ()#line:828:data = self.stream.char()
-        if OO0O000OOOOOO0OOO in (spaceCharacters |frozenset (("/",">"))):#line:829:if data in (spaceCharacters | frozenset(("/", ">"))):
-            O0OOOOO0O00OOO00O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OO0O000OOOOOO0OOO })#line:830:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            if O0OOOOO0O00OOO00O .temporaryBuffer .lower ()=="script":#line:831:if self.temporaryBuffer.lower() == "script":
-                O0OOOOO0O00OOO00O .state =O0OOOOO0O00OOO00O .scriptDataEscapedState #line:832:self.state = self.scriptDataEscapedState
-            else :#line:833:else:
-                O0OOOOO0O00OOO00O .state =O0OOOOO0O00OOO00O .scriptDataDoubleEscapedState #line:834:self.state = self.scriptDataDoubleEscapedState
-        elif OO0O000OOOOOO0OOO in asciiLetters :#line:835:elif data in asciiLetters:
-            O0OOOOO0O00OOO00O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":OO0O000OOOOOO0OOO })#line:836:self.tokenQueue.append({"type": tokenTypes["Characters"], "data": data})
-            O0OOOOO0O00OOO00O .temporaryBuffer +=OO0O000OOOOOO0OOO #line:837:self.temporaryBuffer += data
-        else :#line:838:else:
-            O0OOOOO0O00OOO00O .stream .unget (OO0O000OOOOOO0OOO )#line:839:self.stream.unget(data)
-            O0OOOOO0O00OOO00O .state =O0OOOOO0O00OOO00O .scriptDataDoubleEscapedState #line:840:self.state = self.scriptDataDoubleEscapedState
-        return True #line:841:return True
-    def beforeAttributeNameState (OOO0O0O0OO0000O0O ):#line:843:def beforeAttributeNameState(self):
-        OOOO000O0OOO000O0 =OOO0O0O0OO0000O0O .stream .char ()#line:844:data = self.stream.char()
-        if OOOO000O0OOO000O0 in spaceCharacters :#line:845:if data in spaceCharacters:
-            OOO0O0O0OO0000O0O .stream .charsUntil (spaceCharacters ,True )#line:846:self.stream.charsUntil(spaceCharacters, True)
-        elif OOOO000O0OOO000O0 in asciiLetters :#line:847:elif data in asciiLetters:
-            OOO0O0O0OO0000O0O .currentToken ["data"].append ([OOOO000O0OOO000O0 ,""])#line:848:self.currentToken["data"].append([data, ""])
-            OOO0O0O0OO0000O0O .state =OOO0O0O0OO0000O0O .attributeNameState #line:849:self.state = self.attributeNameState
-        elif OOOO000O0OOO000O0 ==">":#line:850:elif data == ">":
-            OOO0O0O0OO0000O0O .emitCurrentToken ()#line:851:self.emitCurrentToken()
-        elif OOOO000O0OOO000O0 =="/":#line:852:elif data == "/":
-            OOO0O0O0OO0000O0O .state =OOO0O0O0OO0000O0O .selfClosingStartTagState #line:853:self.state = self.selfClosingStartTagState
-        elif OOOO000O0OOO000O0 in ("'",'"',"=","<"):#line:854:elif data in ("'", '"', "=", "<"):
-            OOO0O0O0OO0000O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-character-in-attribute-name"})#line:856:"invalid-character-in-attribute-name"})
-            OOO0O0O0OO0000O0O .currentToken ["data"].append ([OOOO000O0OOO000O0 ,""])#line:857:self.currentToken["data"].append([data, ""])
-            OOO0O0O0OO0000O0O .state =OOO0O0O0OO0000O0O .attributeNameState #line:858:self.state = self.attributeNameState
-        elif OOOO000O0OOO000O0 =="\u0000":#line:859:elif data == "\u0000":
-            OOO0O0O0OO0000O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:861:"data": "invalid-codepoint"})
-            OOO0O0O0OO0000O0O .currentToken ["data"].append (["\uFFFD",""])#line:862:self.currentToken["data"].append(["\uFFFD", ""])
-            OOO0O0O0OO0000O0O .state =OOO0O0O0OO0000O0O .attributeNameState #line:863:self.state = self.attributeNameState
-        elif OOOO000O0OOO000O0 is EOF :#line:864:elif data is EOF:
-            OOO0O0O0OO0000O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-attribute-name-but-got-eof"})#line:866:"expected-attribute-name-but-got-eof"})
-            OOO0O0O0OO0000O0O .state =OOO0O0O0OO0000O0O .dataState #line:867:self.state = self.dataState
-        else :#line:868:else:
-            OOO0O0O0OO0000O0O .currentToken ["data"].append ([OOOO000O0OOO000O0 ,""])#line:869:self.currentToken["data"].append([data, ""])
-            OOO0O0O0OO0000O0O .state =OOO0O0O0OO0000O0O .attributeNameState #line:870:self.state = self.attributeNameState
-        return True #line:871:return True
-    def attributeNameState (O00O0O0000000000O ):#line:873:def attributeNameState(self):
-        O0OO0OOOO000O00O0 =O00O0O0000000000O .stream .char ()#line:874:data = self.stream.char()
-        O0O0OOOO0OO0000OO =True #line:875:leavingThisState = True
-        OO00OO0O00O00OOO0 =False #line:876:emitToken = False
-        if O0OO0OOOO000O00O0 =="=":#line:877:if data == "=":
-            O00O0O0000000000O .state =O00O0O0000000000O .beforeAttributeValueState #line:878:self.state = self.beforeAttributeValueState
-        elif O0OO0OOOO000O00O0 in asciiLetters :#line:879:elif data in asciiLetters:
-            O00O0O0000000000O .currentToken ["data"][-1 ][0 ]+=O0OO0OOOO000O00O0 +O00O0O0000000000O .stream .charsUntil (asciiLetters ,True )#line:881:self.stream.charsUntil(asciiLetters, True)
-            O0O0OOOO0OO0000OO =False #line:882:leavingThisState = False
-        elif O0OO0OOOO000O00O0 ==">":#line:883:elif data == ">":
-            OO00OO0O00O00OOO0 =True #line:887:emitToken = True
-        elif O0OO0OOOO000O00O0 in spaceCharacters :#line:888:elif data in spaceCharacters:
-            O00O0O0000000000O .state =O00O0O0000000000O .afterAttributeNameState #line:889:self.state = self.afterAttributeNameState
-        elif O0OO0OOOO000O00O0 =="/":#line:890:elif data == "/":
-            O00O0O0000000000O .state =O00O0O0000000000O .selfClosingStartTagState #line:891:self.state = self.selfClosingStartTagState
-        elif O0OO0OOOO000O00O0 =="\u0000":#line:892:elif data == "\u0000":
-            O00O0O0000000000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:894:"data": "invalid-codepoint"})
-            O00O0O0000000000O .currentToken ["data"][-1 ][0 ]+="\uFFFD"#line:895:self.currentToken["data"][-1][0] += "\uFFFD"
-            O0O0OOOO0OO0000OO =False #line:896:leavingThisState = False
-        elif O0OO0OOOO000O00O0 in ("'",'"',"<"):#line:897:elif data in ("'", '"', "<"):
-            O00O0O0000000000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-character-in-attribute-name"})#line:900:"invalid-character-in-attribute-name"})
-            O00O0O0000000000O .currentToken ["data"][-1 ][0 ]+=O0OO0OOOO000O00O0 #line:901:self.currentToken["data"][-1][0] += data
-            O0O0OOOO0OO0000OO =False #line:902:leavingThisState = False
-        elif O0OO0OOOO000O00O0 is EOF :#line:903:elif data is EOF:
-            O00O0O0000000000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-attribute-name"})#line:905:"data": "eof-in-attribute-name"})
-            O00O0O0000000000O .state =O00O0O0000000000O .dataState #line:906:self.state = self.dataState
-        else :#line:907:else:
-            O00O0O0000000000O .currentToken ["data"][-1 ][0 ]+=O0OO0OOOO000O00O0 #line:908:self.currentToken["data"][-1][0] += data
-            O0O0OOOO0OO0000OO =False #line:909:leavingThisState = False
-        if O0O0OOOO0OO0000OO :#line:911:if leavingThisState:
-            O00O0O0000000000O .currentToken ["data"][-1 ][0 ]=(O00O0O0000000000O .currentToken ["data"][-1 ][0 ].translate (asciiUpper2Lower ))#line:916:self.currentToken["data"][-1][0].translate(asciiUpper2Lower))
-            for O000OO0O0O0O0O00O ,_O0OOOOO0O0O0O000O in O00O0O0000000000O .currentToken ["data"][:-1 ]:#line:917:for name, _ in self.currentToken["data"][:-1]:
-                if O00O0O0000000000O .currentToken ["data"][-1 ][0 ]==O000OO0O0O0O0O00O :#line:918:if self.currentToken["data"][-1][0] == name:
-                    O00O0O0000000000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"duplicate-attribute"})#line:920:"duplicate-attribute"})
-                    break #line:921:break
-            if OO00OO0O00O00OOO0 :#line:923:if emitToken:
-                O00O0O0000000000O .emitCurrentToken ()#line:924:self.emitCurrentToken()
-        return True #line:925:return True
-    def afterAttributeNameState (O0OOO00OOO0000OO0 ):#line:927:def afterAttributeNameState(self):
-        OOOOOO000OO00OOO0 =O0OOO00OOO0000OO0 .stream .char ()#line:928:data = self.stream.char()
-        if OOOOOO000OO00OOO0 in spaceCharacters :#line:929:if data in spaceCharacters:
-            O0OOO00OOO0000OO0 .stream .charsUntil (spaceCharacters ,True )#line:930:self.stream.charsUntil(spaceCharacters, True)
-        elif OOOOOO000OO00OOO0 =="=":#line:931:elif data == "=":
-            O0OOO00OOO0000OO0 .state =O0OOO00OOO0000OO0 .beforeAttributeValueState #line:932:self.state = self.beforeAttributeValueState
-        elif OOOOOO000OO00OOO0 ==">":#line:933:elif data == ">":
-            O0OOO00OOO0000OO0 .emitCurrentToken ()#line:934:self.emitCurrentToken()
-        elif OOOOOO000OO00OOO0 in asciiLetters :#line:935:elif data in asciiLetters:
-            O0OOO00OOO0000OO0 .currentToken ["data"].append ([OOOOOO000OO00OOO0 ,""])#line:936:self.currentToken["data"].append([data, ""])
-            O0OOO00OOO0000OO0 .state =O0OOO00OOO0000OO0 .attributeNameState #line:937:self.state = self.attributeNameState
-        elif OOOOOO000OO00OOO0 =="/":#line:938:elif data == "/":
-            O0OOO00OOO0000OO0 .state =O0OOO00OOO0000OO0 .selfClosingStartTagState #line:939:self.state = self.selfClosingStartTagState
-        elif OOOOOO000OO00OOO0 =="\u0000":#line:940:elif data == "\u0000":
-            O0OOO00OOO0000OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:942:"data": "invalid-codepoint"})
-            O0OOO00OOO0000OO0 .currentToken ["data"].append (["\uFFFD",""])#line:943:self.currentToken["data"].append(["\uFFFD", ""])
-            O0OOO00OOO0000OO0 .state =O0OOO00OOO0000OO0 .attributeNameState #line:944:self.state = self.attributeNameState
-        elif OOOOOO000OO00OOO0 in ("'",'"',"<"):#line:945:elif data in ("'", '"', "<"):
-            O0OOO00OOO0000OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-character-after-attribute-name"})#line:947:"invalid-character-after-attribute-name"})
-            O0OOO00OOO0000OO0 .currentToken ["data"].append ([OOOOOO000OO00OOO0 ,""])#line:948:self.currentToken["data"].append([data, ""])
-            O0OOO00OOO0000OO0 .state =O0OOO00OOO0000OO0 .attributeNameState #line:949:self.state = self.attributeNameState
-        elif OOOOOO000OO00OOO0 is EOF :#line:950:elif data is EOF:
-            O0OOO00OOO0000OO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-end-of-tag-but-got-eof"})#line:952:"expected-end-of-tag-but-got-eof"})
-            O0OOO00OOO0000OO0 .state =O0OOO00OOO0000OO0 .dataState #line:953:self.state = self.dataState
-        else :#line:954:else:
-            O0OOO00OOO0000OO0 .currentToken ["data"].append ([OOOOOO000OO00OOO0 ,""])#line:955:self.currentToken["data"].append([data, ""])
-            O0OOO00OOO0000OO0 .state =O0OOO00OOO0000OO0 .attributeNameState #line:956:self.state = self.attributeNameState
-        return True #line:957:return True
-    def beforeAttributeValueState (OOOO000OOO0O000O0 ):#line:959:def beforeAttributeValueState(self):
-        O0O000OOO0OO0O0O0 =OOOO000OOO0O000O0 .stream .char ()#line:960:data = self.stream.char()
-        if O0O000OOO0OO0O0O0 in spaceCharacters :#line:961:if data in spaceCharacters:
-            OOOO000OOO0O000O0 .stream .charsUntil (spaceCharacters ,True )#line:962:self.stream.charsUntil(spaceCharacters, True)
-        elif O0O000OOO0OO0O0O0 =="\"":#line:963:elif data == "\"":
-            OOOO000OOO0O000O0 .state =OOOO000OOO0O000O0 .attributeValueDoubleQuotedState #line:964:self.state = self.attributeValueDoubleQuotedState
-        elif O0O000OOO0OO0O0O0 =="&":#line:965:elif data == "&":
-            OOOO000OOO0O000O0 .state =OOOO000OOO0O000O0 .attributeValueUnQuotedState #line:966:self.state = self.attributeValueUnQuotedState
-            OOOO000OOO0O000O0 .stream .unget (O0O000OOO0OO0O0O0 )#line:967:self.stream.unget(data)
-        elif O0O000OOO0OO0O0O0 =="'":#line:968:elif data == "'":
-            OOOO000OOO0O000O0 .state =OOOO000OOO0O000O0 .attributeValueSingleQuotedState #line:969:self.state = self.attributeValueSingleQuotedState
-        elif O0O000OOO0OO0O0O0 ==">":#line:970:elif data == ">":
-            OOOO000OOO0O000O0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-attribute-value-but-got-right-bracket"})#line:972:"expected-attribute-value-but-got-right-bracket"})
-            OOOO000OOO0O000O0 .emitCurrentToken ()#line:973:self.emitCurrentToken()
-        elif O0O000OOO0OO0O0O0 =="\u0000":#line:974:elif data == "\u0000":
-            OOOO000OOO0O000O0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:976:"data": "invalid-codepoint"})
-            OOOO000OOO0O000O0 .currentToken ["data"][-1 ][1 ]+="\uFFFD"#line:977:self.currentToken["data"][-1][1] += "\uFFFD"
-            OOOO000OOO0O000O0 .state =OOOO000OOO0O000O0 .attributeValueUnQuotedState #line:978:self.state = self.attributeValueUnQuotedState
-        elif O0O000OOO0OO0O0O0 in ("=","<","`"):#line:979:elif data in ("=", "<", "`"):
-            OOOO000OOO0O000O0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"equals-in-unquoted-attribute-value"})#line:981:"equals-in-unquoted-attribute-value"})
-            OOOO000OOO0O000O0 .currentToken ["data"][-1 ][1 ]+=O0O000OOO0OO0O0O0 #line:982:self.currentToken["data"][-1][1] += data
-            OOOO000OOO0O000O0 .state =OOOO000OOO0O000O0 .attributeValueUnQuotedState #line:983:self.state = self.attributeValueUnQuotedState
-        elif O0O000OOO0OO0O0O0 is EOF :#line:984:elif data is EOF:
-            OOOO000OOO0O000O0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-attribute-value-but-got-eof"})#line:986:"expected-attribute-value-but-got-eof"})
-            OOOO000OOO0O000O0 .state =OOOO000OOO0O000O0 .dataState #line:987:self.state = self.dataState
-        else :#line:988:else:
-            OOOO000OOO0O000O0 .currentToken ["data"][-1 ][1 ]+=O0O000OOO0OO0O0O0 #line:989:self.currentToken["data"][-1][1] += data
-            OOOO000OOO0O000O0 .state =OOOO000OOO0O000O0 .attributeValueUnQuotedState #line:990:self.state = self.attributeValueUnQuotedState
-        return True #line:991:return True
-    def attributeValueDoubleQuotedState (O0OOOO000O0O0000O ):#line:993:def attributeValueDoubleQuotedState(self):
-        O00O00000O00OOOO0 =O0OOOO000O0O0000O .stream .char ()#line:994:data = self.stream.char()
-        if O00O00000O00OOOO0 =="\"":#line:995:if data == "\"":
-            O0OOOO000O0O0000O .state =O0OOOO000O0O0000O .afterAttributeValueState #line:996:self.state = self.afterAttributeValueState
-        elif O00O00000O00OOOO0 =="&":#line:997:elif data == "&":
-            O0OOOO000O0O0000O .processEntityInAttribute ('"')#line:998:self.processEntityInAttribute('"')
-        elif O00O00000O00OOOO0 =="\u0000":#line:999:elif data == "\u0000":
-            O0OOOO000O0O0000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1001:"data": "invalid-codepoint"})
-            O0OOOO000O0O0000O .currentToken ["data"][-1 ][1 ]+="\uFFFD"#line:1002:self.currentToken["data"][-1][1] += "\uFFFD"
-        elif O00O00000O00OOOO0 is EOF :#line:1003:elif data is EOF:
-            O0OOOO000O0O0000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-attribute-value-double-quote"})#line:1005:"eof-in-attribute-value-double-quote"})
-            O0OOOO000O0O0000O .state =O0OOOO000O0O0000O .dataState #line:1006:self.state = self.dataState
-        else :#line:1007:else:
-            O0OOOO000O0O0000O .currentToken ["data"][-1 ][1 ]+=O00O00000O00OOOO0 +O0OOOO000O0O0000O .stream .charsUntil (("\"","&","\u0000"))#line:1009:self.stream.charsUntil(("\"", "&", "\u0000"))
-        return True #line:1010:return True
-    def attributeValueSingleQuotedState (O000O0O0OO0O0OO00 ):#line:1012:def attributeValueSingleQuotedState(self):
-        O0000OO0OOOO0O00O =O000O0O0OO0O0OO00 .stream .char ()#line:1013:data = self.stream.char()
-        if O0000OO0OOOO0O00O =="'":#line:1014:if data == "'":
-            O000O0O0OO0O0OO00 .state =O000O0O0OO0O0OO00 .afterAttributeValueState #line:1015:self.state = self.afterAttributeValueState
-        elif O0000OO0OOOO0O00O =="&":#line:1016:elif data == "&":
-            O000O0O0OO0O0OO00 .processEntityInAttribute ("'")#line:1017:self.processEntityInAttribute("'")
-        elif O0000OO0OOOO0O00O =="\u0000":#line:1018:elif data == "\u0000":
-            O000O0O0OO0O0OO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1020:"data": "invalid-codepoint"})
-            O000O0O0OO0O0OO00 .currentToken ["data"][-1 ][1 ]+="\uFFFD"#line:1021:self.currentToken["data"][-1][1] += "\uFFFD"
-        elif O0000OO0OOOO0O00O is EOF :#line:1022:elif data is EOF:
-            O000O0O0OO0O0OO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-attribute-value-single-quote"})#line:1024:"eof-in-attribute-value-single-quote"})
-            O000O0O0OO0O0OO00 .state =O000O0O0OO0O0OO00 .dataState #line:1025:self.state = self.dataState
-        else :#line:1026:else:
-            O000O0O0OO0O0OO00 .currentToken ["data"][-1 ][1 ]+=O0000OO0OOOO0O00O +O000O0O0OO0O0OO00 .stream .charsUntil (("'","&","\u0000"))#line:1028:self.stream.charsUntil(("'", "&", "\u0000"))
-        return True #line:1029:return True
-    def attributeValueUnQuotedState (OO0OO0O00OOO0O0OO ):#line:1031:def attributeValueUnQuotedState(self):
-        O0000OO0OOO0OOO0O =OO0OO0O00OOO0O0OO .stream .char ()#line:1032:data = self.stream.char()
-        if O0000OO0OOO0OOO0O in spaceCharacters :#line:1033:if data in spaceCharacters:
-            OO0OO0O00OOO0O0OO .state =OO0OO0O00OOO0O0OO .beforeAttributeNameState #line:1034:self.state = self.beforeAttributeNameState
-        elif O0000OO0OOO0OOO0O =="&":#line:1035:elif data == "&":
-            OO0OO0O00OOO0O0OO .processEntityInAttribute (">")#line:1036:self.processEntityInAttribute(">")
-        elif O0000OO0OOO0OOO0O ==">":#line:1037:elif data == ">":
-            OO0OO0O00OOO0O0OO .emitCurrentToken ()#line:1038:self.emitCurrentToken()
-        elif O0000OO0OOO0OOO0O in ('"',"'","=","<","`"):#line:1039:elif data in ('"', "'", "=", "<", "`"):
-            OO0OO0O00OOO0O0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-character-in-unquoted-attribute-value"})#line:1041:"unexpected-character-in-unquoted-attribute-value"})
-            OO0OO0O00OOO0O0OO .currentToken ["data"][-1 ][1 ]+=O0000OO0OOO0OOO0O #line:1042:self.currentToken["data"][-1][1] += data
-        elif O0000OO0OOO0OOO0O =="\u0000":#line:1043:elif data == "\u0000":
-            OO0OO0O00OOO0O0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1045:"data": "invalid-codepoint"})
-            OO0OO0O00OOO0O0OO .currentToken ["data"][-1 ][1 ]+="\uFFFD"#line:1046:self.currentToken["data"][-1][1] += "\uFFFD"
-        elif O0000OO0OOO0OOO0O is EOF :#line:1047:elif data is EOF:
-            OO0OO0O00OOO0O0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-attribute-value-no-quotes"})#line:1049:"eof-in-attribute-value-no-quotes"})
-            OO0OO0O00OOO0O0OO .state =OO0OO0O00OOO0O0OO .dataState #line:1050:self.state = self.dataState
-        else :#line:1051:else:
-            OO0OO0O00OOO0O0OO .currentToken ["data"][-1 ][1 ]+=O0000OO0OOO0OOO0O +OO0OO0O00OOO0O0OO .stream .charsUntil (frozenset (("&",">",'"',"'","=","<","`","\u0000"))|spaceCharacters )#line:1053:frozenset(("&", ">", '"', "'", "=", "<", "`", "\u0000")) | spaceCharacters)
-        return True #line:1054:return True
-    def afterAttributeValueState (OOOOO00000OOOO000 ):#line:1056:def afterAttributeValueState(self):
-        OOOO00000O0000O0O =OOOOO00000OOOO000 .stream .char ()#line:1057:data = self.stream.char()
-        if OOOO00000O0000O0O in spaceCharacters :#line:1058:if data in spaceCharacters:
-            OOOOO00000OOOO000 .state =OOOOO00000OOOO000 .beforeAttributeNameState #line:1059:self.state = self.beforeAttributeNameState
-        elif OOOO00000O0000O0O ==">":#line:1060:elif data == ">":
-            OOOOO00000OOOO000 .emitCurrentToken ()#line:1061:self.emitCurrentToken()
-        elif OOOO00000O0000O0O =="/":#line:1062:elif data == "/":
-            OOOOO00000OOOO000 .state =OOOOO00000OOOO000 .selfClosingStartTagState #line:1063:self.state = self.selfClosingStartTagState
-        elif OOOO00000O0000O0O is EOF :#line:1064:elif data is EOF:
-            OOOOO00000OOOO000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-EOF-after-attribute-value"})#line:1066:"unexpected-EOF-after-attribute-value"})
-            OOOOO00000OOOO000 .stream .unget (OOOO00000O0000O0O )#line:1067:self.stream.unget(data)
-            OOOOO00000OOOO000 .state =OOOOO00000OOOO000 .dataState #line:1068:self.state = self.dataState
-        else :#line:1069:else:
-            OOOOO00000OOOO000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-character-after-attribute-value"})#line:1071:"unexpected-character-after-attribute-value"})
-            OOOOO00000OOOO000 .stream .unget (OOOO00000O0000O0O )#line:1072:self.stream.unget(data)
-            OOOOO00000OOOO000 .state =OOOOO00000OOOO000 .beforeAttributeNameState #line:1073:self.state = self.beforeAttributeNameState
-        return True #line:1074:return True
-    def selfClosingStartTagState (OOO0O0OOO0O00000O ):#line:1076:def selfClosingStartTagState(self):
-        O00OOOO00O0OOO0O0 =OOO0O0OOO0O00000O .stream .char ()#line:1077:data = self.stream.char()
-        if O00OOOO00O0OOO0O0 ==">":#line:1078:if data == ">":
-            OOO0O0OOO0O00000O .currentToken ["selfClosing"]=True #line:1079:self.currentToken["selfClosing"] = True
-            OOO0O0OOO0O00000O .emitCurrentToken ()#line:1080:self.emitCurrentToken()
-        elif O00OOOO00O0OOO0O0 is EOF :#line:1081:elif data is EOF:
-            OOO0O0OOO0O00000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-EOF-after-solidus-in-tag"})#line:1084:"unexpected-EOF-after-solidus-in-tag"})
-            OOO0O0OOO0O00000O .stream .unget (O00OOOO00O0OOO0O0 )#line:1085:self.stream.unget(data)
-            OOO0O0OOO0O00000O .state =OOO0O0OOO0O00000O .dataState #line:1086:self.state = self.dataState
-        else :#line:1087:else:
-            OOO0O0OOO0O00000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-character-after-solidus-in-tag"})#line:1089:"unexpected-character-after-solidus-in-tag"})
-            OOO0O0OOO0O00000O .stream .unget (O00OOOO00O0OOO0O0 )#line:1090:self.stream.unget(data)
-            OOO0O0OOO0O00000O .state =OOO0O0OOO0O00000O .beforeAttributeNameState #line:1091:self.state = self.beforeAttributeNameState
-        return True #line:1092:return True
-    def bogusCommentState (O0OOOO00O0O00O000 ):#line:1094:def bogusCommentState(self):
-        O00O0O0OO00000OOO =O0OOOO00O0O00O000 .stream .charsUntil (">")#line:1098:data = self.stream.charsUntil(">")
-        O00O0O0OO00000OOO =O00O0O0OO00000OOO .replace ("\u0000","\uFFFD")#line:1099:data = data.replace("\u0000", "\uFFFD")
-        O0OOOO00O0O00O000 .tokenQueue .append ({"type":tokenTypes ["Comment"],"data":O00O0O0OO00000OOO })#line:1101:{"type": tokenTypes["Comment"], "data": data})
-        O0OOOO00O0O00O000 .stream .char ()#line:1105:self.stream.char()
-        O0OOOO00O0O00O000 .state =O0OOOO00O0O00O000 .dataState #line:1106:self.state = self.dataState
-        return True #line:1107:return True
-    def markupDeclarationOpenState (O0O0O0000000OOOOO ):#line:1109:def markupDeclarationOpenState(self):
-        O0000OO0O0OOO00O0 =[O0O0O0000000OOOOO .stream .char ()]#line:1110:charStack = [self.stream.char()]
-        if O0000OO0O0OOO00O0 [-1 ]=="-":#line:1111:if charStack[-1] == "-":
-            O0000OO0O0OOO00O0 .append (O0O0O0000000OOOOO .stream .char ())#line:1112:charStack.append(self.stream.char())
-            if O0000OO0O0OOO00O0 [-1 ]=="-":#line:1113:if charStack[-1] == "-":
-                O0O0O0000000OOOOO .currentToken ={"type":tokenTypes ["Comment"],"data":""}#line:1114:self.currentToken = {"type": tokenTypes["Comment"], "data": ""}
-                O0O0O0000000OOOOO .state =O0O0O0000000OOOOO .commentStartState #line:1115:self.state = self.commentStartState
-                return True #line:1116:return True
-        elif O0000OO0O0OOO00O0 [-1 ]in ('d','D'):#line:1117:elif charStack[-1] in ('d', 'D'):
-            O000OO0O000O0O00O =True #line:1118:matched = True
-            for O0OOO0OOO0OOOOOOO in (('o','O'),('c','C'),('t','T'),('y','Y'),('p','P'),('e','E')):#line:1120:('y', 'Y'), ('p', 'P'), ('e', 'E')):
-                O0000OO0O0OOO00O0 .append (O0O0O0000000OOOOO .stream .char ())#line:1121:charStack.append(self.stream.char())
-                if O0000OO0O0OOO00O0 [-1 ]not in O0OOO0OOO0OOOOOOO :#line:1122:if charStack[-1] not in expected:
-                    O000OO0O000O0O00O =False #line:1123:matched = False
-                    break #line:1124:break
-            if O000OO0O000O0O00O :#line:1125:if matched:
-                O0O0O0000000OOOOO .currentToken ={"type":tokenTypes ["Doctype"],"name":"","publicId":None ,"systemId":None ,"correct":True }#line:1129:"correct": True}
-                O0O0O0000000OOOOO .state =O0O0O0000000OOOOO .doctypeState #line:1130:self.state = self.doctypeState
-                return True #line:1131:return True
-        elif (O0000OO0O0OOO00O0 [-1 ]=="["and O0O0O0000000OOOOO .parser is not None and O0O0O0000000OOOOO .parser .tree .openElements and O0O0O0000000OOOOO .parser .tree .openElements [-1 ].namespace !=O0O0O0000000OOOOO .parser .tree .defaultNamespace ):#line:1135:self.parser.tree.openElements[-1].namespace != self.parser.tree.defaultNamespace):
-            O000OO0O000O0O00O =True #line:1136:matched = True
-            for O0OOO0OOO0OOOOOOO in ["C","D","A","T","A","["]:#line:1137:for expected in ["C", "D", "A", "T", "A", "["]:
-                O0000OO0O0OOO00O0 .append (O0O0O0000000OOOOO .stream .char ())#line:1138:charStack.append(self.stream.char())
-                if O0000OO0O0OOO00O0 [-1 ]!=O0OOO0OOO0OOOOOOO :#line:1139:if charStack[-1] != expected:
-                    O000OO0O000O0O00O =False #line:1140:matched = False
-                    break #line:1141:break
-            if O000OO0O000O0O00O :#line:1142:if matched:
-                O0O0O0000000OOOOO .state =O0O0O0000000OOOOO .cdataSectionState #line:1143:self.state = self.cdataSectionState
-                return True #line:1144:return True
-        O0O0O0000000OOOOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-dashes-or-doctype"})#line:1147:"expected-dashes-or-doctype"})
-        while O0000OO0O0OOO00O0 :#line:1149:while charStack:
-            O0O0O0000000OOOOO .stream .unget (O0000OO0O0OOO00O0 .pop ())#line:1150:self.stream.unget(charStack.pop())
-        O0O0O0000000OOOOO .state =O0O0O0000000OOOOO .bogusCommentState #line:1151:self.state = self.bogusCommentState
-        return True #line:1152:return True
-    def commentStartState (O000OO0O0OO0OO0OO ):#line:1154:def commentStartState(self):
-        OO0O0O00O0000O000 =O000OO0O0OO0OO0OO .stream .char ()#line:1155:data = self.stream.char()
-        if OO0O0O00O0000O000 =="-":#line:1156:if data == "-":
-            O000OO0O0OO0OO0OO .state =O000OO0O0OO0OO0OO .commentStartDashState #line:1157:self.state = self.commentStartDashState
-        elif OO0O0O00O0000O000 =="\u0000":#line:1158:elif data == "\u0000":
-            O000OO0O0OO0OO0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1160:"data": "invalid-codepoint"})
-            O000OO0O0OO0OO0OO .currentToken ["data"]+="\uFFFD"#line:1161:self.currentToken["data"] += "\uFFFD"
-        elif OO0O0O00O0000O000 ==">":#line:1162:elif data == ">":
-            O000OO0O0OO0OO0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"incorrect-comment"})#line:1164:"incorrect-comment"})
-            O000OO0O0OO0OO0OO .tokenQueue .append (O000OO0O0OO0OO0OO .currentToken )#line:1165:self.tokenQueue.append(self.currentToken)
-            O000OO0O0OO0OO0OO .state =O000OO0O0OO0OO0OO .dataState #line:1166:self.state = self.dataState
-        elif OO0O0O00O0000O000 is EOF :#line:1167:elif data is EOF:
-            O000OO0O0OO0OO0OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-comment"})#line:1169:"eof-in-comment"})
-            O000OO0O0OO0OO0OO .tokenQueue .append (O000OO0O0OO0OO0OO .currentToken )#line:1170:self.tokenQueue.append(self.currentToken)
-            O000OO0O0OO0OO0OO .state =O000OO0O0OO0OO0OO .dataState #line:1171:self.state = self.dataState
-        else :#line:1172:else:
-            O000OO0O0OO0OO0OO .currentToken ["data"]+=OO0O0O00O0000O000 #line:1173:self.currentToken["data"] += data
-            O000OO0O0OO0OO0OO .state =O000OO0O0OO0OO0OO .commentState #line:1174:self.state = self.commentState
-        return True #line:1175:return True
-    def commentStartDashState (OO00OO0O00OO0OOO0 ):#line:1177:def commentStartDashState(self):
-        OOOO00O0OOO000OO0 =OO00OO0O00OO0OOO0 .stream .char ()#line:1178:data = self.stream.char()
-        if OOOO00O0OOO000OO0 =="-":#line:1179:if data == "-":
-            OO00OO0O00OO0OOO0 .state =OO00OO0O00OO0OOO0 .commentEndState #line:1180:self.state = self.commentEndState
-        elif OOOO00O0OOO000OO0 =="\u0000":#line:1181:elif data == "\u0000":
-            OO00OO0O00OO0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1183:"data": "invalid-codepoint"})
-            OO00OO0O00OO0OOO0 .currentToken ["data"]+="-\uFFFD"#line:1184:self.currentToken["data"] += "-\uFFFD"
-        elif OOOO00O0OOO000OO0 ==">":#line:1185:elif data == ">":
-            OO00OO0O00OO0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"incorrect-comment"})#line:1187:"incorrect-comment"})
-            OO00OO0O00OO0OOO0 .tokenQueue .append (OO00OO0O00OO0OOO0 .currentToken )#line:1188:self.tokenQueue.append(self.currentToken)
-            OO00OO0O00OO0OOO0 .state =OO00OO0O00OO0OOO0 .dataState #line:1189:self.state = self.dataState
-        elif OOOO00O0OOO000OO0 is EOF :#line:1190:elif data is EOF:
-            OO00OO0O00OO0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-comment"})#line:1192:"eof-in-comment"})
-            OO00OO0O00OO0OOO0 .tokenQueue .append (OO00OO0O00OO0OOO0 .currentToken )#line:1193:self.tokenQueue.append(self.currentToken)
-            OO00OO0O00OO0OOO0 .state =OO00OO0O00OO0OOO0 .dataState #line:1194:self.state = self.dataState
-        else :#line:1195:else:
-            OO00OO0O00OO0OOO0 .currentToken ["data"]+="-"+OOOO00O0OOO000OO0 #line:1196:self.currentToken["data"] += "-" + data
-            OO00OO0O00OO0OOO0 .state =OO00OO0O00OO0OOO0 .commentState #line:1197:self.state = self.commentState
-        return True #line:1198:return True
-    def commentState (O0O000O0OO000OOOO ):#line:1200:def commentState(self):
-        O0O0000000000000O =O0O000O0OO000OOOO .stream .char ()#line:1201:data = self.stream.char()
-        if O0O0000000000000O =="-":#line:1202:if data == "-":
-            O0O000O0OO000OOOO .state =O0O000O0OO000OOOO .commentEndDashState #line:1203:self.state = self.commentEndDashState
-        elif O0O0000000000000O =="\u0000":#line:1204:elif data == "\u0000":
-            O0O000O0OO000OOOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1206:"data": "invalid-codepoint"})
-            O0O000O0OO000OOOO .currentToken ["data"]+="\uFFFD"#line:1207:self.currentToken["data"] += "\uFFFD"
-        elif O0O0000000000000O is EOF :#line:1208:elif data is EOF:
-            O0O000O0OO000OOOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-comment"})#line:1210:"data": "eof-in-comment"})
-            O0O000O0OO000OOOO .tokenQueue .append (O0O000O0OO000OOOO .currentToken )#line:1211:self.tokenQueue.append(self.currentToken)
-            O0O000O0OO000OOOO .state =O0O000O0OO000OOOO .dataState #line:1212:self.state = self.dataState
-        else :#line:1213:else:
-            O0O000O0OO000OOOO .currentToken ["data"]+=O0O0000000000000O +O0O000O0OO000OOOO .stream .charsUntil (("-","\u0000"))#line:1215:self.stream.charsUntil(("-", "\u0000"))
-        return True #line:1216:return True
-    def commentEndDashState (O00OO0O0OOOOOO00O ):#line:1218:def commentEndDashState(self):
-        OO00O000OOOOOO0O0 =O00OO0O0OOOOOO00O .stream .char ()#line:1219:data = self.stream.char()
-        if OO00O000OOOOOO0O0 =="-":#line:1220:if data == "-":
-            O00OO0O0OOOOOO00O .state =O00OO0O0OOOOOO00O .commentEndState #line:1221:self.state = self.commentEndState
-        elif OO00O000OOOOOO0O0 =="\u0000":#line:1222:elif data == "\u0000":
-            O00OO0O0OOOOOO00O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1224:"data": "invalid-codepoint"})
-            O00OO0O0OOOOOO00O .currentToken ["data"]+="-\uFFFD"#line:1225:self.currentToken["data"] += "-\uFFFD"
-            O00OO0O0OOOOOO00O .state =O00OO0O0OOOOOO00O .commentState #line:1226:self.state = self.commentState
-        elif OO00O000OOOOOO0O0 is EOF :#line:1227:elif data is EOF:
-            O00OO0O0OOOOOO00O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-comment-end-dash"})#line:1229:"eof-in-comment-end-dash"})
-            O00OO0O0OOOOOO00O .tokenQueue .append (O00OO0O0OOOOOO00O .currentToken )#line:1230:self.tokenQueue.append(self.currentToken)
-            O00OO0O0OOOOOO00O .state =O00OO0O0OOOOOO00O .dataState #line:1231:self.state = self.dataState
-        else :#line:1232:else:
-            O00OO0O0OOOOOO00O .currentToken ["data"]+="-"+OO00O000OOOOOO0O0 #line:1233:self.currentToken["data"] += "-" + data
-            O00OO0O0OOOOOO00O .state =O00OO0O0OOOOOO00O .commentState #line:1234:self.state = self.commentState
-        return True #line:1235:return True
-    def commentEndState (OOOO0OOO0OOOO0O0O ):#line:1237:def commentEndState(self):
-        O000O0O0OO00OO00O =OOOO0OOO0OOOO0O0O .stream .char ()#line:1238:data = self.stream.char()
-        if O000O0O0OO00OO00O ==">":#line:1239:if data == ">":
-            OOOO0OOO0OOOO0O0O .tokenQueue .append (OOOO0OOO0OOOO0O0O .currentToken )#line:1240:self.tokenQueue.append(self.currentToken)
-            OOOO0OOO0OOOO0O0O .state =OOOO0OOO0OOOO0O0O .dataState #line:1241:self.state = self.dataState
-        elif O000O0O0OO00OO00O =="\u0000":#line:1242:elif data == "\u0000":
-            OOOO0OOO0OOOO0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1244:"data": "invalid-codepoint"})
-            OOOO0OOO0OOOO0O0O .currentToken ["data"]+="--\uFFFD"#line:1245:self.currentToken["data"] += "--\uFFFD"
-            OOOO0OOO0OOOO0O0O .state =OOOO0OOO0OOOO0O0O .commentState #line:1246:self.state = self.commentState
-        elif O000O0O0OO00OO00O =="!":#line:1247:elif data == "!":
-            OOOO0OOO0OOOO0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-bang-after-double-dash-in-comment"})#line:1249:"unexpected-bang-after-double-dash-in-comment"})
-            OOOO0OOO0OOOO0O0O .state =OOOO0OOO0OOOO0O0O .commentEndBangState #line:1250:self.state = self.commentEndBangState
-        elif O000O0O0OO00OO00O =="-":#line:1251:elif data == "-":
-            OOOO0OOO0OOOO0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-dash-after-double-dash-in-comment"})#line:1253:"unexpected-dash-after-double-dash-in-comment"})
-            OOOO0OOO0OOOO0O0O .currentToken ["data"]+=O000O0O0OO00OO00O #line:1254:self.currentToken["data"] += data
-        elif O000O0O0OO00OO00O is EOF :#line:1255:elif data is EOF:
-            OOOO0OOO0OOOO0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-comment-double-dash"})#line:1257:"eof-in-comment-double-dash"})
-            OOOO0OOO0OOOO0O0O .tokenQueue .append (OOOO0OOO0OOOO0O0O .currentToken )#line:1258:self.tokenQueue.append(self.currentToken)
-            OOOO0OOO0OOOO0O0O .state =OOOO0OOO0OOOO0O0O .dataState #line:1259:self.state = self.dataState
-        else :#line:1260:else:
-            OOOO0OOO0OOOO0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-comment"})#line:1263:"unexpected-char-in-comment"})
-            OOOO0OOO0OOOO0O0O .currentToken ["data"]+="--"+O000O0O0OO00OO00O #line:1264:self.currentToken["data"] += "--" + data
-            OOOO0OOO0OOOO0O0O .state =OOOO0OOO0OOOO0O0O .commentState #line:1265:self.state = self.commentState
-        return True #line:1266:return True
-    def commentEndBangState (O0OOOOO00OO0OOO0O ):#line:1268:def commentEndBangState(self):
-        OOO0OOO0O000OO00O =O0OOOOO00OO0OOO0O .stream .char ()#line:1269:data = self.stream.char()
-        if OOO0OOO0O000OO00O ==">":#line:1270:if data == ">":
-            O0OOOOO00OO0OOO0O .tokenQueue .append (O0OOOOO00OO0OOO0O .currentToken )#line:1271:self.tokenQueue.append(self.currentToken)
-            O0OOOOO00OO0OOO0O .state =O0OOOOO00OO0OOO0O .dataState #line:1272:self.state = self.dataState
-        elif OOO0OOO0O000OO00O =="-":#line:1273:elif data == "-":
-            O0OOOOO00OO0OOO0O .currentToken ["data"]+="--!"#line:1274:self.currentToken["data"] += "--!"
-            O0OOOOO00OO0OOO0O .state =O0OOOOO00OO0OOO0O .commentEndDashState #line:1275:self.state = self.commentEndDashState
-        elif OOO0OOO0O000OO00O =="\u0000":#line:1276:elif data == "\u0000":
-            O0OOOOO00OO0OOO0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1278:"data": "invalid-codepoint"})
-            O0OOOOO00OO0OOO0O .currentToken ["data"]+="--!\uFFFD"#line:1279:self.currentToken["data"] += "--!\uFFFD"
-            O0OOOOO00OO0OOO0O .state =O0OOOOO00OO0OOO0O .commentState #line:1280:self.state = self.commentState
-        elif OOO0OOO0O000OO00O is EOF :#line:1281:elif data is EOF:
-            O0OOOOO00OO0OOO0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-comment-end-bang-state"})#line:1283:"eof-in-comment-end-bang-state"})
-            O0OOOOO00OO0OOO0O .tokenQueue .append (O0OOOOO00OO0OOO0O .currentToken )#line:1284:self.tokenQueue.append(self.currentToken)
-            O0OOOOO00OO0OOO0O .state =O0OOOOO00OO0OOO0O .dataState #line:1285:self.state = self.dataState
-        else :#line:1286:else:
-            O0OOOOO00OO0OOO0O .currentToken ["data"]+="--!"+OOO0OOO0O000OO00O #line:1287:self.currentToken["data"] += "--!" + data
-            O0OOOOO00OO0OOO0O .state =O0OOOOO00OO0OOO0O .commentState #line:1288:self.state = self.commentState
-        return True #line:1289:return True
-    def doctypeState (OOOOO0O0OO0OOO000 ):#line:1291:def doctypeState(self):
-        O0O0O00O00000O0OO =OOOOO0O0OO0OOO000 .stream .char ()#line:1292:data = self.stream.char()
-        if O0O0O00O00000O0OO in spaceCharacters :#line:1293:if data in spaceCharacters:
-            OOOOO0O0OO0OOO000 .state =OOOOO0O0OO0OOO000 .beforeDoctypeNameState #line:1294:self.state = self.beforeDoctypeNameState
-        elif O0O0O00O00000O0OO is EOF :#line:1295:elif data is EOF:
-            OOOOO0O0OO0OOO000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-doctype-name-but-got-eof"})#line:1297:"expected-doctype-name-but-got-eof"})
-            OOOOO0O0OO0OOO000 .currentToken ["correct"]=False #line:1298:self.currentToken["correct"] = False
-            OOOOO0O0OO0OOO000 .tokenQueue .append (OOOOO0O0OO0OOO000 .currentToken )#line:1299:self.tokenQueue.append(self.currentToken)
-            OOOOO0O0OO0OOO000 .state =OOOOO0O0OO0OOO000 .dataState #line:1300:self.state = self.dataState
-        else :#line:1301:else:
-            OOOOO0O0OO0OOO000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"need-space-after-doctype"})#line:1303:"need-space-after-doctype"})
-            OOOOO0O0OO0OOO000 .stream .unget (O0O0O00O00000O0OO )#line:1304:self.stream.unget(data)
-            OOOOO0O0OO0OOO000 .state =OOOOO0O0OO0OOO000 .beforeDoctypeNameState #line:1305:self.state = self.beforeDoctypeNameState
-        return True #line:1306:return True
-    def beforeDoctypeNameState (O00OOOOOOOO0OO00O ):#line:1308:def beforeDoctypeNameState(self):
-        O00O0O000OO00O0OO =O00OOOOOOOO0OO00O .stream .char ()#line:1309:data = self.stream.char()
-        if O00O0O000OO00O0OO in spaceCharacters :#line:1310:if data in spaceCharacters:
-            pass #line:1311:pass
-        elif O00O0O000OO00O0OO ==">":#line:1312:elif data == ">":
-            O00OOOOOOOO0OO00O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-doctype-name-but-got-right-bracket"})#line:1314:"expected-doctype-name-but-got-right-bracket"})
-            O00OOOOOOOO0OO00O .currentToken ["correct"]=False #line:1315:self.currentToken["correct"] = False
-            O00OOOOOOOO0OO00O .tokenQueue .append (O00OOOOOOOO0OO00O .currentToken )#line:1316:self.tokenQueue.append(self.currentToken)
-            O00OOOOOOOO0OO00O .state =O00OOOOOOOO0OO00O .dataState #line:1317:self.state = self.dataState
-        elif O00O0O000OO00O0OO =="\u0000":#line:1318:elif data == "\u0000":
-            O00OOOOOOOO0OO00O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1320:"data": "invalid-codepoint"})
-            O00OOOOOOOO0OO00O .currentToken ["name"]="\uFFFD"#line:1321:self.currentToken["name"] = "\uFFFD"
-            O00OOOOOOOO0OO00O .state =O00OOOOOOOO0OO00O .doctypeNameState #line:1322:self.state = self.doctypeNameState
-        elif O00O0O000OO00O0OO is EOF :#line:1323:elif data is EOF:
-            O00OOOOOOOO0OO00O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-doctype-name-but-got-eof"})#line:1325:"expected-doctype-name-but-got-eof"})
-            O00OOOOOOOO0OO00O .currentToken ["correct"]=False #line:1326:self.currentToken["correct"] = False
-            O00OOOOOOOO0OO00O .tokenQueue .append (O00OOOOOOOO0OO00O .currentToken )#line:1327:self.tokenQueue.append(self.currentToken)
-            O00OOOOOOOO0OO00O .state =O00OOOOOOOO0OO00O .dataState #line:1328:self.state = self.dataState
-        else :#line:1329:else:
-            O00OOOOOOOO0OO00O .currentToken ["name"]=O00O0O000OO00O0OO #line:1330:self.currentToken["name"] = data
-            O00OOOOOOOO0OO00O .state =O00OOOOOOOO0OO00O .doctypeNameState #line:1331:self.state = self.doctypeNameState
-        return True #line:1332:return True
-    def doctypeNameState (OO00O00OO000OO00O ):#line:1334:def doctypeNameState(self):
-        O0O0OOO0O00O0000O =OO00O00OO000OO00O .stream .char ()#line:1335:data = self.stream.char()
-        if O0O0OOO0O00O0000O in spaceCharacters :#line:1336:if data in spaceCharacters:
-            OO00O00OO000OO00O .currentToken ["name"]=OO00O00OO000OO00O .currentToken ["name"].translate (asciiUpper2Lower )#line:1337:self.currentToken["name"] = self.currentToken["name"].translate(asciiUpper2Lower)
-            OO00O00OO000OO00O .state =OO00O00OO000OO00O .afterDoctypeNameState #line:1338:self.state = self.afterDoctypeNameState
-        elif O0O0OOO0O00O0000O ==">":#line:1339:elif data == ">":
-            OO00O00OO000OO00O .currentToken ["name"]=OO00O00OO000OO00O .currentToken ["name"].translate (asciiUpper2Lower )#line:1340:self.currentToken["name"] = self.currentToken["name"].translate(asciiUpper2Lower)
-            OO00O00OO000OO00O .tokenQueue .append (OO00O00OO000OO00O .currentToken )#line:1341:self.tokenQueue.append(self.currentToken)
-            OO00O00OO000OO00O .state =OO00O00OO000OO00O .dataState #line:1342:self.state = self.dataState
-        elif O0O0OOO0O00O0000O =="\u0000":#line:1343:elif data == "\u0000":
-            OO00O00OO000OO00O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1345:"data": "invalid-codepoint"})
-            OO00O00OO000OO00O .currentToken ["name"]+="\uFFFD"#line:1346:self.currentToken["name"] += "\uFFFD"
-            OO00O00OO000OO00O .state =OO00O00OO000OO00O .doctypeNameState #line:1347:self.state = self.doctypeNameState
-        elif O0O0OOO0O00O0000O is EOF :#line:1348:elif data is EOF:
-            OO00O00OO000OO00O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype-name"})#line:1350:"eof-in-doctype-name"})
-            OO00O00OO000OO00O .currentToken ["correct"]=False #line:1351:self.currentToken["correct"] = False
-            OO00O00OO000OO00O .currentToken ["name"]=OO00O00OO000OO00O .currentToken ["name"].translate (asciiUpper2Lower )#line:1352:self.currentToken["name"] = self.currentToken["name"].translate(asciiUpper2Lower)
-            OO00O00OO000OO00O .tokenQueue .append (OO00O00OO000OO00O .currentToken )#line:1353:self.tokenQueue.append(self.currentToken)
-            OO00O00OO000OO00O .state =OO00O00OO000OO00O .dataState #line:1354:self.state = self.dataState
-        else :#line:1355:else:
-            OO00O00OO000OO00O .currentToken ["name"]+=O0O0OOO0O00O0000O #line:1356:self.currentToken["name"] += data
-        return True #line:1357:return True
-    def afterDoctypeNameState (O00O00O00O00000OO ):#line:1359:def afterDoctypeNameState(self):
-        O00O0OOOO00OOOOO0 =O00O00O00O00000OO .stream .char ()#line:1360:data = self.stream.char()
-        if O00O0OOOO00OOOOO0 in spaceCharacters :#line:1361:if data in spaceCharacters:
-            pass #line:1362:pass
-        elif O00O0OOOO00OOOOO0 ==">":#line:1363:elif data == ">":
-            O00O00O00O00000OO .tokenQueue .append (O00O00O00O00000OO .currentToken )#line:1364:self.tokenQueue.append(self.currentToken)
-            O00O00O00O00000OO .state =O00O00O00O00000OO .dataState #line:1365:self.state = self.dataState
-        elif O00O0OOOO00OOOOO0 is EOF :#line:1366:elif data is EOF:
-            O00O00O00O00000OO .currentToken ["correct"]=False #line:1367:self.currentToken["correct"] = False
-            O00O00O00O00000OO .stream .unget (O00O0OOOO00OOOOO0 )#line:1368:self.stream.unget(data)
-            O00O00O00O00000OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1370:"eof-in-doctype"})
-            O00O00O00O00000OO .tokenQueue .append (O00O00O00O00000OO .currentToken )#line:1371:self.tokenQueue.append(self.currentToken)
-            O00O00O00O00000OO .state =O00O00O00O00000OO .dataState #line:1372:self.state = self.dataState
-        else :#line:1373:else:
-            if O00O0OOOO00OOOOO0 in ("p","P"):#line:1374:if data in ("p", "P"):
-                O00O00OO0000000OO =True #line:1375:matched = True
-                for O00O0000OO0OOO0OO in (("u","U"),("b","B"),("l","L"),("i","I"),("c","C")):#line:1377:("i", "I"), ("c", "C")):
-                    O00O0OOOO00OOOOO0 =O00O00O00O00000OO .stream .char ()#line:1378:data = self.stream.char()
-                    if O00O0OOOO00OOOOO0 not in O00O0000OO0OOO0OO :#line:1379:if data not in expected:
-                        O00O00OO0000000OO =False #line:1380:matched = False
-                        break #line:1381:break
-                if O00O00OO0000000OO :#line:1382:if matched:
-                    O00O00O00O00000OO .state =O00O00O00O00000OO .afterDoctypePublicKeywordState #line:1383:self.state = self.afterDoctypePublicKeywordState
-                    return True #line:1384:return True
-            elif O00O0OOOO00OOOOO0 in ("s","S"):#line:1385:elif data in ("s", "S"):
-                O00O00OO0000000OO =True #line:1386:matched = True
-                for O00O0000OO0OOO0OO in (("y","Y"),("s","S"),("t","T"),("e","E"),("m","M")):#line:1388:("e", "E"), ("m", "M")):
-                    O00O0OOOO00OOOOO0 =O00O00O00O00000OO .stream .char ()#line:1389:data = self.stream.char()
-                    if O00O0OOOO00OOOOO0 not in O00O0000OO0OOO0OO :#line:1390:if data not in expected:
-                        O00O00OO0000000OO =False #line:1391:matched = False
-                        break #line:1392:break
-                if O00O00OO0000000OO :#line:1393:if matched:
-                    O00O00O00O00000OO .state =O00O00O00O00000OO .afterDoctypeSystemKeywordState #line:1394:self.state = self.afterDoctypeSystemKeywordState
-                    return True #line:1395:return True
-            O00O00O00O00000OO .stream .unget (O00O0OOOO00OOOOO0 )#line:1401:self.stream.unget(data)
-            O00O00O00O00000OO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"expected-space-or-right-bracket-in-doctype","datavars":{"data":O00O0OOOO00OOOOO0 }})#line:1404:{"data": data}})
-            O00O00O00O00000OO .currentToken ["correct"]=False #line:1405:self.currentToken["correct"] = False
-            O00O00O00O00000OO .state =O00O00O00O00000OO .bogusDoctypeState #line:1406:self.state = self.bogusDoctypeState
-        return True #line:1408:return True
-    def afterDoctypePublicKeywordState (OOOO00O00OOOO000O ):#line:1410:def afterDoctypePublicKeywordState(self):
-        O00OOO0000000O000 =OOOO00O00OOOO000O .stream .char ()#line:1411:data = self.stream.char()
-        if O00OOO0000000O000 in spaceCharacters :#line:1412:if data in spaceCharacters:
-            OOOO00O00OOOO000O .state =OOOO00O00OOOO000O .beforeDoctypePublicIdentifierState #line:1413:self.state = self.beforeDoctypePublicIdentifierState
-        elif O00OOO0000000O000 in ("'",'"'):#line:1414:elif data in ("'", '"'):
-            OOOO00O00OOOO000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1416:"unexpected-char-in-doctype"})
-            OOOO00O00OOOO000O .stream .unget (O00OOO0000000O000 )#line:1417:self.stream.unget(data)
-            OOOO00O00OOOO000O .state =OOOO00O00OOOO000O .beforeDoctypePublicIdentifierState #line:1418:self.state = self.beforeDoctypePublicIdentifierState
-        elif O00OOO0000000O000 is EOF :#line:1419:elif data is EOF:
-            OOOO00O00OOOO000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1421:"eof-in-doctype"})
-            OOOO00O00OOOO000O .currentToken ["correct"]=False #line:1422:self.currentToken["correct"] = False
-            OOOO00O00OOOO000O .tokenQueue .append (OOOO00O00OOOO000O .currentToken )#line:1423:self.tokenQueue.append(self.currentToken)
-            OOOO00O00OOOO000O .state =OOOO00O00OOOO000O .dataState #line:1424:self.state = self.dataState
-        else :#line:1425:else:
-            OOOO00O00OOOO000O .stream .unget (O00OOO0000000O000 )#line:1426:self.stream.unget(data)
-            OOOO00O00OOOO000O .state =OOOO00O00OOOO000O .beforeDoctypePublicIdentifierState #line:1427:self.state = self.beforeDoctypePublicIdentifierState
-        return True #line:1428:return True
-    def beforeDoctypePublicIdentifierState (O00OOOO000OO0OOO0 ):#line:1430:def beforeDoctypePublicIdentifierState(self):
-        OOOO000OOO0OO0O00 =O00OOOO000OO0OOO0 .stream .char ()#line:1431:data = self.stream.char()
-        if OOOO000OOO0OO0O00 in spaceCharacters :#line:1432:if data in spaceCharacters:
-            pass #line:1433:pass
-        elif OOOO000OOO0OO0O00 =="\"":#line:1434:elif data == "\"":
-            O00OOOO000OO0OOO0 .currentToken ["publicId"]=""#line:1435:self.currentToken["publicId"] = ""
-            O00OOOO000OO0OOO0 .state =O00OOOO000OO0OOO0 .doctypePublicIdentifierDoubleQuotedState #line:1436:self.state = self.doctypePublicIdentifierDoubleQuotedState
-        elif OOOO000OOO0OO0O00 =="'":#line:1437:elif data == "'":
-            O00OOOO000OO0OOO0 .currentToken ["publicId"]=""#line:1438:self.currentToken["publicId"] = ""
-            O00OOOO000OO0OOO0 .state =O00OOOO000OO0OOO0 .doctypePublicIdentifierSingleQuotedState #line:1439:self.state = self.doctypePublicIdentifierSingleQuotedState
-        elif OOOO000OOO0OO0O00 ==">":#line:1440:elif data == ">":
-            O00OOOO000OO0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-end-of-doctype"})#line:1442:"unexpected-end-of-doctype"})
-            O00OOOO000OO0OOO0 .currentToken ["correct"]=False #line:1443:self.currentToken["correct"] = False
-            O00OOOO000OO0OOO0 .tokenQueue .append (O00OOOO000OO0OOO0 .currentToken )#line:1444:self.tokenQueue.append(self.currentToken)
-            O00OOOO000OO0OOO0 .state =O00OOOO000OO0OOO0 .dataState #line:1445:self.state = self.dataState
-        elif OOOO000OOO0OO0O00 is EOF :#line:1446:elif data is EOF:
-            O00OOOO000OO0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1448:"eof-in-doctype"})
-            O00OOOO000OO0OOO0 .currentToken ["correct"]=False #line:1449:self.currentToken["correct"] = False
-            O00OOOO000OO0OOO0 .tokenQueue .append (O00OOOO000OO0OOO0 .currentToken )#line:1450:self.tokenQueue.append(self.currentToken)
-            O00OOOO000OO0OOO0 .state =O00OOOO000OO0OOO0 .dataState #line:1451:self.state = self.dataState
-        else :#line:1452:else:
-            O00OOOO000OO0OOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1454:"unexpected-char-in-doctype"})
-            O00OOOO000OO0OOO0 .currentToken ["correct"]=False #line:1455:self.currentToken["correct"] = False
-            O00OOOO000OO0OOO0 .state =O00OOOO000OO0OOO0 .bogusDoctypeState #line:1456:self.state = self.bogusDoctypeState
-        return True #line:1457:return True
-    def doctypePublicIdentifierDoubleQuotedState (OO0O0000O0000O000 ):#line:1459:def doctypePublicIdentifierDoubleQuotedState(self):
-        OOOOOO0000O0O0O0O =OO0O0000O0000O000 .stream .char ()#line:1460:data = self.stream.char()
-        if OOOOOO0000O0O0O0O =="\"":#line:1461:if data == "\"":
-            OO0O0000O0000O000 .state =OO0O0000O0000O000 .afterDoctypePublicIdentifierState #line:1462:self.state = self.afterDoctypePublicIdentifierState
-        elif OOOOOO0000O0O0O0O =="\u0000":#line:1463:elif data == "\u0000":
-            OO0O0000O0000O000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1465:"data": "invalid-codepoint"})
-            OO0O0000O0000O000 .currentToken ["publicId"]+="\uFFFD"#line:1466:self.currentToken["publicId"] += "\uFFFD"
-        elif OOOOOO0000O0O0O0O ==">":#line:1467:elif data == ">":
-            OO0O0000O0000O000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-end-of-doctype"})#line:1469:"unexpected-end-of-doctype"})
-            OO0O0000O0000O000 .currentToken ["correct"]=False #line:1470:self.currentToken["correct"] = False
-            OO0O0000O0000O000 .tokenQueue .append (OO0O0000O0000O000 .currentToken )#line:1471:self.tokenQueue.append(self.currentToken)
-            OO0O0000O0000O000 .state =OO0O0000O0000O000 .dataState #line:1472:self.state = self.dataState
-        elif OOOOOO0000O0O0O0O is EOF :#line:1473:elif data is EOF:
-            OO0O0000O0000O000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1475:"eof-in-doctype"})
-            OO0O0000O0000O000 .currentToken ["correct"]=False #line:1476:self.currentToken["correct"] = False
-            OO0O0000O0000O000 .tokenQueue .append (OO0O0000O0000O000 .currentToken )#line:1477:self.tokenQueue.append(self.currentToken)
-            OO0O0000O0000O000 .state =OO0O0000O0000O000 .dataState #line:1478:self.state = self.dataState
-        else :#line:1479:else:
-            OO0O0000O0000O000 .currentToken ["publicId"]+=OOOOOO0000O0O0O0O #line:1480:self.currentToken["publicId"] += data
-        return True #line:1481:return True
-    def doctypePublicIdentifierSingleQuotedState (OOOOOOOO0OOOOOO00 ):#line:1483:def doctypePublicIdentifierSingleQuotedState(self):
-        OOOOOO00O00OO00OO =OOOOOOOO0OOOOOO00 .stream .char ()#line:1484:data = self.stream.char()
-        if OOOOOO00O00OO00OO =="'":#line:1485:if data == "'":
-            OOOOOOOO0OOOOOO00 .state =OOOOOOOO0OOOOOO00 .afterDoctypePublicIdentifierState #line:1486:self.state = self.afterDoctypePublicIdentifierState
-        elif OOOOOO00O00OO00OO =="\u0000":#line:1487:elif data == "\u0000":
-            OOOOOOOO0OOOOOO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1489:"data": "invalid-codepoint"})
-            OOOOOOOO0OOOOOO00 .currentToken ["publicId"]+="\uFFFD"#line:1490:self.currentToken["publicId"] += "\uFFFD"
-        elif OOOOOO00O00OO00OO ==">":#line:1491:elif data == ">":
-            OOOOOOOO0OOOOOO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-end-of-doctype"})#line:1493:"unexpected-end-of-doctype"})
-            OOOOOOOO0OOOOOO00 .currentToken ["correct"]=False #line:1494:self.currentToken["correct"] = False
-            OOOOOOOO0OOOOOO00 .tokenQueue .append (OOOOOOOO0OOOOOO00 .currentToken )#line:1495:self.tokenQueue.append(self.currentToken)
-            OOOOOOOO0OOOOOO00 .state =OOOOOOOO0OOOOOO00 .dataState #line:1496:self.state = self.dataState
-        elif OOOOOO00O00OO00OO is EOF :#line:1497:elif data is EOF:
-            OOOOOOOO0OOOOOO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1499:"eof-in-doctype"})
-            OOOOOOOO0OOOOOO00 .currentToken ["correct"]=False #line:1500:self.currentToken["correct"] = False
-            OOOOOOOO0OOOOOO00 .tokenQueue .append (OOOOOOOO0OOOOOO00 .currentToken )#line:1501:self.tokenQueue.append(self.currentToken)
-            OOOOOOOO0OOOOOO00 .state =OOOOOOOO0OOOOOO00 .dataState #line:1502:self.state = self.dataState
-        else :#line:1503:else:
-            OOOOOOOO0OOOOOO00 .currentToken ["publicId"]+=OOOOOO00O00OO00OO #line:1504:self.currentToken["publicId"] += data
-        return True #line:1505:return True
-    def afterDoctypePublicIdentifierState (O00O0OOO0O0000000 ):#line:1507:def afterDoctypePublicIdentifierState(self):
-        OO0O00O0000O0OO00 =O00O0OOO0O0000000 .stream .char ()#line:1508:data = self.stream.char()
-        if OO0O00O0000O0OO00 in spaceCharacters :#line:1509:if data in spaceCharacters:
-            O00O0OOO0O0000000 .state =O00O0OOO0O0000000 .betweenDoctypePublicAndSystemIdentifiersState #line:1510:self.state = self.betweenDoctypePublicAndSystemIdentifiersState
-        elif OO0O00O0000O0OO00 ==">":#line:1511:elif data == ">":
-            O00O0OOO0O0000000 .tokenQueue .append (O00O0OOO0O0000000 .currentToken )#line:1512:self.tokenQueue.append(self.currentToken)
-            O00O0OOO0O0000000 .state =O00O0OOO0O0000000 .dataState #line:1513:self.state = self.dataState
-        elif OO0O00O0000O0OO00 =='"':#line:1514:elif data == '"':
-            O00O0OOO0O0000000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1516:"unexpected-char-in-doctype"})
-            O00O0OOO0O0000000 .currentToken ["systemId"]=""#line:1517:self.currentToken["systemId"] = ""
-            O00O0OOO0O0000000 .state =O00O0OOO0O0000000 .doctypeSystemIdentifierDoubleQuotedState #line:1518:self.state = self.doctypeSystemIdentifierDoubleQuotedState
-        elif OO0O00O0000O0OO00 =="'":#line:1519:elif data == "'":
-            O00O0OOO0O0000000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1521:"unexpected-char-in-doctype"})
-            O00O0OOO0O0000000 .currentToken ["systemId"]=""#line:1522:self.currentToken["systemId"] = ""
-            O00O0OOO0O0000000 .state =O00O0OOO0O0000000 .doctypeSystemIdentifierSingleQuotedState #line:1523:self.state = self.doctypeSystemIdentifierSingleQuotedState
-        elif OO0O00O0000O0OO00 is EOF :#line:1524:elif data is EOF:
-            O00O0OOO0O0000000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1526:"eof-in-doctype"})
-            O00O0OOO0O0000000 .currentToken ["correct"]=False #line:1527:self.currentToken["correct"] = False
-            O00O0OOO0O0000000 .tokenQueue .append (O00O0OOO0O0000000 .currentToken )#line:1528:self.tokenQueue.append(self.currentToken)
-            O00O0OOO0O0000000 .state =O00O0OOO0O0000000 .dataState #line:1529:self.state = self.dataState
-        else :#line:1530:else:
-            O00O0OOO0O0000000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1532:"unexpected-char-in-doctype"})
-            O00O0OOO0O0000000 .currentToken ["correct"]=False #line:1533:self.currentToken["correct"] = False
-            O00O0OOO0O0000000 .state =O00O0OOO0O0000000 .bogusDoctypeState #line:1534:self.state = self.bogusDoctypeState
-        return True #line:1535:return True
-    def betweenDoctypePublicAndSystemIdentifiersState (OO0OO0O000O000000 ):#line:1537:def betweenDoctypePublicAndSystemIdentifiersState(self):
-        OOOO0O0O0OOO000OO =OO0OO0O000O000000 .stream .char ()#line:1538:data = self.stream.char()
-        if OOOO0O0O0OOO000OO in spaceCharacters :#line:1539:if data in spaceCharacters:
-            pass #line:1540:pass
-        elif OOOO0O0O0OOO000OO ==">":#line:1541:elif data == ">":
-            OO0OO0O000O000000 .tokenQueue .append (OO0OO0O000O000000 .currentToken )#line:1542:self.tokenQueue.append(self.currentToken)
-            OO0OO0O000O000000 .state =OO0OO0O000O000000 .dataState #line:1543:self.state = self.dataState
-        elif OOOO0O0O0OOO000OO =='"':#line:1544:elif data == '"':
-            OO0OO0O000O000000 .currentToken ["systemId"]=""#line:1545:self.currentToken["systemId"] = ""
-            OO0OO0O000O000000 .state =OO0OO0O000O000000 .doctypeSystemIdentifierDoubleQuotedState #line:1546:self.state = self.doctypeSystemIdentifierDoubleQuotedState
-        elif OOOO0O0O0OOO000OO =="'":#line:1547:elif data == "'":
-            OO0OO0O000O000000 .currentToken ["systemId"]=""#line:1548:self.currentToken["systemId"] = ""
-            OO0OO0O000O000000 .state =OO0OO0O000O000000 .doctypeSystemIdentifierSingleQuotedState #line:1549:self.state = self.doctypeSystemIdentifierSingleQuotedState
-        elif OOOO0O0O0OOO000OO ==EOF :#line:1550:elif data == EOF:
-            OO0OO0O000O000000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1552:"eof-in-doctype"})
-            OO0OO0O000O000000 .currentToken ["correct"]=False #line:1553:self.currentToken["correct"] = False
-            OO0OO0O000O000000 .tokenQueue .append (OO0OO0O000O000000 .currentToken )#line:1554:self.tokenQueue.append(self.currentToken)
-            OO0OO0O000O000000 .state =OO0OO0O000O000000 .dataState #line:1555:self.state = self.dataState
-        else :#line:1556:else:
-            OO0OO0O000O000000 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1558:"unexpected-char-in-doctype"})
-            OO0OO0O000O000000 .currentToken ["correct"]=False #line:1559:self.currentToken["correct"] = False
-            OO0OO0O000O000000 .state =OO0OO0O000O000000 .bogusDoctypeState #line:1560:self.state = self.bogusDoctypeState
-        return True #line:1561:return True
-    def afterDoctypeSystemKeywordState (O0OO00OO0OO00OO00 ):#line:1563:def afterDoctypeSystemKeywordState(self):
-        O0000OOOO0OO0OO0O =O0OO00OO0OO00OO00 .stream .char ()#line:1564:data = self.stream.char()
-        if O0000OOOO0OO0OO0O in spaceCharacters :#line:1565:if data in spaceCharacters:
-            O0OO00OO0OO00OO00 .state =O0OO00OO0OO00OO00 .beforeDoctypeSystemIdentifierState #line:1566:self.state = self.beforeDoctypeSystemIdentifierState
-        elif O0000OOOO0OO0OO0O in ("'",'"'):#line:1567:elif data in ("'", '"'):
-            O0OO00OO0OO00OO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1569:"unexpected-char-in-doctype"})
-            O0OO00OO0OO00OO00 .stream .unget (O0000OOOO0OO0OO0O )#line:1570:self.stream.unget(data)
-            O0OO00OO0OO00OO00 .state =O0OO00OO0OO00OO00 .beforeDoctypeSystemIdentifierState #line:1571:self.state = self.beforeDoctypeSystemIdentifierState
-        elif O0000OOOO0OO0OO0O is EOF :#line:1572:elif data is EOF:
-            O0OO00OO0OO00OO00 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1574:"eof-in-doctype"})
-            O0OO00OO0OO00OO00 .currentToken ["correct"]=False #line:1575:self.currentToken["correct"] = False
-            O0OO00OO0OO00OO00 .tokenQueue .append (O0OO00OO0OO00OO00 .currentToken )#line:1576:self.tokenQueue.append(self.currentToken)
-            O0OO00OO0OO00OO00 .state =O0OO00OO0OO00OO00 .dataState #line:1577:self.state = self.dataState
-        else :#line:1578:else:
-            O0OO00OO0OO00OO00 .stream .unget (O0000OOOO0OO0OO0O )#line:1579:self.stream.unget(data)
-            O0OO00OO0OO00OO00 .state =O0OO00OO0OO00OO00 .beforeDoctypeSystemIdentifierState #line:1580:self.state = self.beforeDoctypeSystemIdentifierState
-        return True #line:1581:return True
-    def beforeDoctypeSystemIdentifierState (OO0OO00OOOO0O000O ):#line:1583:def beforeDoctypeSystemIdentifierState(self):
-        OOO00OO0OO0O000OO =OO0OO00OOOO0O000O .stream .char ()#line:1584:data = self.stream.char()
-        if OOO00OO0OO0O000OO in spaceCharacters :#line:1585:if data in spaceCharacters:
-            pass #line:1586:pass
-        elif OOO00OO0OO0O000OO =="\"":#line:1587:elif data == "\"":
-            OO0OO00OOOO0O000O .currentToken ["systemId"]=""#line:1588:self.currentToken["systemId"] = ""
-            OO0OO00OOOO0O000O .state =OO0OO00OOOO0O000O .doctypeSystemIdentifierDoubleQuotedState #line:1589:self.state = self.doctypeSystemIdentifierDoubleQuotedState
-        elif OOO00OO0OO0O000OO =="'":#line:1590:elif data == "'":
-            OO0OO00OOOO0O000O .currentToken ["systemId"]=""#line:1591:self.currentToken["systemId"] = ""
-            OO0OO00OOOO0O000O .state =OO0OO00OOOO0O000O .doctypeSystemIdentifierSingleQuotedState #line:1592:self.state = self.doctypeSystemIdentifierSingleQuotedState
-        elif OOO00OO0OO0O000OO ==">":#line:1593:elif data == ">":
-            OO0OO00OOOO0O000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1595:"unexpected-char-in-doctype"})
-            OO0OO00OOOO0O000O .currentToken ["correct"]=False #line:1596:self.currentToken["correct"] = False
-            OO0OO00OOOO0O000O .tokenQueue .append (OO0OO00OOOO0O000O .currentToken )#line:1597:self.tokenQueue.append(self.currentToken)
-            OO0OO00OOOO0O000O .state =OO0OO00OOOO0O000O .dataState #line:1598:self.state = self.dataState
-        elif OOO00OO0OO0O000OO is EOF :#line:1599:elif data is EOF:
-            OO0OO00OOOO0O000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1601:"eof-in-doctype"})
-            OO0OO00OOOO0O000O .currentToken ["correct"]=False #line:1602:self.currentToken["correct"] = False
-            OO0OO00OOOO0O000O .tokenQueue .append (OO0OO00OOOO0O000O .currentToken )#line:1603:self.tokenQueue.append(self.currentToken)
-            OO0OO00OOOO0O000O .state =OO0OO00OOOO0O000O .dataState #line:1604:self.state = self.dataState
-        else :#line:1605:else:
-            OO0OO00OOOO0O000O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1607:"unexpected-char-in-doctype"})
-            OO0OO00OOOO0O000O .currentToken ["correct"]=False #line:1608:self.currentToken["correct"] = False
-            OO0OO00OOOO0O000O .state =OO0OO00OOOO0O000O .bogusDoctypeState #line:1609:self.state = self.bogusDoctypeState
-        return True #line:1610:return True
-    def doctypeSystemIdentifierDoubleQuotedState (OOOO0OO0O0O0O0OOO ):#line:1612:def doctypeSystemIdentifierDoubleQuotedState(self):
-        OOO0OO0OOO000O0O0 =OOOO0OO0O0O0O0OOO .stream .char ()#line:1613:data = self.stream.char()
-        if OOO0OO0OOO000O0O0 =="\"":#line:1614:if data == "\"":
-            OOOO0OO0O0O0O0OOO .state =OOOO0OO0O0O0O0OOO .afterDoctypeSystemIdentifierState #line:1615:self.state = self.afterDoctypeSystemIdentifierState
-        elif OOO0OO0OOO000O0O0 =="\u0000":#line:1616:elif data == "\u0000":
-            OOOO0OO0O0O0O0OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1618:"data": "invalid-codepoint"})
-            OOOO0OO0O0O0O0OOO .currentToken ["systemId"]+="\uFFFD"#line:1619:self.currentToken["systemId"] += "\uFFFD"
-        elif OOO0OO0OOO000O0O0 ==">":#line:1620:elif data == ">":
-            OOOO0OO0O0O0O0OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-end-of-doctype"})#line:1622:"unexpected-end-of-doctype"})
-            OOOO0OO0O0O0O0OOO .currentToken ["correct"]=False #line:1623:self.currentToken["correct"] = False
-            OOOO0OO0O0O0O0OOO .tokenQueue .append (OOOO0OO0O0O0O0OOO .currentToken )#line:1624:self.tokenQueue.append(self.currentToken)
-            OOOO0OO0O0O0O0OOO .state =OOOO0OO0O0O0O0OOO .dataState #line:1625:self.state = self.dataState
-        elif OOO0OO0OOO000O0O0 is EOF :#line:1626:elif data is EOF:
-            OOOO0OO0O0O0O0OOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1628:"eof-in-doctype"})
-            OOOO0OO0O0O0O0OOO .currentToken ["correct"]=False #line:1629:self.currentToken["correct"] = False
-            OOOO0OO0O0O0O0OOO .tokenQueue .append (OOOO0OO0O0O0O0OOO .currentToken )#line:1630:self.tokenQueue.append(self.currentToken)
-            OOOO0OO0O0O0O0OOO .state =OOOO0OO0O0O0O0OOO .dataState #line:1631:self.state = self.dataState
-        else :#line:1632:else:
-            OOOO0OO0O0O0O0OOO .currentToken ["systemId"]+=OOO0OO0OOO000O0O0 #line:1633:self.currentToken["systemId"] += data
-        return True #line:1634:return True
-    def doctypeSystemIdentifierSingleQuotedState (OO0OOOOO0OOOOOOO0 ):#line:1636:def doctypeSystemIdentifierSingleQuotedState(self):
-        OOO000OO0OO0O00OO =OO0OOOOO0OOOOOOO0 .stream .char ()#line:1637:data = self.stream.char()
-        if OOO000OO0OO0O00OO =="'":#line:1638:if data == "'":
-            OO0OOOOO0OOOOOOO0 .state =OO0OOOOO0OOOOOOO0 .afterDoctypeSystemIdentifierState #line:1639:self.state = self.afterDoctypeSystemIdentifierState
-        elif OOO000OO0OO0O00OO =="\u0000":#line:1640:elif data == "\u0000":
-            OO0OOOOO0OOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1642:"data": "invalid-codepoint"})
-            OO0OOOOO0OOOOOOO0 .currentToken ["systemId"]+="\uFFFD"#line:1643:self.currentToken["systemId"] += "\uFFFD"
-        elif OOO000OO0OO0O00OO ==">":#line:1644:elif data == ">":
-            OO0OOOOO0OOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-end-of-doctype"})#line:1646:"unexpected-end-of-doctype"})
-            OO0OOOOO0OOOOOOO0 .currentToken ["correct"]=False #line:1647:self.currentToken["correct"] = False
-            OO0OOOOO0OOOOOOO0 .tokenQueue .append (OO0OOOOO0OOOOOOO0 .currentToken )#line:1648:self.tokenQueue.append(self.currentToken)
-            OO0OOOOO0OOOOOOO0 .state =OO0OOOOO0OOOOOOO0 .dataState #line:1649:self.state = self.dataState
-        elif OOO000OO0OO0O00OO is EOF :#line:1650:elif data is EOF:
-            OO0OOOOO0OOOOOOO0 .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1652:"eof-in-doctype"})
-            OO0OOOOO0OOOOOOO0 .currentToken ["correct"]=False #line:1653:self.currentToken["correct"] = False
-            OO0OOOOO0OOOOOOO0 .tokenQueue .append (OO0OOOOO0OOOOOOO0 .currentToken )#line:1654:self.tokenQueue.append(self.currentToken)
-            OO0OOOOO0OOOOOOO0 .state =OO0OOOOO0OOOOOOO0 .dataState #line:1655:self.state = self.dataState
-        else :#line:1656:else:
-            OO0OOOOO0OOOOOOO0 .currentToken ["systemId"]+=OOO000OO0OO0O00OO #line:1657:self.currentToken["systemId"] += data
-        return True #line:1658:return True
-    def afterDoctypeSystemIdentifierState (O00O00000000OOOOO ):#line:1660:def afterDoctypeSystemIdentifierState(self):
-        O0000O0OOO0O000O0 =O00O00000000OOOOO .stream .char ()#line:1661:data = self.stream.char()
-        if O0000O0OOO0O000O0 in spaceCharacters :#line:1662:if data in spaceCharacters:
-            pass #line:1663:pass
-        elif O0000O0OOO0O000O0 ==">":#line:1664:elif data == ">":
-            O00O00000000OOOOO .tokenQueue .append (O00O00000000OOOOO .currentToken )#line:1665:self.tokenQueue.append(self.currentToken)
-            O00O00000000OOOOO .state =O00O00000000OOOOO .dataState #line:1666:self.state = self.dataState
-        elif O0000O0OOO0O000O0 is EOF :#line:1667:elif data is EOF:
-            O00O00000000OOOOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"eof-in-doctype"})#line:1669:"eof-in-doctype"})
-            O00O00000000OOOOO .currentToken ["correct"]=False #line:1670:self.currentToken["correct"] = False
-            O00O00000000OOOOO .tokenQueue .append (O00O00000000OOOOO .currentToken )#line:1671:self.tokenQueue.append(self.currentToken)
-            O00O00000000OOOOO .state =O00O00000000OOOOO .dataState #line:1672:self.state = self.dataState
-        else :#line:1673:else:
-            O00O00000000OOOOO .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"unexpected-char-in-doctype"})#line:1675:"unexpected-char-in-doctype"})
-            O00O00000000OOOOO .state =O00O00000000OOOOO .bogusDoctypeState #line:1676:self.state = self.bogusDoctypeState
-        return True #line:1677:return True
-    def bogusDoctypeState (OO0OO0OO0OO0OOO0O ):#line:1679:def bogusDoctypeState(self):
-        OO00OOO00OO0O000O =OO0OO0OO0OO0OOO0O .stream .char ()#line:1680:data = self.stream.char()
-        if OO00OOO00OO0O000O ==">":#line:1681:if data == ">":
-            OO0OO0OO0OO0OOO0O .tokenQueue .append (OO0OO0OO0OO0OOO0O .currentToken )#line:1682:self.tokenQueue.append(self.currentToken)
-            OO0OO0OO0OO0OOO0O .state =OO0OO0OO0OO0OOO0O .dataState #line:1683:self.state = self.dataState
-        elif OO00OOO00OO0O000O is EOF :#line:1684:elif data is EOF:
-            OO0OO0OO0OO0OOO0O .stream .unget (OO00OOO00OO0O000O )#line:1686:self.stream.unget(data)
-            OO0OO0OO0OO0OOO0O .tokenQueue .append (OO0OO0OO0OO0OOO0O .currentToken )#line:1687:self.tokenQueue.append(self.currentToken)
-            OO0OO0OO0OO0OOO0O .state =OO0OO0OO0OO0OOO0O .dataState #line:1688:self.state = self.dataState
-        else :#line:1689:else:
-            pass #line:1690:pass
-        return True #line:1691:return True
-    def cdataSectionState (O0OO00OOO00OO0O0O ):#line:1693:def cdataSectionState(self):
-        O0OO000O0OOOOOO0O =[]#line:1694:data = []
-        while True :#line:1695:while True:
-            O0OO000O0OOOOOO0O .append (O0OO00OOO00OO0O0O .stream .charsUntil ("]"))#line:1696:data.append(self.stream.charsUntil("]"))
-            O0OO000O0OOOOOO0O .append (O0OO00OOO00OO0O0O .stream .charsUntil (">"))#line:1697:data.append(self.stream.charsUntil(">"))
-            OOO0O000O000OOOO0 =O0OO00OOO00OO0O0O .stream .char ()#line:1698:char = self.stream.char()
-            if OOO0O000O000OOOO0 ==EOF :#line:1699:if char == EOF:
-                break #line:1700:break
-            else :#line:1701:else:
-                assert OOO0O000O000OOOO0 ==">"#line:1702:assert char == ">"
-                if O0OO000O0OOOOOO0O [-1 ][-2 :]=="]]":#line:1703:if data[-1][-2:] == "]]":
-                    O0OO000O0OOOOOO0O [-1 ]=O0OO000O0OOOOOO0O [-1 ][:-2 ]#line:1704:data[-1] = data[-1][:-2]
-                    break #line:1705:break
-                else :#line:1706:else:
-                    O0OO000O0OOOOOO0O .append (OOO0O000O000OOOO0 )#line:1707:data.append(char)
-        O0OO000O0OOOOOO0O ="".join (O0OO000O0OOOOOO0O )#line:1709:data = "".join(data)  # pylint:disable=redefined-variable-type
-        O0O0O00OO0000O0O0 =O0OO000O0OOOOOO0O .count ("\u0000")#line:1711:nullCount = data.count("\u0000")
-        if O0O0O00OO0000O0O0 >0 :#line:1712:if nullCount > 0:
-            for _OOOOO0000O00O00OO in range (O0O0O00OO0000O0O0 ):#line:1713:for _ in range(nullCount):
-                O0OO00OOO00OO0O0O .tokenQueue .append ({"type":tokenTypes ["ParseError"],"data":"invalid-codepoint"})#line:1715:"data": "invalid-codepoint"})
-            O0OO000O0OOOOOO0O =O0OO000O0OOOOOO0O .replace ("\u0000","\uFFFD")#line:1716:data = data.replace("\u0000", "\uFFFD")
-        if O0OO000O0OOOOOO0O :#line:1717:if data:
-            O0OO00OOO00OO0O0O .tokenQueue .append ({"type":tokenTypes ["Characters"],"data":O0OO000O0OOOOOO0O })#line:1719:"data": data})
-        O0OO00OOO00OO0O0O .state =O0OO00OOO00OO0O0O .dataState #line:1720:self.state = self.dataState
-        return True #line:1721:return True
+from __future__ import absolute_import ,division ,unicode_literals #line:1
+from pip ._vendor .six import text_type #line:2
+from lxml import etree #line:4
+from ..treebuilders .etree import tag_regexp #line:5
+from .import base #line:7
+from ..import _ihatexml #line:9
+def ensure_str (OOOOOOO00O00OO00O ):#line:12
+    if OOOOOOO00O00OO00O is None :#line:13
+        return None #line:14
+    elif isinstance (OOOOOOO00O00OO00O ,text_type ):#line:15
+        return OOOOOOO00O00OO00O #line:16
+    else :#line:17
+        return OOOOOOO00O00OO00O .decode ("ascii","strict")#line:18
+class Root (object ):#line:21
+    def __init__ (OO000O0O0OOO0O0OO ,O0O00O00OOOO0O0OO ):#line:22
+        OO000O0O0OOO0O0OO .elementtree =O0O00O00OOOO0O0OO #line:23
+        OO000O0O0OOO0O0OO .children =[]#line:24
+        try :#line:26
+            if O0O00O00OOOO0O0OO .docinfo .internalDTD :#line:27
+                OO000O0O0OOO0O0OO .children .append (Doctype (OO000O0O0OOO0O0OO ,ensure_str (O0O00O00OOOO0O0OO .docinfo .root_name ),ensure_str (O0O00O00OOOO0O0OO .docinfo .public_id ),ensure_str (O0O00O00OOOO0O0OO .docinfo .system_url )))#line:31
+        except AttributeError :#line:32
+            pass #line:33
+        try :#line:35
+            OO00O000OOOOO00OO =O0O00O00OOOO0O0OO .getroot ()#line:36
+        except AttributeError :#line:37
+            OO00O000OOOOO00OO =O0O00O00OOOO0O0OO #line:38
+        while OO00O000OOOOO00OO .getprevious ()is not None :#line:40
+            OO00O000OOOOO00OO =OO00O000OOOOO00OO .getprevious ()#line:41
+        while OO00O000OOOOO00OO is not None :#line:42
+            OO000O0O0OOO0O0OO .children .append (OO00O000OOOOO00OO )#line:43
+            OO00O000OOOOO00OO =OO00O000OOOOO00OO .getnext ()#line:44
+        OO000O0O0OOO0O0OO .text =None #line:46
+        OO000O0O0OOO0O0OO .tail =None #line:47
+    def __getitem__ (OO00000000000OO00 ,O00OOOO00O0O00000 ):#line:49
+        return OO00000000000OO00 .children [O00OOOO00O0O00000 ]#line:50
+    def getnext (OOO0OOO000OOOOOOO ):#line:52
+        return None #line:53
+    def __len__ (OOOO0OO00O0000OOO ):#line:55
+        return 1 #line:56
+class Doctype (object ):#line:59
+    def __init__ (O0O0O0OOOO0000OOO ,OO00O0O000OO0O0O0 ,OO0O0O00OOOOO0OOO ,O0O00OOOO0OOOO0O0 ,OO00OO0OO000O0000 ):#line:60
+        O0O0O0OOOO0000OOO .root_node =OO00O0O000OO0O0O0 #line:61
+        O0O0O0OOOO0000OOO .name =OO0O0O00OOOOO0OOO #line:62
+        O0O0O0OOOO0000OOO .public_id =O0O00OOOO0OOOO0O0 #line:63
+        O0O0O0OOOO0000OOO .system_id =OO00OO0OO000O0000 #line:64
+        O0O0O0OOOO0000OOO .text =None #line:66
+        O0O0O0OOOO0000OOO .tail =None #line:67
+    def getnext (O0O0OOOO000OOO000 ):#line:69
+        return O0O0OOOO000OOO000 .root_node .children [1 ]#line:70
+class FragmentRoot (Root ):#line:73
+    def __init__ (OOO0O00O0000O0OOO ,O00000O0O000O0O0O ):#line:74
+        OOO0O00O0000O0OOO .children =[FragmentWrapper (OOO0O00O0000O0OOO ,O00O0O00OOO000000 )for O00O0O00OOO000000 in O00000O0O000O0O0O ]#line:75
+        OOO0O00O0000O0OOO .text =OOO0O00O0000O0OOO .tail =None #line:76
+    def getnext (OO0O0O0O0OO0O0OOO ):#line:78
+        return None #line:79
+class FragmentWrapper (object ):#line:82
+    def __init__ (OO00OO0O0OO0OO0OO ,O0OOO00O0OOO00000 ,OO00O0O0OOOOO00O0 ):#line:83
+        OO00OO0O0OO0OO0OO .root_node =O0OOO00O0OOO00000 #line:84
+        OO00OO0O0OO0OO0OO .obj =OO00O0O0OOOOO00O0 #line:85
+        if hasattr (OO00OO0O0OO0OO0OO .obj ,'text'):#line:86
+            OO00OO0O0OO0OO0OO .text =ensure_str (OO00OO0O0OO0OO0OO .obj .text )#line:87
+        else :#line:88
+            OO00OO0O0OO0OO0OO .text =None #line:89
+        if hasattr (OO00OO0O0OO0OO0OO .obj ,'tail'):#line:90
+            OO00OO0O0OO0OO0OO .tail =ensure_str (OO00OO0O0OO0OO0OO .obj .tail )#line:91
+        else :#line:92
+            OO00OO0O0OO0OO0OO .tail =None #line:93
+    def __getattr__ (O00O0O0O0000OOOOO ,O00O00OOO00O0O00O ):#line:95
+        return getattr (O00O0O0O0000OOOOO .obj ,O00O00OOO00O0O00O )#line:96
+    def getnext (OOO0OOOO0OOO00O0O ):#line:98
+        O0OOO00OOOO00O0OO =OOO0OOOO0OOO00O0O .root_node .children #line:99
+        OO00OOOO000OOO00O =O0OOO00OOOO00O0OO .index (OOO0OOOO0OOO00O0O )#line:100
+        if OO00OOOO000OOO00O <len (O0OOO00OOOO00O0OO )-1 :#line:101
+            return O0OOO00OOOO00O0OO [OO00OOOO000OOO00O +1 ]#line:102
+        else :#line:103
+            return None #line:104
+    def __getitem__ (OO0OO0O0OOO0OO000 ,O00O0O0O0OO0O00O0 ):#line:106
+        return OO0OO0O0OOO0OO000 .obj [O00O0O0O0OO0O00O0 ]#line:107
+    def __bool__ (OOO0OO0O00O00O00O ):#line:109
+        return bool (OOO0OO0O00O00O00O .obj )#line:110
+    def getparent (OO00OO0OOO0OOO000 ):#line:112
+        return None #line:113
+    def __str__ (OO000O0000O0OO00O ):#line:115
+        return str (OO000O0000O0OO00O .obj )#line:116
+    def __unicode__ (O0OOOO000OOOOOO00 ):#line:118
+        return str (O0OOOO000OOOOOO00 .obj )#line:119
+    def __len__ (OOO00OOO00O0O0000 ):#line:121
+        return len (OOO00OOO00O0O0000 .obj )#line:122
+class TreeWalker (base .NonRecursiveTreeWalker ):#line:125
+    def __init__ (OOO0O0OOOOOOO00O0 ,OO0000OO00O0OO0O0 ):#line:126
+        if isinstance (OO0000OO00O0OO0O0 ,list ):#line:128
+            OOO0O0OOOOOOO00O0 .fragmentChildren =set (OO0000OO00O0OO0O0 )#line:129
+            OO0000OO00O0OO0O0 =FragmentRoot (OO0000OO00O0OO0O0 )#line:130
+        else :#line:131
+            OOO0O0OOOOOOO00O0 .fragmentChildren =set ()#line:132
+            OO0000OO00O0OO0O0 =Root (OO0000OO00O0OO0O0 )#line:133
+        base .NonRecursiveTreeWalker .__init__ (OOO0O0OOOOOOO00O0 ,OO0000OO00O0OO0O0 )#line:134
+        OOO0O0OOOOOOO00O0 .filter =_ihatexml .InfosetFilter ()#line:135
+    def getNodeDetails (OOOO0O0OOOO0O00O0 ,OOO00OO0OO0OOO00O ):#line:137
+        if isinstance (OOO00OO0OO0OOO00O ,tuple ):#line:138
+            OOO00OO0OO0OOO00O ,OOO00O0OOOOO0OO00 =OOO00OO0OO0OOO00O #line:139
+            assert OOO00O0OOOOO0OO00 in ("text","tail"),"Text nodes are text or tail, found %s"%OOO00O0OOOOO0OO00 #line:140
+            return base .TEXT ,ensure_str (getattr (OOO00OO0OO0OOO00O ,OOO00O0OOOOO0OO00 ))#line:141
+        elif isinstance (OOO00OO0OO0OOO00O ,Root ):#line:143
+            return (base .DOCUMENT ,)#line:144
+        elif isinstance (OOO00OO0OO0OOO00O ,Doctype ):#line:146
+            return base .DOCTYPE ,OOO00OO0OO0OOO00O .name ,OOO00OO0OO0OOO00O .public_id ,OOO00OO0OO0OOO00O .system_id #line:147
+        elif isinstance (OOO00OO0OO0OOO00O ,FragmentWrapper )and not hasattr (OOO00OO0OO0OOO00O ,"tag"):#line:149
+            return base .TEXT ,ensure_str (OOO00OO0OO0OOO00O .obj )#line:150
+        elif OOO00OO0OO0OOO00O .tag ==etree .Comment :#line:152
+            return base .COMMENT ,ensure_str (OOO00OO0OO0OOO00O .text )#line:153
+        elif OOO00OO0OO0OOO00O .tag ==etree .Entity :#line:155
+            return base .ENTITY ,ensure_str (OOO00OO0OO0OOO00O .text )[1 :-1 ]#line:156
+        else :#line:158
+            OOOOOO0OO00OOOO00 =tag_regexp .match (ensure_str (OOO00OO0OO0OOO00O .tag ))#line:160
+            if OOOOOO0OO00OOOO00 :#line:161
+                OO00O0OO0O0OO0OO0 ,OOOO0OOO000OO0O0O =OOOOOO0OO00OOOO00 .groups ()#line:162
+            else :#line:163
+                OO00O0OO0O0OO0OO0 =None #line:164
+                OOOO0OOO000OO0O0O =ensure_str (OOO00OO0OO0OOO00O .tag )#line:165
+            OOO0OOO0O0000OO00 ={}#line:166
+            for OO0O000OOO0OO0OO0 ,O0OO0OO0000OOO00O in list (OOO00OO0OO0OOO00O .attrib .items ()):#line:167
+                OO0O000OOO0OO0OO0 =ensure_str (OO0O000OOO0OO0OO0 )#line:168
+                O0OO0OO0000OOO00O =ensure_str (O0OO0OO0000OOO00O )#line:169
+                OOOOOO0OO00OOOO00 =tag_regexp .match (OO0O000OOO0OO0OO0 )#line:170
+                if OOOOOO0OO00OOOO00 :#line:171
+                    OOO0OOO0O0000OO00 [(OOOOOO0OO00OOOO00 .group (1 ),OOOOOO0OO00OOOO00 .group (2 ))]=O0OO0OO0000OOO00O #line:172
+                else :#line:173
+                    OOO0OOO0O0000OO00 [(None ,OO0O000OOO0OO0OO0 )]=O0OO0OO0000OOO00O #line:174
+            return (base .ELEMENT ,OO00O0OO0O0OO0OO0 ,OOOO0O0OOOO0O00O0 .filter .fromXmlName (OOOO0OOO000OO0O0O ),OOO0OOO0O0000OO00 ,len (OOO00OO0OO0OOO00O )>0 or OOO00OO0OO0OOO00O .text )#line:176
+    def getFirstChild (O000O000000O0OO0O ,OO000OOOOO00O0OOO ):#line:178
+        assert not isinstance (OO000OOOOO00O0OOO ,tuple ),"Text nodes have no children"#line:179
+        assert len (OO000OOOOO00O0OOO )or OO000OOOOO00O0OOO .text ,"Node has no children"#line:181
+        if OO000OOOOO00O0OOO .text :#line:182
+            return (OO000OOOOO00O0OOO ,"text")#line:183
+        else :#line:184
+            return OO000OOOOO00O0OOO [0 ]#line:185
+    def getNextSibling (OO0O000O000O0OO00 ,O0OOOOOO0O00O0OO0 ):#line:187
+        if isinstance (O0OOOOOO0O00O0OO0 ,tuple ):#line:188
+            O0OOOOOO0O00O0OO0 ,O000O00OO0O0OO000 =O0OOOOOO0O00O0OO0 #line:189
+            assert O000O00OO0O0OO000 in ("text","tail"),"Text nodes are text or tail, found %s"%O000O00OO0O0OO000 #line:190
+            if O000O00OO0O0OO000 =="text":#line:191
+                if len (O0OOOOOO0O00O0OO0 ):#line:194
+                    return O0OOOOOO0O00O0OO0 [0 ]#line:195
+                else :#line:196
+                    return None #line:197
+            else :#line:198
+                return O0OOOOOO0O00O0OO0 .getnext ()#line:199
+        return (O0OOOOOO0O00O0OO0 ,"tail")if O0OOOOOO0O00O0OO0 .tail else O0OOOOOO0O00O0OO0 .getnext ()#line:201
+    def getParentNode (O0OO000O0OOOO0OOO ,O000OOOO0O0OO00O0 ):#line:203
+        if isinstance (O000OOOO0O0OO00O0 ,tuple ):#line:204
+            O000OOOO0O0OO00O0 ,O0O000O0OO00O00O0 =O000OOOO0O0OO00O0 #line:205
+            assert O0O000O0OO00O00O0 in ("text","tail"),"Text nodes are text or tail, found %s"%O0O000O0OO00O00O0 #line:206
+            if O0O000O0OO00O00O0 =="text":#line:207
+                return O000OOOO0O0OO00O0 #line:208
+        elif O000OOOO0O0OO00O0 in O0OO000O0OOOO0OOO .fragmentChildren :#line:210
+            return None #line:211
+        return O000OOOO0O0OO00O0 .getparent ()#line:213

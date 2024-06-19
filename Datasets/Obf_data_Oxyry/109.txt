@@ -1,293 +1,32 @@
-import string ,re ,sys ,datetime #line:1
-from .core import TomlError #line:2
-from .utils import rfc3339_re ,parse_rfc3339_re #line:3
-if sys .version_info [0 ]==2 :#line:5
-    _O0000OOOOO00000O0 =unichr #line:6
-else :#line:7
-    _O0000OOOOO00000O0 =chr #line:8
-def load (OOOOOO0OOOOO0OOOO ,translate =lambda O0OOO00O0O0O00000 ,O00000O00O0OO0OO0 ,O0O0O0000O0OO000O :O0O0O0000O0OO000O ,object_pairs_hook =dict ):#line:10
-    return loads (OOOOOO0OOOOO0OOOO .read (),translate =translate ,object_pairs_hook =object_pairs_hook ,filename =getattr (OOOOOO0OOOOO0OOOO ,'name',repr (OOOOOO0OOOOO0OOOO )))#line:11
-def loads (O0OO0000OOO0O000O ,filename ='<string>',translate =lambda O0O0O0OOOOOO00OOO ,O0OOO0O0000O0O000 ,O0OOO000O00O0O000 :O0OOO000O00O0O000 ,object_pairs_hook =dict ):#line:13
-    if isinstance (O0OO0000OOO0O000O ,bytes ):#line:14
-        O0OO0000OOO0O000O =O0OO0000OOO0O000O .decode ('utf-8')#line:15
-    O0OO0000OOO0O000O =O0OO0000OOO0O000O .replace ('\r\n','\n')#line:17
-    O0OOO0OOO0OOO0OO0 =object_pairs_hook ()#line:19
-    O00O00OO00000OO0O =object_pairs_hook ()#line:20
-    O0O0OOOO0000O00OO =O0OOO0OOO0OOO0OO0 #line:21
-    O0O00O0O0O00OO000 =_OOO0O0OOOOO00O000 (O0OO0000OOO0O000O ,filename =filename )#line:23
-    O0O00O0000OO0OOOO =_O0O0000O00OOO0OOO (O0O00O0O0O00OO000 ,object_pairs_hook =object_pairs_hook )#line:24
-    def O0OOOO0OO0O00O0OO (O0OOO00O0OO0OO0OO ):#line:26
-        raise TomlError (O0OOO00O0OO0OO0OO ,OOO00O0000OO0OO00 [0 ],OOO00O0000OO0OO00 [1 ],filename )#line:27
-    def O0O0OOO0OO0O000OO (OOOOOO0OO00O0O00O ,O0OOOO0O0OOO00OOO ):#line:29
-        O00000O0OOO0O0O0O ,O0OOO0O000OO000OO ,O0O0O0O00OO0OO0OO ,O00O0OO0O0OOO000O =OOOOOO0OO00O0O00O #line:30
-        if O00000O0OOO0O0O0O =='str'and O0O0O0O00OO0OO0OO .startswith ('\n'):#line:31
-            O0O0O0O00OO0OO0OO =O0O0O0O00OO0OO0OO [1 :]#line:32
-        if O00000O0OOO0O0O0O =='array':#line:33
-            if O0O0O0O00OO0OO0OO and any (O000OOOO00O0OOO00 !=O0O0O0O00OO0OO0OO [0 ][0 ]for O000OOOO00O0OOO00 ,OOO0000O0OOO0OOO0 ,O0O0O00000O000O0O ,O00OO0OOO00000O0O in O0O0O0O00OO0OO0OO [1 :]):#line:34
-                O0OOOO0OO0O00O0OO ('array-type-mismatch')#line:35
-            O0O0O0O00OO0OO0OO =[O0O0OOO0OO0O000OO (OO0O0OOOOO00OO000 ,object_pairs_hook =O0OOOO0O0OOO00OOO )for OO0O0OOOOO00OO000 in O0O0O0O00OO0OO0OO ]#line:36
-        elif O00000O0OOO0O0O0O =='table':#line:37
-            O0O0O0O00OO0OO0OO =O0OOOO0O0OOO00OOO ([(O0O0OO000O0O00O00 ,O0O0OOO0OO0O000OO (O0O0O0O00OO0OO0OO [O0O0OO000O0O00O00 ],object_pairs_hook =O0OOOO0O0OOO00OOO ))for O0O0OO000O0O00O00 in O0O0O0O00OO0OO0OO ])#line:38
-        return translate (O00000O0OOO0O0O0O ,O0OOO0O000OO000OO ,O0O0O0O00OO0OO0OO )#line:39
-    for OOO000O00OOOO0OOO ,OOO0O0O00OOOOOO00 ,OOO00O0000OO0OO00 in O0O00O0000OO0OOOO :#line:41
-        if OOO000O00OOOO0OOO =='kv':#line:42
-            O000O000O00OO0OO0 ,OOO000OOO00OO0OO0 =OOO0O0O00OOOOOO00 #line:43
-            if O000O000O00OO0OO0 in O0O0OOOO0000O00OO :#line:44
-                O0OOOO0OO0O00O0OO ('duplicate_keys. Key "{0}" was used more than once.'.format (O000O000O00OO0OO0 ))#line:45
-            O0O0OOOO0000O00OO [O000O000O00OO0OO0 ]=O0O0OOO0OO0O000OO (OOO000OOO00OO0OO0 ,object_pairs_hook =object_pairs_hook )#line:46
-        else :#line:47
-            O0O0OO0OO0OOOOOO0 =(OOO000O00OOOO0OOO =='table_array')#line:48
-            O000OO00O0OOO0O00 =O00O00OO00000OO0O #line:49
-            for O0000O0O000OO00O0 in OOO0O0O00OOOOOO00 [:-1 ]:#line:50
-                if isinstance (O000OO00O0OOO0O00 .get (O0000O0O000OO00O0 ),list ):#line:51
-                    OO00O0000000O0O0O ,O000OO00O0OOO0O00 =O000OO00O0OOO0O00 [O0000O0O000OO00O0 ][-1 ]#line:52
-                else :#line:53
-                    OO00O0000000O0O0O ,O000OO00O0OOO0O00 =O000OO00O0OOO0O00 .setdefault (O0000O0O000OO00O0 ,(None ,object_pairs_hook ()))#line:54
-            O0O0OOOO0000O00OO =object_pairs_hook ()#line:56
-            O0000O0O000OO00O0 =OOO0O0O00OOOOOO00 [-1 ]#line:57
-            if O0000O0O000OO00O0 not in O000OO00O0OOO0O00 :#line:58
-                if O0O0OO0OO0OOOOOO0 :#line:59
-                    O000OO00O0OOO0O00 [O0000O0O000OO00O0 ]=[(O0O0OOOO0000O00OO ,object_pairs_hook ())]#line:60
-                else :#line:61
-                    O000OO00O0OOO0O00 [O0000O0O000OO00O0 ]=(O0O0OOOO0000O00OO ,object_pairs_hook ())#line:62
-            elif isinstance (O000OO00O0OOO0O00 [O0000O0O000OO00O0 ],list ):#line:63
-                if not O0O0OO0OO0OOOOOO0 :#line:64
-                    O0OOOO0OO0O00O0OO ('table_type_mismatch')#line:65
-                O000OO00O0OOO0O00 [O0000O0O000OO00O0 ].append ((O0O0OOOO0000O00OO ,object_pairs_hook ()))#line:66
-            else :#line:67
-                if O0O0OO0OO0OOOOOO0 :#line:68
-                    O0OOOO0OO0O00O0OO ('table_type_mismatch')#line:69
-                OOO00O0000O00OOOO ,OOO0O0O0O00O0OO0O =O000OO00O0OOO0O00 [O0000O0O000OO00O0 ]#line:70
-                if OOO00O0000O00OOOO is not None :#line:71
-                    O0OOOO0OO0O00O0OO ('duplicate_tables')#line:72
-                O000OO00O0OOO0O00 [O0000O0O000OO00O0 ]=(O0O0OOOO0000O00OO ,OOO0O0O0O00O0OO0O )#line:73
-    def OO00000OOO00O0OOO (OO00O0000OOO00000 ,O00O0OOOO000OO0OO ):#line:75
-        if OO00O0000OOO00000 is None :#line:76
-            OO00O0000OOO00000 =object_pairs_hook ()#line:77
-        for OOOO00O0OO0OOO000 in O00O0OOOO000OO0OO :#line:78
-            if OOOO00O0OO0OOO000 in OO00O0000OOO00000 :#line:79
-                O0OOOO0OO0O00O0OO ('key_table_conflict')#line:80
-            OO0O00OOOOOO0OO00 =O00O0OOOO000OO0OO [OOOO00O0OO0OOO000 ]#line:81
-            if isinstance (OO0O00OOOOOO0OO00 ,list ):#line:82
-                OO00O0000OOO00000 [OOOO00O0OO0OOO000 ]=[OO00000OOO00O0OOO (OOOO0O00O0O00000O ,OO00000OOOOO00OO0 )for OOOO0O00O0O00000O ,OO00000OOOOO00OO0 in OO0O00OOOOOO0OO00 ]#line:83
-            else :#line:84
-                OO00O0000OOO00000 [OOOO00O0OO0OOO000 ]=OO00000OOO00O0OOO (OO0O00OOOOOO0OO00 [0 ],OO0O00OOOOOO0OO00 [1 ])#line:85
-        return OO00O0000OOO00000 #line:86
-    return OO00000OOO00O0OOO (O0OOO0OOO0OOO0OO0 ,O00O00OO00000OO0O )#line:88
-class _OOO0O0OOOOO00O000 :#line:90
-    def __init__ (O0O0OOOO0O000O0OO ,OOOOO0OOOO0O0O0O0 ,filename =None ):#line:91
-        O0O0OOOO0O000O0OO .s =OOOOO0OOOO0O0O0O0 #line:92
-        O0O0OOOO0O000O0OO ._pos =(1 ,1 )#line:93
-        O0O0OOOO0O000O0OO ._last =None #line:94
-        O0O0OOOO0O000O0OO ._filename =filename #line:95
-        O0O0OOOO0O000O0OO .backtrack_stack =[]#line:96
-    def last (OO000O0O000O0000O ):#line:98
-        return OO000O0O000O0000O ._last #line:99
-    def pos (OOO0OOO000OO0OO00 ):#line:101
-        return OOO0OOO000OO0OO00 ._pos #line:102
-    def fail (O000OO0OOO000OOOO ):#line:104
-        return O000OO0OOO000OOOO ._expect (None )#line:105
-    def consume_dot (OO0OOO0O0OOOOO0O0 ):#line:107
-        if OO0OOO0O0OOOOO0O0 .s :#line:108
-            OO0OOO0O0OOOOO0O0 ._last =OO0OOO0O0OOOOO0O0 .s [0 ]#line:109
-            OO0OOO0O0OOOOO0O0 .s =OO0OOO0O0OOOOO0O0 [1 :]#line:110
-            OO0OOO0O0OOOOO0O0 ._advance (OO0OOO0O0OOOOO0O0 ._last )#line:111
-            return OO0OOO0O0OOOOO0O0 ._last #line:112
-        return None #line:113
-    def expect_dot (O000OOOOOO0OOO0OO ):#line:115
-        return O000OOOOOO0OOO0OO ._expect (O000OOOOOO0OOO0OO .consume_dot ())#line:116
-    def consume_eof (O00O0OO000OOOOOOO ):#line:118
-        if not O00O0OO000OOOOOOO .s :#line:119
-            O00O0OO000OOOOOOO ._last =''#line:120
-            return True #line:121
-        return False #line:122
-    def expect_eof (OOOOO0OO000000O0O ):#line:124
-        return OOOOO0OO000000O0O ._expect (OOOOO0OO000000O0O .consume_eof ())#line:125
-    def consume (O0O0O0OO00000O0OO ,OOOOO00OOOOO0OO00 ):#line:127
-        if O0O0O0OO00000O0OO .s .startswith (OOOOO00OOOOO0OO00 ):#line:128
-            O0O0O0OO00000O0OO .s =O0O0O0OO00000O0OO .s [len (OOOOO00OOOOO0OO00 ):]#line:129
-            O0O0O0OO00000O0OO ._last =OOOOO00OOOOO0OO00 #line:130
-            O0O0O0OO00000O0OO ._advance (OOOOO00OOOOO0OO00 )#line:131
-            return True #line:132
-        return False #line:133
-    def expect (OO00OOO0OOO0OO000 ,O0OOOO000O0000000 ):#line:135
-        return OO00OOO0OOO0OO000 ._expect (OO00OOO0OOO0OO000 .consume (O0OOOO000O0000000 ))#line:136
-    def consume_re (OOOO0OOO0O00OOOOO ,O00OO000O00O0O00O ):#line:138
-        O0OO0O000O00OOO0O =O00OO000O00O0O00O .match (OOOO0OOO0O00OOOOO .s )#line:139
-        if O0OO0O000O00OOO0O :#line:140
-            OOOO0OOO0O00OOOOO .s =OOOO0OOO0O00OOOOO .s [len (O0OO0O000O00OOO0O .group (0 )):]#line:141
-            OOOO0OOO0O00OOOOO ._last =O0OO0O000O00OOO0O #line:142
-            OOOO0OOO0O00OOOOO ._advance (O0OO0O000O00OOO0O .group (0 ))#line:143
-            return O0OO0O000O00OOO0O #line:144
-        return None #line:145
-    def expect_re (O0OOO00000O00O000 ,OOOOO00O00O0OOOO0 ):#line:147
-        return O0OOO00000O00O000 ._expect (O0OOO00000O00O000 .consume_re (OOOOO00O00O0OOOO0 ))#line:148
-    def __enter__ (O000000OO0O00O0O0 ):#line:150
-        O000000OO0O00O0O0 .backtrack_stack .append ((O000000OO0O00O0O0 .s ,O000000OO0O00O0O0 ._pos ))#line:151
-    def __exit__ (OO0000O0OOOOO0OO0 ,O0O00OO00000OO0O0 ,O0O0OO0OOOOOO0O00 ,O0O0OOO0OO00OO0O0 ):#line:153
-        if O0O00OO00000OO0O0 is None :#line:154
-            OO0000O0OOOOO0OO0 .backtrack_stack .pop ()#line:155
-        else :#line:156
-            OO0000O0OOOOO0OO0 .s ,OO0000O0OOOOO0OO0 ._pos =OO0000O0OOOOO0OO0 .backtrack_stack .pop ()#line:157
-        return O0O00OO00000OO0O0 ==TomlError #line:158
-    def commit (O000O00O0OOO0O0OO ):#line:160
-        O000O00O0OOO0O0OO .backtrack_stack [-1 ]=(O000O00O0OOO0O0OO .s ,O000O00O0OOO0O0OO ._pos )#line:161
-    def _expect (OOOO00O0000OO00OO ,O000000O00OO00000 ):#line:163
-        if not O000000O00OO00000 :#line:164
-            raise TomlError ('msg',OOOO00O0000OO00OO ._pos [0 ],OOOO00O0000OO00OO ._pos [1 ],OOOO00O0000OO00OO ._filename )#line:165
-        return O000000O00OO00000 #line:166
-    def _advance (O00O0OOOOOOO000OO ,OOO000O0OOOOOOO00 ):#line:168
-        O00O00OOOOOO0O0O0 =OOO000O0OOOOOOO00 .rfind ('\n')#line:169
-        if O00O00OOOOOO0O0O0 ==-1 :#line:170
-            O00O0OOOOOOO000OO ._pos =(O00O0OOOOOOO000OO ._pos [0 ],O00O0OOOOOOO000OO ._pos [1 ]+len (OOO000O0OOOOOOO00 ))#line:171
-        else :#line:172
-            O00O0OOOOOOO000OO ._pos =(O00O0OOOOOOO000OO ._pos [0 ]+OOO000O0OOOOOOO00 .count ('\n'),len (OOO000O0OOOOOOO00 )-O00O00OOOOOO0O0O0 )#line:173
-_OO0O000OOOOOO0000 =re .compile (r'(?:[ \t]|#[^\n]*\n|#[^\n]*\Z|\n)*')#line:175
-def _O0OO0OO000O000000 (OO0OOO0000OO0OO00 ):#line:176
-    OO0OOO0000OO0OO00 .expect_re (_OO0O000OOOOOO0000 )#line:177
-_O0OO000O0O0O0OOOO =re .compile (r'[ \t]*')#line:179
-def _OOO0O00OOO0O0O00O (OO000000OOOO00O0O ):#line:180
-    OO000000OOOO00O0O .expect_re (_O0OO000O0O0O0OOOO )#line:181
-_O0O0OO0000OO0000O ={'b':'\b','n':'\n','r':'\r','t':'\t','"':'"','\\':'\\','f':'\f'}#line:184
-_OO00000O00OOO0000 =re .compile (r'[^"\\\000-\037]*')#line:186
-_O000O0O0O00O0OO0O =re .compile (r'u([0-9a-fA-F]{4})')#line:187
-_OO00OOO00O000O000 =re .compile (r'U([0-9a-fA-F]{8})')#line:188
-_O00OOOO0O0OOOOOO0 =re .compile (r'[btnfr\"\\]')#line:189
-_OO0OOO0OOOO000O0O =re .compile ('\n[ \t\n]*')#line:190
-def _OOOOO00O00OO00O00 (O000O0OOO0000O000 ,content =_OO00000O00OOO0000 ):#line:191
-    OO0OO00O00OOO00OO =[]#line:192
-    while True :#line:193
-        OO0OO00O00OOO00OO .append (O000O0OOO0000O000 .expect_re (content ).group (0 ))#line:194
-        if not O000O0OOO0000O000 .consume ('\\'):#line:195
-            break #line:196
-        if O000O0OOO0000O000 .consume_re (_OO0OOO0OOOO000O0O ):#line:197
-            pass #line:198
-        elif O000O0OOO0000O000 .consume_re (_O000O0O0O00O0OO0O )or O000O0OOO0000O000 .consume_re (_OO00OOO00O000O000 ):#line:199
-            O0OO0OO0000O0OO0O =int (O000O0OOO0000O000 .last ().group (1 ),16 )#line:200
-            if 0xd800 <=O0OO0OO0000O0OO0O <0xe000 :#line:201
-                O000O0OOO0000O000 .fail ()#line:202
-            OO0OO00O00OOO00OO .append (_O0000OOOOO00000O0 (O0OO0OO0000O0OO0O ))#line:203
-        else :#line:204
-            O000O0OOO0000O000 .expect_re (_O00OOOO0O0OOOOOO0 )#line:205
-            OO0OO00O00OOO00OO .append (_O0O0OO0000OO0000O [O000O0OOO0000O000 .last ().group (0 )])#line:206
-    return ''.join (OO0OO00O00OOO00OO )#line:207
-_OO0O0OO0O00O0OO00 =re .compile (r'[0-9a-zA-Z-_]+')#line:209
-def _OOO00OO00O000OO00 (OOOO00OO0000OOOOO ):#line:210
-    with OOOO00OO0000OOOOO :#line:211
-        OOOO00OO0000OOOOO .expect ('"')#line:212
-        OO0O00OOOOO0OO00O =_OOOOO00O00OO00O00 (OOOO00OO0000OOOOO ,_OO00000O00OOO0000 )#line:213
-        OOOO00OO0000OOOOO .expect ('"')#line:214
-        return OO0O00OOOOO0OO00O #line:215
-    if OOOO00OO0000OOOOO .consume ('\''):#line:216
-        if OOOO00OO0000OOOOO .consume ('\'\''):#line:217
-            OO0O00OOOOO0OO00O =OOOO00OO0000OOOOO .expect_re (_OOO00O00OO0000O0O ).group (0 )#line:218
-            OOOO00OO0000OOOOO .expect ('\'\'\'')#line:219
-        else :#line:220
-            OO0O00OOOOO0OO00O =OOOO00OO0000OOOOO .expect_re (_OOO0OO0OO0O0OOOO0 ).group (0 )#line:221
-            OOOO00OO0000OOOOO .expect ('\'')#line:222
-        return OO0O00OOOOO0OO00O #line:223
-    return OOOO00OO0000OOOOO .expect_re (_OO0O0OO0O00O0OO00 ).group (0 )#line:224
-_OO000O00OO0O0OOOO =re .compile (r'[+-]?(?:0|[1-9](?:_?\d)*)(?:\.\d(?:_?\d)*)?(?:[eE][+-]?(?:\d(?:_?\d)*))?')#line:226
-_OO00OO0O0000O0OO0 =re .compile (r'(?:""?(?!")|[^"\\\000-\011\013-\037])*')#line:228
-_OOO0OO0OO0O0OOOO0 =re .compile (r"[^'\000\010\012-\037]*")#line:229
-_OOO00O00OO0000O0O =re .compile (r"(?:(?:|'|'')(?:[^'\000-\010\013-\037]))*")#line:230
-def _O0O0000O0OO00OOOO (OOO00OOO0000OO0OO ,O0O0O0OOO0O00O0O0 ):#line:231
-    OO0O00OOOOO0O0000 =OOO00OOO0000OO0OO .pos ()#line:232
-    if OOO00OOO0000OO0OO .consume ('true'):#line:234
-        return 'bool',OOO00OOO0000OO0OO .last (),True ,OO0O00OOOOO0O0000 #line:235
-    if OOO00OOO0000OO0OO .consume ('false'):#line:236
-        return 'bool',OOO00OOO0000OO0OO .last (),False ,OO0O00OOOOO0O0000 #line:237
-    if OOO00OOO0000OO0OO .consume ('"'):#line:239
-        if OOO00OOO0000OO0OO .consume ('""'):#line:240
-            OO000O000OO00000O =_OOOOO00O00OO00O00 (OOO00OOO0000OO0OO ,_OO00OO0O0000O0OO0 )#line:241
-            OOO00OOO0000OO0OO .expect ('"""')#line:242
-        else :#line:243
-            OO000O000OO00000O =_OOOOO00O00OO00O00 (OOO00OOO0000OO0OO ,_OO00000O00OOO0000 )#line:244
-            OOO00OOO0000OO0OO .expect ('"')#line:245
-        return 'str',OO000O000OO00000O ,OO000O000OO00000O ,OO0O00OOOOO0O0000 #line:246
-    if OOO00OOO0000OO0OO .consume ('\''):#line:248
-        if OOO00OOO0000OO0OO .consume ('\'\''):#line:249
-            OO000O000OO00000O =OOO00OOO0000OO0OO .expect_re (_OOO00O00OO0000O0O ).group (0 )#line:250
-            OOO00OOO0000OO0OO .expect ('\'\'\'')#line:251
-        else :#line:252
-            OO000O000OO00000O =OOO00OOO0000OO0OO .expect_re (_OOO0OO0OO0O0OOOO0 ).group (0 )#line:253
-            OOO00OOO0000OO0OO .expect ('\'')#line:254
-        return 'str',OO000O000OO00000O ,OO000O000OO00000O ,OO0O00OOOOO0O0000 #line:255
-    if OOO00OOO0000OO0OO .consume_re (rfc3339_re ):#line:257
-        O00OOO000O0O000O0 =OOO00OOO0000OO0OO .last ()#line:258
-        return 'datetime',O00OOO000O0O000O0 .group (0 ),parse_rfc3339_re (O00OOO000O0O000O0 ),OO0O00OOOOO0O0000 #line:259
-    if OOO00OOO0000OO0OO .consume_re (_OO000O00OO0O0OOOO ):#line:261
-        O00OOO000O0O000O0 =OOO00OOO0000OO0OO .last ().group (0 )#line:262
-        OO000O000OO00000O =O00OOO000O0O000O0 .replace ('_','')#line:263
-        if '.'in O00OOO000O0O000O0 or 'e'in O00OOO000O0O000O0 or 'E'in O00OOO000O0O000O0 :#line:264
-            return 'float',O00OOO000O0O000O0 ,float (OO000O000OO00000O ),OO0O00OOOOO0O0000 #line:265
-        else :#line:266
-            return 'int',O00OOO000O0O000O0 ,int (OO000O000OO00000O ,10 ),OO0O00OOOOO0O0000 #line:267
-    if OOO00OOO0000OO0OO .consume ('['):#line:269
-        O000O0O0OO000000O =[]#line:270
-        with OOO00OOO0000OO0OO :#line:271
-            while True :#line:272
-                _O0OO0OO000O000000 (OOO00OOO0000OO0OO )#line:273
-                O000O0O0OO000000O .append (_O0O0000O0OO00OOOO (OOO00OOO0000OO0OO ,object_pairs_hook =O0O0O0OOO0O00O0O0 ))#line:274
-                OOO00OOO0000OO0OO .commit ()#line:275
-                _O0OO0OO000O000000 (OOO00OOO0000OO0OO )#line:276
-                OOO00OOO0000OO0OO .expect (',')#line:277
-                OOO00OOO0000OO0OO .commit ()#line:278
-        _O0OO0OO000O000000 (OOO00OOO0000OO0OO )#line:279
-        OOO00OOO0000OO0OO .expect (']')#line:280
-        return 'array',None ,O000O0O0OO000000O ,OO0O00OOOOO0O0000 #line:281
-    if OOO00OOO0000OO0OO .consume ('{'):#line:283
-        _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:284
-        O000O0O0OO000000O =O0O0O0OOO0O00O0O0 ()#line:285
-        if not OOO00OOO0000OO0OO .consume ('}'):#line:286
-            O0OOO00OO00000O0O =_OOO00OO00O000OO00 (OOO00OOO0000OO0OO )#line:287
-            _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:288
-            OOO00OOO0000OO0OO .expect ('=')#line:289
-            _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:290
-            O000O0O0OO000000O [O0OOO00OO00000O0O ]=_O0O0000O0OO00OOOO (OOO00OOO0000OO0OO ,object_pairs_hook =O0O0O0OOO0O00O0O0 )#line:291
-            _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:292
-            while OOO00OOO0000OO0OO .consume (','):#line:293
-                _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:294
-                O0OOO00OO00000O0O =_OOO00OO00O000OO00 (OOO00OOO0000OO0OO )#line:295
-                _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:296
-                OOO00OOO0000OO0OO .expect ('=')#line:297
-                _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:298
-                O000O0O0OO000000O [O0OOO00OO00000O0O ]=_O0O0000O0OO00OOOO (OOO00OOO0000OO0OO ,object_pairs_hook =O0O0O0OOO0O00O0O0 )#line:299
-                _OOO0O00OOO0O0O00O (OOO00OOO0000OO0OO )#line:300
-            OOO00OOO0000OO0OO .expect ('}')#line:301
-        return 'table',None ,O000O0O0OO000000O ,OO0O00OOOOO0O0000 #line:302
-    OOO00OOO0000OO0OO .fail ()#line:304
-def _OOOOOOOO00O0O0000 (O0O00O0O00OOO0OOO ,O00O000OO0000O000 ):#line:306
-    O0000O0O00OO000O0 =O0O00O0O00OOO0OOO .pos ()#line:307
-    if O0O00O0O00OOO0OOO .consume ('['):#line:308
-        OOO000O0000OOOO0O =O0O00O0O00OOO0OOO .consume ('[')#line:309
-        _OOO0O00OOO0O0O00O (O0O00O0O00OOO0OOO )#line:310
-        O0O0OO00OOOO00O0O =[_OOO00OO00O000OO00 (O0O00O0O00OOO0OOO )]#line:311
-        _OOO0O00OOO0O0O00O (O0O00O0O00OOO0OOO )#line:312
-        while O0O00O0O00OOO0OOO .consume ('.'):#line:313
-            _OOO0O00OOO0O0O00O (O0O00O0O00OOO0OOO )#line:314
-            O0O0OO00OOOO00O0O .append (_OOO00OO00O000OO00 (O0O00O0O00OOO0OOO ))#line:315
-            _OOO0O00OOO0O0O00O (O0O00O0O00OOO0OOO )#line:316
-        O0O00O0O00OOO0OOO .expect (']')#line:317
-        if OOO000O0000OOOO0O :#line:318
-            O0O00O0O00OOO0OOO .expect (']')#line:319
-        return 'table_array'if OOO000O0000OOOO0O else 'table',O0O0OO00OOOO00O0O ,O0000O0O00OO000O0 #line:320
-    O00OO000O00O0O0O0 =_OOO00OO00O000OO00 (O0O00O0O00OOO0OOO )#line:322
-    _OOO0O00OOO0O0O00O (O0O00O0O00OOO0OOO )#line:323
-    O0O00O0O00OOO0OOO .expect ('=')#line:324
-    _OOO0O00OOO0O0O00O (O0O00O0O00OOO0OOO )#line:325
-    O0000OO0O000000O0 =_O0O0000O0OO00OOOO (O0O00O0O00OOO0OOO ,object_pairs_hook =O00O000OO0000O000 )#line:326
-    return 'kv',(O00OO000O00O0O0O0 ,O0000OO0O000000O0 ),O0000O0O00OO000O0 #line:327
-_O0OO000O00OO0OOO0 =re .compile (r'(?:[ \t]*(?:#[^\n]*)?\n)+[ \t]*')#line:329
-def _O0O0000O00OOO0OOO (OO000000OO00O00OO ,O0O00000O000O0O0O ):#line:330
-    OO0O000O00OOOOO0O =[]#line:331
-    _O0OO0OO000O000000 (OO000000OO00O00OO )#line:332
-    with OO000000OO00O00OO :#line:333
-        OO0O000O00OOOOO0O .append (_OOOOOOOO00O0O0000 (OO000000OO00O00OO ,object_pairs_hook =O0O00000O000O0O0O ))#line:334
-        while True :#line:335
-            OO000000OO00O00OO .commit ()#line:336
-            OO000000OO00O00OO .expect_re (_O0OO000O00OO0OOO0 )#line:337
-            OO0O000O00OOOOO0O .append (_OOOOOOOO00O0O0000 (OO000000OO00O00OO ,object_pairs_hook =O0O00000O000O0O0O ))#line:338
-    _O0OO0OO000O000000 (OO000000OO00O00OO )#line:339
-    OO000000OO00O00OO .expect_eof ()#line:340
-    return OO0O000O00OOOOO0O #line:341
+from tkinter import *#line:1
+from random import choice #line:2
+import string #line:3
+class App :#line:5
+    def __init__ (OO00OO0O0000OO0OO ):#line:6
+        OO00OO0O0000OO0OO .window =Tk ()#line:7
+        OO00OO0O0000OO0OO .window .title ('password_generator')#line:8
+        OO00OO0O0000OO0OO .window .iconbitmap ('logo.ico')#line:9
+        OO00OO0O0000OO0OO .window .iconphoto (False ,PhotoImage (file ='logo.png'))#line:10
+        OO00OO0O0000OO0OO .window .geometry ('500x255')#line:11
+        OO00OO0O0000OO0OO .window .config (bg ='gray')#line:12
+        OO00OO0O0000OO0OO .label ()#line:15
+        OO00OO0O0000OO0OO .entry ()#line:16
+        OO00OO0O0000OO0OO .button ()#line:17
+    def label (O00000OO00000O000 ):#line:19
+        OOO0OOO000O0O000O =Label (O00000OO00000O000 .window ,text ='Welcome to password generator',font =('Courrier',20 ),bg ='gray',fg ='black')#line:20
+        OOO0OOO000O0O000O .pack ()#line:21
+    def entry (O0OO0O00OO0000OO0 ):#line:23
+        O0OO0O00OO0000OO0 .password_entry =Entry (O0OO0O00OO0000OO0 .window ,font =('Courrier',25 ),bg ='white',fg ='black',width =30 ,relief ='solid')#line:24
+        O0OO0O00OO0000OO0 .password_entry .pack (pady =50 )#line:25
+    def button (OOOOO00000O0O0OO0 ):#line:27
+        O00000OOOO0000OO0 =Button (OOOOO00000O0O0OO0 .window ,text ="Generate_password",font =('Courrier',12 ),bg ='white',fg ='black',width =25 ,command =OOOOO00000O0O0OO0 .generate_password )#line:28
+        O00000OOOO0000OO0 .pack ()#line:29
+    def generate_password (OO0OO000O0OOO0OOO ):#line:31
+        O0O0000OO00OOO00O =string .ascii_letters +string .punctuation +string .digits #line:32
+        O0O0OO000O0OO0O0O =""#line:33
+        for OO00OO0000OOO0OOO in range (28 ):#line:34
+            O0O0OO000O0OO0O0O +=choice (O0O0000OO00OOO00O )#line:35
+        OO0OO000O0OOO0OOO .password_entry .delete (0 ,END )#line:36
+        OO0OO000O0OOO0OOO .password_entry .insert (0 ,O0O0OO000O0OO0O0O )#line:37
+app =App ()#line:40
+app .window .mainloop ()#line:41

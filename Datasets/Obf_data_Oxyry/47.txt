@@ -1,163 +1,130 @@
-from __future__ import absolute_import #line:1:from __future__ import absolute_import
-import time #line:2:import time
-import logging #line:3:import logging
-from collections import namedtuple #line:4:from collections import namedtuple
-from itertools import takewhile #line:5:from itertools import takewhile
-import email #line:6:import email
-import re #line:7:import re
-from ..exceptions import (ConnectTimeoutError ,MaxRetryError ,ProtocolError ,ReadTimeoutError ,ResponseError ,InvalidHeader ,)#line:16:)
-from ..packages import six #line:17:from ..packages import six
-log =logging .getLogger (__name__ )#line:20:log = logging.getLogger(__name__)
-RequestHistory =namedtuple ('RequestHistory',["method","url","error","status","redirect_location"])#line:25:"status", "redirect_location"])
-class Retry (object ):#line:28:class Retry(object):
-    ""#line:147:"""
-    DEFAULT_METHOD_WHITELIST =frozenset (['HEAD','GET','PUT','DELETE','OPTIONS','TRACE'])#line:150:'HEAD', 'GET', 'PUT', 'DELETE', 'OPTIONS', 'TRACE'])
-    RETRY_AFTER_STATUS_CODES =frozenset ([413 ,429 ,503 ])#line:152:RETRY_AFTER_STATUS_CODES = frozenset([413, 429, 503])
-    DEFAULT_REDIRECT_HEADERS_BLACKLIST =frozenset (['Authorization'])#line:154:DEFAULT_REDIRECT_HEADERS_BLACKLIST = frozenset(['Authorization'])
-    BACKOFF_MAX =120 #line:157:BACKOFF_MAX = 120
-    def __init__ (O00OO0O0O00O0O0OO ,total =10 ,connect =None ,read =None ,redirect =None ,status =None ,method_whitelist =DEFAULT_METHOD_WHITELIST ,status_forcelist =None ,backoff_factor =0 ,raise_on_redirect =True ,raise_on_status =True ,history =None ,respect_retry_after_header =True ,remove_headers_on_redirect =DEFAULT_REDIRECT_HEADERS_BLACKLIST ):#line:163:remove_headers_on_redirect=DEFAULT_REDIRECT_HEADERS_BLACKLIST):
-        O00OO0O0O00O0O0OO .total =total #line:165:self.total = total
-        O00OO0O0O00O0O0OO .connect =connect #line:166:self.connect = connect
-        O00OO0O0O00O0O0OO .read =read #line:167:self.read = read
-        O00OO0O0O00O0O0OO .status =status #line:168:self.status = status
-        if redirect is False or total is False :#line:170:if redirect is False or total is False:
-            redirect =0 #line:171:redirect = 0
-            raise_on_redirect =False #line:172:raise_on_redirect = False
-        O00OO0O0O00O0O0OO .redirect =redirect #line:174:self.redirect = redirect
-        O00OO0O0O00O0O0OO .status_forcelist =status_forcelist or set ()#line:175:self.status_forcelist = status_forcelist or set()
-        O00OO0O0O00O0O0OO .method_whitelist =method_whitelist #line:176:self.method_whitelist = method_whitelist
-        O00OO0O0O00O0O0OO .backoff_factor =backoff_factor #line:177:self.backoff_factor = backoff_factor
-        O00OO0O0O00O0O0OO .raise_on_redirect =raise_on_redirect #line:178:self.raise_on_redirect = raise_on_redirect
-        O00OO0O0O00O0O0OO .raise_on_status =raise_on_status #line:179:self.raise_on_status = raise_on_status
-        O00OO0O0O00O0O0OO .history =history or tuple ()#line:180:self.history = history or tuple()
-        O00OO0O0O00O0O0OO .respect_retry_after_header =respect_retry_after_header #line:181:self.respect_retry_after_header = respect_retry_after_header
-        O00OO0O0O00O0O0OO .remove_headers_on_redirect =remove_headers_on_redirect #line:182:self.remove_headers_on_redirect = remove_headers_on_redirect
-    def new (O0O00OOO00000O00O ,**OO0O0O0000OO00OOO ):#line:184:def new(self, **kw):
-        O00O0OOOOO00OO0OO =dict (total =O0O00OOO00000O00O .total ,connect =O0O00OOO00000O00O .connect ,read =O0O00OOO00000O00O .read ,redirect =O0O00OOO00000O00O .redirect ,status =O0O00OOO00000O00O .status ,method_whitelist =O0O00OOO00000O00O .method_whitelist ,status_forcelist =O0O00OOO00000O00O .status_forcelist ,backoff_factor =O0O00OOO00000O00O .backoff_factor ,raise_on_redirect =O0O00OOO00000O00O .raise_on_redirect ,raise_on_status =O0O00OOO00000O00O .raise_on_status ,history =O0O00OOO00000O00O .history ,remove_headers_on_redirect =O0O00OOO00000O00O .remove_headers_on_redirect )#line:195:)
-        O00O0OOOOO00OO0OO .update (OO0O0O0000OO00OOO )#line:196:params.update(kw)
-        return type (O0O00OOO00000O00O )(**O00O0OOOOO00OO0OO )#line:197:return type(self)(**params)
-    @classmethod #line:199:@classmethod
-    def from_int (O0OOOO0O0O00O0OOO ,O000O0O0O0OO0OO00 ,redirect =True ,default =None ):#line:200:def from_int(cls, retries, redirect=True, default=None):
-        ""#line:201:""" Backwards-compatibility for the old retries format."""
-        if O000O0O0O0OO0OO00 is None :#line:202:if retries is None:
-            O000O0O0O0OO0OO00 =default if default is not None else O0OOOO0O0O00O0OOO .DEFAULT #line:203:retries = default if default is not None else cls.DEFAULT
-        if isinstance (O000O0O0O0OO0OO00 ,Retry ):#line:205:if isinstance(retries, Retry):
-            return O000O0O0O0OO0OO00 #line:206:return retries
-        redirect =bool (redirect )and None #line:208:redirect = bool(redirect) and None
-        OO00OOO000O000000 =O0OOOO0O0O00O0OOO (O000O0O0O0OO0OO00 ,redirect =redirect )#line:209:new_retries = cls(retries, redirect=redirect)
-        log .debug ("Converted retries value: %r -> %r",O000O0O0O0OO0OO00 ,OO00OOO000O000000 )#line:210:log.debug("Converted retries value: %r -> %r", retries, new_retries)
-        return OO00OOO000O000000 #line:211:return new_retries
-    def get_backoff_time (O0O000OO000O0000O ):#line:213:def get_backoff_time(self):
-        ""#line:217:"""
-        OOO000O000O0O00OO =len (list (takewhile (lambda OO0000O00O0OOO000 :OO0000O00O0OOO000 .redirect_location is None ,reversed (O0O000OO000O0000O .history ))))#line:220:reversed(self.history))))
-        if OOO000O000O0O00OO <=1 :#line:221:if consecutive_errors_len <= 1:
-            return 0 #line:222:return 0
-        OOO00O000000O0O00 =O0O000OO000O0000O .backoff_factor *(2 **(OOO000O000O0O00OO -1 ))#line:224:backoff_value = self.backoff_factor * (2 ** (consecutive_errors_len - 1))
-        return min (O0O000OO000O0000O .BACKOFF_MAX ,OOO00O000000O0O00 )#line:225:return min(self.BACKOFF_MAX, backoff_value)
-    def parse_retry_after (O0OO0O000OOO0OO00 ,O0O0O00OOO0000O00 ):#line:227:def parse_retry_after(self, retry_after):
-        if re .match (r"^\s*[0-9]+\s*$",O0O0O00OOO0000O00 ):#line:229:if re.match(r"^\s*[0-9]+\s*$", retry_after):
-            O0O00OOOO0O000OO0 =int (O0O0O00OOO0000O00 )#line:230:seconds = int(retry_after)
-        else :#line:231:else:
-            OO0O00OOOOO00OO0O =email .utils .parsedate (O0O0O00OOO0000O00 )#line:232:retry_date_tuple = email.utils.parsedate(retry_after)
-            if OO0O00OOOOO00OO0O is None :#line:233:if retry_date_tuple is None:
-                raise InvalidHeader ("Invalid Retry-After header: %s"%O0O0O00OOO0000O00 )#line:234:raise InvalidHeader("Invalid Retry-After header: %s" % retry_after)
-            O00OOO0O0OO0OO000 =time .mktime (OO0O00OOOOO00OO0O )#line:235:retry_date = time.mktime(retry_date_tuple)
-            O0O00OOOO0O000OO0 =O00OOO0O0OO0OO000 -time .time ()#line:236:seconds = retry_date - time.time()
-        if O0O00OOOO0O000OO0 <0 :#line:238:if seconds < 0:
-            O0O00OOOO0O000OO0 =0 #line:239:seconds = 0
-        return O0O00OOOO0O000OO0 #line:241:return seconds
-    def get_retry_after (O00O0O0OOOO000O00 ,O00O0000000O00000 ):#line:243:def get_retry_after(self, response):
-        ""#line:244:""" Get the value of Retry-After in seconds. """
-        O00O0OOO000OO00O0 =O00O0000000O00000 .getheader ("Retry-After")#line:246:retry_after = response.getheader("Retry-After")
-        if O00O0OOO000OO00O0 is None :#line:248:if retry_after is None:
-            return None #line:249:return None
-        return O00O0O0OOOO000O00 .parse_retry_after (O00O0OOO000OO00O0 )#line:251:return self.parse_retry_after(retry_after)
-    def sleep_for_retry (OOO00O0OOO0OO000O ,response =None ):#line:253:def sleep_for_retry(self, response=None):
-        O00000OO000O00OOO =OOO00O0OOO0OO000O .get_retry_after (response )#line:254:retry_after = self.get_retry_after(response)
-        if O00000OO000O00OOO :#line:255:if retry_after:
-            time .sleep (O00000OO000O00OOO )#line:256:time.sleep(retry_after)
-            return True #line:257:return True
-        return False #line:259:return False
-    def _sleep_backoff (OOO000O000O00000O ):#line:261:def _sleep_backoff(self):
-        OOO000OO000O0OOOO =OOO000O000O00000O .get_backoff_time ()#line:262:backoff = self.get_backoff_time()
-        if OOO000OO000O0OOOO <=0 :#line:263:if backoff <= 0:
-            return #line:264:return
-        time .sleep (OOO000OO000O0OOOO )#line:265:time.sleep(backoff)
-    def sleep (O0O0OOOO00O00OOOO ,response =None ):#line:267:def sleep(self, response=None):
-        ""#line:274:"""
-        if response :#line:276:if response:
-            O0000O00O00OO0O00 =O0O0OOOO00O00OOOO .sleep_for_retry (response )#line:277:slept = self.sleep_for_retry(response)
-            if O0000O00O00OO0O00 :#line:278:if slept:
-                return #line:279:return
-        O0O0OOOO00O00OOOO ._sleep_backoff ()#line:281:self._sleep_backoff()
-    def _is_connection_error (OOO0000OOO000000O ,O0OO0OO000OO0OOO0 ):#line:283:def _is_connection_error(self, err):
-        ""#line:286:"""
-        return isinstance (O0OO0OO000OO0OOO0 ,ConnectTimeoutError )#line:287:return isinstance(err, ConnectTimeoutError)
-    def _is_read_error (OO00000OO0O00OO0O ,OOO0OOOO0O0OOOO0O ):#line:289:def _is_read_error(self, err):
-        ""#line:292:"""
-        return isinstance (OOO0OOOO0O0OOOO0O ,(ReadTimeoutError ,ProtocolError ))#line:293:return isinstance(err, (ReadTimeoutError, ProtocolError))
-    def _is_method_retryable (O0O0O00OO0OO0OOO0 ,OO000O0O0O00OO00O ):#line:295:def _is_method_retryable(self, method):
-        ""#line:298:"""
-        if O0O0O00OO0OO0OOO0 .method_whitelist and OO000O0O0O00OO00O .upper ()not in O0O0O00OO0OO0OOO0 .method_whitelist :#line:299:if self.method_whitelist and method.upper() not in self.method_whitelist:
-            return False #line:300:return False
-        return True #line:302:return True
-    def is_retry (O0000OOO000OOOOO0 ,OOO0O000O0O0000OO ,O00OOO000O0O00O0O ,has_retry_after =False ):#line:304:def is_retry(self, method, status_code, has_retry_after=False):
-        ""#line:310:"""
-        if not O0000OOO000OOOOO0 ._is_method_retryable (OOO0O000O0O0000OO ):#line:311:if not self._is_method_retryable(method):
-            return False #line:312:return False
-        if O0000OOO000OOOOO0 .status_forcelist and O00OOO000O0O00O0O in O0000OOO000OOOOO0 .status_forcelist :#line:314:if self.status_forcelist and status_code in self.status_forcelist:
-            return True #line:315:return True
-        return (O0000OOO000OOOOO0 .total and O0000OOO000OOOOO0 .respect_retry_after_header and has_retry_after and (O00OOO000O0O00O0O in O0000OOO000OOOOO0 .RETRY_AFTER_STATUS_CODES ))#line:318:has_retry_after and (status_code in self.RETRY_AFTER_STATUS_CODES))
-    def is_exhausted (OOOOOOO0OOOO0O000 ):#line:320:def is_exhausted(self):
-        ""#line:321:""" Are we out of retries? """
-        O0O0O0OO0O0OO00OO =(OOOOOOO0OOOO0O000 .total ,OOOOOOO0OOOO0O000 .connect ,OOOOOOO0OOOO0O000 .read ,OOOOOOO0OOOO0O000 .redirect ,OOOOOOO0OOOO0O000 .status )#line:322:retry_counts = (self.total, self.connect, self.read, self.redirect, self.status)
-        O0O0O0OO0O0OO00OO =list (filter (None ,O0O0O0OO0O0OO00OO ))#line:323:retry_counts = list(filter(None, retry_counts))
-        if not O0O0O0OO0O0OO00OO :#line:324:if not retry_counts:
-            return False #line:325:return False
-        return min (O0O0O0OO0O0OO00OO )<0 #line:327:return min(retry_counts) < 0
-    def increment (OO0OOO0000O00OOOO ,method =None ,url =None ,response =None ,error =None ,_pool =None ,_stacktrace =None ):#line:330:_pool=None, _stacktrace=None):
-        ""#line:340:"""
-        if OO0OOO0000O00OOOO .total is False and error :#line:341:if self.total is False and error:
-            raise six .reraise (type (error ),error ,_stacktrace )#line:343:raise six.reraise(type(error), error, _stacktrace)
-        O000OOOOO0OO00OO0 =OO0OOO0000O00OOOO .total #line:345:total = self.total
-        if O000OOOOO0OO00OO0 is not None :#line:346:if total is not None:
-            O000OOOOO0OO00OO0 -=1 #line:347:total -= 1
-        O000000O00OOOOO0O =OO0OOO0000O00OOOO .connect #line:349:connect = self.connect
-        O0O0000OOOO0O00OO =OO0OOO0000O00OOOO .read #line:350:read = self.read
-        O0OOOO0OOO0O0OOO0 =OO0OOO0000O00OOOO .redirect #line:351:redirect = self.redirect
-        O00O0O000000OOOOO =OO0OOO0000O00OOOO .status #line:352:status_count = self.status
-        OO0OOO0OOOOO00O00 ='unknown'#line:353:cause = 'unknown'
-        O00OO0OOO000O0OO0 =None #line:354:status = None
-        O0000OOO00O0O00OO =None #line:355:redirect_location = None
-        if error and OO0OOO0000O00OOOO ._is_connection_error (error ):#line:357:if error and self._is_connection_error(error):
-            if O000000O00OOOOO0O is False :#line:359:if connect is False:
-                raise six .reraise (type (error ),error ,_stacktrace )#line:360:raise six.reraise(type(error), error, _stacktrace)
-            elif O000000O00OOOOO0O is not None :#line:361:elif connect is not None:
-                O000000O00OOOOO0O -=1 #line:362:connect -= 1
-        elif error and OO0OOO0000O00OOOO ._is_read_error (error ):#line:364:elif error and self._is_read_error(error):
-            if O0O0000OOOO0O00OO is False or not OO0OOO0000O00OOOO ._is_method_retryable (method ):#line:366:if read is False or not self._is_method_retryable(method):
-                raise six .reraise (type (error ),error ,_stacktrace )#line:367:raise six.reraise(type(error), error, _stacktrace)
-            elif O0O0000OOOO0O00OO is not None :#line:368:elif read is not None:
-                O0O0000OOOO0O00OO -=1 #line:369:read -= 1
-        elif response and response .get_redirect_location ():#line:371:elif response and response.get_redirect_location():
-            if O0OOOO0OOO0O0OOO0 is not None :#line:373:if redirect is not None:
-                O0OOOO0OOO0O0OOO0 -=1 #line:374:redirect -= 1
-            OO0OOO0OOOOO00O00 ='too many redirects'#line:375:cause = 'too many redirects'
-            O0000OOO00O0O00OO =response .get_redirect_location ()#line:376:redirect_location = response.get_redirect_location()
-            O00OO0OOO000O0OO0 =response .status #line:377:status = response.status
-        else :#line:379:else:
-            OO0OOO0OOOOO00O00 =ResponseError .GENERIC_ERROR #line:382:cause = ResponseError.GENERIC_ERROR
-            if response and response .status :#line:383:if response and response.status:
-                if O00O0O000000OOOOO is not None :#line:384:if status_count is not None:
-                    O00O0O000000OOOOO -=1 #line:385:status_count -= 1
-                OO0OOO0OOOOO00O00 =ResponseError .SPECIFIC_ERROR .format (status_code =response .status )#line:387:status_code=response.status)
-                O00OO0OOO000O0OO0 =response .status #line:388:status = response.status
-        O0000O0000OO0OO00 =OO0OOO0000O00OOOO .history +(RequestHistory (method ,url ,error ,O00OO0OOO000O0OO0 ,O0000OOO00O0O00OO ),)#line:390:history = self.history + (RequestHistory(method, url, error, status, redirect_location),)
-        OO0OO000O00OOO00O =OO0OOO0000O00OOOO .new (total =O000OOOOO0OO00OO0 ,connect =O000000O00OOOOO0O ,read =O0O0000OOOO0O00OO ,redirect =O0OOOO0OOO0O0OOO0 ,status =O00O0O000000OOOOO ,history =O0000O0000OO0OO00 )#line:395:history=history)
-        if OO0OO000O00OOO00O .is_exhausted ():#line:397:if new_retry.is_exhausted():
-            raise MaxRetryError (_pool ,url ,error or ResponseError (OO0OOO0OOOOO00O00 ))#line:398:raise MaxRetryError(_pool, url, error or ResponseError(cause))
-        log .debug ("Incremented Retry for (url='%s'): %r",url ,OO0OO000O00OOO00O )#line:400:log.debug("Incremented Retry for (url='%s'): %r", url, new_retry)
-        return OO0OO000O00OOO00O #line:402:return new_retry
-    def __repr__ (O0000O00O0O0O0000 ):#line:404:def __repr__(self):
-        return ('{cls.__name__}(total={self.total}, connect={self.connect}, ' 'read={self.read}, redirect={self.redirect}, status={self.status})').format (cls =type (O0000O00O0O0O0000 ),self =O0000O00O0O0O0000 )#line:407:cls=type(self), self=self)
-Retry .DEFAULT =Retry (3 )#line:411:Retry.DEFAULT = Retry(3)
+from __future__ import absolute_import #line:1
+from .packages .six .moves .http_client import (IncompleteRead as httplib_IncompleteRead )#line:4
+class HTTPError (Exception ):#line:8
+    ""#line:9
+    pass #line:10
+class HTTPWarning (Warning ):#line:13
+    ""#line:14
+    pass #line:15
+class PoolError (HTTPError ):#line:18
+    ""#line:19
+    def __init__ (OOOOOOOO0O000O000 ,O0OO0O00O0O0O00O0 ,O0O0OO0OOO00OOOOO ):#line:20
+        OOOOOOOO0O000O000 .pool =O0OO0O00O0O0O00O0 #line:21
+        HTTPError .__init__ (OOOOOOOO0O000O000 ,"%s: %s"%(O0OO0O00O0O0O00O0 ,O0O0OO0OOO00OOOOO ))#line:22
+    def __reduce__ (O00OOO0000OOOOO0O ):#line:24
+        return O00OOO0000OOOOO0O .__class__ ,(None ,None )#line:26
+class RequestError (PoolError ):#line:29
+    ""#line:30
+    def __init__ (OO0O00000OO0OOOOO ,O0000OOOO0OOOOO00 ,O00OOO0OOO0O0OOO0 ,O0O0O00OO0O0O0OOO ):#line:31
+        OO0O00000OO0OOOOO .url =O00OOO0OOO0O0OOO0 #line:32
+        PoolError .__init__ (OO0O00000OO0OOOOO ,O0000OOOO0OOOOO00 ,O0O0O00OO0O0O0OOO )#line:33
+    def __reduce__ (OOOOO00OO000OO000 ):#line:35
+        return OOOOO00OO000OO000 .__class__ ,(None ,OOOOO00OO000OO000 .url ,None )#line:37
+class SSLError (HTTPError ):#line:40
+    ""#line:41
+    pass #line:42
+class ProxyError (HTTPError ):#line:45
+    ""#line:46
+    pass #line:47
+class DecodeError (HTTPError ):#line:50
+    ""#line:51
+    pass #line:52
+class ProtocolError (HTTPError ):#line:55
+    ""#line:56
+    pass #line:57
+ConnectionError =ProtocolError #line:61
+class MaxRetryError (RequestError ):#line:66
+    ""#line:74
+    def __init__ (O00OOOO0O0O00OO0O ,OO0O00000O0OOOO00 ,O00000OO00O0O000O ,reason =None ):#line:76
+        O00OOOO0O0O00OO0O .reason =reason #line:77
+        OOOO0O000000O0O0O ="Max retries exceeded with url: %s (Caused by %r)"%(O00000OO00O0O000O ,reason )#line:80
+        RequestError .__init__ (O00OOOO0O0O00OO0O ,OO0O00000O0OOOO00 ,O00000OO00O0O000O ,OOOO0O000000O0O0O )#line:82
+class HostChangedError (RequestError ):#line:85
+    ""#line:86
+    def __init__ (O00OO00OOOOOO0O0O ,O0OO000OO0O0O00O0 ,O0OO00000O000O00O ,retries =3 ):#line:88
+        OOO0000O0OO0O0O0O ="Tried to open a foreign host with url: %s"%O0OO00000O000O00O #line:89
+        RequestError .__init__ (O00OO00OOOOOO0O0O ,O0OO000OO0O0O00O0 ,O0OO00000O000O00O ,OOO0000O0OO0O0O0O )#line:90
+        O00OO00OOOOOO0O0O .retries =retries #line:91
+class TimeoutStateError (HTTPError ):#line:94
+    ""#line:95
+    pass #line:96
+class TimeoutError (HTTPError ):#line:99
+    ""#line:104
+    pass #line:105
+class ReadTimeoutError (TimeoutError ,RequestError ):#line:108
+    ""#line:109
+    pass #line:110
+class ConnectTimeoutError (TimeoutError ):#line:115
+    ""#line:116
+    pass #line:117
+class NewConnectionError (ConnectTimeoutError ,PoolError ):#line:120
+    ""#line:121
+    pass #line:122
+class EmptyPoolError (PoolError ):#line:125
+    ""#line:126
+    pass #line:127
+class ClosedPoolError (PoolError ):#line:130
+    ""#line:131
+    pass #line:132
+class LocationValueError (ValueError ,HTTPError ):#line:135
+    ""#line:136
+    pass #line:137
+class LocationParseError (LocationValueError ):#line:140
+    ""#line:141
+    def __init__ (O0O00OOOOO0O000OO ,O00000O0O0000000O ):#line:143
+        O0000O0OO00OOO00O ="Failed to parse: %s"%O00000O0O0000000O #line:144
+        HTTPError .__init__ (O0O00OOOOO0O000OO ,O0000O0OO00OOO00O )#line:145
+        O0O00OOOOO0O000OO .location =O00000O0O0000000O #line:147
+class ResponseError (HTTPError ):#line:150
+    ""#line:151
+    GENERIC_ERROR ='too many error responses'#line:152
+    SPECIFIC_ERROR ='too many {status_code} error responses'#line:153
+class SecurityWarning (HTTPWarning ):#line:156
+    ""#line:157
+    pass #line:158
+class SubjectAltNameWarning (SecurityWarning ):#line:161
+    ""#line:162
+    pass #line:163
+class InsecureRequestWarning (SecurityWarning ):#line:166
+    ""#line:167
+    pass #line:168
+class SystemTimeWarning (SecurityWarning ):#line:171
+    ""#line:172
+    pass #line:173
+class InsecurePlatformWarning (SecurityWarning ):#line:176
+    ""#line:177
+    pass #line:178
+class SNIMissingWarning (HTTPWarning ):#line:181
+    ""#line:182
+    pass #line:183
+class DependencyWarning (HTTPWarning ):#line:186
+    ""#line:190
+    pass #line:191
+class ResponseNotChunked (ProtocolError ,ValueError ):#line:194
+    ""#line:195
+    pass #line:196
+class BodyNotHttplibCompatible (HTTPError ):#line:199
+    ""#line:203
+    pass #line:204
+class IncompleteRead (HTTPError ,httplib_IncompleteRead ):#line:207
+    ""#line:214
+    def __init__ (O000O0OO0OO0OOOOO ,OO000O0OOOOOO0OOO ,O0O000OOO000OOO0O ):#line:215
+        super (IncompleteRead ,O000O0OO0OO0OOOOO ).__init__ (OO000O0OOOOOO0OOO ,O0O000OOO000OOO0O )#line:216
+    def __repr__ (O0O00OO0O00OO000O ):#line:218
+        return ('IncompleteRead(%i bytes read, ' '%i more expected)'%(O0O00OO0O00OO000O .partial ,O0O00OO0O00OO000O .expected ))#line:220
+class InvalidHeader (HTTPError ):#line:223
+    ""#line:224
+    pass #line:225
+class ProxySchemeUnknown (AssertionError ,ValueError ):#line:228
+    ""#line:229
+    def __init__ (OOO0OOOOOOOO00OOO ,OOO0OO000OOO0000O ):#line:232
+        O000OOOO0000OO00O ="Not supported proxy scheme %s"%OOO0OO000OOO0000O #line:233
+        super (ProxySchemeUnknown ,OOO0OOOOOOOO00OOO ).__init__ (O000OOOO0000OO00O )#line:234
+class HeaderParsingError (HTTPError ):#line:237
+    ""#line:238
+    def __init__ (O00O00OOO0OO00OOO ,O0OOO0000OO0OO00O ,OOO0O0O00000O000O ):#line:239
+        O000O0O00000O0O00 ='%s, unparsed data: %r'%(O0OOO0000OO0OO00O or 'Unknown',OOO0O0O00000O000O )#line:240
+        super (HeaderParsingError ,O00O00OOO0OO00OOO ).__init__ (O000O0O00000O0O00 )#line:241
+class UnrewindableBodyError (HTTPError ):#line:244
+    ""#line:245
+    pass #line:246

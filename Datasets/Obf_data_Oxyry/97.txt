@@ -1,54 +1,29 @@
-import telebot #line:1:import telebot
-from telebot import types #line:2:from telebot import types
-bot =telebot .TeleBot ("6540560961:AAEuobp6IGekPHPwSDxbxEEgI9LbPvYRgEc")#line:4:bot = telebot.TeleBot("6540560961:AAEuobp6IGekPHPwSDxbxEEgI9LbPvYRgEc")
-@bot .message_handler (commands =["start"])#line:7:@bot.message_handler(commands=["start"])
-def start (OO0O0OOO000000O00 ):#line:8:def start(message):
-    O00O0OOOOOO00O000 =types .ReplyKeyboardMarkup ()#line:9:keyboard = types.ReplyKeyboardMarkup()
-    O00OO00OO0O0OOO0O =types .KeyboardButton ("Добавить заметку")#line:10:note = types.KeyboardButton("Добавить заметку")
-    O000000O0OO0OO0O0 =types .KeyboardButton ("Удалить заметку")#line:11:deletenote = types.KeyboardButton("Удалить заметку")
-    OOOOO00OO0O00000O =types .KeyboardButton ("Изменить заметку")#line:12:editnote = types.KeyboardButton("Изменить заметку")
-    OO000000O00O00O0O =types .KeyboardButton ("Добавить событие")#line:13:event = types.KeyboardButton("Добавить событие")
-    O0O0O000O00OOOOOO =types .KeyboardButton ("Удалить событие")#line:14:deletevent = types.KeyboardButton("Удалить событие")
-    OO00O000000O0OO0O =types .KeyboardButton ("Изменить событие")#line:15:editevent = types.KeyboardButton("Изменить событие")
-    O0O00OO0OO00OO0OO =types .KeyboardButton ("Открыть текущие заметки/события")#line:16:check = types.KeyboardButton("Открыть текущие заметки/события")
-    O00O0OOOOOO00O000 .add (O00OO00OO0O0OOO0O ,O000000O0OO0OO0O0 ,OOOOO00OO0O00000O ,OO000000O00O00O0O ,O0O0O000O00OOOOOO ,OO00O000000O0OO0O ,O0O00OO0OO00OO0OO )#line:17:keyboard.add(note, deletenote, editnote, event, deletevent, editevent, check)
-    bot .send_message (OO0O0OOO000000O00 .chat .id ,f"<b>{OO0O0OOO000000O00.from_user.first_name}, я так рад, что вы снова сдесь!</b> \U0001F601 \nВыберите, что бы вы хотели сделать:",parse_mode ="html",reply_markup =O00O0OOOOOO00O000 ,)#line:23:)
-@bot .message_handler (func =lambda OOO00O00O0O0000OO :True )#line:26:@bot.message_handler(func=lambda message: True)
-def handle_button_click (O0OOOOO0OOOO000OO ):#line:27:def handle_button_click(message):
-    if (O0OOOOO0OOOO000OO .text .lower ()=="добавить заметку")or (O0OOOOO0OOOO000OO .text .lower ()=="/addn"):#line:30:):
-        addn (O0OOOOO0OOOO000OO )#line:31:addn(message)
-    elif (O0OOOOO0OOOO000OO .text .lower ()=="добавить событие")or (O0OOOOO0OOOO000OO .text .lower ()=="/adde"):#line:34:):
-        adde (O0OOOOO0OOOO000OO )#line:35:adde(message)
-    elif (O0OOOOO0OOOO000OO .text .lower ()=="удалить заметку")or (O0OOOOO0OOOO000OO .text .lower ()=="/deleten"):#line:38:):
-        deleten (O0OOOOO0OOOO000OO )#line:39:deleten(message)
-    elif (O0OOOOO0OOOO000OO .text .lower ()=="удалить событие")or (O0OOOOO0OOOO000OO .text .lower ()=="/deletev"):#line:42:):
-        deletev (O0OOOOO0OOOO000OO )#line:43:deletev(message)
-    elif (O0OOOOO0OOOO000OO .text .lower ()=="изменить заметку")or (O0OOOOO0OOOO000OO .text .lower ()=="/editn"):#line:46:):
-        editn (O0OOOOO0OOOO000OO )#line:47:editn(message)
-    elif (O0OOOOO0OOOO000OO .text .lower ()=="изменить событие")or (O0OOOOO0OOOO000OO .text .lower ()=="/edite"):#line:50:):
-        edite (O0OOOOO0OOOO000OO )#line:51:edite(message)
-    elif (O0OOOOO0OOOO000OO .text .lower ()=="открыть текущие заметки/события")or (O0OOOOO0OOOO000OO .text .lower ()=="/check"):#line:54:):
-        check (O0OOOOO0OOOO000OO )#line:55:check(message)
-    elif O0OOOOO0OOOO000OO .text =="/help":#line:56:elif message.text == "/help":
-        bot .send_message (O0OOOOO0OOOO000OO .chat .id ,"<b>С моей помощью вы легко сможете:</b>\n\n" "<b>1)</b> Добавить для себя любую заметку коммандой - | /addn |\n\n" "<b>2)</b> Создать событие с напоминанием коммандой - | /adde |\n\n" "<b>3)</b> Удалить любую заметку коммандой - | /deleten |\n\n" "<b>4)</b> Удалить любое событие коммандой - | /deletev |\n\n" "<b>5)</b> Изменить любую заметку коммандой - | /editn |\n\n" "<b>6)</b> Изменить любое событие коммандой - | /edite |\n\n" "<b>7)</b> Просматривать все свои заметки коммандой - | /check |\n\n",parse_mode ="html",)#line:68:)
-    elif O0OOOOO0OOOO000OO .text .isalpha ():#line:69:elif message.text.isalpha():
-        bot .send_message (O0OOOOO0OOOO000OO .chat .id ,"Извини, но я не воспринимаю текст \U0001F972, тебе следует попробовать комманды!\n" "Чтобы узнать, что я умею, введи комманду - | /help |",)#line:74:)
-    elif O0OOOOO0OOOO000OO .text .isdigit ():#line:75:elif message.text.isdigit():
-        bot .send_message (O0OOOOO0OOOO000OO .chat .id ,"Извини, но я не воспринимаю цифры/числа \U0001F972, тебе следует попробовать комманды!\n" "Чтобы узнать, что я умею, введи комманду - | /help |",)#line:80:)
-    else :#line:81:else:
-        bot .send_message (O0OOOOO0OOOO000OO .chat .id ,"Извини, но я воспринимаю только комманды \U0001F972\n" "Чтобы узнать, что я умею, введи комманду - | /help |",)#line:86:)
-def addn (O00OOO0O0O0O0OOOO ):#line:89:def addn(message):
-    bot .send_message (O00OOO0O0O0O0OOOO .chat .id ,"Вы создали заметку")#line:90:bot.send_message(message.chat.id, "Вы создали заметку")
-def adde (O00OOO000O0000000 ):#line:93:def adde(message):
-    bot .send_message (O00OOO000O0000000 .chat .id ,"Вы создали событие")#line:94:bot.send_message(message.chat.id, "Вы создали событие")
-def deleten (OOO0OO0O0O0O0O0O0 ):#line:97:def deleten(message):
-    bot .send_message (OOO0OO0O0O0O0O0O0 .chat .id ,"Вы хотите удалить заметку")#line:98:bot.send_message(message.chat.id, "Вы хотите удалить заметку")
-def deletev (O00000000O0O00OOO ):#line:101:def deletev(message):
-    bot .send_message (O00000000O0O00OOO .chat .id ,"Вы удалили событие")#line:102:bot.send_message(message.chat.id, "Вы удалили событие")
-def editn (O0O00000O0OO00O0O ):#line:105:def editn(message):
-    bot .send_message (O0O00000O0OO00O0O .chat .id ,"Вы хотите изменить заметку")#line:106:bot.send_message(message.chat.id, "Вы хотите изменить заметку")
-def edite (O00OO0O00OO0OO00O ):#line:109:def edite(message):
-    bot .send_message (O00OO0O00OO0OO00O .chat .id ,"Вы хотите изменить событие")#line:110:bot.send_message(message.chat.id, "Вы хотите изменить событие")
-def check (O0OOOO00O0OOOO00O ):#line:113:def check(message):
-    bot .send_message (O0OOOO00O0OOOO00O .chat .id ,"Вы хотите посмотреть список заметок/событий")#line:114:bot.send_message(message.chat.id, "Вы хотите посмотреть список заметок/событий")
-bot .polling (none_stop =True )#line:117:bot.polling(none_stop=True)
+from tkinter import *#line:1
+from tkinter import ttk #line:2
+import calendar #line:3
+def showCal ():#line:4
+    O0O00OOO0OOOO0O0O =Tk ()#line:5
+    O0O00OOO0OOOO0O0O .config (background ="white")#line:6
+    O0O00OOO0OOOO0O0O .title ("Calendar")#line:7
+    O0O00OOO0OOOO0O0O .geometry ("550x600")#line:8
+    O00OO00O0O00O00OO =int (year_field .get ())#line:9
+    OO0O00O0O00OO0000 =calendar .calendar (O00OO00O0O00O00OO )#line:10
+    OOO0OOO0O0000O00O =Label (O0O00OOO0OOOO0O0O ,text =OO0O00O0O00OO0000 ,font ="Consolas 10 bold")#line:11
+    OOO0OOO0O0000O00O .grid (row =5 ,column =1 ,padx =20 )#line:12
+    O0O00OOO0OOOO0O0O .mainloop ()#line:13
+if __name__ =="__main__":#line:14
+    root =Tk ()#line:15
+    root .config (background ="white")#line:16
+    root .title ("HOME")#line:17
+    root .geometry ("500x400")#line:18
+    cal =Label (root ,text ="Welcome to the calendar Application",bg ="Green",font =("times",20 ,"bold"),)#line:19
+    year =Label (root ,text ="Please enter a year",bg ="Green")#line:20
+    year_field =Entry (root )#line:21
+    Show =Button (root ,text ="Show Calendar",fg ="Black",bg ="Light Green",command =showCal )#line:22
+    Exit =Button (root ,text ="Exit",fg ="Black",bg ="Light Green",command =exit )#line:23
+    cal .grid (row =1 ,column =1 )#line:24
+    year .grid (row =2 ,column =1 )#line:25
+    year_field .grid (row =3 ,column =1 )#line:26
+    Show .grid (row =4 ,column =1 )#line:27
+    Exit .grid (row =6 ,column =1 )#line:28
+    root .mainloop ()#line:29

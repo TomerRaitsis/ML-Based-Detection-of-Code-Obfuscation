@@ -1,193 +1,27 @@
-""#line:10:"""
-import fnmatch #line:11:import fnmatch
-import logging #line:12:import logging
-import os #line:13:import os
-import re #line:14:import re
-import sys #line:15:import sys
-from .import DistlibException #line:17:from . import DistlibException
-from .compat import fsdecode #line:18:from .compat import fsdecode
-from .util import convert_path #line:19:from .util import convert_path
-__all__ =['Manifest']#line:22:__all__ = ['Manifest']
-OO00O000OO000OO00 =logging .getLogger (__name__ )#line:24:logger = logging.getLogger(__name__)
-_O00000OO00000O00O =re .compile ('\\\\w*\n',re .M )#line:27:_COLLAPSE_PATTERN = re.compile('\\\\w*\n', re.M)
-_O0OO0OOOO0O0000OO =re .compile ('#.*?(?=\n)|\n(?=$)',re .M |re .S )#line:28:_COMMENTED_LINE = re.compile('#.*?(?=\n)|\n(?=$)', re.M | re.S)
-_OO00OO00OO00O00OO =sys .version_info [:2 ]#line:35:_PYTHON_VERSION = sys.version_info[:2]
-class Manifest (object ):#line:37:class Manifest(object):
-    ""#line:40:"""
-    def __init__ (OO000O0OO0O0O00OO ,base =None ):#line:42:def __init__(self, base=None):
-        ""#line:47:"""
-        OO000O0OO0O0O00OO .base =os .path .abspath (os .path .normpath (base or os .getcwd ()))#line:48:self.base = os.path.abspath(os.path.normpath(base or os.getcwd()))
-        OO000O0OO0O0O00OO .prefix =OO000O0OO0O0O00OO .base +os .sep #line:49:self.prefix = self.base + os.sep
-        OO000O0OO0O0O00OO .allfiles =None #line:50:self.allfiles = None
-        OO000O0OO0O0O00OO .files =set ()#line:51:self.files = set()
-    def findall (OO00OO0000OOO0O0O ):#line:57:def findall(self):
-        ""#line:60:"""
-        from stat import S_ISREG ,S_ISDIR ,S_ISLNK #line:61:from stat import S_ISREG, S_ISDIR, S_ISLNK
-        OO00OO0000OOO0O0O .allfiles =O00O0OO0O0OOO000O =[]#line:63:self.allfiles = allfiles = []
-        OO000OOOO0OOOOO00 =OO00OO0000OOO0O0O .base #line:64:root = self.base
-        OO0OOO000O00O0O0O =[OO000OOOO0OOOOO00 ]#line:65:stack = [root]
-        OO00OO0O000O000OO =OO0OOO000O00O0O0O .pop #line:66:pop = stack.pop
-        O00O0OOOOO000O0OO =OO0OOO000O00O0O0O .append #line:67:push = stack.append
-        while OO0OOO000O00O0O0O :#line:69:while stack:
-            OO000OOOO0OOOOO00 =OO00OO0O000O000OO ()#line:70:root = pop()
-            O00OOOO0O0OO0OO00 =os .listdir (OO000OOOO0OOOOO00 )#line:71:names = os.listdir(root)
-            for O00OOO0O0O00O0000 in O00OOOO0O0OO0OO00 :#line:73:for name in names:
-                OOOO00OOO0OOOOO00 =os .path .join (OO000OOOO0OOOOO00 ,O00OOO0O0O00O0000 )#line:74:fullname = os.path.join(root, name)
-                OOO000OOO000OO00O =os .stat (OOOO00OOO0OOOOO00 )#line:77:stat = os.stat(fullname)
-                O00000O0O00O00O00 =OOO000OOO000OO00O .st_mode #line:78:mode = stat.st_mode
-                if S_ISREG (O00000O0O00O00O00 ):#line:79:if S_ISREG(mode):
-                    O00O0OO0O0OOO000O .append (fsdecode (OOOO00OOO0OOOOO00 ))#line:80:allfiles.append(fsdecode(fullname))
-                elif S_ISDIR (O00000O0O00O00O00 )and not S_ISLNK (O00000O0O00O00O00 ):#line:81:elif S_ISDIR(mode) and not S_ISLNK(mode):
-                    O00O0OOOOO000O0OO (OOOO00OOO0OOOOO00 )#line:82:push(fullname)
-    def add (O00000OOO00O0O0OO ,OO0O0O0OOO0O0OOOO ):#line:84:def add(self, item):
-        ""#line:89:"""
-        if not OO0O0O0OOO0O0OOOO .startswith (O00000OOO00O0O0OO .prefix ):#line:90:if not item.startswith(self.prefix):
-            OO0O0O0OOO0O0OOOO =os .path .join (O00000OOO00O0O0OO .base ,OO0O0O0OOO0O0OOOO )#line:91:item = os.path.join(self.base, item)
-        O00000OOO00O0O0OO .files .add (os .path .normpath (OO0O0O0OOO0O0OOOO ))#line:92:self.files.add(os.path.normpath(item))
-    def add_many (O000OO0O000O00OOO ,O00O0O00OO0O0O0OO ):#line:94:def add_many(self, items):
-        ""#line:99:"""
-        for OO0O00000OOOOO00O in O00O0O00OO0O0O0OO :#line:100:for item in items:
-            O000OO0O000O00OOO .add (OO0O00000OOOOO00O )#line:101:self.add(item)
-    def sorted (OO00OO0O0O0OO0000 ,wantdirs =False ):#line:103:def sorted(self, wantdirs=False):
-        ""#line:106:"""
-        def OO0O0O0OO0OOO000O (OOOOOOO0O000O0OO0 ,OOO0OO0000OO0O0OO ):#line:108:def add_dir(dirs, d):
-            OOOOOOO0O000O0OO0 .add (OOO0OO0000OO0O0OO )#line:109:dirs.add(d)
-            OO00O000OO000OO00 .debug ('add_dir added %s',OOO0OO0000OO0O0OO )#line:110:logger.debug('add_dir added %s', d)
-            if OOO0OO0000OO0O0OO !=OO00OO0O0O0OO0000 .base :#line:111:if d != self.base:
-                O0OO0000OOOO0O00O ,_OO00OOOO00O0OOOO0 =os .path .split (OOO0OO0000OO0O0OO )#line:112:parent, _ = os.path.split(d)
-                assert O0OO0000OOOO0O00O not in ('','/')#line:113:assert parent not in ('', '/')
-                OO0O0O0OO0OOO000O (OOOOOOO0O000O0OO0 ,O0OO0000OOOO0O00O )#line:114:add_dir(dirs, parent)
-        O000000O0OO00OOO0 =set (OO00OO0O0O0OO0000 .files )#line:116:result = set(self.files)    # make a copy!
-        if wantdirs :#line:117:if wantdirs:
-            OOOO000OOO0OO000O =set ()#line:118:dirs = set()
-            for OOOO000O0OOO0O0OO in O000000O0OO00OOO0 :#line:119:for f in result:
-                OO0O0O0OO0OOO000O (OOOO000OOO0OO000O ,os .path .dirname (OOOO000O0OOO0O0OO ))#line:120:add_dir(dirs, os.path.dirname(f))
-            O000000O0OO00OOO0 |=OOOO000OOO0OO000O #line:121:result |= dirs
-        return [os .path .join (*O0OOOO0000O0000OO )for O0OOOO0000O0000OO in sorted (os .path .split (O0O00O0OO0O00O0O0 )for O0O00O0OO0O00O0O0 in O000000O0OO00OOO0 )]#line:123:sorted(os.path.split(path) for path in result)]
-    def clear (OOO000OO0O0000O0O ):#line:125:def clear(self):
-        ""#line:126:"""Clear all collected files."""
-        OOO000OO0O0000O0O .files =set ()#line:127:self.files = set()
-        OOO000OO0O0000O0O .allfiles =[]#line:128:self.allfiles = []
-    def process_directive (O00OO00000O000OO0 ,OO00O0O000O0OO0OO ):#line:130:def process_directive(self, directive):
-        ""#line:139:"""
-        O0000O00O00000OO0 ,OOO0OOO0O0O0OOOO0 ,O000OOO0O0OOO0OOO ,O0O0OOO0OO00000OO =O00OO00000O000OO0 ._parse_directive (OO00O0O000O0OO0OO )#line:145:action, patterns, thedir, dirpattern = self._parse_directive(directive)
-        if O0000O00O00000OO0 =='include':#line:150:if action == 'include':
-            for OOOO00OO0O0O00O0O in OOO0OOO0O0O0OOOO0 :#line:151:for pattern in patterns:
-                if not O00OO00000O000OO0 ._include_pattern (OOOO00OO0O0O00O0O ,anchor =True ):#line:152:if not self._include_pattern(pattern, anchor=True):
-                    OO00O000OO000OO00 .warning ('no files found matching %r',OOOO00OO0O0O00O0O )#line:153:logger.warning('no files found matching %r', pattern)
-        elif O0000O00O00000OO0 =='exclude':#line:155:elif action == 'exclude':
-            for OOOO00OO0O0O00O0O in OOO0OOO0O0O0OOOO0 :#line:156:for pattern in patterns:
-                OO00OOOOO0000O000 =O00OO00000O000OO0 ._exclude_pattern (OOOO00OO0O0O00O0O ,anchor =True )#line:157:found = self._exclude_pattern(pattern, anchor=True)
-        elif O0000O00O00000OO0 =='global-include':#line:162:elif action == 'global-include':
-            for OOOO00OO0O0O00O0O in OOO0OOO0O0O0OOOO0 :#line:163:for pattern in patterns:
-                if not O00OO00000O000OO0 ._include_pattern (OOOO00OO0O0O00O0O ,anchor =False ):#line:164:if not self._include_pattern(pattern, anchor=False):
-                    OO00O000OO000OO00 .warning ('no files found matching %r ' 'anywhere in distribution',OOOO00OO0O0O00O0O )#line:166:'anywhere in distribution', pattern)
-        elif O0000O00O00000OO0 =='global-exclude':#line:168:elif action == 'global-exclude':
-            for OOOO00OO0O0O00O0O in OOO0OOO0O0O0OOOO0 :#line:169:for pattern in patterns:
-                OO00OOOOO0000O000 =O00OO00000O000OO0 ._exclude_pattern (OOOO00OO0O0O00O0O ,anchor =False )#line:170:found = self._exclude_pattern(pattern, anchor=False)
-        elif O0000O00O00000OO0 =='recursive-include':#line:176:elif action == 'recursive-include':
-            for OOOO00OO0O0O00O0O in OOO0OOO0O0O0OOOO0 :#line:177:for pattern in patterns:
-                if not O00OO00000O000OO0 ._include_pattern (OOOO00OO0O0O00O0O ,prefix =O000OOO0O0OOO0OOO ):#line:178:if not self._include_pattern(pattern, prefix=thedir):
-                    OO00O000OO000OO00 .warning ('no files found matching %r ' 'under directory %r',OOOO00OO0O0O00O0O ,O000OOO0O0OOO0OOO )#line:180:'under directory %r', pattern, thedir)
-        elif O0000O00O00000OO0 =='recursive-exclude':#line:182:elif action == 'recursive-exclude':
-            for OOOO00OO0O0O00O0O in OOO0OOO0O0O0OOOO0 :#line:183:for pattern in patterns:
-                OO00OOOOO0000O000 =O00OO00000O000OO0 ._exclude_pattern (OOOO00OO0O0O00O0O ,prefix =O000OOO0O0OOO0OOO )#line:184:found = self._exclude_pattern(pattern, prefix=thedir)
-        elif O0000O00O00000OO0 =='graft':#line:190:elif action == 'graft':
-            if not O00OO00000O000OO0 ._include_pattern (None ,prefix =O0O0OOO0OO00000OO ):#line:191:if not self._include_pattern(None, prefix=dirpattern):
-                OO00O000OO000OO00 .warning ('no directories found matching %r',O0O0OOO0OO00000OO )#line:193:dirpattern)
-        elif O0000O00O00000OO0 =='prune':#line:195:elif action == 'prune':
-            if not O00OO00000O000OO0 ._exclude_pattern (None ,prefix =O0O0OOO0OO00000OO ):#line:196:if not self._exclude_pattern(None, prefix=dirpattern):
-                OO00O000OO000OO00 .warning ('no previously-included directories found ' 'matching %r',O0O0OOO0OO00000OO )#line:198:'matching %r', dirpattern)
-        else :#line:199:else:   # pragma: no cover
-            raise DistlibException ('invalid action %r'%O0000O00O00000OO0 )#line:203:'invalid action %r' % action)
-    def _parse_directive (O00O000OOOO00O00O ,OOOOO00O0O0O000O0 ):#line:209:def _parse_directive(self, directive):
-        ""#line:214:"""
-        O0OO00O000O0OOOOO =OOOOO00O0O0O000O0 .split ()#line:215:words = directive.split()
-        if len (O0OO00O000O0OOOOO )==1 and O0OO00O000O0OOOOO [0 ]not in ('include','exclude','global-include','global-exclude','recursive-include','recursive-exclude','graft','prune'):#line:221:'graft', 'prune'):
-            O0OO00O000O0OOOOO .insert (0 ,'include')#line:223:words.insert(0, 'include')
-        O0O0O00000O00O0O0 =O0OO00O000O0OOOOO [0 ]#line:225:action = words[0]
-        O0OO0OOOOOO00000O =O0OOO0O0OOOO0OOO0 =O0O0OO000OO000OOO =None #line:226:patterns = thedir = dir_pattern = None
-        if O0O0O00000O00O0O0 in ('include','exclude','global-include','global-exclude'):#line:229:'global-include', 'global-exclude'):
-            if len (O0OO00O000O0OOOOO )<2 :#line:230:if len(words) < 2:
-                raise DistlibException ('%r expects <pattern1> <pattern2> ...'%O0O0O00000O00O0O0 )#line:232:'%r expects <pattern1> <pattern2> ...' % action)
-            O0OO0OOOOOO00000O =[convert_path (O0O0O0OOO00O0OOOO )for O0O0O0OOO00O0OOOO in O0OO00O000O0OOOOO [1 :]]#line:234:patterns = [convert_path(word) for word in words[1:]]
-        elif O0O0O00000O00O0O0 in ('recursive-include','recursive-exclude'):#line:236:elif action in ('recursive-include', 'recursive-exclude'):
-            if len (O0OO00O000O0OOOOO )<3 :#line:237:if len(words) < 3:
-                raise DistlibException ('%r expects <dir> <pattern1> <pattern2> ...'%O0O0O00000O00O0O0 )#line:239:'%r expects <dir> <pattern1> <pattern2> ...' % action)
-            O0OOO0O0OOOO0OOO0 =convert_path (O0OO00O000O0OOOOO [1 ])#line:241:thedir = convert_path(words[1])
-            O0OO0OOOOOO00000O =[convert_path (O00O000000OO00O00 )for O00O000000OO00O00 in O0OO00O000O0OOOOO [2 :]]#line:242:patterns = [convert_path(word) for word in words[2:]]
-        elif O0O0O00000O00O0O0 in ('graft','prune'):#line:244:elif action in ('graft', 'prune'):
-            if len (O0OO00O000O0OOOOO )!=2 :#line:245:if len(words) != 2:
-                raise DistlibException ('%r expects a single <dir_pattern>'%O0O0O00000O00O0O0 )#line:247:'%r expects a single <dir_pattern>' % action)
-            O0O0OO000OO000OOO =convert_path (O0OO00O000O0OOOOO [1 ])#line:249:dir_pattern = convert_path(words[1])
-        else :#line:251:else:
-            raise DistlibException ('unknown action %r'%O0O0O00000O00O0O0 )#line:252:raise DistlibException('unknown action %r' % action)
-        return O0O0O00000O00O0O0 ,O0OO0OOOOOO00000O ,O0OOO0O0OOOO0OOO0 ,O0O0OO000OO000OOO #line:254:return action, patterns, thedir, dir_pattern
-    def _include_pattern (O000OO0O00OO0O0OO ,O00OO0OOOOOOOOOO0 ,anchor =True ,prefix =None ,is_regex =False ):#line:257:is_regex=False):
-        ""#line:282:"""
-        OOOO0OOOOO0000O00 =False #line:284:found = False
-        O00O0O000OOO0O0O0 =O000OO0O00OO0O0OO ._translate_pattern (O00OO0OOOOOOOOOO0 ,anchor ,prefix ,is_regex )#line:285:pattern_re = self._translate_pattern(pattern, anchor, prefix, is_regex)
-        if O000OO0O00OO0O0OO .allfiles is None :#line:288:if self.allfiles is None:
-            O000OO0O00OO0O0OO .findall ()#line:289:self.findall()
-        for OO00O00O0OO0OOO0O in O000OO0O00OO0O0OO .allfiles :#line:291:for name in self.allfiles:
-            if O00O0O000OOO0O0O0 .search (OO00O00O0OO0OOO0O ):#line:292:if pattern_re.search(name):
-                O000OO0O00OO0O0OO .files .add (OO00O00O0OO0OOO0O )#line:293:self.files.add(name)
-                OOOO0OOOOO0000O00 =True #line:294:found = True
-        return OOOO0OOOOO0000O00 #line:295:return found
-    def _exclude_pattern (O00O0OOOO00000O00 ,OO0OO00O00OOO0O00 ,anchor =True ,prefix =None ,is_regex =False ):#line:298:is_regex=False):
-        ""#line:308:"""
-        OOOO0000O00O00000 =False #line:309:found = False
-        OO0000OOOOOOO000O =O00O0OOOO00000O00 ._translate_pattern (OO0OO00O00OOO0O00 ,anchor ,prefix ,is_regex )#line:310:pattern_re = self._translate_pattern(pattern, anchor, prefix, is_regex)
-        for O00O00OOO00O0O0OO in list (O00O0OOOO00000O00 .files ):#line:311:for f in list(self.files):
-            if OO0000OOOOOOO000O .search (O00O00OOO00O0O0OO ):#line:312:if pattern_re.search(f):
-                O00O0OOOO00000O00 .files .remove (O00O00OOO00O0O0OO )#line:313:self.files.remove(f)
-                OOOO0000O00O00000 =True #line:314:found = True
-        return OOOO0000O00O00000 #line:315:return found
-    def _translate_pattern (OOOO00O0OO000O000 ,O0OOOO0000000OOOO ,anchor =True ,prefix =None ,is_regex =False ):#line:318:is_regex=False):
-        ""#line:325:"""
-        if is_regex :#line:326:if is_regex:
-            if isinstance (O0OOOO0000000OOOO ,str ):#line:327:if isinstance(pattern, str):
-                return re .compile (O0OOOO0000000OOOO )#line:328:return re.compile(pattern)
-            else :#line:329:else:
-                return O0OOOO0000000OOOO #line:330:return pattern
-        if _OO00OO00OO00O00OO >(3 ,2 ):#line:332:if _PYTHON_VERSION > (3, 2):
-            O0O0O000O00OOO000 ,_OOO0OOOO0OO0OOOOO ,OO000OO00000OOO0O =OOOO00O0OO000O000 ._glob_to_re ('_').partition ('_')#line:334:start, _, end = self._glob_to_re('_').partition('_')
-        if O0OOOO0000000OOOO :#line:336:if pattern:
-            OO0O0OOO00OO0O0O0 =OOOO00O0OO000O000 ._glob_to_re (O0OOOO0000000OOOO )#line:337:pattern_re = self._glob_to_re(pattern)
-            if _OO00OO00OO00O00OO >(3 ,2 ):#line:338:if _PYTHON_VERSION > (3, 2):
-                assert OO0O0OOO00OO0O0O0 .startswith (O0O0O000O00OOO000 )and OO0O0OOO00OO0O0O0 .endswith (OO000OO00000OOO0O )#line:339:assert pattern_re.startswith(start) and pattern_re.endswith(end)
-        else :#line:340:else:
-            OO0O0OOO00OO0O0O0 =''#line:341:pattern_re = ''
-        OOO0OO00O000O0000 =re .escape (os .path .join (OOOO00O0OO000O000 .base ,''))#line:343:base = re.escape(os.path.join(self.base, ''))
-        if prefix is not None :#line:344:if prefix is not None:
-            if _OO00OO00OO00O00OO <=(3 ,2 ):#line:346:if _PYTHON_VERSION <= (3, 2):
-                OO0OOO00O000OO0OO =OOOO00O0OO000O000 ._glob_to_re ('')#line:347:empty_pattern = self._glob_to_re('')
-                OOO0OO0OOOO0O0O00 =OOOO00O0OO000O000 ._glob_to_re (prefix )[:-len (OO0OOO00O000OO0OO )]#line:348:prefix_re = self._glob_to_re(prefix)[:-len(empty_pattern)]
-            else :#line:349:else:
-                OOO0OO0OOOO0O0O00 =OOOO00O0OO000O000 ._glob_to_re (prefix )#line:350:prefix_re = self._glob_to_re(prefix)
-                assert OOO0OO0OOOO0O0O00 .startswith (O0O0O000O00OOO000 )and OOO0OO0OOOO0O0O00 .endswith (OO000OO00000OOO0O )#line:351:assert prefix_re.startswith(start) and prefix_re.endswith(end)
-                OOO0OO0OOOO0O0O00 =OOO0OO0OOOO0O0O00 [len (O0O0O000O00OOO000 ):len (OOO0OO0OOOO0O0O00 )-len (OO000OO00000OOO0O )]#line:352:prefix_re = prefix_re[len(start): len(prefix_re) - len(end)]
-            O000000OO0OO0OOOO =os .sep #line:353:sep = os.sep
-            if os .sep =='\\':#line:354:if os.sep == '\\':
-                O000000OO0OO0OOOO =r'\\'#line:355:sep = r'\\'
-            if _OO00OO00OO00O00OO <=(3 ,2 ):#line:356:if _PYTHON_VERSION <= (3, 2):
-                OO0O0OOO00OO0O0O0 ='^'+OOO0OO00O000O0000 +O000000OO0OO0OOOO .join ((OOO0OO0OOOO0O0O00 ,'.*'+OO0O0OOO00OO0O0O0 ))#line:358:'.*' + pattern_re))
-            else :#line:359:else:
-                OO0O0OOO00OO0O0O0 =OO0O0OOO00OO0O0O0 [len (O0O0O000O00OOO000 ):len (OO0O0OOO00OO0O0O0 )-len (OO000OO00000OOO0O )]#line:360:pattern_re = pattern_re[len(start): len(pattern_re) - len(end)]
-                OO0O0OOO00OO0O0O0 =r'%s%s%s%s.*%s%s'%(O0O0O000O00OOO000 ,OOO0OO00O000O0000 ,OOO0OO0OOOO0O0O00 ,O000000OO0OO0OOOO ,OO0O0OOO00OO0O0O0 ,OO000OO00000OOO0O )#line:362:pattern_re, end)
-        else :#line:363:else:  # no prefix -- respect anchor flag
-            if anchor :#line:364:if anchor:
-                if _OO00OO00OO00O00OO <=(3 ,2 ):#line:365:if _PYTHON_VERSION <= (3, 2):
-                    OO0O0OOO00OO0O0O0 ='^'+OOO0OO00O000O0000 +OO0O0OOO00OO0O0O0 #line:366:pattern_re = '^' + base + pattern_re
-                else :#line:367:else:
-                    OO0O0OOO00OO0O0O0 =r'%s%s%s'%(O0O0O000O00OOO000 ,OOO0OO00O000O0000 ,OO0O0OOO00OO0O0O0 [len (O0O0O000O00OOO000 ):])#line:368:pattern_re = r'%s%s%s' % (start, base, pattern_re[len(start):])
-        return re .compile (OO0O0OOO00OO0O0O0 )#line:370:return re.compile(pattern_re)
-    def _glob_to_re (OO0OOO0O00OOO0OO0 ,OO0OOOOOO0O0OOOO0 ):#line:372:def _glob_to_re(self, pattern):
-        ""#line:378:"""
-        OOOO0O000OO000OOO =fnmatch .translate (OO0OOOOOO0O0OOOO0 )#line:379:pattern_re = fnmatch.translate(pattern)
-        OOO00OO0O0O0OOO0O =os .sep #line:386:sep = os.sep
-        if os .sep =='\\':#line:387:if os.sep == '\\':
-            OOO00OO0O0O0OOO0O =r'\\\\'#line:390:sep = r'\\\\'
-        O0O00O0000O0O0000 =r'\1[^%s]'%OOO00OO0O0O0OOO0O #line:391:escaped = r'\1[^%s]' % sep
-        OOOO0O000OO000OOO =re .sub (r'((?<!\\)(\\\\)*)\.',O0O00O0000O0O0000 ,OOOO0O000OO000OOO )#line:392:pattern_re = re.sub(r'((?<!\\)(\\\\)*)\.', escaped, pattern_re)
-        return OOOO0O000OO000OOO #line:393:return pattern_re
+import os #line:1
+import shutil #line:2
+import sys #line:3
+import cv2 #line:4
+class FrameCapture :#line:6
+    ""#line:9
+    def __init__ (OOOOOOO000O0O000O ,O0O0000O00OO0O0O0 ):#line:10
+        ""#line:14
+        OOOOOOO000O0O000O .directory ="captured_frames"#line:15
+        OOOOOOO000O0O000O .file_path =O0O0000O00OO0O0O0 #line:16
+        if os .path .exists (OOOOOOO000O0O000O .directory ):#line:17
+            shutil .rmtree (OOOOOOO000O0O000O .directory )#line:18
+        os .mkdir (OOOOOOO000O0O000O .directory )#line:19
+    def capture_frames (OO000O00OOOO000OO ):#line:21
+        ""#line:25
+        OO0O00OOOO0O00000 =cv2 .VideoCapture (OO000O00OOOO000OO .file_path )#line:26
+        O000OOOOO0O00O0O0 =0 #line:28
+        O00O0O0O000000000 =1 #line:29
+        while O00O0O0O000000000 :#line:31
+            O00O0O0O000000000 ,O00O0OOOO000O0OO0 =OO0O00OOOO0O00000 .read ()#line:32
+            O00O0O0000OOO00O0 =f'{OO000O00OOOO000OO.directory}/frame{O000OOOOO0O00O0O0}.jpg'#line:33
+            cv2 .imwrite (O00O0O0000OOO00O0 ,O00O0OOOO000O0OO0 )#line:34
+            O000OOOOO0O00O0O0 +=1 #line:36
+if __name__ =='__main__':#line:38
+    file_path =sys .argv [1 ]#line:39
+    fc =FrameCapture (file_path )#line:40
+    fc .capture_frames ()#line:41

@@ -62,17 +62,16 @@ features = []
 folder_label_map = {
     "Non_Obfuscated": 0,
     "Obf_data_Jlaive": 1,
-    "Obf_data_Oxyry": 1,
-    "Obf_data_PyArmor": 1,
-    "Obf_data_Pyobfuscate": 1,
-    "Obf_data_FCTPyobfuscator": 1
+    "Obf_data_Oxyry": 2,
+    "Obf_data_PyArmor": 3,
+    "Obf_data_Pyobfuscate": 4,
+    "Obf_data_FCTPyobfuscator": 5
 }
 
 X_train_combined, X_test_combined, y_train_combined, y_test_combined = [], [], [], []
 
 total_files = 0
-obfuscated_files = 0
-non_obfuscated_files = 0
+folder_file_counts = {}
 
 # Reading files and extracting features
 for folder in folders:
@@ -82,10 +81,7 @@ for folder in folders:
     
     # Update file counts
     total_files += len(files)
-    if label == 1:
-        obfuscated_files += len(files)
-    else:
-        non_obfuscated_files += len(files)
+    folder_file_counts[folder] = len(files)
     
     # Temporary lists to store data from the current folder
     folder_features = []
@@ -112,8 +108,9 @@ for folder in folders:
 
 # Print file counts
 print(f"Total files: {total_files}")
-print(f"Obfuscated files: {obfuscated_files}")
-print(f"Non-obfuscated files: {non_obfuscated_files}")
+print("Files per folder:")
+for folder, count in folder_file_counts.items():
+    print(f"  {folder}: {count} files")
 
 # Convert lists to numpy arrays
 X_train_combined = np.array(X_train_combined)

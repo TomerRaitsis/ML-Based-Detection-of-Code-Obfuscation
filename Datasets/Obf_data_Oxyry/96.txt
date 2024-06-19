@@ -1,101 +1,22 @@
-import tkinter as tk #line:1:import tkinter as tk
-import random #line:2:import random
-from tkinter import messagebox #line:3:from tkinter import messagebox
-class TileMatchingGame :#line:6:class TileMatchingGame:
-    def __init__ (O00O0OO0000000O00 ,O0OO0OOOOOO000O0O ,O0O00O000O0O00OOO ,O00OO0O0O0000O0OO ):#line:7:def __init__(self, root, rows, columns):
-        O00O0OO0000000O00 .root =O0OO0OOOOOO000O0O #line:8:self.root = root
-        O00O0OO0000000O00 .rows =O0O00O000O0O00OOO #line:9:self.rows = rows
-        O00O0OO0000000O00 .columns =O00OO0O0O0000O0OO #line:10:self.columns = columns
-        O00O0OO0000000O00 .tiles =[]#line:11:self.tiles = []
-        O00O0OO0000000O00 .selected_tiles =[]#line:12:self.selected_tiles = []
-        O00O0OO0000000O00 .is_game_over =False #line:13:self.is_game_over = False
-        O00O0OO0000000O00 .create_board ()#line:14:self.create_board()
-        O00O0OO0000000O00 .score =0 #line:15:self.score = 0
-        O00O0OO0000000O00 .attempts =0 #line:16:self.attempts = 0
-        O00O0OO0000000O00 .create_scoreboard ()#line:17:self.create_scoreboard()
-        O00O0OO0000000O00 .create_timer (60 )#line:18:self.create_timer(60)
-    def create_board (O00OO000O0000OOOO ):#line:20:def create_board(self):
-        OOO0000OOOO00OOO0 =["lightcoral","lightseagreen","lightsteelblue","lightgoldenrodyellow","lightsalmon","lightgreen","lightpink","lightcyan",]#line:30:]
-        OOOOO00O000OOOO00 =random .sample (OOO0000OOOO00OOO0 ,O00OO000O0000OOOO .rows *O00OO000O0000OOOO .columns //2 )#line:31:colors = random.sample(all_colors, self.rows * self.columns // 2)
-        OOOOO00O000OOOO00 *=2 #line:32:colors *= 2  # Duplicate colors to have pairs
-        random .shuffle (OOOOO00O000OOOO00 )#line:33:random.shuffle(colors)
-        for O0O0O0O0000OO0O0O in range (O00OO000O0000OOOO .rows ):#line:35:for row in range(self.rows):
-            O0OO0000OOO0O0000 =[]#line:36:tile_row = []
-            for OOO0OOO0OOO000OOO in range (O00OO000O0000OOOO .columns ):#line:37:for col in range(self.columns):
-                OO00O0O0O00OO0O0O =tk .Label (O00OO000O0000OOOO .root ,text ="",width =10 ,height =4 ,relief ="raised",borderwidth =3 ,bg ="gray",)#line:46:)
-                OO00O0O0O00OO0O0O .grid (row =O0O0O0O0000OO0O0O ,column =OOO0OOO0OOO000OOO )#line:47:tile.grid(row=row, column=col)
-                OO00O0O0O00OO0O0O .bind ("<Button-1>",O00OO000O0000OOOO .tile_clicked )#line:48:tile.bind("<Button-1>", self.tile_clicked)
-                O0OO0000OOO0O0000 .append (OO00O0O0O00OO0O0O )#line:49:tile_row.append(tile)
-            O00OO000O0000OOOO .tiles .append (O0OO0000OOO0O0000 )#line:50:self.tiles.append(tile_row)
-        O00OO000O0000OOOO .tile_colors =OOOOO00O000OOOO00 #line:51:self.tile_colors = colors
-    def create_scoreboard (O00O0OO0OOO0OO0O0 ):#line:53:def create_scoreboard(self):
-        O00O0OO0OOO0OO0O0 .score_label =tk .Label (O00O0OO0OOO0OO0O0 .root ,text ="Score: 0")#line:54:self.score_label = tk.Label(self.root, text="Score: 0")
-        O00O0OO0OOO0OO0O0 .score_label .grid (row =O00O0OO0OOO0OO0O0 .rows ,columnspan =O00O0OO0OOO0OO0O0 .columns )#line:55:self.score_label.grid(row=self.rows, columnspan=self.columns)
-        O00O0OO0OOO0OO0O0 .attempts_label =tk .Label (O00O0OO0OOO0OO0O0 .root ,text ="Attempts: 0")#line:56:self.attempts_label = tk.Label(self.root, text="Attempts: 0")
-        O00O0OO0OOO0OO0O0 .attempts_label .grid (row =O00O0OO0OOO0OO0O0 .rows +1 ,columnspan =O00O0OO0OOO0OO0O0 .columns )#line:57:self.attempts_label.grid(row=self.rows + 1, columnspan=self.columns)
-    def create_timer (OOO0O0OOOO00O0O0O ,O0000O00OO0O0O0OO ):#line:59:def create_timer(self, seconds):
-        OOO0O0OOOO00O0O0O .timer_label =tk .Label (OOO0O0OOOO00O0O0O .root ,text =f"Time: {O0000O00OO0O0O0OO}")#line:60:self.timer_label = tk.Label(self.root, text=f"Time: {seconds}")
-        OOO0O0OOOO00O0O0O .timer_label .grid (row =OOO0O0OOOO00O0O0O .rows +2 ,columnspan =OOO0O0OOOO00O0O0O .columns )#line:61:self.timer_label.grid(row=self.rows + 2, columnspan=self.columns)
-        OOO0O0OOOO00O0O0O .remaining_time =O0000O00OO0O0O0OO #line:62:self.remaining_time = seconds
-        OOO0O0OOOO00O0O0O .update_timer ()#line:63:self.update_timer()
-    def update_timer (OOO0OO00O0OOOOOO0 ):#line:65:def update_timer(self):
-        if OOO0OO00O0OOOOOO0 .remaining_time >0 and not OOO0OO00O0OOOOOO0 .is_game_over :#line:66:if self.remaining_time > 0 and not self.is_game_over:
-            OOO0OO00O0OOOOOO0 .remaining_time -=1 #line:67:self.remaining_time -= 1
-            OOO0OO00O0OOOOOO0 .timer_label .config (text =f"Time: {OOO0OO00O0OOOOOO0.remaining_time}")#line:68:self.timer_label.config(text=f"Time: {self.remaining_time}")
-            OOO0OO00O0OOOOOO0 .root .after (1000 ,OOO0OO00O0OOOOOO0 .update_timer )#line:69:self.root.after(1000, self.update_timer)
-        else :#line:70:else:
-            OOO0OO00O0OOOOOO0 .timer_label .config (text ="Time's up!")#line:71:self.timer_label.config(text="Time's up!")
-            OOO0OO00O0OOOOOO0 .is_game_over =True #line:72:self.is_game_over = True
-    def tile_clicked (OOO00OOO000O0O0OO ,O00000O0OOO000000 ):#line:74:def tile_clicked(self, event):
-        if OOO00OOO000O0O0OO .is_game_over :#line:75:if self.is_game_over:
-            return #line:76:return
-        O00OOO000000OO0O0 =O00000O0OOO000000 .widget #line:78:tile = event.widget
-        OOO0OOOOO000O0OO0 ,O0O0OO00O0OOOOOO0 =OOO00OOO000O0O0OO .get_tile_position (O00OOO000000OO0O0 )#line:79:row, col = self.get_tile_position(tile)
-        if (OOO0OOOOO000O0OO0 ,O0O0OO00O0OOOOOO0 )not in OOO00OOO000O0O0OO .selected_tiles and len (OOO00OOO000O0O0OO .selected_tiles )<2 :#line:80:if (row, col) not in self.selected_tiles and len(self.selected_tiles) < 2:
-            O00OOO000000OO0O0 .config (text ="X",bg =OOO00OOO000O0O0OO .tile_colors [OOO0OOOOO000O0OO0 *OOO00OOO000O0O0OO .columns +O0O0OO00O0OOOOOO0 ])#line:83:)  # Reveal the color when clicked
-            OOO00OOO000O0O0OO .selected_tiles .append ((OOO0OOOOO000O0OO0 ,O0O0OO00O0OOOOOO0 ))#line:84:self.selected_tiles.append((row, col))
-            if len (OOO00OOO000O0O0OO .selected_tiles )==2 :#line:86:if len(self.selected_tiles) == 2:
-                OOO00OOO000O0O0OO .root .update_idletasks ()#line:87:self.root.update_idletasks()
-                OOO00OOO000O0O0OO .root .after (500 ,OOO00OOO000O0O0OO .check_matching_tiles )#line:88:self.root.after(500, self.check_matching_tiles)
-                OOO00OOO000O0O0OO .attempts +=1 #line:89:self.attempts += 1
-                OOO00OOO000O0O0OO .attempts_label .config (text =f"Attempts: {OOO00OOO000O0O0OO.attempts}")#line:90:self.attempts_label.config(text=f"Attempts: {self.attempts}")
-    def check_matching_tiles (O000OO0O00O0O000O ):#line:92:def check_matching_tiles(self):
-        if len (O000OO0O00O0O000O .selected_tiles )==2 :#line:93:if len(self.selected_tiles) == 2:
-            O0O0O000O0O0000O0 =O000OO0O00O0O000O .selected_tiles [0 ]#line:94:tile1 = self.selected_tiles[0]
-            OO000OOO0OOOOOOOO =O000OO0O00O0O000O .selected_tiles [1 ]#line:95:tile2 = self.selected_tiles[1]
-            if (O000OO0O00O0O000O .tile_colors [O0O0O000O0O0000O0 [0 ]*O000OO0O00O0O000O .columns +O0O0O000O0O0000O0 [1 ]]==O000OO0O00O0O000O .tile_colors [OO000OOO0OOOOOOOO [0 ]*O000OO0O00O0O000O .columns +OO000OOO0OOOOOOOO [1 ]]):#line:99:):
-                O000OO0O00O0O000O .score +=1 #line:100:self.score += 1
-                O000OO0O00O0O000O .score_label .config (text =f"Score: {O000OO0O00O0O000O.score}")#line:101:self.score_label.config(text=f"Score: {self.score}")
-                if O000OO0O00O0O000O .score ==O000OO0O00O0O000O .rows *O000OO0O00O0O000O .columns //2 :#line:102:if self.score == self.rows * self.columns // 2:
-                    O000OO0O00O0O000O .end_game ()#line:103:self.end_game()
-            else :#line:105:else:
-                O000OO0O00O0O000O .root .update_idletasks ()#line:106:self.root.update_idletasks()
-                O000OO0O00O0O000O .root .after (500 ,O000OO0O00O0O000O .hide_unmatched_tiles ,O0O0O000O0O0000O0 ,OO000OOO0OOOOOOOO )#line:107:self.root.after(500, self.hide_unmatched_tiles, tile1, tile2)
-    def hide_unmatched_tiles (O0O0O0OOO00000OOO ,OO00000OOO00OO000 ,O0O00O0O00OOOOOOO ):#line:109:def hide_unmatched_tiles(self, tile1, tile2):
-        O0O0O0OOO00000OOO .tiles [OO00000OOO00OO000 [0 ]][OO00000OOO00OO000 [1 ]].config (text ="",bg ="gray")#line:110:self.tiles[tile1[0]][tile1[1]].config(text="", bg="gray")
-        O0O0O0OOO00000OOO .tiles [O0O00O0O00OOOOOOO [0 ]][O0O00O0O00OOOOOOO [1 ]].config (text ="",bg ="gray")#line:111:self.tiles[tile2[0]][tile2[1]].config(text="", bg="gray")
-        O0O0O0OOO00000OOO .selected_tiles =[]#line:112:self.selected_tiles = []
-    def end_game (OOO00OOO00O000OO0 ):#line:114:def end_game(self):
-        OOO00OOO00O000OO0 .timer_label .config (text ="Game Over!")#line:115:self.timer_label.config(text="Game Over!")
-        OOO00OOO00O000OO0 .is_game_over =True #line:116:self.is_game_over = True
-        messagebox .showinfo ("Congratulations!","You've won the game!")#line:117:messagebox.showinfo("Congratulations!", "You've won the game!")
-    def get_tile_position (O00000O00O000O00O ,OOOOOO0O0OOO0OOO0 ):#line:119:def get_tile_position(self, tile):
-        for O0000O000O000000O ,OOOO0OO0OOOOOOOO0 in enumerate (O00000O00O000O00O .tiles ):#line:120:for row, row_tiles in enumerate(self.tiles):
-            if OOOOOO0O0OOO0OOO0 in OOOO0OO0OOOOOOOO0 :#line:121:if tile in row_tiles:
-                O0O00OO0O0O0000OO =OOOO0OO0OOOOOOOO0 .index (OOOOOO0O0OOO0OOO0 )#line:122:col = row_tiles.index(tile)
-                return O0000O000O000000O ,O0O00OO0O0O0000OO #line:123:return row, col
-    def reset_game (OO00O0000O0O00O0O ):#line:125:def reset_game(self):
-        OO00O0000O0O00O0O .root .destroy ()#line:126:self.root.destroy()
-        main ()#line:127:main()
-def main ():#line:130:def main():
-    O00O00O0O0000O0O0 =tk .Tk ()#line:131:root = tk.Tk()
-    O00O00O0O0000O0O0 .title ("Tile Matching Game")#line:132:root.title("Tile Matching Game")
-    OO00OO0O0OO0000O0 ,OO000O000O0OO0O00 =4 ,4 #line:134:rows, columns = 4, 4
-    OO00OO000OO0000OO =TileMatchingGame (O00O00O0O0000O0O0 ,OO00OO0O0OO0000O0 ,OO000O000O0OO0O00 )#line:136:game = TileMatchingGame(root, rows, columns)
-    O0O0O00000OOO00OO =tk .Button (O00O00O0O0000O0O0 ,text ="Reset Game",command =OO00OO000OO0000OO .reset_game )#line:139:reset_button = tk.Button(root, text="Reset Game", command=game.reset_game)
-    O0O0O00000OOO00OO .grid (row =OO00OO0O0OO0000O0 +3 ,columnspan =OO000O000O0OO0O00 )#line:140:reset_button.grid(row=rows + 3, columnspan=columns)
-    OO0O0O00OO0O0O0OO =tk .Button (O00O00O0O0000O0O0 ,text ="Exit",command =O00O00O0O0000O0O0 .destroy )#line:143:exit_button = tk.Button(root, text="Exit", command=root.destroy)
-    OO0O0O00OO0O0O0OO .grid (row =OO00OO0O0OO0000O0 +4 ,columnspan =OO000O000O0OO0O00 )#line:144:exit_button.grid(row=rows + 4, columnspan=columns)
-    O00O00O0O0000O0O0 .mainloop ()#line:146:root.mainloop()
-if __name__ =="__main__":#line:149:if __name__ == "__main__":
-    main ()#line:150:main()
+from threading import local #line:1
+_OOO0OOO00O0O0O0O0 =local ()#line:3
+def get_current_context (silent =False ):#line:6
+    ""#line:20
+    try :#line:21
+        return _OOO0OOO00O0O0O0O0 .stack [-1 ]#line:22
+    except (AttributeError ,IndexError ):#line:23
+        if not silent :#line:24
+            raise RuntimeError ("There is no active click context.")#line:25
+def push_context (O0OO0OOOOOO0O0OO0 ):#line:28
+    ""#line:29
+    _OOO0OOO00O0O0O0O0 .__dict__ .setdefault ("stack",[]).append (O0OO0OOOOOO0O0OO0 )#line:30
+def pop_context ():#line:33
+    ""#line:34
+    _OOO0OOO00O0O0O0O0 .stack .pop ()#line:35
+def resolve_color_default (color =None ):#line:38
+    ""#line:42
+    if color is not None :#line:43
+        return color #line:44
+    OOOOOOO0OOOO00000 =get_current_context (silent =True )#line:45
+    if OOOOOOO0OOOO00000 is not None :#line:46
+        return OOOOOOO0OOOO00000 .color #line:47

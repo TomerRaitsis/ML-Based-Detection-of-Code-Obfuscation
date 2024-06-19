@@ -1,137 +1,22 @@
-#!/usr/bin/env python
-from tkinter import *#line:23
-import math as m #line:24
-root =Tk ()#line:25
-root .title ("Simple Calculator")#line:27
-e =Entry (root ,width =50 ,borderwidth =5 ,relief =RIDGE ,fg ="White",bg ="Black")#line:28
-e .grid (row =0 ,column =0 ,columnspan =5 ,padx =10 ,pady =15 )#line:29
-def click (OOOOO00000OO0O00O ):#line:32
-	O00OOOO0OO0OOO000 =e .get ()#line:33
-	e .delete (0 ,END )#line:34
-	e .insert (0 ,O00OOOO0OO0OOO000 +OOOOO00000OO0O00O )#line:35
-	return #line:36
-def sc (O00O000OO00OO0O00 ):#line:38
-	OOOO000O0O00OO000 =O00O000OO00OO0O00 .widget #line:39
-	O0O0O0O000000OOOO =OOOO000O0O00OO000 ['text']#line:40
-	OOO000O00O0O0O0O0 =e .get ()#line:41
-	OOO0OOOOOOO0O00OO =''#line:42
-	if O0O0O0O000000OOOO =='deg':#line:43
-		OOO0OOOOOOO0O00OO =str (m .degrees (float (OOO000O00O0O0O0O0 )))#line:44
-	if O0O0O0O000000OOOO =='sin':#line:45
-		OOO0OOOOOOO0O00OO =str (m .sin (float (OOO000O00O0O0O0O0 )))#line:46
-	if O0O0O0O000000OOOO =='cos':#line:47
-		OOO0OOOOOOO0O00OO =str (m .cos (float (OOO000O00O0O0O0O0 )))#line:48
-	if O0O0O0O000000OOOO =='tan':#line:49
-		OOO0OOOOOOO0O00OO =str (m .tan (float (OOO000O00O0O0O0O0 )))#line:50
-	if O0O0O0O000000OOOO =='lg':#line:51
-		OOO0OOOOOOO0O00OO =str (m .log10 (float (OOO000O00O0O0O0O0 )))#line:52
-	if O0O0O0O000000OOOO =='ln':#line:53
-		OOO0OOOOOOO0O00OO =str (m .log (float (OOO000O00O0O0O0O0 )))#line:54
-	if O0O0O0O000000OOOO =='Sqrt':#line:55
-		OOO0OOOOOOO0O00OO =str (m .sqrt (float (OOO000O00O0O0O0O0 )))#line:56
-	if O0O0O0O000000OOOO =='x!':#line:57
-		OOO0OOOOOOO0O00OO =str (m .factorial (float (OOO000O00O0O0O0O0 )))#line:58
-	if O0O0O0O000000OOOO =='1/x':#line:59
-		OOO0OOOOOOO0O00OO =str (1 /(float (OOO000O00O0O0O0O0 )))#line:60
-	if O0O0O0O000000OOOO =='pi':#line:61
-		if OOO000O00O0O0O0O0 =="":#line:62
-			OOO0OOOOOOO0O00OO =str (m .pi )#line:63
-		else :#line:64
-			OOO0OOOOOOO0O00OO =str (float (OOO000O00O0O0O0O0 )*m .pi )#line:65
-	if O0O0O0O000000OOOO =='e':#line:66
-		if OOO000O00O0O0O0O0 =="":#line:67
-			OOO0OOOOOOO0O00OO =str (m .e )#line:68
-		else :#line:69
-			OOO0OOOOOOO0O00OO =str (m .e **float (OOO000O00O0O0O0O0 ))#line:70
-	e .delete (0 ,END )#line:72
-	e .insert (0 ,OOO0OOOOOOO0O00OO )#line:73
-def clear ():#line:76
-	e .delete (0 ,END )#line:77
-	return #line:78
-def bksps ():#line:81
-	OOO0000O0OOOOOOO0 =e .get ()#line:82
-	OO0000OOOO0OO0O0O =len (OOO0000O0OOOOOOO0 )-1 #line:83
-	e .delete (OO0000OOOO0OO0O0O ,END )#line:84
-def evaluate ():#line:87
-	OO0O0OO0O00O00000 =e .get ()#line:88
-	OO0O0OO0O00O00000 =eval (OO0O0OO0O00O00000 )#line:89
-	e .delete (0 ,END )#line:90
-	e .insert (0 ,OO0O0OO0O00O00000 )#line:91
-lg =Button (root ,text ="log",padx =24 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:94
-lg .bind ("<Button-1>",sc )#line:95
-ln =Button (root ,text ="ln",padx =28 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:96
-ln .bind ("<Button-1>",sc )#line:97
-par1st =Button (root ,text ="(",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click ("("))#line:98
-par2nd =Button (root ,text =")",padx =30 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click (")"))#line:99
-dot =Button (root ,text =".",padx =29 ,pady =10 ,relief =RAISED ,bg ="Green",fg ="Black",command =lambda :click ("."))#line:100
-exp =Button (root ,text ="^",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click ("**"))#line:102
-degb =Button (root ,text ="deg",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:104
-degb .bind ("<Button-1>",sc )#line:105
-sinb =Button (root ,text ="sin",padx =24 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",)#line:106
-sinb .bind ("<Button-1>",sc )#line:107
-cosb =Button (root ,text ="cos",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:108
-cosb .bind ("<Button-1>",sc )#line:109
-tanb =Button (root ,text ="tan",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:110
-tanb .bind ("<Button-1>",sc )#line:111
-sqrtm =Button (root ,text ="Sqrt",padx =23 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:114
-sqrtm .bind ("<Button-1>",sc )#line:115
-ac =Button (root ,text ="C",padx =29 ,pady =10 ,relief =RAISED ,bg ="Dark Red",fg ="White",command =lambda :clear ())#line:116
-bksp =Button (root ,text ="DEL",padx =24 ,pady =10 ,relief =RAISED ,bg ="Dark Red",fg ="White",command =lambda :bksps ())#line:117
-mod =Button (root ,text =" % ",padx =24 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White",command =lambda :click ("%"))#line:118
-div =Button (root ,text ="/",padx =29 ,pady =10 ,relief =RAISED ,bg ="yellow",fg ="Black",command =lambda :click ("/"))#line:119
-fact =Button (root ,text ="x!",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:121
-fact .bind ("<Button-1>",sc )#line:122
-seven =Button (root ,text ="7",padx =30 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("7"))#line:123
-eight =Button (root ,text ="8",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("8"))#line:124
-nine =Button (root ,text ="9",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("9"))#line:125
-mult =Button (root ,text ="X",padx =29 ,pady =10 ,relief =RAISED ,bg ="Yellow",fg ="Black",command =lambda :click ("*"))#line:126
-frac =Button (root ,text ="1/x",padx =25 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:128
-frac .bind ("<Button-1>",sc )#line:129
-four =Button (root ,text ="4",padx =30 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("4"))#line:130
-five =Button (root ,text ="5",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("5"))#line:131
-six =Button (root ,text ="6",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("6"))#line:132
-minus =Button (root ,text ="-",padx =29 ,pady =10 ,relief =RAISED ,bg ="Yellow",fg ="Black",command =lambda :click ("-"))#line:133
-pib =Button (root ,text ="pi",padx =28 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:135
-pib .bind ("<Button-1>",sc )#line:136
-one =Button (root ,text ="1",padx =30 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("1"))#line:137
-two =Button (root ,text ="2",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("2"))#line:138
-three =Button (root ,text ="3",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("3"))#line:139
-plus =Button (root ,text ="+",padx =29 ,pady =10 ,relief =RAISED ,bg ="Yellow",fg ="Black",command =lambda :click ("+"))#line:140
-e_b =Button (root ,text ="e",padx =29 ,pady =10 ,relief =RAISED ,bg ="Black",fg ="White")#line:142
-e_b .bind ("<Button-1>",sc )#line:143
-zero =Button (root ,text ="0",padx =29 ,pady =10 ,relief =RAISED ,bg ="Grey",fg ="White",command =lambda :click ("0"))#line:144
-equal =Button (root ,text ="=",padx =29 ,pady =10 ,relief =RAISED ,bg ="Dark Orange",fg ="Black",command =lambda :evaluate ())#line:145
-bksp .grid (row =1 ,column =0 )#line:148
-ln .grid (row =1 ,column =1 )#line:149
-par1st .grid (row =1 ,column =2 )#line:150
-par2nd .grid (row =1 ,column =3 )#line:151
-ac .grid (row =1 ,column =4 )#line:152
-lg .grid (row =2 ,column =0 )#line:154
-degb .grid (row =2 ,column =1 )#line:155
-sinb .grid (row =2 ,column =2 )#line:156
-cosb .grid (row =2 ,column =3 )#line:157
-tanb .grid (row =2 ,column =4 )#line:158
-sqrtm .grid (row =3 ,column =0 )#line:160
-e_b .grid (row =3 ,column =1 )#line:161
-exp .grid (row =3 ,column =2 )#line:162
-mod .grid (row =3 ,column =3 )#line:163
-div .grid (row =3 ,column =4 )#line:164
-fact .grid (row =4 ,column =0 )#line:166
-seven .grid (row =4 ,column =1 )#line:167
-eight .grid (row =4 ,column =2 )#line:168
-nine .grid (row =4 ,column =3 )#line:169
-mult .grid (row =4 ,column =4 )#line:170
-frac .grid (row =5 ,column =0 )#line:172
-four .grid (row =5 ,column =1 )#line:173
-five .grid (row =5 ,column =2 )#line:174
-six .grid (row =5 ,column =3 )#line:175
-minus .grid (row =5 ,column =4 )#line:176
-pib .grid (row =6 ,column =0 )#line:178
-one .grid (row =6 ,column =1 )#line:179
-two .grid (row =6 ,column =2 )#line:180
-three .grid (row =6 ,column =3 )#line:181
-plus .grid (row =6 ,column =4 )#line:182
-dot .grid (row =7 ,column =1 )#line:184
-zero .grid (row =7 ,column =2 )#line:185
-equal .grid (row =7 ,column =3 )#line:186
-root .mainloop ()#line:188
+import yt_dlp #line:1
+def download_youtube_video (O0O0O000OOO000OOO ):#line:4
+    ""#line:5
+    O00OO0OOOO0O0OO0O ={"outtmpl":"%(title)s.%(ext)s",}#line:9
+    with yt_dlp .YoutubeDL (O00OO0OOOO0O0OO0O )as O00000OO0OOO0O000 :#line:10
+        OOO0O000O000OO0OO =O00000OO0OOO0O000 .extract_info (O0O0O000OOO000OOO ,download =False )#line:11
+        O00O0OO0O0OOO0OO0 =OOO0O000O000OO0OO .get ("formats",None )#line:12
+        for O0O0OO0O00O000O0O in O00O0OO0O0OOO0OO0 :#line:15
+            print (f"{O0O0OO0O00O000O0O['format_id']}:\t{O0O0OO0O00O000O0O['ext']} ({O0O0OO0O00O000O0O.get('format_note', None)}p)")#line:16
+        OO0O0OO0O00000O0O =input ("Do you want to select from the available options? (y/n): ")#line:20
+        if OO0O0OO0O00000O0O .lower ()=="y":#line:22
+            OO000OOOO0O00OO0O =input ("Enter the format id of the video: ")#line:23
+            O00OO0OOOO0O0OO0O ["format"]=OO000OOOO0O00OO0O #line:24
+        else :#line:25
+            OOO0O0OO0OO0O0OO0 =max (O00O0OO0O0OOO0OO0 ,key =lambda O0OO0OOO0OO0O0O00 :O0OO0OOO0OO0O0O00 .get ("height",0 ))#line:27
+            OO000OOOO0O00OO0O =OOO0O0OO0OO0O0OO0 ["format_id"]#line:28
+            O00OO0OOOO0O0OO0O ["format"]=OO000OOOO0O00OO0O #line:29
+        O00000OO0OOO0O000 .download ([O0O0O000OOO000OOO ])#line:32
+        print ("Download complete using yt-dlp!")#line:33
+if __name__ =="__main__":#line:36
+    video_url =input ("Enter the URL: ")#line:37
+    download_youtube_video (video_url )#line:38

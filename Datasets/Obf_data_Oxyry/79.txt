@@ -1,235 +1,109 @@
-import contextlib #line:1:import contextlib
-import os #line:2:import os
-import shlex #line:3:import shlex
-import shutil #line:4:import shutil
-import sys #line:5:import sys
-import tempfile #line:6:import tempfile
-from .import formatting #line:8:from . import formatting
-from .import termui #line:9:from . import termui
-from .import utils #line:10:from . import utils
-from ._compat import iteritems #line:11:from ._compat import iteritems
-from ._compat import PY2 #line:12:from ._compat import PY2
-from ._compat import string_types #line:13:from ._compat import string_types
-if PY2 :#line:16:if PY2:
-    from cStringIO import StringIO #line:17:from cStringIO import StringIO
-else :#line:18:else:
-    import io #line:19:import io
-    from ._compat import _find_binary_reader #line:20:from ._compat import _find_binary_reader
-class EchoingStdin (object ):#line:23:class EchoingStdin(object):
-    def __init__ (OOOOOOOO0OOO0OOOO ,O0OO0OO0O0O00OOOO ,O0O0O000O000000O0 ):#line:24:def __init__(self, input, output):
-        OOOOOOOO0OOO0OOOO ._input =O0OO0OO0O0O00OOOO #line:25:self._input = input
-        OOOOOOOO0OOO0OOOO ._output =O0O0O000O000000O0 #line:26:self._output = output
-    def __getattr__ (O0O00000OO0O0000O ,O0O0O00OO00000O0O ):#line:28:def __getattr__(self, x):
-        return getattr (O0O00000OO0O0000O ._input ,O0O0O00OO00000O0O )#line:29:return getattr(self._input, x)
-    def _echo (O00O0O0O0O0OOO000 ,O000O0O00O00OOOO0 ):#line:31:def _echo(self, rv):
-        O00O0O0O0O0OOO000 ._output .write (O000O0O00O00OOOO0 )#line:32:self._output.write(rv)
-        return O000O0O00O00OOOO0 #line:33:return rv
-    def read (OO0O0O0O00O00OOOO ,n =-1 ):#line:35:def read(self, n=-1):
-        return OO0O0O0O00O00OOOO ._echo (OO0O0O0O00O00OOOO ._input .read (n ))#line:36:return self._echo(self._input.read(n))
-    def readline (O0O00000OOO000000 ,n =-1 ):#line:38:def readline(self, n=-1):
-        return O0O00000OOO000000 ._echo (O0O00000OOO000000 ._input .readline (n ))#line:39:return self._echo(self._input.readline(n))
-    def readlines (OOO00000O0OO00O0O ):#line:41:def readlines(self):
-        return [OOO00000O0OO00O0O ._echo (O0OO0O00000O0000O )for O0OO0O00000O0000O in OOO00000O0OO00O0O ._input .readlines ()]#line:42:return [self._echo(x) for x in self._input.readlines()]
-    def __iter__ (OO00OO0OOOO0OO0O0 ):#line:44:def __iter__(self):
-        return iter (OO00OO0OOOO0OO0O0 ._echo (O00OOOOOOOOO0OO00 )for O00OOOOOOOOO0OO00 in OO00OO0OOOO0OO0O0 ._input )#line:45:return iter(self._echo(x) for x in self._input)
-    def __repr__ (OO0O000O0OO00OO0O ):#line:47:def __repr__(self):
-        return repr (OO0O000O0OO00OO0O ._input )#line:48:return repr(self._input)
-def make_input_stream (OO0OOOO0O0O00000O ,OOOOOO00000OOO0O0 ):#line:51:def make_input_stream(input, charset):
-    if hasattr (OO0OOOO0O0O00000O ,"read"):#line:53:if hasattr(input, "read"):
-        if PY2 :#line:54:if PY2:
-            return OO0OOOO0O0O00000O #line:55:return input
-        O0OOO000O000O000O =_find_binary_reader (OO0OOOO0O0O00000O )#line:56:rv = _find_binary_reader(input)
-        if O0OOO000O000O000O is not None :#line:57:if rv is not None:
-            return O0OOO000O000O000O #line:58:return rv
-        raise TypeError ("Could not find binary reader for input stream.")#line:59:raise TypeError("Could not find binary reader for input stream.")
-    if OO0OOOO0O0O00000O is None :#line:61:if input is None:
-        OO0OOOO0O0O00000O =b""#line:62:input = b""
-    elif not isinstance (OO0OOOO0O0O00000O ,bytes ):#line:63:elif not isinstance(input, bytes):
-        OO0OOOO0O0O00000O =OO0OOOO0O0O00000O .encode (OOOOOO00000OOO0O0 )#line:64:input = input.encode(charset)
-    if PY2 :#line:65:if PY2:
-        return StringIO (OO0OOOO0O0O00000O )#line:66:return StringIO(input)
-    return io .BytesIO (OO0OOOO0O0O00000O )#line:67:return io.BytesIO(input)
-class Result (object ):#line:70:class Result(object):
-    ""#line:71:"""Holds the captured result of an invoked CLI script."""
-    def __init__ (O00OO0OO0OO00OOOO ,O000OOO00OOOO0O0O ,OOO000O0O00O0OO00 ,OOOOOO0O000O00OOO ,OOOO0OO0O0O0OO000 ,OOO0OO0OO000OO000 ,exc_info =None ):#line:75:):
-        O00OO0OO0OO00OOOO .runner =O000OOO00OOOO0O0O #line:77:self.runner = runner
-        O00OO0OO0OO00OOOO .stdout_bytes =OOO000O0O00O0OO00 #line:79:self.stdout_bytes = stdout_bytes
-        O00OO0OO0OO00OOOO .stderr_bytes =OOOOOO0O000O00OOO #line:81:self.stderr_bytes = stderr_bytes
-        O00OO0OO0OO00OOOO .exit_code =OOOO0OO0O0O0OO000 #line:83:self.exit_code = exit_code
-        O00OO0OO0OO00OOOO .exception =OOO0OO0OO000OO000 #line:85:self.exception = exception
-        O00OO0OO0OO00OOOO .exc_info =exc_info #line:87:self.exc_info = exc_info
-    @property #line:89:@property
-    def output (OO00OOOO0OO00OO0O ):#line:90:def output(self):
-        ""#line:91:"""The (standard) output as unicode string."""
-        return OO00OOOO0OO00OO0O .stdout #line:92:return self.stdout
-    @property #line:94:@property
-    def stdout (OO0OOO0000OO0000O ):#line:95:def stdout(self):
-        ""#line:96:"""The standard output as unicode string."""
-        return OO0OOO0000OO0000O .stdout_bytes .decode (OO0OOO0000OO0000O .runner .charset ,"replace").replace ("\r\n","\n")#line:99:)
-    @property #line:101:@property
-    def stderr (O00000OO00OO00O00 ):#line:102:def stderr(self):
-        ""#line:103:"""The standard error as unicode string."""
-        if O00000OO00OO00O00 .stderr_bytes is None :#line:104:if self.stderr_bytes is None:
-            raise ValueError ("stderr not separately captured")#line:105:raise ValueError("stderr not separately captured")
-        return O00000OO00OO00O00 .stderr_bytes .decode (O00000OO00OO00O00 .runner .charset ,"replace").replace ("\r\n","\n")#line:108:)
-    def __repr__ (OO000OOO000O0000O ):#line:110:def __repr__(self):
-        return "<{} {}>".format (type (OO000OOO000O0000O ).__name__ ,repr (OO000OOO000O0000O .exception )if OO000OOO000O0000O .exception else "okay")#line:113:)
-class CliRunner (object ):#line:116:class CliRunner(object):
-    ""#line:135:"""
-    def __init__ (O000OOO0O0OO00O0O ,charset =None ,env =None ,echo_stdin =False ,mix_stderr =True ):#line:137:def __init__(self, charset=None, env=None, echo_stdin=False, mix_stderr=True):
-        if charset is None :#line:138:if charset is None:
-            charset ="utf-8"#line:139:charset = "utf-8"
-        O000OOO0O0OO00O0O .charset =charset #line:140:self.charset = charset
-        O000OOO0O0OO00O0O .env =env or {}#line:141:self.env = env or {}
-        O000OOO0O0OO00O0O .echo_stdin =echo_stdin #line:142:self.echo_stdin = echo_stdin
-        O000OOO0O0OO00O0O .mix_stderr =mix_stderr #line:143:self.mix_stderr = mix_stderr
-    def get_default_prog_name (OO0O00O00000O0OOO ,O00OOOO00OO0O0000 ):#line:145:def get_default_prog_name(self, cli):
-        ""#line:149:"""
-        return O00OOOO00OO0O0000 .name or "root"#line:150:return cli.name or "root"
-    def make_env (O00O0000OO0O000O0 ,overrides =None ):#line:152:def make_env(self, overrides=None):
-        ""#line:153:"""Returns the environment overrides for invoking a script."""
-        O0O000O0OOOO00000 =dict (O00O0000OO0O000O0 .env )#line:154:rv = dict(self.env)
-        if overrides :#line:155:if overrides:
-            O0O000O0OOOO00000 .update (overrides )#line:156:rv.update(overrides)
-        return O0O000O0OOOO00000 #line:157:return rv
-    @contextlib .contextmanager #line:159:@contextlib.contextmanager
-    def isolation (O00OO0O0OOO00000O ,input =None ,env =None ,color =False ):#line:160:def isolation(self, input=None, env=None, color=False):
-        ""#line:176:"""
-        input =make_input_stream (input ,O00OO0O0OOO00000O .charset )#line:177:input = make_input_stream(input, self.charset)
-        OOO0O00OOOOOO00OO =sys .stdin #line:179:old_stdin = sys.stdin
-        O0O0OO0O0OOOO0OOO =sys .stdout #line:180:old_stdout = sys.stdout
-        OOO000OO00000OOO0 =sys .stderr #line:181:old_stderr = sys.stderr
-        O0OO0OOOO00OO0OOO =formatting .FORCED_WIDTH #line:182:old_forced_width = formatting.FORCED_WIDTH
-        formatting .FORCED_WIDTH =80 #line:183:formatting.FORCED_WIDTH = 80
-        env =O00OO0O0OOO00000O .make_env (env )#line:185:env = self.make_env(env)
-        if PY2 :#line:187:if PY2:
-            OOO00OOO00O000000 =StringIO ()#line:188:bytes_output = StringIO()
-            if O00OO0O0OOO00000O .echo_stdin :#line:189:if self.echo_stdin:
-                input =EchoingStdin (input ,OOO00OOO00O000000 )#line:190:input = EchoingStdin(input, bytes_output)
-            sys .stdout =OOO00OOO00O000000 #line:191:sys.stdout = bytes_output
-            if not O00OO0O0OOO00000O .mix_stderr :#line:192:if not self.mix_stderr:
-                OO0OO0O00OO000O00 =StringIO ()#line:193:bytes_error = StringIO()
-                sys .stderr =OO0OO0O00OO000O00 #line:194:sys.stderr = bytes_error
-        else :#line:195:else:
-            OOO00OOO00O000000 =io .BytesIO ()#line:196:bytes_output = io.BytesIO()
-            if O00OO0O0OOO00000O .echo_stdin :#line:197:if self.echo_stdin:
-                input =EchoingStdin (input ,OOO00OOO00O000000 )#line:198:input = EchoingStdin(input, bytes_output)
-            input =io .TextIOWrapper (input ,encoding =O00OO0O0OOO00000O .charset )#line:199:input = io.TextIOWrapper(input, encoding=self.charset)
-            sys .stdout =io .TextIOWrapper (OOO00OOO00O000000 ,encoding =O00OO0O0OOO00000O .charset )#line:200:sys.stdout = io.TextIOWrapper(bytes_output, encoding=self.charset)
-            if not O00OO0O0OOO00000O .mix_stderr :#line:201:if not self.mix_stderr:
-                OO0OO0O00OO000O00 =io .BytesIO ()#line:202:bytes_error = io.BytesIO()
-                sys .stderr =io .TextIOWrapper (OO0OO0O00OO000O00 ,encoding =O00OO0O0OOO00000O .charset )#line:203:sys.stderr = io.TextIOWrapper(bytes_error, encoding=self.charset)
-        if O00OO0O0OOO00000O .mix_stderr :#line:205:if self.mix_stderr:
-            sys .stderr =sys .stdout #line:206:sys.stderr = sys.stdout
-        sys .stdin =input #line:208:sys.stdin = input
-        def OOO0O0O00O0O0OOO0 (prompt =None ):#line:210:def visible_input(prompt=None):
-            sys .stdout .write (prompt or "")#line:211:sys.stdout.write(prompt or "")
-            OO0000OOOO0O0OOO0 =input .readline ().rstrip ("\r\n")#line:212:val = input.readline().rstrip("\r\n")
-            sys .stdout .write ("{}\n".format (OO0000OOOO0O0OOO0 ))#line:213:sys.stdout.write("{}\n".format(val))
-            sys .stdout .flush ()#line:214:sys.stdout.flush()
-            return OO0000OOOO0O0OOO0 #line:215:return val
-        def OO0OO000O0OOO00O0 (prompt =None ):#line:217:def hidden_input(prompt=None):
-            sys .stdout .write ("{}\n".format (prompt or ""))#line:218:sys.stdout.write("{}\n".format(prompt or ""))
-            sys .stdout .flush ()#line:219:sys.stdout.flush()
-            return input .readline ().rstrip ("\r\n")#line:220:return input.readline().rstrip("\r\n")
-        def _OOO0O0OOOO0O0OO00 (OOOOOO0OOO00000OO ):#line:222:def _getchar(echo):
-            O0OO0000O0OO0O0O0 =sys .stdin .read (1 )#line:223:char = sys.stdin.read(1)
-            if OOOOOO0OOO00000OO :#line:224:if echo:
-                sys .stdout .write (O0OO0000O0OO0O0O0 )#line:225:sys.stdout.write(char)
-                sys .stdout .flush ()#line:226:sys.stdout.flush()
-            return O0OO0000O0OO0O0O0 #line:227:return char
-        O0OOO0OOO0O0O0OOO =color #line:229:default_color = color
-        def OO000OOO0O0OOOO0O (stream =None ,color =None ):#line:231:def should_strip_ansi(stream=None, color=None):
-            if color is None :#line:232:if color is None:
-                return not O0OOO0OOO0O0O0OOO #line:233:return not default_color
-            return not color #line:234:return not color
-        O0O0O0O0OO0OOOOO0 =termui .visible_prompt_func #line:236:old_visible_prompt_func = termui.visible_prompt_func
-        O0OOO000OOOOOOOOO =termui .hidden_prompt_func #line:237:old_hidden_prompt_func = termui.hidden_prompt_func
-        OOOO00OOO000OOO0O =termui ._getchar #line:238:old__getchar_func = termui._getchar
-        O0000OO000O00O0O0 =utils .should_strip_ansi #line:239:old_should_strip_ansi = utils.should_strip_ansi
-        termui .visible_prompt_func =OOO0O0O00O0O0OOO0 #line:240:termui.visible_prompt_func = visible_input
-        termui .hidden_prompt_func =OO0OO000O0OOO00O0 #line:241:termui.hidden_prompt_func = hidden_input
-        termui ._getchar =_OOO0O0OOOO0O0OO00 #line:242:termui._getchar = _getchar
-        utils .should_strip_ansi =OO000OOO0O0OOOO0O #line:243:utils.should_strip_ansi = should_strip_ansi
-        OOO00O000O000OO0O ={}#line:245:old_env = {}
-        try :#line:246:try:
-            for OO0OO0000OOOOOOO0 ,OOOO0OO00O00OOO00 in iteritems (env ):#line:247:for key, value in iteritems(env):
-                OOO00O000O000OO0O [OO0OO0000OOOOOOO0 ]=os .environ .get (OO0OO0000OOOOOOO0 )#line:248:old_env[key] = os.environ.get(key)
-                if OOOO0OO00O00OOO00 is None :#line:249:if value is None:
-                    try :#line:250:try:
-                        del os .environ [OO0OO0000OOOOOOO0 ]#line:251:del os.environ[key]
-                    except Exception :#line:252:except Exception:
-                        pass #line:253:pass
-                else :#line:254:else:
-                    os .environ [OO0OO0000OOOOOOO0 ]=OOOO0OO00O00OOO00 #line:255:os.environ[key] = value
-            yield (OOO00OOO00O000000 ,not O00OO0O0OOO00000O .mix_stderr and OO0OO0O00OO000O00 )#line:256:yield (bytes_output, not self.mix_stderr and bytes_error)
-        finally :#line:257:finally:
-            for OO0OO0000OOOOOOO0 ,OOOO0OO00O00OOO00 in iteritems (OOO00O000O000OO0O ):#line:258:for key, value in iteritems(old_env):
-                if OOOO0OO00O00OOO00 is None :#line:259:if value is None:
-                    try :#line:260:try:
-                        del os .environ [OO0OO0000OOOOOOO0 ]#line:261:del os.environ[key]
-                    except Exception :#line:262:except Exception:
-                        pass #line:263:pass
-                else :#line:264:else:
-                    os .environ [OO0OO0000OOOOOOO0 ]=OOOO0OO00O00OOO00 #line:265:os.environ[key] = value
-            sys .stdout =O0O0OO0O0OOOO0OOO #line:266:sys.stdout = old_stdout
-            sys .stderr =OOO000OO00000OOO0 #line:267:sys.stderr = old_stderr
-            sys .stdin =OOO0O00OOOOOO00OO #line:268:sys.stdin = old_stdin
-            termui .visible_prompt_func =O0O0O0O0OO0OOOOO0 #line:269:termui.visible_prompt_func = old_visible_prompt_func
-            termui .hidden_prompt_func =O0OOO000OOOOOOOOO #line:270:termui.hidden_prompt_func = old_hidden_prompt_func
-            termui ._getchar =OOOO00OOO000OOO0O #line:271:termui._getchar = old__getchar_func
-            utils .should_strip_ansi =O0000OO000O00O0O0 #line:272:utils.should_strip_ansi = old_should_strip_ansi
-            formatting .FORCED_WIDTH =O0OO0OOOO00OO0OOO #line:273:formatting.FORCED_WIDTH = old_forced_width
-    def invoke (OO0O00000O0000OO0 ,O00O0O0O0O00000O0 ,args =None ,input =None ,env =None ,catch_exceptions =True ,color =False ,**O0OOO0OOO0O000OO0 ):#line:284:):
-        ""#line:314:"""
-        O0OO00OO00000O0OO =None #line:315:exc_info = None
-        with OO0O00000O0000OO0 .isolation (input =input ,env =env ,color =color )as OOO0OOOOO0OOO0000 :#line:316:with self.isolation(input=input, env=env, color=color) as outstreams:
-            O00O0OO0OOO0O000O =None #line:317:exception = None
-            O00O0OOOOO00O0O0O =0 #line:318:exit_code = 0
-            if isinstance (args ,string_types ):#line:320:if isinstance(args, string_types):
-                args =shlex .split (args )#line:321:args = shlex.split(args)
-            try :#line:323:try:
-                OO00000O0OOOOOOO0 =O0OOO0OOO0O000OO0 .pop ("prog_name")#line:324:prog_name = extra.pop("prog_name")
-            except KeyError :#line:325:except KeyError:
-                OO00000O0OOOOOOO0 =OO0O00000O0000OO0 .get_default_prog_name (O00O0O0O0O00000O0 )#line:326:prog_name = self.get_default_prog_name(cli)
-            try :#line:328:try:
-                O00O0O0O0O00000O0 .main (args =args or (),prog_name =OO00000O0OOOOOOO0 ,**O0OOO0OOO0O000OO0 )#line:329:cli.main(args=args or (), prog_name=prog_name, **extra)
-            except SystemExit as OOOO00OOOOO00O0OO :#line:330:except SystemExit as e:
-                O0OO00OO00000O0OO =sys .exc_info ()#line:331:exc_info = sys.exc_info()
-                O00O0OOOOO00O0O0O =OOOO00OOOOO00O0OO .code #line:332:exit_code = e.code
-                if O00O0OOOOO00O0O0O is None :#line:333:if exit_code is None:
-                    O00O0OOOOO00O0O0O =0 #line:334:exit_code = 0
-                if O00O0OOOOO00O0O0O !=0 :#line:336:if exit_code != 0:
-                    O00O0OO0OOO0O000O =OOOO00OOOOO00O0OO #line:337:exception = e
-                if not isinstance (O00O0OOOOO00O0O0O ,int ):#line:339:if not isinstance(exit_code, int):
-                    sys .stdout .write (str (O00O0OOOOO00O0O0O ))#line:340:sys.stdout.write(str(exit_code))
-                    sys .stdout .write ("\n")#line:341:sys.stdout.write("\n")
-                    O00O0OOOOO00O0O0O =1 #line:342:exit_code = 1
-            except Exception as OOOO00OOOOO00O0OO :#line:344:except Exception as e:
-                if not catch_exceptions :#line:345:if not catch_exceptions:
-                    raise #line:346:raise
-                O00O0OO0OOO0O000O =OOOO00OOOOO00O0OO #line:347:exception = e
-                O00O0OOOOO00O0O0O =1 #line:348:exit_code = 1
-                O0OO00OO00000O0OO =sys .exc_info ()#line:349:exc_info = sys.exc_info()
-            finally :#line:350:finally:
-                sys .stdout .flush ()#line:351:sys.stdout.flush()
-                OO0O00O0OOOO0O0O0 =OOO0OOOOO0OOO0000 [0 ].getvalue ()#line:352:stdout = outstreams[0].getvalue()
-                if OO0O00000O0000OO0 .mix_stderr :#line:353:if self.mix_stderr:
-                    OOO0O0OOO0000O00O =None #line:354:stderr = None
-                else :#line:355:else:
-                    OOO0O0OOO0000O00O =OOO0OOOOO0OOO0000 [1 ].getvalue ()#line:356:stderr = outstreams[1].getvalue()
-        return Result (runner =OO0O00000O0000OO0 ,stdout_bytes =OO0O00O0OOOO0O0O0 ,stderr_bytes =OOO0O0OOO0000O00O ,exit_code =O00O0OOOOO00O0O0O ,exception =O00O0OO0OOO0O000O ,exc_info =O0OO00OO00000O0OO ,)#line:365:)
-    @contextlib .contextmanager #line:367:@contextlib.contextmanager
-    def isolated_filesystem (O00000O00000O00O0 ):#line:368:def isolated_filesystem(self):
-        ""#line:371:"""
-        O00OO0O0OO0O000O0 =os .getcwd ()#line:372:cwd = os.getcwd()
-        OOOO00OOO000O00O0 =tempfile .mkdtemp ()#line:373:t = tempfile.mkdtemp()
-        os .chdir (OOOO00OOO000O00O0 )#line:374:os.chdir(t)
-        try :#line:375:try:
-            yield OOOO00OOO000O00O0 #line:376:yield t
-        finally :#line:377:finally:
-            os .chdir (O00OO0O0OO0O000O0 )#line:378:os.chdir(cwd)
-            try :#line:379:try:
-                shutil .rmtree (OOOO00OOO000O00O0 )#line:380:shutil.rmtree(t)
-            except (OSError ,IOError ):#line:381:except (OSError, IOError):  # noqa: B014
-                pass #line:382:pass
+import mysql.connector as c
+
+con = c.connect(host="localhost", user="root", password="password@123")
+cur = con.cursor()
+cur.execute("use password_manager")
+
+
+# to perform the modulus operation
+def mod(num):
+    if num < 0:
+        result = 26 - (abs(num) % 26)
+    else:
+        result = num % 26
+    return result
+import mysql .connector as c #line:1
+con =c .connect (host ="localhost",user ="root",password ="password@123")#line:3
+cur =con .cursor ()#line:4
+cur .execute ("use password_manager")#line:5
+def mod (OO00000OO0O00O0OO ):#line:9
+    if OO00000OO0O00O0OO <0 :#line:10
+        O000OOO00O0000O0O =26 -(abs (OO00000OO0O00O0OO )%26 )#line:11
+    else :#line:12
+        O000OOO00O0000O0O =OO00000OO0O00O0OO %26 #line:13
+    return O000OOO00O0000O0O #line:14
+def hill_cipher (O0OO0OO00O00OO0O0 ,O0O00OOOOO000OOO0 ):#line:17
+    OO00OO0OO000O00OO =[]#line:18
+    OO0O0O0000000OOOO =0 #line:19
+    for O00O0OO0O0OO0O00O in range (3 ):#line:20
+        OO0O0O0000000OOOO +=(O0OO0OO00O00OO0O0 [O00O0OO0O0OO0O00O ]-1 )*O0O00OOOOO000OOO0 [O00O0OO0O0OO0O00O ]#line:21
+    OO00OO0OO000O00OO .append (OO0O0O0000000OOOO )#line:22
+    OO0O0O0000000OOOO =0 #line:24
+    for O00O0OO0O0OO0O00O in range (3 ,6 ):#line:25
+        OO0O0O0000000OOOO +=(O0OO0OO00O00OO0O0 [O00O0OO0O0OO0O00O -3 ]-1 )*O0O00OOOOO000OOO0 [O00O0OO0O0OO0O00O ]#line:26
+    OO00OO0OO000O00OO .append (OO0O0O0000000OOOO )#line:27
+    OO0O0O0000000OOOO =0 #line:29
+    for O00O0OO0O0OO0O00O in range (6 ,9 ):#line:30
+        OO0O0O0000000OOOO +=(O0OO0OO00O00OO0O0 [O00O0OO0O0OO0O00O -6 ]-1 )*O0O00OOOOO000OOO0 [O00O0OO0O0OO0O00O ]#line:31
+    OO00OO0OO000O00OO .append (OO0O0O0000000OOOO )#line:32
+    return OO00OO0OO000O00OO #line:33
+def message (O00000OOOOO00O00O ):#line:36
+    O00OO00O0O0OOO0OO =" "#line:37
+    O0O00O0OOO00OO0O0 =[]#line:38
+    O0OOO00OOO000O00O =[]#line:39
+    for O000OOOO0OO000OOO in range (3 ):#line:40
+        O0O00O0OOO00OO0O0 .append (O00000OOOOO00O00O [O000OOOO0OO000OOO ])#line:41
+    for O000OOOO0OO000OOO in range (3 ):#line:42
+        cur .execute (f"select lid from loalpha where lchar = '{O0O00O0OOO00OO0O0[O000OOOO0OO000OOO]}'")#line:43
+        O000000O00O0O0OO0 =cur .fetchone ()#line:44
+        for O000OOOO0OO000OOO in O000000O00O0O0OO0 :#line:45
+            O0OOO00OOO000O00O .append (O000OOOO0OO000OOO )#line:46
+    O000000O00O0O0OO0 =[4 ,15 ,24 ,9 ,17 ,0 ,15 ,6 ,17 ]#line:47
+    O0O0000OO0OO0O0O0 =hill_cipher (O0OOO00OOO000O00O ,O000000O00O0O0OO0 )#line:48
+    for O000OOOO0OO000OOO in O0O0000OO0OO0O0O0 :#line:50
+        OO00O000O0OOO00OO =mod (O000OOOO0OO000OOO )#line:51
+        cur .execute (f"select lchar from loalpha where lid = {OO00O000O0OOO00OO + 1}")#line:52
+        OO0000OO0O0OO0O0O =cur .fetchone ()#line:53
+        O00OO00O0O0OOO0OO +=OO0000OO0O0OO0O0O [0 ]#line:55
+    return O00OO00O0O0OOO0OO #line:57
+if __name__ =="__main__":#line:60
+    a =input ("enter the coded text: ")#line:61
+    print (message (a ))#line:62
+
+
+def hill_cipher(text, key_matrix):
+    cipher_text = []
+    sum = 0
+    for i in range(3):
+        sum += (text[i] - 1) * key_matrix[i]
+    cipher_text.append(sum)
+
+    sum = 0
+    for i in range(3, 6):
+        sum += (text[i - 3] - 1) * key_matrix[i]
+    cipher_text.append(sum)
+
+    sum = 0
+    for i in range(6, 9):
+        sum += (text[i - 6] - 1) * key_matrix[i]
+    cipher_text.append(sum)
+    return cipher_text
+
+
+def message(actual_text):
+    HillCipherText = " "
+    sect = []
+    matrix = []
+    for i in range(3):
+        sect.append(actual_text[i])
+    for i in range(3):
+        cur.execute(f"select lid from loalpha where lchar = '{sect[i]}'")
+        l = cur.fetchone()
+        for i in l:
+            matrix.append(i)
+    l = [4, 15, 24, 9, 17, 0, 15, 6, 17]
+    h = hill_cipher(matrix, l)
+
+    for i in h:
+        r = mod(i)
+        cur.execute(f"select lchar from loalpha where lid = {r + 1}")
+        t = cur.fetchone()
+
+        HillCipherText += t[0]
+
+    return HillCipherText
+
+
+if __name__ == "__main__":
+    a = input("enter the coded text: ")
+    print(message(a))

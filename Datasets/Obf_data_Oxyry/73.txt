@@ -1,171 +1,24 @@
-""#line:3:"""
-from __future__ import absolute_import #line:5:from __future__ import absolute_import
-import optparse #line:7:import optparse
-import os #line:8:import os
-import re #line:9:import re
-import shlex #line:10:import shlex
-import sys #line:11:import sys
-from pip ._vendor .six .moves import filterfalse #line:13:from pip._vendor.six.moves import filterfalse
-from pip ._vendor .six .moves .urllib import parse as urllib_parse #line:14:from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip ._internal .cli import cmdoptions #line:16:from pip._internal.cli import cmdoptions
-from pip ._internal .download import get_file_content #line:17:from pip._internal.download import get_file_content
-from pip ._internal .exceptions import RequirementsFileParseError #line:18:from pip._internal.exceptions import RequirementsFileParseError
-from pip ._internal .req .constructors import (install_req_from_editable ,install_req_from_line ,)#line:21:)
-from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:22:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-if MYPY_CHECK_RUNNING :#line:24:if MYPY_CHECK_RUNNING:
-    from typing import (Iterator ,Tuple ,Optional ,List ,Callable ,Text )#line:27:)
-    from pip ._internal .req import InstallRequirement #line:28:from pip._internal.req import InstallRequirement  # noqa: F401
-    from pip ._internal .cache import WheelCache #line:29:from pip._internal.cache import WheelCache  # noqa: F401
-    from pip ._internal .index import PackageFinder #line:30:from pip._internal.index import PackageFinder  # noqa: F401
-    from pip ._internal .download import PipSession #line:31:from pip._internal.download import PipSession  # noqa: F401
-    O0O0OO000OO0OOO00 =Iterator [Tuple [int ,Text ]]#line:33:ReqFileLines = Iterator[Tuple[int, Text]]
-__all__ =['parse_requirements']#line:35:__all__ = ['parse_requirements']
-OO00OO0OOO0O0O00O =re .compile (r'^(http|https|file):',re .I )#line:37:SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
-OOOOOO0O0O0O00000 =re .compile (r'(^|\s)+#.*$')#line:38:COMMENT_RE = re.compile(r'(^|\s)+#.*$')
-OOOO0O0OO0O0O0O0O =re .compile (r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')#line:44:ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
-OO00000000O0OOO00 =[cmdoptions .constraints ,cmdoptions .editable ,cmdoptions .requirements ,cmdoptions .no_index ,cmdoptions .index_url ,cmdoptions .find_links ,cmdoptions .extra_index_url ,cmdoptions .always_unzip ,cmdoptions .no_binary ,cmdoptions .only_binary ,cmdoptions .pre ,cmdoptions .trusted_host ,cmdoptions .require_hashes ,]#line:60:]  # type: List[Callable[..., optparse.Option]]
-OOO0O00OOO0OOO00O =[cmdoptions .install_options ,cmdoptions .global_options ,cmdoptions .hash ,]#line:67:]  # type: List[Callable[..., optparse.Option]]
-O000000O00O0OOO00 =[str (O00000O00OOOOOO0O ().dest )for O00000O00OOOOOO0O in OOO0O00OOO0OOO00O ]#line:70:SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
-def parse_requirements (OO000000O00OOOOOO ,finder =None ,comes_from =None ,options =None ,session =None ,constraint =False ,wheel_cache =None ,use_pep517 =None ):#line:82:):
-    ""#line:95:"""
-    if session is None :#line:96:if session is None:
-        raise TypeError ("parse_requirements() missing 1 required keyword argument: " "'session'")#line:100:)
-    _O00O0OOOO00O00OO0 ,O0OOO000O0O0O0000 =get_file_content (OO000000O00OOOOOO ,comes_from =comes_from ,session =session )#line:104:)
-    O00OO0OO000OO0OOO =OOOOO00000OO00000 (O0OOO000O0O0O0000 ,options )#line:106:lines_enum = preprocess(content, options)
-    for O000O0OO0OO0OOOOO ,OOOOO0OOO000OOO0O in O00OO0OO000OO0OOO :#line:108:for line_number, line in lines_enum:
-        OOO0OOOO0O0OO000O =O0OO000O0O0OO00O0 (OOOOO0OOO000OOO0O ,OO000000O00OOOOOO ,O000O0OO0OO0OOOOO ,finder ,comes_from ,options ,session ,wheel_cache ,use_pep517 =use_pep517 ,constraint =constraint )#line:111:use_pep517=use_pep517, constraint=constraint)
-        for OO0O0OO00OOOOO0OO in OOO0OOOO0O0OO000O :#line:112:for req in req_iter:
-            yield OO0O0OO00OOOOO0OO #line:113:yield req
-def OOOOO00000OO00000 (O0O0O000OOO000000 ,OO00000O000OOOO0O ):#line:116:def preprocess(content, options):
-    ""#line:122:"""
-    OO00000000O0O00OO =enumerate (O0O0O000OOO000000 .splitlines (),start =1 )#line:123:lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
-    OO00000000O0O00OO =OO00O0OOO0OOO0O00 (OO00000000O0O00OO )#line:124:lines_enum = join_lines(lines_enum)
-    OO00000000O0O00OO =O0O0O0O000OO0OOO0 (OO00000000O0O00OO )#line:125:lines_enum = ignore_comments(lines_enum)
-    OO00000000O0O00OO =OO0O0O0OOOOO00000 (OO00000000O0O00OO ,OO00000O000OOOO0O )#line:126:lines_enum = skip_regex(lines_enum, options)
-    OO00000000O0O00OO =OOOO00OOOO0O000OO (OO00000000O0O00OO )#line:127:lines_enum = expand_env_variables(lines_enum)
-    return OO00000000O0O00OO #line:128:return lines_enum
-def O0OO000O0O0OO00O0 (O0O00OO00000OOOO0 ,OOOO0O00OO0O00OOO ,OOO00000O0OO00O00 ,finder =None ,comes_from =None ,options =None ,session =None ,wheel_cache =None ,use_pep517 =None ,constraint =False ):#line:142:):
-    ""#line:160:"""
-    OO00OOOOO0000OO00 =O00O000O0OO0OOO00 (O0O00OO00000OOOO0 )#line:161:parser = build_parser(line)
-    O00000O0OO0000O00 =OO00OOOOO0000OO00 .get_default_values ()#line:162:defaults = parser.get_default_values()
-    O00000O0OO0000O00 .index_url =None #line:163:defaults.index_url = None
-    if finder :#line:164:if finder:
-        O00000O0OO0000O00 .format_control =finder .format_control #line:165:defaults.format_control = finder.format_control
-    O00OOOO000OO0O00O ,OO000O00OO0OO000O =OO0OO00000O0OO000 (O0O00OO00000OOOO0 )#line:166:args_str, options_str = break_args_options(line)
-    if sys .version_info <(2 ,7 ,3 ):#line:168:if sys.version_info < (2, 7, 3):
-        OO000O00OO0OO000O =OO000O00OO0OO000O .encode ('utf8')#line:170:options_str = options_str.encode('utf8')  # type: ignore
-    O0000O00O00O0O000 ,_OO0000OO00OO0O000 =OO00OOOOO0000OO00 .parse_args (shlex .split (OO000O00OO0OO000O ),O00000O0OO0000O00 )#line:173:shlex.split(options_str), defaults)  # type: ignore
-    O0OOO0O00000OO0O0 ='%s %s (line %s)'%('-c'if constraint else '-r',OOOO0O00OO0O00OOO ,OOO00000O0OO00O00 ,)#line:178:)
-    if O00OOOO000OO0O00O :#line:181:if args_str:
-        O0OO0000OO0000O0O =options .isolated_mode if options else False #line:182:isolated = options.isolated_mode if options else False
-        if options :#line:183:if options:
-            cmdoptions .check_install_build_global (options ,O0000O00O00O0O000 )#line:184:cmdoptions.check_install_build_global(options, opts)
-        O0000000OOO0OOO00 ={}#line:186:req_options = {}
-        for O0000000OO0OO0000 in O000000O00O0OOO00 :#line:187:for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if O0000000OO0OO0000 in O0000O00O00O0O000 .__dict__ and O0000O00O00O0O000 .__dict__ [O0000000OO0OO0000 ]:#line:188:if dest in opts.__dict__ and opts.__dict__[dest]:
-                O0000000OOO0OOO00 [O0000000OO0OO0000 ]=O0000O00O00O0O000 .__dict__ [O0000000OO0OO0000 ]#line:189:req_options[dest] = opts.__dict__[dest]
-        yield install_req_from_line (O00OOOO000OO0O00O ,O0OOO0O00000OO0O0 ,constraint =constraint ,use_pep517 =use_pep517 ,isolated =O0OO0000OO0000O0O ,options =O0000000OOO0OOO00 ,wheel_cache =wheel_cache )#line:194:)
-    elif O0000O00O00O0O000 .editables :#line:197:elif opts.editables:
-        O0OO0000OO0000O0O =options .isolated_mode if options else False #line:198:isolated = options.isolated_mode if options else False
-        yield install_req_from_editable (O0000O00O00O0O000 .editables [0 ],comes_from =O0OOO0O00000OO0O0 ,use_pep517 =use_pep517 ,constraint =constraint ,isolated =O0OO0000OO0000O0O ,wheel_cache =wheel_cache )#line:203:)
-    elif O0000O00O00O0O000 .requirements or O0000O00O00O0O000 .constraints :#line:206:elif opts.requirements or opts.constraints:
-        if O0000O00O00O0O000 .requirements :#line:207:if opts.requirements:
-            OO000O0OO0O000O0O =O0000O00O00O0O000 .requirements [0 ]#line:208:req_path = opts.requirements[0]
-            OO0OOO00O0O0O0OO0 =False #line:209:nested_constraint = False
-        else :#line:210:else:
-            OO000O0OO0O000O0O =O0000O00O00O0O000 .constraints [0 ]#line:211:req_path = opts.constraints[0]
-            OO0OOO00O0O0O0OO0 =True #line:212:nested_constraint = True
-        if OO00OO0OOO0O0O00O .search (OOOO0O00OO0O00OOO ):#line:214:if SCHEME_RE.search(filename):
-            OO000O0OO0O000O0O =urllib_parse .urljoin (OOOO0O00OO0O00OOO ,OO000O0OO0O000O0O )#line:216:req_path = urllib_parse.urljoin(filename, req_path)
-        elif not OO00OO0OOO0O0O00O .search (OO000O0OO0O000O0O ):#line:218:elif not SCHEME_RE.search(req_path):
-            OO000O0OO0O000O0O =os .path .join (os .path .dirname (OOOO0O00OO0O00OOO ),OO000O0OO0O000O0O )#line:220:req_path = os.path.join(os.path.dirname(filename), req_path)
-        OO0OO00O0OOOO0O00 =parse_requirements (OO000O0OO0O000O0O ,finder ,comes_from ,options ,session ,constraint =OO0OOO00O0O0O0OO0 ,wheel_cache =wheel_cache )#line:225:)
-        for OOOO00OO0O0000O00 in OO0OO00O0OOOO0O00 :#line:226:for req in parsed_reqs:
-            yield OOOO00OO0O0000O00 #line:227:yield req
-    elif O0000O00O00O0O000 .require_hashes :#line:230:elif opts.require_hashes:
-        options .require_hashes =O0000O00O00O0O000 .require_hashes #line:231:options.require_hashes = opts.require_hashes
-    elif finder :#line:234:elif finder:
-        if O0000O00O00O0O000 .index_url :#line:235:if opts.index_url:
-            finder .index_urls =[O0000O00O00O0O000 .index_url ]#line:236:finder.index_urls = [opts.index_url]
-        if O0000O00O00O0O000 .no_index is True :#line:237:if opts.no_index is True:
-            finder .index_urls =[]#line:238:finder.index_urls = []
-        if O0000O00O00O0O000 .extra_index_urls :#line:239:if opts.extra_index_urls:
-            finder .index_urls .extend (O0000O00O00O0O000 .extra_index_urls )#line:240:finder.index_urls.extend(opts.extra_index_urls)
-        if O0000O00O00O0O000 .find_links :#line:241:if opts.find_links:
-            O00OO000O0OO00O0O =O0000O00O00O0O000 .find_links [0 ]#line:245:value = opts.find_links[0]
-            OOOO0OOOOO00OOO00 =os .path .dirname (os .path .abspath (OOOO0O00OO0O00OOO ))#line:246:req_dir = os.path.dirname(os.path.abspath(filename))
-            O00O0OOO000OO0OOO =os .path .join (OOOO0OOOOO00OOO00 ,O00OO000O0OO00O0O )#line:247:relative_to_reqs_file = os.path.join(req_dir, value)
-            if os .path .exists (O00O0OOO000OO0OOO ):#line:248:if os.path.exists(relative_to_reqs_file):
-                O00OO000O0OO00O0O =O00O0OOO000OO0OOO #line:249:value = relative_to_reqs_file
-            finder .find_links .append (O00OO000O0OO00O0O )#line:250:finder.find_links.append(value)
-        if O0000O00O00O0O000 .pre :#line:251:if opts.pre:
-            finder .allow_all_prereleases =True #line:252:finder.allow_all_prereleases = True
-        if O0000O00O00O0O000 .trusted_hosts :#line:253:if opts.trusted_hosts:
-            finder .secure_origins .extend (("*",O0O0O0O0O0OO0OO0O ,"*")for O0O0O0O0O0OO0OO0O in O0000O00O00O0O000 .trusted_hosts )#line:255:("*", host, "*") for host in opts.trusted_hosts)
-def OO0OO00000O0OO000 (OO0000000000OOOOO ):#line:258:def break_args_options(line):
-    ""#line:263:"""
-    O0OOOO0O00O0O00O0 =OO0000000000OOOOO .split (' ')#line:264:tokens = line.split(' ')
-    O0OO0OOO000O0000O =[]#line:265:args = []
-    O0OO0O00OOO0OOOOO =O0OOOO0O00O0O00O0 [:]#line:266:options = tokens[:]
-    for OOO00OO00000O0OOO in O0OOOO0O00O0O00O0 :#line:267:for token in tokens:
-        if OOO00OO00000O0OOO .startswith ('-')or OOO00OO00000O0OOO .startswith ('--'):#line:268:if token.startswith('-') or token.startswith('--'):
-            break #line:269:break
-        else :#line:270:else:
-            O0OO0OOO000O0000O .append (OOO00OO00000O0OOO )#line:271:args.append(token)
-            O0OO0O00OOO0OOOOO .pop (0 )#line:272:options.pop(0)
-    return ' '.join (O0OO0OOO000O0000O ),' '.join (O0OO0O00OOO0OOOOO )#line:273:return ' '.join(args), ' '.join(options)  # type: ignore
-def O00O000O0OO0OOO00 (O0O0OOOO0O0O00000 ):#line:276:def build_parser(line):
-    ""#line:280:"""
-    OO000OOOOOO0OO0OO =optparse .OptionParser (add_help_option =False )#line:281:parser = optparse.OptionParser(add_help_option=False)
-    OOO0000OOO00OOOOO =OO00000000O0OOO00 +OOO0O00OOO0OOO00O #line:283:option_factories = SUPPORTED_OPTIONS + SUPPORTED_OPTIONS_REQ
-    for OO00O00O000O00OO0 in OOO0000OOO00OOOOO :#line:284:for option_factory in option_factories:
-        O000OO0OOOOO0000O =OO00O00O000O00OO0 ()#line:285:option = option_factory()
-        OO000OOOOOO0OO0OO .add_option (O000OO0OOOOO0000O )#line:286:parser.add_option(option)
-    def OOO00O00OO0OO0O00 (OO00O000000OO000O ,OO0OOOOO0O00OO00O ):#line:290:def parser_exit(self, msg):
-        OO0OOOOO0O00OO00O ='Invalid requirement: %s\n%s'%(O0O0OOOO0O0O00000 ,OO0OOOOO0O00OO00O )#line:292:msg = 'Invalid requirement: %s\n%s' % (line, msg)
-        raise RequirementsFileParseError (OO0OOOOO0O00OO00O )#line:293:raise RequirementsFileParseError(msg)
-    OO000OOOOOO0OO0OO .exit =OOO00O00OO0OO0O00 #line:296:parser.exit = parser_exit  # type: ignore
-    return OO000OOOOOO0OO0OO #line:298:return parser
-def OO00O0OOO0OOO0O00 (OOO0OO0O000O0O0O0 ):#line:301:def join_lines(lines_enum):
-    ""#line:305:"""
-    O00OOO0OO00O000OO =None #line:306:primary_line_number = None
-    OOO00OOOOO00OO00O =[]#line:307:new_line = []  # type: List[Text]
-    for OO00OOOO000O0O0OO ,O0OO0OOO0O00OOOO0 in OOO0OO0O000O0O0O0 :#line:308:for line_number, line in lines_enum:
-        if not O0OO0OOO0O00OOOO0 .endswith ('\\')or OOOOOO0O0O0O00000 .match (O0OO0OOO0O00OOOO0 ):#line:309:if not line.endswith('\\') or COMMENT_RE.match(line):
-            if OOOOOO0O0O0O00000 .match (O0OO0OOO0O00OOOO0 ):#line:310:if COMMENT_RE.match(line):
-                O0OO0OOO0O00OOOO0 =' '+O0OO0OOO0O00OOOO0 #line:312:line = ' ' + line
-            if OOO00OOOOO00OO00O :#line:313:if new_line:
-                OOO00OOOOO00OO00O .append (O0OO0OOO0O00OOOO0 )#line:314:new_line.append(line)
-                yield O00OOO0OO00O000OO ,''.join (OOO00OOOOO00OO00O )#line:315:yield primary_line_number, ''.join(new_line)
-                OOO00OOOOO00OO00O =[]#line:316:new_line = []
-            else :#line:317:else:
-                yield OO00OOOO000O0O0OO ,O0OO0OOO0O00OOOO0 #line:318:yield line_number, line
-        else :#line:319:else:
-            if not OOO00OOOOO00OO00O :#line:320:if not new_line:
-                O00OOO0OO00O000OO =OO00OOOO000O0O0OO #line:321:primary_line_number = line_number
-            OOO00OOOOO00OO00O .append (O0OO0OOO0O00OOOO0 .strip ('\\'))#line:322:new_line.append(line.strip('\\'))
-    if OOO00OOOOO00OO00O :#line:325:if new_line:
-        yield O00OOO0OO00O000OO ,''.join (OOO00OOOOO00OO00O )#line:326:yield primary_line_number, ''.join(new_line)
-def O0O0O0O000OO0OOO0 (OOOOO0O0OO00000O0 ):#line:331:def ignore_comments(lines_enum):
-    ""#line:335:"""
-    for O0OO0000O000OO00O ,O0000OO0O0OO0OOOO in OOOOO0O0OO00000O0 :#line:336:for line_number, line in lines_enum:
-        O0000OO0O0OO0OOOO =OOOOOO0O0O0O00000 .sub ('',O0000OO0O0OO0OOOO )#line:337:line = COMMENT_RE.sub('', line)
-        O0000OO0O0OO0OOOO =O0000OO0O0OO0OOOO .strip ()#line:338:line = line.strip()
-        if O0000OO0O0OO0OOOO :#line:339:if line:
-            yield O0OO0000O000OO00O ,O0000OO0O0OO0OOOO #line:340:yield line_number, line
-def OO0O0O0OOOOO00000 (OOOOOOOO00O0O0O0O ,O0OO00OOO0OOOOOO0 ):#line:343:def skip_regex(lines_enum, options):
-    ""#line:349:"""
-    O0OO0O0O00O0O0O0O =O0OO00OOO0OOOOOO0 .skip_requirements_regex if O0OO00OOO0OOOOOO0 else None #line:350:skip_regex = options.skip_requirements_regex if options else None
-    if O0OO0O0O00O0O0O0O :#line:351:if skip_regex:
-        O00OOO0OOO0000O00 =re .compile (O0OO0O0O00O0O0O0O )#line:352:pattern = re.compile(skip_regex)
-        OOOOOOOO00O0O0O0O =filterfalse (lambda OO0OO000O0OOO0OOO :O00OOO0OOO0000O00 .search (OO0OO000O0OOO0OOO [1 ]),OOOOOOOO00O0O0O0O )#line:353:lines_enum = filterfalse(lambda e: pattern.search(e[1]), lines_enum)
-    return OOOOOOOO00O0O0O0O #line:354:return lines_enum
-def OOOO00OOOO0O000OO (OOOOOOO00O0OO00OO ):#line:357:def expand_env_variables(lines_enum):
-    ""#line:373:"""
-    for O0OO0O000OO000O00 ,O00O00O0O0O00OOO0 in OOOOOOO00O0OO00OO :#line:374:for line_number, line in lines_enum:
-        for OO0O00O00OO0000OO ,OOO0O000O0O00O000 in OOOO0O0OO0O0O0O0O .findall (O00O00O0O0O00OOO0 ):#line:375:for env_var, var_name in ENV_VAR_RE.findall(line):
-            OO0OOOO000OOOOO0O =os .getenv (OOO0O000O0O00O000 )#line:376:value = os.getenv(var_name)
-            if not OO0OOOO000OOOOO0O :#line:377:if not value:
-                continue #line:378:continue
-            O00O00O0O0O00OOO0 =O00O00O0O0O00OOO0 .replace (OO0O00O00OO0000OO ,OO0OOOO000OOOOO0O )#line:380:line = line.replace(env_var, value)
-        yield O0OO0O000OO000O00 ,O00O00O0O0O00OOO0 #line:382:yield line_number, line
+import tkinter #line:1
+from time import strftime #line:2
+top =tkinter .Tk ()#line:5
+top .title ("Dynamic Clock")#line:6
+top .resizable (0 ,0 )#line:7
+def get_time_of_day (OOO00O0OO0OO0OO0O ):#line:11
+    if 5 <=OOO00O0OO0OO0OO0O <12 :#line:12
+        return "Morning"#line:13
+    elif 12 <=OOO00O0OO0OO0OO0O <18 :#line:14
+        return "Afternoon"#line:15
+    else :#line:16
+        return "Evening"#line:17
+def update_time ():#line:21
+    O0O00OOOO000O00O0 =strftime ("%H:%M:%S %p")#line:22
+    OO00O00OO0O000O0O =int (strftime ("%H"))#line:23
+    OOOO0O0000OO0O000 =get_time_of_day (OO00O00OO0O000O0O )#line:24
+    clock_time .config (text =O0O00OOOO000O00O0 +f"\nGood {OOOO0O0000OO0O000}!")#line:27
+    OOO0O00OOO00OOOOO =("lightblue"if OOOO0O0000OO0O000 =="Morning"else "lightyellow"if OOOO0O0000OO0O000 =="Afternoon"else "lightcoral")#line:34
+    top .configure (background =OOO0O00OOO00OOOOO )#line:35
+    clock_time .after (1000 ,update_time )#line:38
+clock_time =tkinter .Label (top ,font =("courier new",40 ),background ="black",foreground ="white",)#line:47
+clock_time .pack (anchor ="center")#line:50
+update_time ()#line:53
+top .mainloop ()#line:56

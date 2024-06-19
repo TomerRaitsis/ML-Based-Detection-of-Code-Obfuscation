@@ -1,246 +1,38 @@
-from __future__ import unicode_literals #line:7:from __future__ import unicode_literals
-import bisect #line:9:import bisect
-import io #line:10:import io
-import logging #line:11:import logging
-import os #line:12:import os
-import pkgutil #line:13:import pkgutil
-import shutil #line:14:import shutil
-import sys #line:15:import sys
-import types #line:16:import types
-import zipimport #line:17:import zipimport
-from .import DistlibException #line:19:from . import DistlibException
-from .util import cached_property ,get_cache_base ,path_to_cache_dir ,Cache #line:20:from .util import cached_property, get_cache_base, path_to_cache_dir, Cache
-logger =logging .getLogger (__name__ )#line:22:logger = logging.getLogger(__name__)
-cache =None #line:25:cache = None    # created when needed
-class ResourceCache (Cache ):#line:28:class ResourceCache(Cache):
-    def __init__ (OO0O0O00OOO0O00O0 ,base =None ):#line:29:def __init__(self, base=None):
-        if base is None :#line:30:if base is None:
-            base =os .path .join (get_cache_base (),str ('resource-cache'))#line:32:base = os.path.join(get_cache_base(), str('resource-cache'))
-        super (ResourceCache ,OO0O0O00OOO0O00O0 ).__init__ (base )#line:33:super(ResourceCache, self).__init__(base)
-    def is_stale (OO0O000O000O0000O ,OO0O00OOOO0OO00O0 ,O0000OOOOOOOO0O00 ):#line:35:def is_stale(self, resource, path):
-        ""#line:42:"""
-        return True #line:44:return True
-    def get (OO0OOO00OO0O0O0O0 ,O00O0OO00OO0O0OOO ):#line:46:def get(self, resource):
-        ""#line:52:"""
-        O00O00O000OO0O0O0 ,O0O0OOOO0O0O0OOOO =O00O0OO00OO0O0OOO .finder .get_cache_info (O00O0OO00OO0O0OOO )#line:53:prefix, path = resource.finder.get_cache_info(resource)
-        if O00O00O000OO0O0O0 is None :#line:54:if prefix is None:
-            OO000OOOO00OO0000 =O0O0OOOO0O0O0OOOO #line:55:result = path
-        else :#line:56:else:
-            OO000OOOO00OO0000 =os .path .join (OO0OOO00OO0O0O0O0 .base ,OO0OOO00OO0O0O0O0 .prefix_to_dir (O00O00O000OO0O0O0 ),O0O0OOOO0O0O0OOOO )#line:57:result = os.path.join(self.base, self.prefix_to_dir(prefix), path)
-            OO00O00OOO00OO00O =os .path .dirname (OO000OOOO00OO0000 )#line:58:dirname = os.path.dirname(result)
-            if not os .path .isdir (OO00O00OOO00OO00O ):#line:59:if not os.path.isdir(dirname):
-                os .makedirs (OO00O00OOO00OO00O )#line:60:os.makedirs(dirname)
-            if not os .path .exists (OO000OOOO00OO0000 ):#line:61:if not os.path.exists(result):
-                O0O0OOO000000O0O0 =True #line:62:stale = True
-            else :#line:63:else:
-                O0O0OOO000000O0O0 =OO0OOO00OO0O0O0O0 .is_stale (O00O0OO00OO0O0OOO ,O0O0OOOO0O0O0OOOO )#line:64:stale = self.is_stale(resource, path)
-            if O0O0OOO000000O0O0 :#line:65:if stale:
-                with open (OO000OOOO00OO0000 ,'wb')as OO00O00OOOOOOOO00 :#line:67:with open(result, 'wb') as f:
-                    OO00O00OOOOOOOO00 .write (O00O0OO00OO0O0OOO .bytes )#line:68:f.write(resource.bytes)
-        return OO000OOOO00OO0000 #line:69:return result
-class ResourceBase (object ):#line:72:class ResourceBase(object):
-    def __init__ (OO000000O0OO00O0O ,OO00000O0OOOO0O00 ,OOO0O0OOOO0O0OO0O ):#line:73:def __init__(self, finder, name):
-        OO000000O0OO00O0O .finder =OO00000O0OOOO0O00 #line:74:self.finder = finder
-        OO000000O0OO00O0O .name =OOO0O0OOOO0O0OO0O #line:75:self.name = name
-class Resource (ResourceBase ):#line:78:class Resource(ResourceBase):
-    ""#line:83:"""
-    is_container =False #line:84:is_container = False        # Backwards compatibility
-    def as_stream (O0O0OO0OOO000OOO0 ):#line:86:def as_stream(self):
-        ""#line:92:"""
-        return O0O0OO0OOO000OOO0 .finder .get_stream (O0O0OO0OOO000OOO0 )#line:93:return self.finder.get_stream(self)
-    @cached_property #line:95:@cached_property
-    def file_path (OOO0O0O000O00OOOO ):#line:96:def file_path(self):
-        global cache #line:97:global cache
-        if cache is None :#line:98:if cache is None:
-            cache =ResourceCache ()#line:99:cache = ResourceCache()
-        return cache .get (OOO0O0O000O00OOOO )#line:100:return cache.get(self)
-    @cached_property #line:102:@cached_property
-    def bytes (OO00OOOOOOO0O0OOO ):#line:103:def bytes(self):
-        return OO00OOOOOOO0O0OOO .finder .get_bytes (OO00OOOOOOO0O0OOO )#line:104:return self.finder.get_bytes(self)
-    @cached_property #line:106:@cached_property
-    def size (O0OO0OOO0OOO0OOO0 ):#line:107:def size(self):
-        return O0OO0OOO0OOO0OOO0 .finder .get_size (O0OO0OOO0OOO0OOO0 )#line:108:return self.finder.get_size(self)
-class ResourceContainer (ResourceBase ):#line:111:class ResourceContainer(ResourceBase):
-    is_container =True #line:112:is_container = True     # Backwards compatibility
-    @cached_property #line:114:@cached_property
-    def resources (O0OOO00000OO0O0OO ):#line:115:def resources(self):
-        return O0OOO00000OO0O0OO .finder .get_resources (O0OOO00000OO0O0OO )#line:116:return self.finder.get_resources(self)
-class ResourceFinder (object ):#line:119:class ResourceFinder(object):
-    ""#line:122:"""
-    if sys .platform .startswith ('java'):#line:124:if sys.platform.startswith('java'):
-        skipped_extensions =('.pyc','.pyo','.class')#line:125:skipped_extensions = ('.pyc', '.pyo', '.class')
-    else :#line:126:else:
-        skipped_extensions =('.pyc','.pyo')#line:127:skipped_extensions = ('.pyc', '.pyo')
-    def __init__ (O0O0O0OO00OOOO0O0 ,OOOOOO0OO00O0O0OO ):#line:129:def __init__(self, module):
-        O0O0O0OO00OOOO0O0 .module =OOOOOO0OO00O0O0OO #line:130:self.module = module
-        O0O0O0OO00OOOO0O0 .loader =getattr (OOOOOO0OO00O0O0OO ,'__loader__',None )#line:131:self.loader = getattr(module, '__loader__', None)
-        O0O0O0OO00OOOO0O0 .base =os .path .dirname (getattr (OOOOOO0OO00O0O0OO ,'__file__',''))#line:132:self.base = os.path.dirname(getattr(module, '__file__', ''))
-    def _adjust_path (O000O0OOOOOOOOO0O ,O000OOO0OO000O0O0 ):#line:134:def _adjust_path(self, path):
-        return os .path .realpath (O000OOO0OO000O0O0 )#line:135:return os.path.realpath(path)
-    def _make_path (OOO00O0O000O00OO0 ,O0OO000OOOO0000O0 ):#line:137:def _make_path(self, resource_name):
-        if isinstance (O0OO000OOOO0000O0 ,bytes ):#line:140:if isinstance(resource_name, bytes):    # should only happen on 2.x
-            OOO0OOO00O0OOOO0O =b'/'#line:141:sep = b'/'
-        else :#line:142:else:
-            OOO0OOO00O0OOOO0O ='/'#line:143:sep = '/'
-        O0OO0OOOOO0OO0OOO =O0OO000OOOO0000O0 .split (OOO0OOO00O0OOOO0O )#line:144:parts = resource_name.split(sep)
-        O0OO0OOOOO0OO0OOO .insert (0 ,OOO00O0O000O00OO0 .base )#line:145:parts.insert(0, self.base)
-        OO0O0O000O0OO0O00 =os .path .join (*O0OO0OOOOO0OO0OOO )#line:146:result = os.path.join(*parts)
-        return OOO00O0O000O00OO0 ._adjust_path (OO0O0O000O0OO0O00 )#line:147:return self._adjust_path(result)
-    def _find (OO0O0OOOOOO0O0000 ,OOO00O0OO00O0000O ):#line:149:def _find(self, path):
-        return os .path .exists (OOO00O0OO00O0000O )#line:150:return os.path.exists(path)
-    def get_cache_info (OO0O0000OOO0O00O0 ,O0OO0OOO0000O0000 ):#line:152:def get_cache_info(self, resource):
-        return None ,O0OO0OOO0000O0000 .path #line:153:return None, resource.path
-    def find (OO00000OOOOO0O0OO ,OOO0000OOOO000OOO ):#line:155:def find(self, resource_name):
-        O0O0O00O0O00000O0 =OO00000OOOOO0O0OO ._make_path (OOO0000OOOO000OOO )#line:156:path = self._make_path(resource_name)
-        if not OO00000OOOOO0O0OO ._find (O0O0O00O0O00000O0 ):#line:157:if not self._find(path):
-            OOOO0O000O0O0OOO0 =None #line:158:result = None
-        else :#line:159:else:
-            if OO00000OOOOO0O0OO ._is_directory (O0O0O00O0O00000O0 ):#line:160:if self._is_directory(path):
-                OOOO0O000O0O0OOO0 =ResourceContainer (OO00000OOOOO0O0OO ,OOO0000OOOO000OOO )#line:161:result = ResourceContainer(self, resource_name)
-            else :#line:162:else:
-                OOOO0O000O0O0OOO0 =Resource (OO00000OOOOO0O0OO ,OOO0000OOOO000OOO )#line:163:result = Resource(self, resource_name)
-            OOOO0O000O0O0OOO0 .path =O0O0O00O0O00000O0 #line:164:result.path = path
-        return OOOO0O000O0O0OOO0 #line:165:return result
-    def get_stream (OOO0O0O0O00O0OOO0 ,OOOOOO0O000000O0O ):#line:167:def get_stream(self, resource):
-        return open (OOOOOO0O000000O0O .path ,'rb')#line:168:return open(resource.path, 'rb')
-    def get_bytes (O000OOO0OO0000OOO ,O000OOO00OOO00OOO ):#line:170:def get_bytes(self, resource):
-        with open (O000OOO00OOO00OOO .path ,'rb')as O00O0O00O00OO00OO :#line:171:with open(resource.path, 'rb') as f:
-            return O00O0O00O00OO00OO .read ()#line:172:return f.read()
-    def get_size (O0OOO0O00000O00O0 ,O00OOO00OO0000O00 ):#line:174:def get_size(self, resource):
-        return os .path .getsize (O00OOO00OO0000O00 .path )#line:175:return os.path.getsize(resource.path)
-    def get_resources (O0O0OO00OO00O000O ,OOOOO0OOOOO0OO0O0 ):#line:177:def get_resources(self, resource):
-        def OO00OO000O000OO0O (OOO000000O0O0OOO0 ):#line:178:def allowed(f):
-            return (OOO000000O0O0OOO0 !='__pycache__'and not OOO000000O0O0OOO0 .endswith (O0O0OO00OO00O000O .skipped_extensions ))#line:180:f.endswith(self.skipped_extensions))
-        return set ([O0OOOO000000O0OO0 for O0OOOO000000O0OO0 in os .listdir (OOOOO0OOOOO0OO0O0 .path )if OO00OO000O000OO0O (O0OOOO000000O0OO0 )])#line:181:return set([f for f in os.listdir(resource.path) if allowed(f)])
-    def is_container (OOO00O00OO0OOO00O ,O00OOOOO00OOOOOOO ):#line:183:def is_container(self, resource):
-        return OOO00O00OO0OOO00O ._is_directory (O00OOOOO00OOOOOOO .path )#line:184:return self._is_directory(resource.path)
-    _is_directory =staticmethod (os .path .isdir )#line:186:_is_directory = staticmethod(os.path.isdir)
-    def iterator (O000000000O0OO0OO ,O0000O0OO00O00O00 ):#line:188:def iterator(self, resource_name):
-        O00OOO0O0O0O0OO00 =O000000000O0OO0OO .find (O0000O0OO00O00O00 )#line:189:resource = self.find(resource_name)
-        if O00OOO0O0O0O0OO00 is not None :#line:190:if resource is not None:
-            OOO00O0O00O00O000 =[O00OOO0O0O0O0OO00 ]#line:191:todo = [resource]
-            while OOO00O0O00O00O000 :#line:192:while todo:
-                O00OOO0O0O0O0OO00 =OOO00O0O00O00O000 .pop (0 )#line:193:resource = todo.pop(0)
-                yield O00OOO0O0O0O0OO00 #line:194:yield resource
-                if O00OOO0O0O0O0OO00 .is_container :#line:195:if resource.is_container:
-                    O00O0O00O0OOOO00O =O00OOO0O0O0O0OO00 .name #line:196:rname = resource.name
-                    for OO00O0OOOOO00OOO0 in O00OOO0O0O0O0OO00 .resources :#line:197:for name in resource.resources:
-                        if not O00O0O00O0OOOO00O :#line:198:if not rname:
-                            OOOOO000O000OOOO0 =OO00O0OOOOO00OOO0 #line:199:new_name = name
-                        else :#line:200:else:
-                            OOOOO000O000OOOO0 ='/'.join ([O00O0O00O0OOOO00O ,OO00O0OOOOO00OOO0 ])#line:201:new_name = '/'.join([rname, name])
-                        OO0O000O00000OO00 =O000000000O0OO0OO .find (OOOOO000O000OOOO0 )#line:202:child = self.find(new_name)
-                        if OO0O000O00000OO00 .is_container :#line:203:if child.is_container:
-                            OOO00O0O00O00O000 .append (OO0O000O00000OO00 )#line:204:todo.append(child)
-                        else :#line:205:else:
-                            yield OO0O000O00000OO00 #line:206:yield child
-class ZipResourceFinder (ResourceFinder ):#line:209:class ZipResourceFinder(ResourceFinder):
-    ""#line:212:"""
-    def __init__ (OO0O0OOO0OO0OO0OO ,O000O00O000O0OOO0 ):#line:213:def __init__(self, module):
-        super (ZipResourceFinder ,OO0O0OOO0OO0OO0OO ).__init__ (O000O00O000O0OOO0 )#line:214:super(ZipResourceFinder, self).__init__(module)
-        O0000OO00OO00OOOO =OO0O0OOO0OO0OO0OO .loader .archive #line:215:archive = self.loader.archive
-        OO0O0OOO0OO0OO0OO .prefix_len =1 +len (O0000OO00OO00OOOO )#line:216:self.prefix_len = 1 + len(archive)
-        if hasattr (OO0O0OOO0OO0OO0OO .loader ,'_files'):#line:218:if hasattr(self.loader, '_files'):
-            OO0O0OOO0OO0OO0OO ._files =OO0O0OOO0OO0OO0OO .loader ._files #line:219:self._files = self.loader._files
-        else :#line:220:else:
-            OO0O0OOO0OO0OO0OO ._files =zipimport ._zip_directory_cache [O0000OO00OO00OOOO ]#line:221:self._files = zipimport._zip_directory_cache[archive]
-        OO0O0OOO0OO0OO0OO .index =sorted (OO0O0OOO0OO0OO0OO ._files )#line:222:self.index = sorted(self._files)
-    def _adjust_path (OOO0OO0000OOO00O0 ,O0O00OO0OOO00000O ):#line:224:def _adjust_path(self, path):
-        return O0O00OO0OOO00000O #line:225:return path
-    def _find (OOOOOOOO0000OOOO0 ,OO0OOOOOO0O0OO0OO ):#line:227:def _find(self, path):
-        OO0OOOOOO0O0OO0OO =OO0OOOOOO0O0OO0OO [OOOOOOOO0000OOOO0 .prefix_len :]#line:228:path = path[self.prefix_len:]
-        if OO0OOOOOO0O0OO0OO in OOOOOOOO0000OOOO0 ._files :#line:229:if path in self._files:
-            OO0O000O0O0OOOOOO =True #line:230:result = True
-        else :#line:231:else:
-            if OO0OOOOOO0O0OO0OO and OO0OOOOOO0O0OO0OO [-1 ]!=os .sep :#line:232:if path and path[-1] != os.sep:
-                OO0OOOOOO0O0OO0OO =OO0OOOOOO0O0OO0OO +os .sep #line:233:path = path + os.sep
-            O00O0O0OOOO0O0O00 =bisect .bisect (OOOOOOOO0000OOOO0 .index ,OO0OOOOOO0O0OO0OO )#line:234:i = bisect.bisect(self.index, path)
-            try :#line:235:try:
-                OO0O000O0O0OOOOOO =OOOOOOOO0000OOOO0 .index [O00O0O0OOOO0O0O00 ].startswith (OO0OOOOOO0O0OO0OO )#line:236:result = self.index[i].startswith(path)
-            except IndexError :#line:237:except IndexError:
-                OO0O000O0O0OOOOOO =False #line:238:result = False
-        if not OO0O000O0O0OOOOOO :#line:239:if not result:
-            logger .debug ('_find failed: %r %r',OO0OOOOOO0O0OO0OO ,OOOOOOOO0000OOOO0 .loader .prefix )#line:240:logger.debug('_find failed: %r %r', path, self.loader.prefix)
-        else :#line:241:else:
-            logger .debug ('_find worked: %r %r',OO0OOOOOO0O0OO0OO ,OOOOOOOO0000OOOO0 .loader .prefix )#line:242:logger.debug('_find worked: %r %r', path, self.loader.prefix)
-        return OO0O000O0O0OOOOOO #line:243:return result
-    def get_cache_info (O000O0OO0O0O00OOO ,O00OOOO0OO0OOOOOO ):#line:245:def get_cache_info(self, resource):
-        O0O00O00000OO0OOO =O000O0OO0O0O00OOO .loader .archive #line:246:prefix = self.loader.archive
-        OOOO0O0000OO0OO0O =O00OOOO0OO0OOOOOO .path [1 +len (O0O00O00000OO0OOO ):]#line:247:path = resource.path[1 + len(prefix):]
-        return O0O00O00000OO0OOO ,OOOO0O0000OO0OO0O #line:248:return prefix, path
-    def get_bytes (OOO0O0O0OOOO0O0O0 ,OO0O000O0O0O00OO0 ):#line:250:def get_bytes(self, resource):
-        return OOO0O0O0OOOO0O0O0 .loader .get_data (OO0O000O0O0O00OO0 .path )#line:251:return self.loader.get_data(resource.path)
-    def get_stream (OOOOOO0O0000000O0 ,O00OOOOO0O00OO00O ):#line:253:def get_stream(self, resource):
-        return io .BytesIO (OOOOOO0O0000000O0 .get_bytes (O00OOOOO0O00OO00O ))#line:254:return io.BytesIO(self.get_bytes(resource))
-    def get_size (O0OO0OO00O00000OO ,O0OOO00OOOO00O000 ):#line:256:def get_size(self, resource):
-        OO0O0OOO00OOOO00O =O0OOO00OOOO00O000 .path [O0OO0OO00O00000OO .prefix_len :]#line:257:path = resource.path[self.prefix_len:]
-        return O0OO0OO00O00000OO ._files [OO0O0OOO00OOOO00O ][3 ]#line:258:return self._files[path][3]
-    def get_resources (O000OOO0000OOO000 ,OOOO000OO00O0O00O ):#line:260:def get_resources(self, resource):
-        O0O0OO0OOO0OO000O =OOOO000OO00O0O00O .path [O000OOO0000OOO000 .prefix_len :]#line:261:path = resource.path[self.prefix_len:]
-        if O0O0OO0OOO0OO000O and O0O0OO0OOO0OO000O [-1 ]!=os .sep :#line:262:if path and path[-1] != os.sep:
-            O0O0OO0OOO0OO000O +=os .sep #line:263:path += os.sep
-        OO00O00O00O00O0O0 =len (O0O0OO0OOO0OO000O )#line:264:plen = len(path)
-        OOO00O00O0OO0OO0O =set ()#line:265:result = set()
-        OO00OOO0O000OO0OO =bisect .bisect (O000OOO0000OOO000 .index ,O0O0OO0OOO0OO000O )#line:266:i = bisect.bisect(self.index, path)
-        while OO00OOO0O000OO0OO <len (O000OOO0000OOO000 .index ):#line:267:while i < len(self.index):
-            if not O000OOO0000OOO000 .index [OO00OOO0O000OO0OO ].startswith (O0O0OO0OOO0OO000O ):#line:268:if not self.index[i].startswith(path):
-                break #line:269:break
-            O0O000O0O00OO0OO0 =O000OOO0000OOO000 .index [OO00OOO0O000OO0OO ][OO00O00O00O00O0O0 :]#line:270:s = self.index[i][plen:]
-            OOO00O00O0OO0OO0O .add (O0O000O0O00OO0OO0 .split (os .sep ,1 )[0 ])#line:271:result.add(s.split(os.sep, 1)[0])   # only immediate children
-            OO00OOO0O000OO0OO +=1 #line:272:i += 1
-        return OOO00O00O0OO0OO0O #line:273:return result
-    def _is_directory (OO0OOO0OO0O000O0O ,O0000OOO0O0O0OO00 ):#line:275:def _is_directory(self, path):
-        O0000OOO0O0O0OO00 =O0000OOO0O0O0OO00 [OO0OOO0OO0O000O0O .prefix_len :]#line:276:path = path[self.prefix_len:]
-        if O0000OOO0O0O0OO00 and O0000OOO0O0O0OO00 [-1 ]!=os .sep :#line:277:if path and path[-1] != os.sep:
-            O0000OOO0O0O0OO00 +=os .sep #line:278:path += os.sep
-        O000O0O00OO0000OO =bisect .bisect (OO0OOO0OO0O000O0O .index ,O0000OOO0O0O0OO00 )#line:279:i = bisect.bisect(self.index, path)
-        try :#line:280:try:
-            OOOO0OO0O000OOOOO =OO0OOO0OO0O000O0O .index [O000O0O00OO0000OO ].startswith (O0000OOO0O0O0OO00 )#line:281:result = self.index[i].startswith(path)
-        except IndexError :#line:282:except IndexError:
-            OOOO0OO0O000OOOOO =False #line:283:result = False
-        return OOOO0OO0O000OOOOO #line:284:return result
-_O0O0OO000O0OOO0O0 ={type (None ):ResourceFinder ,zipimport .zipimporter :ZipResourceFinder }#line:289:}
-try :#line:291:try:
-    try :#line:293:try:
-        import _frozen_importlib_external as _fi #line:294:import _frozen_importlib_external as _fi
-    except ImportError :#line:295:except ImportError:
-        import _frozen_importlib as _fi #line:296:import _frozen_importlib as _fi
-    _O0O0OO000O0OOO0O0 [_fi .SourceFileLoader ]=ResourceFinder #line:297:_finder_registry[_fi.SourceFileLoader] = ResourceFinder
-    _O0O0OO000O0OOO0O0 [_fi .FileFinder ]=ResourceFinder #line:298:_finder_registry[_fi.FileFinder] = ResourceFinder
-    del _fi #line:299:del _fi
-except (ImportError ,AttributeError ):#line:300:except (ImportError, AttributeError):
-    pass #line:301:pass
-def register_finder (O0O0OOO000O0OOO0O ,O0O0OO0O0OO000OO0 ):#line:304:def register_finder(loader, finder_maker):
-    _O0O0OO000O0OOO0O0 [type (O0O0OOO000O0OOO0O )]=O0O0OO0O0OO000OO0 #line:305:_finder_registry[type(loader)] = finder_maker
-_OOOOO000O0O00OO00 ={}#line:307:_finder_cache = {}
-def finder (O0O0OO0OOO00O0000 ):#line:310:def finder(package):
-    ""#line:315:"""
-    if O0O0OO0OOO00O0000 in _OOOOO000O0O00OO00 :#line:316:if package in _finder_cache:
-        O00OOO0OO0OOOOOOO =_OOOOO000O0O00OO00 [O0O0OO0OOO00O0000 ]#line:317:result = _finder_cache[package]
-    else :#line:318:else:
-        if O0O0OO0OOO00O0000 not in sys .modules :#line:319:if package not in sys.modules:
-            __import__ (O0O0OO0OOO00O0000 )#line:320:__import__(package)
-        OOOO0O00OO0OOO00O =sys .modules [O0O0OO0OOO00O0000 ]#line:321:module = sys.modules[package]
-        O00O00O00O0O0OOOO =getattr (OOOO0O00OO0OOO00O ,'__path__',None )#line:322:path = getattr(module, '__path__', None)
-        if O00O00O00O0O0OOOO is None :#line:323:if path is None:
-            raise DistlibException ('You cannot get a finder for a module, ' 'only for a package')#line:325:'only for a package')
-        OOOOO00OOOO0O000O =getattr (OOOO0O00OO0OOO00O ,'__loader__',None )#line:326:loader = getattr(module, '__loader__', None)
-        O0OOOOOO00O00OO00 =_O0O0OO000O0OOO0O0 .get (type (OOOOO00OOOO0O000O ))#line:327:finder_maker = _finder_registry.get(type(loader))
-        if O0OOOOOO00O00OO00 is None :#line:328:if finder_maker is None:
-            raise DistlibException ('Unable to locate finder for %r'%O0O0OO0OOO00O0000 )#line:329:raise DistlibException('Unable to locate finder for %r' % package)
-        O00OOO0OO0OOOOOOO =O0OOOOOO00O00OO00 (OOOO0O00OO0OOO00O )#line:330:result = finder_maker(module)
-        _OOOOO000O0O00OO00 [O0O0OO0OOO00O0000 ]=O00OOO0OO0OOOOOOO #line:331:_finder_cache[package] = result
-    return O00OOO0OO0OOOOOOO #line:332:return result
-_O00OOO0O000OOOO0O =types .ModuleType (str ('__dummy__'))#line:335:_dummy_module = types.ModuleType(str('__dummy__'))
-def finder_for_path (OOO000O0OO0OOO0O0 ):#line:338:def finder_for_path(path):
-    ""#line:344:"""
-    OO00O0OOOOO0O0O0O =None #line:345:result = None
-    pkgutil .get_importer (OOO000O0OO0OOO0O0 )#line:347:pkgutil.get_importer(path)
-    OO0OOO0OO0O0OOO00 =sys .path_importer_cache .get (OOO000O0OO0OOO0O0 )#line:348:loader = sys.path_importer_cache.get(path)
-    O00O0000000OOO000 =_O0O0OO000O0OOO0O0 .get (type (OO0OOO0OO0O0OOO00 ))#line:349:finder = _finder_registry.get(type(loader))
-    if O00O0000000OOO000 :#line:350:if finder:
-        OO0O0OO00OOOO0O0O =_O00OOO0O000OOOO0O #line:351:module = _dummy_module
-        OO0O0OO00OOOO0O0O .__file__ =os .path .join (OOO000O0OO0OOO0O0 ,'')#line:352:module.__file__ = os.path.join(path, '')
-        OO0O0OO00OOOO0O0O .__loader__ =OO0OOO0OO0O0OOO00 #line:353:module.__loader__ = loader
-        OO00O0OOOOO0O0O0O =O00O0000000OOO000 (OO0O0OO00OOOO0O0O )#line:354:result = finder(module)
-    return OO00O0OOOOO0O0O0O #line:355:return result
+""#line:8
+import io #line:9
+from socket import SocketIO #line:11
+def backport_makefile (OO0O0O0O0O0000000 ,mode ="r",buffering =None ,encoding =None ,errors =None ,newline =None ):#line:15
+    ""#line:18
+    if not set (mode )<={"r","w","b"}:#line:19
+        raise ValueError ("invalid mode %r (only r, w, b allowed)"%(mode ,))#line:22
+    O0OOO0OOOO000O000 ="w"in mode #line:23
+    O0OOOOO0000O000O0 ="r"in mode or not O0OOO0OOOO000O000 #line:24
+    assert O0OOOOO0000O000O0 or O0OOO0OOOO000O000 #line:25
+    OO0O0OOO0OO0OOO00 ="b"in mode #line:26
+    OO0OO00O0OOOOOO00 =""#line:27
+    if O0OOOOO0000O000O0 :#line:28
+        OO0OO00O0OOOOOO00 +="r"#line:29
+    if O0OOO0OOOO000O000 :#line:30
+        OO0OO00O0OOOOOO00 +="w"#line:31
+    O000000O0O000OOOO =SocketIO (OO0O0O0O0O0000000 ,OO0OO00O0OOOOOO00 )#line:32
+    OO0O0O0O0O0000000 ._makefile_refs +=1 #line:33
+    if buffering is None :#line:34
+        buffering =-1 #line:35
+    if buffering <0 :#line:36
+        buffering =io .DEFAULT_BUFFER_SIZE #line:37
+    if buffering ==0 :#line:38
+        if not OO0O0OOO0OO0OOO00 :#line:39
+            raise ValueError ("unbuffered streams must be binary")#line:40
+        return O000000O0O000OOOO #line:41
+    if O0OOOOO0000O000O0 and O0OOO0OOOO000O000 :#line:42
+        O00OOOOOO00000O0O =io .BufferedRWPair (O000000O0O000OOOO ,O000000O0O000OOOO ,buffering )#line:43
+    elif O0OOOOO0000O000O0 :#line:44
+        O00OOOOOO00000O0O =io .BufferedReader (O000000O0O000OOOO ,buffering )#line:45
+    else :#line:46
+        assert O0OOO0OOOO000O000 #line:47
+        O00OOOOOO00000O0O =io .BufferedWriter (O000000O0O000OOOO ,buffering )#line:48
+    if OO0O0OOO0OO0OOO00 :#line:49
+        return O00OOOOOO00000O0O #line:50
+    OO0OOOO00O00OO0OO =io .TextIOWrapper (O00OOOOOO00000O0O ,encoding ,errors ,newline )#line:51
+    OO0OOOO00O00OO0OO .mode =mode #line:52
+    return OO0OOOO00O00OO0OO #line:53

@@ -1,146 +1,27 @@
-from __future__ import absolute_import #line:1
-import json #line:3
-import logging #line:4
-from pip ._vendor import six #line:6
-from pip ._vendor .six .moves import zip_longest #line:7
-from pip ._internal .cli import cmdoptions #line:9
-from pip ._internal .cli .base_command import Command #line:10
-from pip ._internal .exceptions import CommandError #line:11
-from pip ._internal .index import PackageFinder #line:12
-from pip ._internal .utils .misc import (dist_is_editable ,get_installed_distributions ,)#line:15
-from pip ._internal .utils .packaging import get_installer #line:16
-logger =logging .getLogger (__name__ )#line:18
-class ListCommand (Command ):#line:21
-    ""#line:26
-    name ='list'#line:27
-    usage ="""
-      %prog [options]"""#line:29
-    summary ='List installed packages.'#line:30
-    def __init__ (O0O00O0O0000OO0OO ,*O0000OO00O00O0000 ,**OO000000OO0O00000 ):#line:32
-        super (ListCommand ,O0O00O0O0000OO0OO ).__init__ (*O0000OO00O00O0000 ,**OO000000OO0O00000 )#line:33
-        OOO0OO0OO00OOO0O0 =O0O00O0O0000OO0OO .cmd_opts #line:35
-        OOO0OO0OO00OOO0O0 .add_option ('-o','--outdated',action ='store_true',default =False ,help ='List outdated packages')#line:41
-        OOO0OO0OO00OOO0O0 .add_option ('-u','--uptodate',action ='store_true',default =False ,help ='List uptodate packages')#line:46
-        OOO0OO0OO00OOO0O0 .add_option ('-e','--editable',action ='store_true',default =False ,help ='List editable projects.')#line:51
-        OOO0OO0OO00OOO0O0 .add_option ('-l','--local',action ='store_true',default =False ,help =('If in a virtualenv that has global access, do not list ' 'globally-installed packages.'),)#line:58
-        O0O00O0O0000OO0OO .cmd_opts .add_option ('--user',dest ='user',action ='store_true',default =False ,help ='Only output packages installed in user-site.')#line:64
-        OOO0OO0OO00OOO0O0 .add_option ('--pre',action ='store_true',default =False ,help =("Include pre-release and development versions. By default, " "pip only finds stable versions."),)#line:72
-        OOO0OO0OO00OOO0O0 .add_option ('--format',action ='store',dest ='list_format',default ="columns",choices =('columns','freeze','json'),help ="Select the output format among: columns (default), freeze, " "or json",)#line:82
-        OOO0OO0OO00OOO0O0 .add_option ('--not-required',action ='store_true',dest ='not_required',help ="List packages that are not dependencies of " "installed packages.",)#line:90
-        OOO0OO0OO00OOO0O0 .add_option ('--exclude-editable',action ='store_false',dest ='include_editable',help ='Exclude editable package from output.',)#line:97
-        OOO0OO0OO00OOO0O0 .add_option ('--include-editable',action ='store_true',dest ='include_editable',help ='Include editable package from output.',default =True ,)#line:104
-        OOO000O000000O000 =cmdoptions .make_option_group (cmdoptions .index_group ,O0O00O0O0000OO0OO .parser )#line:107
-        O0O00O0O0000OO0OO .parser .insert_option_group (0 ,OOO000O000000O000 )#line:109
-        O0O00O0O0000OO0OO .parser .insert_option_group (0 ,OOO0OO0OO00OOO0O0 )#line:110
-    def _build_package_finder (OO00OOOOO0OO0O0OO ,OO0000OO0O0OO0000 ,OO00OOOOO000O0O00 ,OO0O00OO0O0OO0O00 ):#line:112
-        ""#line:115
-        return PackageFinder (find_links =OO0000OO0O0OO0000 .find_links ,index_urls =OO00OOOOO000O0O00 ,allow_all_prereleases =OO0000OO0O0OO0000 .pre ,trusted_hosts =OO0000OO0O0OO0000 .trusted_hosts ,session =OO0O00OO0O0OO0O00 ,)#line:122
-    def run (OOO000000OO0O0000 ,OO0OOO00OO0O0OOO0 ,OOO00O0OOOO00O0OO ):#line:124
-        if OO0OOO00OO0O0OOO0 .outdated and OO0OOO00OO0O0OOO0 .uptodate :#line:125
-            raise CommandError ("Options --outdated and --uptodate cannot be combined.")#line:127
-        OOOO00O00OOOOOOO0 =get_installed_distributions (local_only =OO0OOO00OO0O0OOO0 .local ,user_only =OO0OOO00OO0O0OOO0 .user ,editables_only =OO0OOO00OO0O0OOO0 .editable ,include_editables =OO0OOO00OO0O0OOO0 .include_editable ,)#line:134
-        if OO0OOO00OO0O0OOO0 .not_required :#line:140
-            OOOO00O00OOOOOOO0 =OOO000000OO0O0000 .get_not_required (OOOO00O00OOOOOOO0 ,OO0OOO00OO0O0OOO0 )#line:141
-        if OO0OOO00OO0O0OOO0 .outdated :#line:143
-            OOOO00O00OOOOOOO0 =OOO000000OO0O0000 .get_outdated (OOOO00O00OOOOOOO0 ,OO0OOO00OO0O0OOO0 )#line:144
-        elif OO0OOO00OO0O0OOO0 .uptodate :#line:145
-            OOOO00O00OOOOOOO0 =OOO000000OO0O0000 .get_uptodate (OOOO00O00OOOOOOO0 ,OO0OOO00OO0O0OOO0 )#line:146
-        OOO000000OO0O0000 .output_package_listing (OOOO00O00OOOOOOO0 ,OO0OOO00OO0O0OOO0 )#line:148
-    def get_outdated (OO0O00OOOOOOO00OO ,OOOOOO0000O00O0OO ,O0O0O0O0O00000000 ):#line:150
-        return [OOOO0OO0O00O0OOOO for OOOO0OO0O00O0OOOO in OO0O00OOOOOOO00OO .iter_packages_latest_infos (OOOOOO0000O00O0OO ,O0O0O0O0O00000000 )if OOOO0OO0O00O0OOOO .latest_version >OOOO0OO0O00O0OOOO .parsed_version ]#line:154
-    def get_uptodate (O00OOO0O0OOO0000O ,O0O0OO0OO00O00000 ,OO0O00O0O0OOO0OO0 ):#line:156
-        return [O0O000OOO00O00O0O for O0O000OOO00O00O0O in O00OOO0O0OOO0000O .iter_packages_latest_infos (O0O0OO0OO00O00000 ,OO0O00O0O0OOO0OO0 )if O0O000OOO00O00O0O .latest_version ==O0O000OOO00O00O0O .parsed_version ]#line:160
-    def get_not_required (O00000OOO0000OO0O ,OOO0OO0O00O0OOOO0 ,OO0OO0OOO0OO0O0O0 ):#line:162
-        O0O0OO00O00000O00 =set ()#line:163
-        for OOOO000O0OOO0OOO0 in OOO0OO0O00O0OOOO0 :#line:164
-            O0O0OO00O00000O00 .update (O0O000OO000OO0000 .key for O0O000OO000OO0000 in OOOO000O0OOO0OOO0 .requires ())#line:165
-        return {O000O00000OO00O0O for O000O00000OO00O0O in OOO0OO0O00O0OOOO0 if O000O00000OO00O0O .key not in O0O0OO00O00000O00 }#line:166
-    def iter_packages_latest_infos (OO0O0000OO0OO0000 ,OO000O0O00O00OOOO ,OOOOO0O0O00O000O0 ):#line:168
-        OOOO0000O0OOO0OO0 =[OOOOO0O0O00O000O0 .index_url ]+OOOOO0O0O00O000O0 .extra_index_urls #line:169
-        if OOOOO0O0O00O000O0 .no_index :#line:170
-            logger .debug ('Ignoring indexes: %s',','.join (OOOO0000O0OOO0OO0 ))#line:171
-            OOOO0000O0OOO0OO0 =[]#line:172
-        with OO0O0000OO0OO0000 ._build_session (OOOOO0O0O00O000O0 )as OOO0OOOOOOOOO000O :#line:174
-            OO00OOOO00O0OO00O =OO0O0000OO0OO0000 ._build_package_finder (OOOOO0O0O00O000O0 ,OOOO0000O0OOO0OO0 ,OOO0OOOOOOOOO000O )#line:175
-            for O0000OOO0000O0OOO in OO000O0O00O00OOOO :#line:177
-                OO0OO0OO0O00OO0OO ='unknown'#line:178
-                O00O0O000O00O0000 =OO00OOOO00O0OO00O .find_all_candidates (O0000OOO0000O0OOO .key )#line:179
-                if not OOOOO0O0O00O000O0 .pre :#line:180
-                    O00O0O000O00O0000 =[O0O00O00000OO000O for O0O00O00000OO000O in O00O0O000O00O0000 if not O0O00O00000OO000O .version .is_prerelease ]#line:183
-                if not O00O0O000O00O0000 :#line:185
-                    continue #line:186
-                O0OO0O00O0OOO000O =max (O00O0O000O00O0000 ,key =OO00OOOO00O0OO00O ._candidate_sort_key )#line:188
-                OO000OO00000OO000 =O0OO0O00O0OOO000O .version #line:189
-                if O0OO0O00O0OOO000O .location .is_wheel :#line:190
-                    OO0OO0OO0O00OO0OO ='wheel'#line:191
-                else :#line:192
-                    OO0OO0OO0O00OO0OO ='sdist'#line:193
-                O0000OOO0000O0OOO .latest_version =OO000OO00000OO000 #line:195
-                O0000OOO0000O0OOO .latest_filetype =OO0OO0OO0O00OO0OO #line:196
-                yield O0000OOO0000O0OOO #line:197
-    def output_package_listing (OO0OO00OOO0000OOO ,OOO0OOO0O00000OO0 ,O000OOO000OOO0000 ):#line:199
-        OOO0OOO0O00000OO0 =sorted (OOO0OOO0O00000OO0 ,key =lambda OOOO0O0000O00O0OO :OOOO0O0000O00O0OO .project_name .lower (),)#line:203
-        if O000OOO000OOO0000 .list_format =='columns'and OOO0OOO0O00000OO0 :#line:204
-            OOO00O0OO0OOOOO00 ,OOO00OO00O0O0OOO0 =format_for_columns (OOO0OOO0O00000OO0 ,O000OOO000OOO0000 )#line:205
-            OO0OO00OOO0000OOO .output_package_listing_columns (OOO00O0OO0OOOOO00 ,OOO00OO00O0O0OOO0 )#line:206
-        elif O000OOO000OOO0000 .list_format =='freeze':#line:207
-            for OOOO0O0OO00000000 in OOO0OOO0O00000OO0 :#line:208
-                if O000OOO000OOO0000 .verbose >=1 :#line:209
-                    logger .info ("%s==%s (%s)",OOOO0O0OO00000000 .project_name ,OOOO0O0OO00000000 .version ,OOOO0O0OO00000000 .location )#line:211
-                else :#line:212
-                    logger .info ("%s==%s",OOOO0O0OO00000000 .project_name ,OOOO0O0OO00000000 .version )#line:213
-        elif O000OOO000OOO0000 .list_format =='json':#line:214
-            logger .info (format_for_json (OOO0OOO0O00000OO0 ,O000OOO000OOO0000 ))#line:215
-    def output_package_listing_columns (OOOOOOO00OOO00O00 ,O000O0OOOOOO0OOOO ,O00O0OO0OOO00O00O ):#line:217
-        if len (O000O0OOOOOO0OOOO )>0 :#line:219
-            O000O0OOOOOO0OOOO .insert (0 ,O00O0OO0OOO00O00O )#line:220
-        O000O000O0OO0OO0O ,O0OO0OOO00000O000 =tabulate (O000O0OOOOOO0OOOO )#line:222
-        if len (O000O0OOOOOO0OOOO )>0 :#line:225
-            O000O000O0OO0OO0O .insert (1 ," ".join (map (lambda O0000OO00O000O0OO :'-'*O0000OO00O000O0OO ,O0OO0OOO00000O000 )))#line:226
-        for O0O0OOO0O0O0O000O in O000O000O0OO0OO0O :#line:228
-            logger .info (O0O0OOO0O0O0O000O )#line:229
-def tabulate (O0O0OO00OO0O0000O ):#line:232
-    assert len (O0O0OO00OO0O0000O )>0 #line:235
-    O0OOOO0O000OO0OOO =[0 ]*max (len (OOOOOO0OO0OO0000O )for OOOOOO0OO0OO0000O in O0O0OO00OO0O0000O )#line:237
-    for OOO00OO0O0000O00O in O0O0OO00OO0O0000O :#line:238
-        O0OOOO0O000OO0OOO =[max (O00OOO0000OOOO0O0 ,len (str (OOO0O000O000O00O0 )))for O00OOO0000OOOO0O0 ,OOO0O000O000O00O0 in zip_longest (O0OOOO0O000OO0OOO ,OOO00OO0O0000O00O )]#line:239
-    O0000OOOO0OO00O0O =[]#line:241
-    for OOO00OO0O0000O00O in O0O0OO00OO0O0000O :#line:242
-        O0O0OOOO0OO0O0000 =" ".join ([str (OO0O0000O0000OOO0 ).ljust (OO0OOOOO0OO000OO0 )if OO0O0000O0000OOO0 is not None else ''for OO0OOOOO0OO000OO0 ,OO0O0000O0000OOO0 in zip_longest (O0OOOO0O000OO0OOO ,OOO00OO0O0000O00O )])#line:244
-        O0000OOOO0OO00O0O .append (O0O0OOOO0OO0O0000 )#line:245
-    return O0000OOOO0OO00O0O ,O0OOOO0O000OO0OOO #line:247
-def format_for_columns (OOOO00000O0OO0OO0 ,O000O00O0OO0OO00O ):#line:250
-    ""#line:254
-    O0000O00O000O00O0 =O000O00O0OO0OO00O .outdated #line:255
-    if O0000O00O000O00O0 :#line:257
-        O00O0O0O0OO0OOOOO =["Package","Version","Latest","Type"]#line:258
-    else :#line:259
-        O00O0O0O0OO0OOOOO =["Package","Version"]#line:260
-    O0O0O000OOOOOOOOO =[]#line:262
-    if O000O00O0OO0OO00O .verbose >=1 or any (dist_is_editable (O00OOOO0O0O0OOOOO )for O00OOOO0O0O0OOOOO in OOOO00000O0OO0OO0 ):#line:263
-        O00O0O0O0OO0OOOOO .append ("Location")#line:264
-    if O000O00O0OO0OO00O .verbose >=1 :#line:265
-        O00O0O0O0OO0OOOOO .append ("Installer")#line:266
-    for O0000O0O0OO0OOO0O in OOOO00000O0OO0OO0 :#line:268
-        OO000OOO0O00OOO0O =[O0000O0O0OO0OOO0O .project_name ,O0000O0O0OO0OOO0O .version ]#line:271
-        if O0000O00O000O00O0 :#line:273
-            OO000OOO0O00OOO0O .append (O0000O0O0OO0OOO0O .latest_version )#line:274
-            OO000OOO0O00OOO0O .append (O0000O0O0OO0OOO0O .latest_filetype )#line:275
-        if O000O00O0OO0OO00O .verbose >=1 or dist_is_editable (O0000O0O0OO0OOO0O ):#line:277
-            OO000OOO0O00OOO0O .append (O0000O0O0OO0OOO0O .location )#line:278
-        if O000O00O0OO0OO00O .verbose >=1 :#line:279
-            OO000OOO0O00OOO0O .append (get_installer (O0000O0O0OO0OOO0O ))#line:280
-        O0O0O000OOOOOOOOO .append (OO000OOO0O00OOO0O )#line:282
-    return O0O0O000OOOOOOOOO ,O00O0O0O0OO0OOOOO #line:284
-def format_for_json (OO00O0000O0OO0O0O ,O0OOOO000O00OOO00 ):#line:287
-    O0OO00OO0OO0OO000 =[]#line:288
-    for OO0000OOOO000O000 in OO00O0000O0OO0O0O :#line:289
-        O0OOOOO0OOOOO0O00 ={'name':OO0000OOOO000O000 .project_name ,'version':six .text_type (OO0000OOOO000O000 .version ),}#line:293
-        if O0OOOO000O00OOO00 .verbose >=1 :#line:294
-            O0OOOOO0OOOOO0O00 ['location']=OO0000OOOO000O000 .location #line:295
-            O0OOOOO0OOOOO0O00 ['installer']=get_installer (OO0000OOOO000O000 )#line:296
-        if O0OOOO000O00OOO00 .outdated :#line:297
-            O0OOOOO0OOOOO0O00 ['latest_version']=six .text_type (OO0000OOOO000O000 .latest_version )#line:298
-            O0OOOOO0OOOOO0O00 ['latest_filetype']=OO0000OOOO000O000 .latest_filetype #line:299
-        O0OO00OO0OO0OO000 .append (O0OOOOO0OOOOO0O00 )#line:300
-    return json .dumps (O0OO00OO0OO0OO000 )#line:301
+import random #line:1
+import math #line:2
+alpha ="abcdefghijklmnopqrstuvwxyz"#line:4
+num ="0123456789"#line:5
+special ="@#$%&*"#line:6
+pass_len =int (input ("Enter Password Length"))#line:9
+alpha_len =pass_len //2 #line:12
+num_len =math .ceil (pass_len *30 /100 )#line:13
+special_len =pass_len -(alpha_len +num_len )#line:14
+password =[]#line:17
+def generate_pass (O0OOO00O0O000O0OO ,O000O0O0OO0O0OOOO ,is_alpha =False ):#line:20
+    for O0000OO0OOOOOO000 in range (O0OOO00O0O000O0OO ):#line:21
+        OO0OO00OO0O00000O =random .randint (0 ,len (O000O0O0OO0O0OOOO )-1 )#line:22
+        O0O0O00O00O00O00O =O000O0O0OO0O0OOOO [OO0OO00OO0O00000O ]#line:23
+        if is_alpha :#line:24
+            O0OO00OOO00OOO00O =random .randint (0 ,1 )#line:25
+            if O0OO00OOO00OOO00O ==1 :#line:26
+                O0O0O00O00O00O00O =O0O0O00O00O00O00O .upper ()#line:27
+        password .append (O0O0O00O00O00O00O )#line:28
+generate_pass (alpha_len ,alpha ,True )#line:32
+generate_pass (num_len ,num )#line:34
+generate_pass (special_len ,special )#line:36
+random .shuffle (password )#line:38
+gen_password =""#line:40
+for i in password :#line:41
+    gen_password =gen_password +str (i )#line:42
+print (gen_password )#line:43

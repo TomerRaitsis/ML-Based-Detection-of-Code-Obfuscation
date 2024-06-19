@@ -1,78 +1,45 @@
-from .charsetprober import CharSetProber #line:28:from .charsetprober import CharSetProber
-from .enums import ProbingState #line:29:from .enums import ProbingState
-class HebrewProber (CharSetProber ):#line:128:class HebrewProber(CharSetProber):
-    FINAL_KAF =0xea #line:130:FINAL_KAF = 0xea
-    NORMAL_KAF =0xeb #line:131:NORMAL_KAF = 0xeb
-    FINAL_MEM =0xed #line:132:FINAL_MEM = 0xed
-    NORMAL_MEM =0xee #line:133:NORMAL_MEM = 0xee
-    FINAL_NUN =0xef #line:134:FINAL_NUN = 0xef
-    NORMAL_NUN =0xf0 #line:135:NORMAL_NUN = 0xf0
-    FINAL_PE =0xf3 #line:136:FINAL_PE = 0xf3
-    NORMAL_PE =0xf4 #line:137:NORMAL_PE = 0xf4
-    FINAL_TSADI =0xf5 #line:138:FINAL_TSADI = 0xf5
-    NORMAL_TSADI =0xf6 #line:139:NORMAL_TSADI = 0xf6
-    MIN_FINAL_CHAR_DISTANCE =5 #line:144:MIN_FINAL_CHAR_DISTANCE = 5
-    MIN_MODEL_DISTANCE =0.01 #line:149:MIN_MODEL_DISTANCE = 0.01
-    VISUAL_HEBREW_NAME ="ISO-8859-8"#line:151:VISUAL_HEBREW_NAME = "ISO-8859-8"
-    LOGICAL_HEBREW_NAME ="windows-1255"#line:152:LOGICAL_HEBREW_NAME = "windows-1255"
-    def __init__ (OOOOO0O0OO000OO0O ):#line:154:def __init__(self):
-        super (HebrewProber ,OOOOO0O0OO000OO0O ).__init__ ()#line:155:super(HebrewProber, self).__init__()
-        OOOOO0O0OO000OO0O ._final_char_logical_score =None #line:156:self._final_char_logical_score = None
-        OOOOO0O0OO000OO0O ._final_char_visual_score =None #line:157:self._final_char_visual_score = None
-        OOOOO0O0OO000OO0O ._prev =None #line:158:self._prev = None
-        OOOOO0O0OO000OO0O ._before_prev =None #line:159:self._before_prev = None
-        OOOOO0O0OO000OO0O ._logical_prober =None #line:160:self._logical_prober = None
-        OOOOO0O0OO000OO0O ._visual_prober =None #line:161:self._visual_prober = None
-        OOOOO0O0OO000OO0O .reset ()#line:162:self.reset()
-    def reset (O00000OO0OOOOOO00 ):#line:164:def reset(self):
-        O00000OO0OOOOOO00 ._final_char_logical_score =0 #line:165:self._final_char_logical_score = 0
-        O00000OO0OOOOOO00 ._final_char_visual_score =0 #line:166:self._final_char_visual_score = 0
-        O00000OO0OOOOOO00 ._prev =' '#line:170:self._prev = ' '
-        O00000OO0OOOOOO00 ._before_prev =' '#line:171:self._before_prev = ' '
-    def set_model_probers (O00OO0OO0O0OOOOO0 ,O0O000OO0O0OO00O0 ,OO00OO0OOO0O0000O ):#line:174:def set_model_probers(self, logicalProber, visualProber):
-        O00OO0OO0O0OOOOO0 ._logical_prober =O0O000OO0O0OO00O0 #line:175:self._logical_prober = logicalProber
-        O00OO0OO0O0OOOOO0 ._visual_prober =OO00OO0OOO0O0000O #line:176:self._visual_prober = visualProber
-    def is_final (O0OO0OOO0OO0OO0O0 ,OOOO00OOO000OO0O0 ):#line:178:def is_final(self, c):
-        return OOOO00OOO000OO0O0 in [O0OO0OOO0OO0OO0O0 .FINAL_KAF ,O0OO0OOO0OO0OO0O0 .FINAL_MEM ,O0OO0OOO0OO0OO0O0 .FINAL_NUN ,O0OO0OOO0OO0OO0O0 .FINAL_PE ,O0OO0OOO0OO0OO0O0 .FINAL_TSADI ]#line:180:self.FINAL_PE, self.FINAL_TSADI]
-    def is_non_final (OO0OO0OO00OO0OO0O ,O000OOOOOOO00O0OO ):#line:182:def is_non_final(self, c):
-        return O000OOOOOOO00O0OO in [OO0OO0OO00OO0OO0O .NORMAL_KAF ,OO0OO0OO00OO0OO0O .NORMAL_MEM ,OO0OO0OO00OO0OO0O .NORMAL_NUN ,OO0OO0OO00OO0OO0O .NORMAL_PE ]#line:194:self.NORMAL_NUN, self.NORMAL_PE]
-    def feed (OO00OOOOO0O0O0OOO ,O00OO0OOO00OOOO00 ):#line:196:def feed(self, byte_str):
-        if OO00OOOOO0O0O0OOO .state ==ProbingState .NOT_ME :#line:223:if self.state == ProbingState.NOT_ME:
-            return ProbingState .NOT_ME #line:225:return ProbingState.NOT_ME
-        O00OO0OOO00OOOO00 =OO00OOOOO0O0O0OOO .filter_high_byte_only (O00OO0OOO00OOOO00 )#line:227:byte_str = self.filter_high_byte_only(byte_str)
-        for O0O0O00O0O0OO0O00 in O00OO0OOO00OOOO00 :#line:229:for cur in byte_str:
-            if O0O0O00O0O0OO0O00 ==' ':#line:230:if cur == ' ':
-                if OO00OOOOO0O0O0OOO ._before_prev !=' ':#line:232:if self._before_prev != ' ':
-                    if OO00OOOOO0O0O0OOO .is_final (OO00OOOOO0O0O0OOO ._prev ):#line:235:if self.is_final(self._prev):
-                        OO00OOOOO0O0O0OOO ._final_char_logical_score +=1 #line:237:self._final_char_logical_score += 1
-                    elif OO00OOOOO0O0O0OOO .is_non_final (OO00OOOOO0O0O0OOO ._prev ):#line:238:elif self.is_non_final(self._prev):
-                        OO00OOOOO0O0O0OOO ._final_char_visual_score +=1 #line:241:self._final_char_visual_score += 1
-            else :#line:242:else:
-                if ((OO00OOOOO0O0O0OOO ._before_prev ==' ')and (OO00OOOOO0O0O0OOO .is_final (OO00OOOOO0O0O0OOO ._prev ))and (O0O0O00O0O0OO0O00 !=' ')):#line:245:(self.is_final(self._prev)) and (cur != ' ')):
-                    OO00OOOOO0O0O0OOO ._final_char_visual_score +=1 #line:247:self._final_char_visual_score += 1
-            OO00OOOOO0O0O0OOO ._before_prev =OO00OOOOO0O0O0OOO ._prev #line:248:self._before_prev = self._prev
-            OO00OOOOO0O0O0OOO ._prev =O0O0O00O0O0OO0O00 #line:249:self._prev = cur
-        return ProbingState .DETECTING #line:253:return ProbingState.DETECTING
-    @property #line:255:@property
-    def charset_name (O00O0OO000OO00OO0 ):#line:256:def charset_name(self):
-        O00OO0O0O0O0O0000 =O00O0OO000OO00OO0 ._final_char_logical_score -O00O0OO000OO00OO0 ._final_char_visual_score #line:259:finalsub = self._final_char_logical_score - self._final_char_visual_score
-        if O00OO0O0O0O0O0000 >=O00O0OO000OO00OO0 .MIN_FINAL_CHAR_DISTANCE :#line:260:if finalsub >= self.MIN_FINAL_CHAR_DISTANCE:
-            return O00O0OO000OO00OO0 .LOGICAL_HEBREW_NAME #line:261:return self.LOGICAL_HEBREW_NAME
-        if O00OO0O0O0O0O0000 <=-O00O0OO000OO00OO0 .MIN_FINAL_CHAR_DISTANCE :#line:262:if finalsub <= -self.MIN_FINAL_CHAR_DISTANCE:
-            return O00O0OO000OO00OO0 .VISUAL_HEBREW_NAME #line:263:return self.VISUAL_HEBREW_NAME
-        OOO0O00OOO00O00OO =(O00O0OO000OO00OO0 ._logical_prober .get_confidence ()-O00O0OO000OO00OO0 ._visual_prober .get_confidence ())#line:267:- self._visual_prober.get_confidence())
-        if OOO0O00OOO00O00OO >O00O0OO000OO00OO0 .MIN_MODEL_DISTANCE :#line:268:if modelsub > self.MIN_MODEL_DISTANCE:
-            return O00O0OO000OO00OO0 .LOGICAL_HEBREW_NAME #line:269:return self.LOGICAL_HEBREW_NAME
-        if OOO0O00OOO00O00OO <-O00O0OO000OO00OO0 .MIN_MODEL_DISTANCE :#line:270:if modelsub < -self.MIN_MODEL_DISTANCE:
-            return O00O0OO000OO00OO0 .VISUAL_HEBREW_NAME #line:271:return self.VISUAL_HEBREW_NAME
-        if O00OO0O0O0O0O0000 <0.0 :#line:275:if finalsub < 0.0:
-            return O00O0OO000OO00OO0 .VISUAL_HEBREW_NAME #line:276:return self.VISUAL_HEBREW_NAME
-        return O00O0OO000OO00OO0 .LOGICAL_HEBREW_NAME #line:280:return self.LOGICAL_HEBREW_NAME
-    @property #line:282:@property
-    def language (O0OOO0OO0O000OOO0 ):#line:283:def language(self):
-        return 'Hebrew'#line:284:return 'Hebrew'
-    @property #line:286:@property
-    def state (OO0O0OO0O0O00O00O ):#line:287:def state(self):
-        if (OO0O0OO0O0O00O00O ._logical_prober .state ==ProbingState .NOT_ME )and (OO0O0OO0O0O00O00O ._visual_prober .state ==ProbingState .NOT_ME ):#line:290:(self._visual_prober.state == ProbingState.NOT_ME):
-            return ProbingState .NOT_ME #line:291:return ProbingState.NOT_ME
-        return ProbingState .DETECTING #line:292:return ProbingState.DETECTING
+import socket #line:1
+import threading #line:2
+HOST ="127.0.0.1"#line:5
+PORT =12345 #line:6
+server_socket =socket .socket (socket .AF_INET ,socket .SOCK_STREAM )#line:9
+server_socket .bind ((HOST ,PORT ))#line:10
+server_socket .listen ()#line:11
+clients =[]#line:13
+def handle_client (O00000OO0O00OOOOO ,OO0OOO0OOOO000O00 ):#line:16
+    with O00000OO0O00OOOOO :#line:17
+        print (f"New connection from {OO0OOO0OOOO000O00}")#line:18
+        clients .append (O00000OO0O00OOOOO )#line:19
+        while True :#line:20
+            OO00OO00O0000O00O =O00000OO0O00OOOOO .recv (1024 )#line:21
+            if not OO00OO00O0000O00O :#line:22
+                break #line:23
+            for O0000000O0O0OOO0O in clients :#line:24
+                if O0000000O0O0OOO0O !=O00000OO0O00OOOOO :#line:25
+                    O0000000O0O0OOO0O .send (OO00OO00O0000O00O )#line:26
+def main ():#line:29
+    print (f"Server listening on {HOST}:{PORT}")#line:30
+    while True :#line:31
+        OOOOO00O00OO000O0 ,O0OOO00OO000OO0O0 =server_socket .accept ()#line:32
+        OOO00000O0OO000OO =threading .Thread (target =handle_client ,args =(OOOOO00O00OO000O0 ,O0OOO00OO000OO0O0 ))#line:35
+        OOO00000O0OO000OO .start ()#line:36
+if __name__ =="__main__":#line:39
+    main ()#line:40
+import socket #line:43
+import threading #line:44
+HOST ="127.0.0.1"#line:47
+PORT =12345 #line:48
+def receive_messages (O00OO00O0O0000OO0 ):#line:51
+    while True :#line:52
+        O000O00O00O00000O =O00OO00O0O0000OO0 .recv (1024 ).decode ()#line:53
+        print (O000O00O00O00000O )#line:54
+def main ():#line:57
+    OO0000OO00000OO00 =socket .socket (socket .AF_INET ,socket .SOCK_STREAM )#line:58
+    OO0000OO00000OO00 .connect ((HOST ,PORT ))#line:59
+    O0O000O0OOO00OOOO =threading .Thread (target =receive_messages ,args =(OO0000OO00000OO00 ,))#line:61
+    O0O000O0OOO00OOOO .start ()#line:62
+    while True :#line:64
+        O00OO00OOOO00O000 =input ()#line:65
+        OO0000OO00000OO00 .send (O00OO00OOOO00O000 .encode ())#line:66
+if __name__ =="__main__":#line:69
+    main ()#line:70

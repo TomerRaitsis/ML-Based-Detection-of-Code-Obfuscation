@@ -1,226 +1,29 @@
-from __future__ import absolute_import ,division #line:1:from __future__ import absolute_import, division
-import contextlib #line:3:import contextlib
-import itertools #line:4:import itertools
-import logging #line:5:import logging
-import sys #line:6:import sys
-import time #line:7:import time
-from signal import SIGINT ,default_int_handler ,signal #line:8:from signal import SIGINT, default_int_handler, signal
-from pip ._vendor import six #line:10:from pip._vendor import six
-from pip ._vendor .progress .bar import (Bar ,ChargingBar ,FillingCirclesBar ,FillingSquaresBar ,IncrementalBar ,ShadyBar ,)#line:14:)
-from pip ._vendor .progress .helpers import HIDE_CURSOR ,SHOW_CURSOR ,WritelnMixin #line:15:from pip._vendor.progress.helpers import HIDE_CURSOR, SHOW_CURSOR, WritelnMixin
-from pip ._vendor .progress .spinner import Spinner #line:16:from pip._vendor.progress.spinner import Spinner
-from pip ._internal .utils .compat import WINDOWS #line:18:from pip._internal.utils.compat import WINDOWS
-from pip ._internal .utils .logging import get_indentation #line:19:from pip._internal.utils.logging import get_indentation
-from pip ._internal .utils .misc import format_size #line:20:from pip._internal.utils.misc import format_size
-from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:21:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-if MYPY_CHECK_RUNNING :#line:23:if MYPY_CHECK_RUNNING:
-    from typing import Any ,Iterator ,IO #line:24:from typing import Any, Iterator, IO  # noqa: F401
-try :#line:26:try:
-    from pip ._vendor import colorama #line:27:from pip._vendor import colorama
-except Exception :#line:30:except Exception:
-    colorama =None #line:31:colorama = None
-logger =logging .getLogger (__name__ )#line:33:logger = logging.getLogger(__name__)
-def _OOO000OO00OO00OOO (OOOOOOO00O0OOO000 ,OO0O000OO0O00O0O0 ):#line:36:def _select_progress_class(preferred, fallback):
-    OO0OOO00O0O0O0O0O =getattr (OOOOOOO00O0OOO000 .file ,"encoding",None )#line:37:encoding = getattr(preferred.file, "encoding", None)
-    if not OO0OOO00O0O0O0O0O :#line:41:if not encoding:
-        return OO0O000OO0O00O0O0 #line:42:return fallback
-    O0OOOO0000OOOOOO0 =[getattr (OOOOOOO00O0OOO000 ,"empty_fill",six .text_type ()),getattr (OOOOOOO00O0OOO000 ,"fill",six .text_type ()),]#line:49:]
-    O0OOOO0000OOOOOO0 +=list (getattr (OOOOOOO00O0OOO000 ,"phases",[]))#line:50:characters += list(getattr(preferred, "phases", []))
-    try :#line:55:try:
-        six .text_type ().join (O0OOOO0000OOOOOO0 ).encode (OO0OOO00O0O0O0O0O )#line:56:six.text_type().join(characters).encode(encoding)
-    except UnicodeEncodeError :#line:57:except UnicodeEncodeError:
-        return OO0O000OO0O00O0O0 #line:58:return fallback
-    else :#line:59:else:
-        return OOOOOOO00O0OOO000 #line:60:return preferred
-_OOOO00000O0O0O0O0 =_OOO000OO00OO00OOO (IncrementalBar ,Bar )#line:63:_BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Any
-class InterruptibleMixin (object ):#line:66:class InterruptibleMixin(object):
-    ""#line:82:"""
-    def __init__ (O00O00OOOOOOO0O00 ,*OO0OO0OOO0O000OOO ,**O00O0OO0000OOOOOO ):#line:84:def __init__(self, *args, **kwargs):
-        ""#line:87:"""
-        super (InterruptibleMixin ,O00O00OOOOOOO0O00 ).__init__ (*OO0OO0OOO0O000OOO ,**O00O0OO0000OOOOOO )#line:88:super(InterruptibleMixin, self).__init__(*args, **kwargs)
-        O00O00OOOOOOO0O00 .original_handler =signal (SIGINT ,O00O00OOOOOOO0O00 .handle_sigint )#line:90:self.original_handler = signal(SIGINT, self.handle_sigint)
-        if O00O00OOOOOOO0O00 .original_handler is None :#line:97:if self.original_handler is None:
-            O00O00OOOOOOO0O00 .original_handler =default_int_handler #line:98:self.original_handler = default_int_handler
-    def finish (O000OOOOOO0O0OO00 ):#line:100:def finish(self):
-        ""#line:106:"""
-        super (InterruptibleMixin ,O000OOOOOO0O0OO00 ).finish ()#line:107:super(InterruptibleMixin, self).finish()
-        signal (SIGINT ,O000OOOOOO0O0OO00 .original_handler )#line:108:signal(SIGINT, self.original_handler)
-    def handle_sigint (O00OOO0O00O0O0O00 ,OOO0OOO000O0OOOOO ,OOO0000O0O0000O0O ):#line:110:def handle_sigint(self, signum, frame):
-        ""#line:116:"""
-        O00OOO0O00O0O0O00 .finish ()#line:117:self.finish()
-        O00OOO0O00O0O0O00 .original_handler (OOO0OOO000O0OOOOO ,OOO0000O0O0000O0O )#line:118:self.original_handler(signum, frame)
-class SilentBar (Bar ):#line:121:class SilentBar(Bar):
-    def update (O0OO00O0OOO0O0O00 ):#line:123:def update(self):
-        pass #line:124:pass
-class BlueEmojiBar (IncrementalBar ):#line:127:class BlueEmojiBar(IncrementalBar):
-    suffix ="%(percent)d%%"#line:129:suffix = "%(percent)d%%"
-    bar_prefix =" "#line:130:bar_prefix = " "
-    bar_suffix =" "#line:131:bar_suffix = " "
-    phases =(u"\U0001F539",u"\U0001F537",u"\U0001F535")#line:132:phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
-class DownloadProgressMixin (object ):#line:135:class DownloadProgressMixin(object):
-    def __init__ (OOO0O00000O0OOOO0 ,*O000O0OOO0OOO0OO0 ,**OOO00O0O000000000 ):#line:137:def __init__(self, *args, **kwargs):
-        super (DownloadProgressMixin ,OOO0O00000O0OOOO0 ).__init__ (*O000O0OOO0OOO0OO0 ,**OOO00O0O000000000 )#line:138:super(DownloadProgressMixin, self).__init__(*args, **kwargs)
-        OOO0O00000O0OOOO0 .message =(" "*(get_indentation ()+2 ))+OOO0O00000O0OOOO0 .message #line:139:self.message = (" " * (get_indentation() + 2)) + self.message
-    @property #line:141:@property
-    def downloaded (OOOO0O0OO0O000OOO ):#line:142:def downloaded(self):
-        return format_size (OOOO0O0OO0O000OOO .index )#line:143:return format_size(self.index)
-    @property #line:145:@property
-    def download_speed (O0000OOOOOO0000O0 ):#line:146:def download_speed(self):
-        if O0000OOOOOO0000O0 .avg ==0.0 :#line:148:if self.avg == 0.0:
-            return "..."#line:149:return "..."
-        return format_size (1 /O0000OOOOOO0000O0 .avg )+"/s"#line:150:return format_size(1 / self.avg) + "/s"
-    @property #line:152:@property
-    def pretty_eta (O0O0000O0OO0OOOO0 ):#line:153:def pretty_eta(self):
-        if O0O0000O0OO0OOOO0 .eta :#line:154:if self.eta:
-            return "eta %s"%O0O0000O0OO0OOOO0 .eta_td #line:155:return "eta %s" % self.eta_td
-        return ""#line:156:return ""
-    def iter (O0000OO00O0O000OO ,O00OOOOOO0OOO00O0 ,n =1 ):#line:158:def iter(self, it, n=1):
-        for OO0O000O0O0000O00 in O00OOOOOO0OOO00O0 :#line:159:for x in it:
-            yield OO0O000O0O0000O00 #line:160:yield x
-            O0000OO00O0O000OO .next (n )#line:161:self.next(n)
-        O0000OO00O0O000OO .finish ()#line:162:self.finish()
-class WindowsMixin (object ):#line:165:class WindowsMixin(object):
-    def __init__ (OOO000O00O0OO0O00 ,*OO000000O0000O00O ,**OOOOOO00OO0OOO0O0 ):#line:167:def __init__(self, *args, **kwargs):
-        if WINDOWS and OOO000O00O0OO0O00 .hide_cursor :#line:175:if WINDOWS and self.hide_cursor:
-            OOO000O00O0OO0O00 .hide_cursor =False #line:176:self.hide_cursor = False
-        super (WindowsMixin ,OOO000O00O0OO0O00 ).__init__ (*OO000000O0000O00O ,**OOOOOO00OO0OOO0O0 )#line:178:super(WindowsMixin, self).__init__(*args, **kwargs)
-        if WINDOWS and colorama :#line:182:if WINDOWS and colorama:
-            OOO000O00O0OO0O00 .file =colorama .AnsiToWin32 (OOO000O00O0OO0O00 .file )#line:183:self.file = colorama.AnsiToWin32(self.file)
-            OOO000O00O0OO0O00 .file .isatty =lambda :OOO000O00O0OO0O00 .file .wrapped .isatty ()#line:187:self.file.isatty = lambda: self.file.wrapped.isatty()
-            OOO000O00O0OO0O00 .file .flush =lambda :OOO000O00O0OO0O00 .file .wrapped .flush ()#line:191:self.file.flush = lambda: self.file.wrapped.flush()
-class BaseDownloadProgressBar (WindowsMixin ,InterruptibleMixin ,DownloadProgressMixin ):#line:195:DownloadProgressMixin):
-    file =sys .stdout #line:197:file = sys.stdout
-    message ="%(percent)d%%"#line:198:message = "%(percent)d%%"
-    suffix ="%(downloaded)s %(download_speed)s %(pretty_eta)s"#line:199:suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
-class DefaultDownloadProgressBar (BaseDownloadProgressBar ,_OOOO00000O0O0O0O0 ):#line:206:_BaseBar):
-    pass #line:207:pass
-class DownloadSilentBar (BaseDownloadProgressBar ,SilentBar ):#line:210:class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
-    pass #line:211:pass
-class DownloadIncrementalBar (BaseDownloadProgressBar ,IncrementalBar ):#line:215:IncrementalBar):
-    pass #line:216:pass
-class DownloadChargingBar (BaseDownloadProgressBar ,ChargingBar ):#line:220:ChargingBar):
-    pass #line:221:pass
-class DownloadShadyBar (BaseDownloadProgressBar ,ShadyBar ):#line:224:class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):  # type: ignore
-    pass #line:225:pass
-class DownloadFillingSquaresBar (BaseDownloadProgressBar ,FillingSquaresBar ):#line:229:FillingSquaresBar):
-    pass #line:230:pass
-class DownloadFillingCirclesBar (BaseDownloadProgressBar ,FillingCirclesBar ):#line:234:FillingCirclesBar):
-    pass #line:235:pass
-class DownloadBlueEmojiProgressBar (BaseDownloadProgressBar ,BlueEmojiBar ):#line:239:BlueEmojiBar):
-    pass #line:240:pass
-class DownloadProgressSpinner (WindowsMixin ,InterruptibleMixin ,DownloadProgressMixin ,WritelnMixin ,Spinner ):#line:244:DownloadProgressMixin, WritelnMixin, Spinner):
-    file =sys .stdout #line:246:file = sys.stdout
-    suffix ="%(downloaded)s %(download_speed)s"#line:247:suffix = "%(downloaded)s %(download_speed)s"
-    def next_phase (O00000OOO0O000OOO ):#line:249:def next_phase(self):
-        if not hasattr (O00000OOO0O000OOO ,"_phaser"):#line:250:if not hasattr(self, "_phaser"):
-            O00000OOO0O000OOO ._phaser =itertools .cycle (O00000OOO0O000OOO .phases )#line:251:self._phaser = itertools.cycle(self.phases)
-        return next (O00000OOO0O000OOO ._phaser )#line:252:return next(self._phaser)
-    def update (OOO0000OO0O000OOO ):#line:254:def update(self):
-        OOOO000000OOOOO0O =OOO0000OO0O000OOO .message %OOO0000OO0O000OOO #line:255:message = self.message % self
-        O0OOOO0OO00OO000O =OOO0000OO0O000OOO .next_phase ()#line:256:phase = self.next_phase()
-        O00OOOOO0OO0O0OO0 =OOO0000OO0O000OOO .suffix %OOO0000OO0O000OOO #line:257:suffix = self.suffix % self
-        O000O0OO0000OOO00 =''.join ([OOOO000000OOOOO0O ," "if OOOO000000OOOOO0O else "",O0OOOO0OO00OO000O ," "if O00OOOOO0OO0O0OO0 else "",O00OOOOO0OO0O0OO0 ,])#line:264:])
-        OOO0000OO0O000OOO .writeln (O000O0OO0000OOO00 )#line:266:self.writeln(line)
-BAR_TYPES ={"off":(DownloadSilentBar ,DownloadSilentBar ),"on":(DefaultDownloadProgressBar ,DownloadProgressSpinner ),"ascii":(DownloadIncrementalBar ,DownloadProgressSpinner ),"pretty":(DownloadFillingCirclesBar ,DownloadProgressSpinner ),"emoji":(DownloadBlueEmojiProgressBar ,DownloadProgressSpinner )}#line:275:}
-def DownloadProgressProvider (OOO0O0O000O000OO0 ,max =None ):#line:278:def DownloadProgressProvider(progress_bar, max=None):
-    if max is None or max ==0 :#line:279:if max is None or max == 0:
-        return BAR_TYPES [OOO0O0O000O000OO0 ][1 ]().iter #line:280:return BAR_TYPES[progress_bar][1]().iter
-    else :#line:281:else:
-        return BAR_TYPES [OOO0O0O000O000OO0 ][0 ](max =max ).iter #line:282:return BAR_TYPES[progress_bar][0](max=max).iter
-@contextlib .contextmanager #line:293:@contextlib.contextmanager
-def hidden_cursor (O00O0000000O000OO ):#line:294:def hidden_cursor(file):
-    if WINDOWS :#line:298:if WINDOWS:
-        yield #line:299:yield
-    elif not O00O0000000O000OO .isatty ()or logger .getEffectiveLevel ()>logging .INFO :#line:303:elif not file.isatty() or logger.getEffectiveLevel() > logging.INFO:
-        yield #line:304:yield
-    else :#line:305:else:
-        O00O0000000O000OO .write (HIDE_CURSOR )#line:306:file.write(HIDE_CURSOR)
-        try :#line:307:try:
-            yield #line:308:yield
-        finally :#line:309:finally:
-            O00O0000000O000OO .write (SHOW_CURSOR )#line:310:file.write(SHOW_CURSOR)
-class RateLimiter (object ):#line:313:class RateLimiter(object):
-    def __init__ (OO0OOOO0OO0OO00OO ,OO0000O0OO0OO0O00 ):#line:314:def __init__(self, min_update_interval_seconds):
-        OO0OOOO0OO0OO00OO ._min_update_interval_seconds =OO0000O0OO0OO0O00 #line:316:self._min_update_interval_seconds = min_update_interval_seconds
-        OO0OOOO0OO0OO00OO ._last_update =0 #line:317:self._last_update = 0  # type: float
-    def ready (OO000O000OO00000O ):#line:319:def ready(self):
-        OOO0000O0O0O0O0OO =time .time ()#line:321:now = time.time()
-        O0O0OO0O00OOO0000 =OOO0000O0O0O0O0OO -OO000O000OO00000O ._last_update #line:322:delta = now - self._last_update
-        return O0O0OO0O00OOO0000 >=OO000O000OO00000O ._min_update_interval_seconds #line:323:return delta >= self._min_update_interval_seconds
-    def reset (O0OOO000OO0O000OO ):#line:325:def reset(self):
-        O0OOO000OO0O000OO ._last_update =time .time ()#line:327:self._last_update = time.time()
-class SpinnerInterface (object ):#line:330:class SpinnerInterface(object):
-    def spin (OOO0OO00O0O0O00O0 ):#line:331:def spin(self):
-        raise NotImplementedError ()#line:333:raise NotImplementedError()
-    def finish (O00OO000O000000O0 ,O00O0000OOO000O00 ):#line:335:def finish(self, final_status):
-        raise NotImplementedError ()#line:337:raise NotImplementedError()
-class InteractiveSpinner (SpinnerInterface ):#line:340:class InteractiveSpinner(SpinnerInterface):
-    def __init__ (O0000OO00OO0OOO00 ,O00O0O0OOO0000000 ,file =None ,spin_chars ="-\\|/",min_update_interval_seconds =0.125 ):#line:343:min_update_interval_seconds=0.125):
-        O0000OO00OO0OOO00 ._message =O00O0O0OOO0000000 #line:344:self._message = message
-        if file is None :#line:345:if file is None:
-            file =sys .stdout #line:346:file = sys.stdout
-        O0000OO00OO0OOO00 ._file =file #line:347:self._file = file
-        O0000OO00OO0OOO00 ._rate_limiter =RateLimiter (min_update_interval_seconds )#line:348:self._rate_limiter = RateLimiter(min_update_interval_seconds)
-        O0000OO00OO0OOO00 ._finished =False #line:349:self._finished = False
-        O0000OO00OO0OOO00 ._spin_cycle =itertools .cycle (spin_chars )#line:351:self._spin_cycle = itertools.cycle(spin_chars)
-        O0000OO00OO0OOO00 ._file .write (" "*get_indentation ()+O0000OO00OO0OOO00 ._message +" ... ")#line:353:self._file.write(" " * get_indentation() + self._message + " ... ")
-        O0000OO00OO0OOO00 ._width =0 #line:354:self._width = 0
-    def _write (OOOO000O0O00O00OO ,OOO000OO00OOOO0O0 ):#line:356:def _write(self, status):
-        assert not OOOO000O0O00O00OO ._finished #line:357:assert not self._finished
-        O0O00OO00OOO00O0O ="\b"*OOOO000O0O00O00OO ._width #line:360:backup = "\b" * self._width
-        OOOO000O0O00O00OO ._file .write (O0O00OO00OOO00O0O +" "*OOOO000O0O00O00OO ._width +O0O00OO00OOO00O0O )#line:361:self._file.write(backup + " " * self._width + backup)
-        OOOO000O0O00O00OO ._file .write (OOO000OO00OOOO0O0 )#line:363:self._file.write(status)
-        OOOO000O0O00O00OO ._width =len (OOO000OO00OOOO0O0 )#line:364:self._width = len(status)
-        OOOO000O0O00O00OO ._file .flush ()#line:365:self._file.flush()
-        OOOO000O0O00O00OO ._rate_limiter .reset ()#line:366:self._rate_limiter.reset()
-    def spin (OOOO000O0OO000OO0 ):#line:368:def spin(self):
-        if OOOO000O0OO000OO0 ._finished :#line:370:if self._finished:
-            return #line:371:return
-        if not OOOO000O0OO000OO0 ._rate_limiter .ready ():#line:372:if not self._rate_limiter.ready():
-            return #line:373:return
-        OOOO000O0OO000OO0 ._write (next (OOOO000O0OO000OO0 ._spin_cycle ))#line:374:self._write(next(self._spin_cycle))
-    def finish (OOO00O0O0OOOO0000 ,OO0OOO00OO0O0OO00 ):#line:376:def finish(self, final_status):
-        if OOO00O0O0OOOO0000 ._finished :#line:378:if self._finished:
-            return #line:379:return
-        OOO00O0O0OOOO0000 ._write (OO0OOO00OO0O0OO00 )#line:380:self._write(final_status)
-        OOO00O0O0OOOO0000 ._file .write ("\n")#line:381:self._file.write("\n")
-        OOO00O0O0OOOO0000 ._file .flush ()#line:382:self._file.flush()
-        OOO00O0O0OOOO0000 ._finished =True #line:383:self._finished = True
-class NonInteractiveSpinner (SpinnerInterface ):#line:390:class NonInteractiveSpinner(SpinnerInterface):
-    def __init__ (OO00OOO0OO00OOO00 ,O00000O00OO00OO0O ,min_update_interval_seconds =60 ):#line:391:def __init__(self, message, min_update_interval_seconds=60):
-        OO00OOO0OO00OOO00 ._message =O00000O00OO00OO0O #line:393:self._message = message
-        OO00OOO0OO00OOO00 ._finished =False #line:394:self._finished = False
-        OO00OOO0OO00OOO00 ._rate_limiter =RateLimiter (min_update_interval_seconds )#line:395:self._rate_limiter = RateLimiter(min_update_interval_seconds)
-        OO00OOO0OO00OOO00 ._update ("started")#line:396:self._update("started")
-    def _update (OOOO00OOO00OO0O0O ,O0OOO0OO0O0OOO0OO ):#line:398:def _update(self, status):
-        assert not OOOO00OOO00OO0O0O ._finished #line:399:assert not self._finished
-        OOOO00OOO00OO0O0O ._rate_limiter .reset ()#line:400:self._rate_limiter.reset()
-        logger .info ("%s: %s",OOOO00OOO00OO0O0O ._message ,O0OOO0OO0O0OOO0OO )#line:401:logger.info("%s: %s", self._message, status)
-    def spin (OOO0000OO0O0OO00O ):#line:403:def spin(self):
-        if OOO0000OO0O0OO00O ._finished :#line:405:if self._finished:
-            return #line:406:return
-        if not OOO0000OO0O0OO00O ._rate_limiter .ready ():#line:407:if not self._rate_limiter.ready():
-            return #line:408:return
-        OOO0000OO0O0OO00O ._update ("still running...")#line:409:self._update("still running...")
-    def finish (OOO000OOO0O0OOO00 ,OO00O0O00OOOOO0OO ):#line:411:def finish(self, final_status):
-        if OOO000OOO0O0OOO00 ._finished :#line:413:if self._finished:
-            return #line:414:return
-        OOO000OOO0O0OOO00 ._update ("finished with status '%s'"%(OO00O0O00OOOOO0OO ,))#line:415:self._update("finished with status '%s'" % (final_status,))
-        OOO000OOO0O0OOO00 ._finished =True #line:416:self._finished = True
-@contextlib .contextmanager #line:419:@contextlib.contextmanager
-def open_spinner (OO000O0OOO0OOO0O0 ):#line:420:def open_spinner(message):
-    if sys .stdout .isatty ()and logger .getEffectiveLevel ()<=logging .INFO :#line:427:if sys.stdout.isatty() and logger.getEffectiveLevel() <= logging.INFO:
-        OOO0OOO0000O00O00 =InteractiveSpinner (OO000O0OOO0OOO0O0 )#line:428:spinner = InteractiveSpinner(message)  # type: SpinnerInterface
-    else :#line:429:else:
-        OOO0OOO0000O00O00 =NonInteractiveSpinner (OO000O0OOO0OOO0O0 )#line:430:spinner = NonInteractiveSpinner(message)
-    try :#line:431:try:
-        with hidden_cursor (sys .stdout ):#line:432:with hidden_cursor(sys.stdout):
-            yield OOO0OOO0000O00O00 #line:433:yield spinner
-    except KeyboardInterrupt :#line:434:except KeyboardInterrupt:
-        OOO0OOO0000O00O00 .finish ("canceled")#line:435:spinner.finish("canceled")
-        raise #line:436:raise
-    except Exception :#line:437:except Exception:
-        OOO0OOO0000O00O00 .finish ("error")#line:438:spinner.finish("error")
-        raise #line:439:raise
-    else :#line:440:else:
-        OOO0OOO0000O00O00 .finish ("done")#line:441:spinner.finish("done")
+from turtle import Turtle #line:1
+import random #line:2
+COLORS =["red","orange","yellow","green","blue","purple"]#line:4
+STARTING_MOVE_DISTANCE =5 #line:5
+MOVE_INCREMENT =5 #line:6
+class CarManager (Turtle ):#line:11
+    def __init__ (O0O000OOOOOO0O000 ):#line:15
+        O0O000OOOOOO0O000 .all_cars =[]#line:18
+        O0O000OOOOOO0O000 .car_speed =STARTING_MOVE_DISTANCE #line:19
+    def create_car (O000000OOO0O0O0O0 ):#line:21
+        OO00OOOOOOO0OOOOO =random .randint (1 ,6 )#line:24
+        if OO00OOOOOOO0OOOOO ==1 :#line:26
+            """
+            By this the car will be created only when 1 will come so there will be some distance between the 
+            cars where out turtle can move.
+            """#line:30
+            O0O00OO00O0O00OO0 =Turtle ()#line:33
+            O0O00OO00O0O00OO0 .color (random .choice (COLORS ))#line:35
+            O0O00OO00O0O00OO0 .shape ("square")#line:36
+            O0O00OO00O0O00OO0 .penup ()#line:37
+            O0O00OO00O0O00OO0 .shapesize (stretch_wid =1 ,stretch_len =2 )#line:38
+            O0O0OOO0O00O00000 =random .randint (-250 ,250 )#line:39
+            O0O00OO00O0O00OO0 .goto (300 ,O0O0OOO0O00O00000 )#line:40
+            O000000OOO0O0O0O0 .all_cars .append (O0O00OO00O0O00OO0 )#line:41
+    def move_car (O00O00OOO0OOO0O00 ):#line:44
+        for O0OOO0O00O00O0O0O in O00O00OOO0OOO0O00 .all_cars :#line:47
+            O0OOO0O00O00O0O0O .backward (O00O00OOO0OOO0O00 .car_speed )#line:48
+    def level_up_speed (OO0000000O00OOO00 ):#line:50
+        OO0000000O00OOO00 .car_speed +=MOVE_INCREMENT #line:53

@@ -1,366 +1,136 @@
-from __future__ import absolute_import #line:1:from __future__ import absolute_import
-import csv #line:3:import csv
-import functools #line:4:import functools
-import logging #line:5:import logging
-import os #line:6:import os
-import sys #line:7:import sys
-import sysconfig #line:8:import sysconfig
-from pip ._vendor import pkg_resources #line:10:from pip._vendor import pkg_resources
-from pip ._internal .exceptions import UninstallationError #line:12:from pip._internal.exceptions import UninstallationError
-from pip ._internal .locations import bin_py ,bin_user #line:13:from pip._internal.locations import bin_py, bin_user
-from pip ._internal .utils .compat import WINDOWS ,cache_from_source ,uses_pycache #line:14:from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
-from pip ._internal .utils .logging import indent_log #line:15:from pip._internal.utils.logging import indent_log
-from pip ._internal .utils .misc import (FakeFile ,ask ,dist_in_usersite ,dist_is_local ,egg_link_path ,is_local ,normalize_path ,renames ,rmtree ,)#line:19:)
-from pip ._internal .utils .temp_dir import AdjacentTempDirectory ,TempDirectory #line:20:from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
-logger =logging .getLogger (__name__ )#line:22:logger = logging.getLogger(__name__)
-def _O0OO00O0000000000 (OOOOOO00OO0O00O00 ,OO00O000O000OO0O0 ,OO0OO0O000O0000O0 ):#line:25:def _script_names(dist, script_name, is_gui):
-    ""#line:29:"""
-    if dist_in_usersite (OOOOOO00OO0O00O00 ):#line:30:if dist_in_usersite(dist):
-        O000O0O000O0OOOOO =bin_user #line:31:bin_dir = bin_user
-    else :#line:32:else:
-        O000O0O000O0OOOOO =bin_py #line:33:bin_dir = bin_py
-    O0OOO000O00OOO0O0 =os .path .join (O000O0O000O0OOOOO ,OO00O000O000OO0O0 )#line:34:exe_name = os.path.join(bin_dir, script_name)
-    O0O000OOOOOO0O0O0 =[O0OOO000O00OOO0O0 ]#line:35:paths_to_remove = [exe_name]
-    if WINDOWS :#line:36:if WINDOWS:
-        O0O000OOOOOO0O0O0 .append (O0OOO000O00OOO0O0 +'.exe')#line:37:paths_to_remove.append(exe_name + '.exe')
-        O0O000OOOOOO0O0O0 .append (O0OOO000O00OOO0O0 +'.exe.manifest')#line:38:paths_to_remove.append(exe_name + '.exe.manifest')
-        if OO0OO0O000O0000O0 :#line:39:if is_gui:
-            O0O000OOOOOO0O0O0 .append (O0OOO000O00OOO0O0 +'-script.pyw')#line:40:paths_to_remove.append(exe_name + '-script.pyw')
-        else :#line:41:else:
-            O0O000OOOOOO0O0O0 .append (O0OOO000O00OOO0O0 +'-script.py')#line:42:paths_to_remove.append(exe_name + '-script.py')
-    return O0O000OOOOOO0O0O0 #line:43:return paths_to_remove
-def _OO0O00OOO00000000 (OOOO0O0OO0OO00OOO ):#line:46:def _unique(fn):
-    @functools .wraps (OOOO0O0OO0OO00OOO )#line:47:@functools.wraps(fn)
-    def O0O000OO0OO0OO0O0 (*OOO0O0O00O0000000 ,**OOO0O0O000O0O0O0O ):#line:48:def unique(*args, **kw):
-        OOOO0O00O0O00O00O =set ()#line:49:seen = set()
-        for OO0O00O00000OOO0O in OOOO0O0OO0OO00OOO (*OOO0O0O00O0000000 ,**OOO0O0O000O0O0O0O ):#line:50:for item in fn(*args, **kw):
-            if OO0O00O00000OOO0O not in OOOO0O00O0O00O00O :#line:51:if item not in seen:
-                OOOO0O00O0O00O00O .add (OO0O00O00000OOO0O )#line:52:seen.add(item)
-                yield OO0O00O00000OOO0O #line:53:yield item
-    return O0O000OO0OO0OO0O0 #line:54:return unique
-@_OO0O00OOO00000000 #line:57:@_unique
-def uninstallation_paths (OO0O0OO0O00OO0OO0 ):#line:58:def uninstallation_paths(dist):
-    ""#line:66:"""
-    O000O00OO0O0O000O =csv .reader (FakeFile (OO0O0OO0O00OO0OO0 .get_metadata_lines ('RECORD')))#line:67:r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
-    for O0O0000OOO00OOOO0 in O000O00OO0O0O000O :#line:68:for row in r:
-        OO0O0O0O0O00OOOOO =os .path .join (OO0O0OO0O00OO0OO0 .location ,O0O0000OOO00OOOO0 [0 ])#line:69:path = os.path.join(dist.location, row[0])
-        yield OO0O0O0O0O00OOOOO #line:70:yield path
-        if OO0O0O0O0O00OOOOO .endswith ('.py'):#line:71:if path.endswith('.py'):
-            O00OOO0O0OO0OO00O ,O000O00O0OO0OOOOO =os .path .split (OO0O0O0O0O00OOOOO )#line:72:dn, fn = os.path.split(path)
-            O0OO0OO00OO0O0000 =O000O00O0OO0OOOOO [:-3 ]#line:73:base = fn[:-3]
-            OO0O0O0O0O00OOOOO =os .path .join (O00OOO0O0OO0OO00O ,O0OO0OO00OO0O0000 +'.pyc')#line:74:path = os.path.join(dn, base + '.pyc')
-            yield OO0O0O0O0O00OOOOO #line:75:yield path
-            OO0O0O0O0O00OOOOO =os .path .join (O00OOO0O0OO0OO00O ,O0OO0OO00OO0O0000 +'.pyo')#line:76:path = os.path.join(dn, base + '.pyo')
-            yield OO0O0O0O0O00OOOOO #line:77:yield path
-def compact (OO000OO0O0O0O0OOO ):#line:80:def compact(paths):
-    ""#line:84:shorter path."""
-    OO000OOO0O0OOO0OO =os .path .sep #line:86:sep = os.path.sep
-    O000OO00OOO000O00 =set ()#line:87:short_paths = set()
-    for OO000000O0O00O0OO in sorted (OO000OO0O0O0O0OOO ,key =len ):#line:88:for path in sorted(paths, key=len):
-        O00O000O0O0000O0O =any (OO000000O0O00O0OO .startswith (OOOO000O00O0OO0O0 .rstrip ("*"))and OO000000O0O00O0OO [len (OOOO000O00O0OO0O0 .rstrip ("*").rstrip (OO000OOO0O0OOO0OO ))]==OO000OOO0O0OOO0OO for OOOO000O00O0OO0O0 in O000OO00OOO000O00 )#line:93:)
-        if not O00O000O0O0000O0O :#line:94:if not should_skip:
-            O000OO00OOO000O00 .add (OO000000O0O00O0OO )#line:95:short_paths.add(path)
-    return O000OO00OOO000O00 #line:96:return short_paths
-def compress_for_rename (O0O000O0O0OOO0000 ):#line:99:def compress_for_rename(paths):
-    ""#line:104:"""
-    OO0OOOOOOO0O0000O =dict ((os .path .normcase (O000000OOO0O00O00 ),O000000OOO0O00O00 )for O000000OOO0O00O00 in O0O000O0O0OOO0000 )#line:105:case_map = dict((os.path.normcase(p), p) for p in paths)
-    OO0OO000O0000O00O =set (OO0OOOOOOO0O0000O )#line:106:remaining = set(case_map)
-    OO0OO0O000OOO00O0 =sorted (set (os .path .split (OO0OO00OO00000000 )[0 ]for OO0OO00OO00000000 in OO0OOOOOOO0O0000O .values ()),key =len )#line:108:for p in case_map.values()), key=len)
-    O0OO000O0OOOOO000 =set ()#line:109:wildcards = set()
-    def O000000OO00O0O0O0 (*O00O0OO0OOO0000OO ):#line:111:def norm_join(*a):
-        return os .path .normcase (os .path .join (*O00O0OO0OOO0000OO ))#line:112:return os.path.normcase(os.path.join(*a))
-    for OOO0OOOOOOOO0O000 in OO0OO0O000OOO00O0 :#line:114:for root in unchecked:
-        if any (os .path .normcase (OOO0OOOOOOOO0O000 ).startswith (OO0O0O0O000O0OOO0 )for OO0O0O0O000O0OOO0 in O0OO000O0OOOOO000 ):#line:116:for w in wildcards):
-            continue #line:118:continue
-        OOOOOO0O0O0OO0OOO =set ()#line:120:all_files = set()
-        OOOOO0OO0O0000000 =set ()#line:121:all_subdirs = set()
-        for O0O0OOOO0O0000OO0 ,O0OO0O00OO000OO00 ,OOO0OO000000OO0O0 in os .walk (OOO0OOOOOOOO0O000 ):#line:122:for dirname, subdirs, files in os.walk(root):
-            OOOOO0OO0O0000000 .update (O000000OO00O0O0O0 (OOO0OOOOOOOO0O000 ,O0O0OOOO0O0000OO0 ,O00OO0O0OOOOO0O00 )for O00OO0O0OOOOO0O00 in O0OO0O00OO000OO00 )#line:124:for d in subdirs)
-            OOOOOO0O0O0OO0OOO .update (O000000OO00O0O0O0 (OOO0OOOOOOOO0O000 ,O0O0OOOO0O0000OO0 ,OOOOO0OOO00OO000O )for OOOOO0OOO00OO000O in OOO0OO000000OO0O0 )#line:126:for f in files)
-        if not (OOOOOO0O0O0OO0OOO -OO0OO000O0000O00O ):#line:130:if not (all_files - remaining):
-            OO0OO000O0000O00O .difference_update (OOOOOO0O0O0OO0OOO )#line:131:remaining.difference_update(all_files)
-            O0OO000O0OOOOO000 .add (OOO0OOOOOOOO0O000 +os .sep )#line:132:wildcards.add(root + os.sep)
-    return set (map (OO0OOOOOOO0O0000O .__getitem__ ,OO0OO000O0000O00O ))|O0OO000O0OOOOO000 #line:134:return set(map(case_map.__getitem__, remaining)) | wildcards
-def compress_for_output_listing (O000000O0O00000OO ):#line:137:def compress_for_output_listing(paths):
-    ""#line:146:"""
-    OO0O0O0OO0000O0OO =list (O000000O0O00000OO )#line:148:will_remove = list(paths)
-    OOO00O0O00O00OOOO =set ()#line:149:will_skip = set()
-    OOO00OOO0000O0OO0 =set ()#line:152:folders = set()
-    OOO0O00O000000OOO =set ()#line:153:files = set()
-    for OO000OOOO00O0O0OO in OO0O0O0OO0000O0OO :#line:154:for path in will_remove:
-        if OO000OOOO00O0O0OO .endswith (".pyc"):#line:155:if path.endswith(".pyc"):
-            continue #line:156:continue
-        if OO000OOOO00O0O0OO .endswith ("__init__.py")or ".dist-info"in OO000OOOO00O0O0OO :#line:157:if path.endswith("__init__.py") or ".dist-info" in path:
-            OOO00OOO0000O0OO0 .add (os .path .dirname (OO000OOOO00O0O0OO ))#line:158:folders.add(os.path.dirname(path))
-        OOO0O00O000000OOO .add (OO000OOOO00O0O0OO )#line:159:files.add(path)
-    _O000OOO00000O0O00 =set (map (os .path .normcase ,OOO0O00O000000OOO ))#line:161:_normcased_files = set(map(os.path.normcase, files))
-    OOO00OOO0000O0OO0 =compact (OOO00OOO0000O0OO0 )#line:163:folders = compact(folders)
-    for O00O00OO00O000OO0 in OOO00OOO0000O0OO0 :#line:167:for folder in folders:
-        for OOOO0OO00OOO0O00O ,_O0OOO0O0OOOO0O0OO ,O00O0OO00OO0O00O0 in os .walk (O00O00OO00O000OO0 ):#line:168:for dirpath, _, dirfiles in os.walk(folder):
-            for O0O0O00O00OOOO0O0 in O00O0OO00OO0O00O0 :#line:169:for fname in dirfiles:
-                if O0O0O00O00OOOO0O0 .endswith (".pyc"):#line:170:if fname.endswith(".pyc"):
-                    continue #line:171:continue
-                OOO0O0000OOOO0000 =os .path .join (OOOO0OO00OOO0O00O ,O0O0O00O00OOOO0O0 )#line:173:file_ = os.path.join(dirpath, fname)
-                if (os .path .isfile (OOO0O0000OOOO0000 )and os .path .normcase (OOO0O0000OOOO0000 )not in _O000OOO00000O0O00 ):#line:175:os.path.normcase(file_) not in _normcased_files):
-                    OOO00O0O00O00OOOO .add (OOO0O0000OOOO0000 )#line:177:will_skip.add(file_)
-    OO0O0O0OO0000O0OO =OOO0O00O000000OOO |{os .path .join (OO0O00O0OOOOO0O0O ,"*")for OO0O00O0OOOOO0O0O in OOO00OOO0000O0OO0 }#line:181:}
-    return OO0O0O0OO0000O0OO ,OOO00O0O00O00OOOO #line:183:return will_remove, will_skip
-class StashedUninstallPathSet (object ):#line:186:class StashedUninstallPathSet(object):
-    ""#line:188:tentatively uninstalling them."""
-    def __init__ (OOO0O000O0OOOOO0O ):#line:189:def __init__(self):
-        OOO0O000O0OOOOO0O ._save_dirs ={}#line:192:self._save_dirs = {}
-        OOO0O000O0OOOOO0O ._moves =[]#line:195:self._moves = []
-    def _get_directory_stash (O00O000OO0000O00O ,OO00000OO0OO0O00O ):#line:197:def _get_directory_stash(self, path):
-        ""#line:201:possible, or else moved/copied into the user's temp dir."""
-        try :#line:203:try:
-            O00OO0OOOO00O0O0O =AdjacentTempDirectory (OO00000OO0OO0O00O )#line:204:save_dir = AdjacentTempDirectory(path)
-            O00OO0OOOO00O0O0O .create ()#line:205:save_dir.create()
-        except OSError :#line:206:except OSError:
-            O00OO0OOOO00O0O0O =TempDirectory (kind ="uninstall")#line:207:save_dir = TempDirectory(kind="uninstall")
-            O00OO0OOOO00O0O0O .create ()#line:208:save_dir.create()
-        O00O000OO0000O00O ._save_dirs [os .path .normcase (OO00000OO0OO0O00O )]=O00OO0OOOO00O0O0O #line:209:self._save_dirs[os.path.normcase(path)] = save_dir
-        return O00OO0OOOO00O0O0O .path #line:211:return save_dir.path
-    def _get_file_stash (OO00000000OOOO000 ,O00OO00OOO00O0OOO ):#line:213:def _get_file_stash(self, path):
-        ""#line:217:in the user's temp directory."""
-        O00OO00OOO00O0OOO =os .path .normcase (O00OO00OOO00O0OOO )#line:218:path = os.path.normcase(path)
-        O0O0O000000O000O0 ,O00OOOO00OO00OO00 =os .path .dirname (O00OO00OOO00O0OOO ),None #line:219:head, old_head = os.path.dirname(path), None
-        OO00O0O0OOO000O00 =None #line:220:save_dir = None
-        while O0O0O000000O000O0 !=O00OOOO00OO00OO00 :#line:222:while head != old_head:
-            try :#line:223:try:
-                OO00O0O0OOO000O00 =OO00000000OOOO000 ._save_dirs [O0O0O000000O000O0 ]#line:224:save_dir = self._save_dirs[head]
-                break #line:225:break
-            except KeyError :#line:226:except KeyError:
-                pass #line:227:pass
-            O0O0O000000O000O0 ,O00OOOO00OO00OO00 =os .path .dirname (O0O0O000000O000O0 ),O0O0O000000O000O0 #line:228:head, old_head = os.path.dirname(head), head
-        else :#line:229:else:
-            O0O0O000000O000O0 =os .path .dirname (O00OO00OOO00O0OOO )#line:231:head = os.path.dirname(path)
-            OO00O0O0OOO000O00 =TempDirectory (kind ='uninstall')#line:232:save_dir = TempDirectory(kind='uninstall')
-            OO00O0O0OOO000O00 .create ()#line:233:save_dir.create()
-            OO00000000OOOO000 ._save_dirs [O0O0O000000O000O0 ]=OO00O0O0OOO000O00 #line:234:self._save_dirs[head] = save_dir
-        OO000O0O00OO00OO0 =os .path .relpath (O00OO00OOO00O0OOO ,O0O0O000000O000O0 )#line:236:relpath = os.path.relpath(path, head)
-        if OO000O0O00OO00OO0 and OO000O0O00OO00OO0 !=os .path .curdir :#line:237:if relpath and relpath != os.path.curdir:
-            return os .path .join (OO00O0O0OOO000O00 .path ,OO000O0O00OO00OO0 )#line:238:return os.path.join(save_dir.path, relpath)
-        return OO00O0O0OOO000O00 .path #line:239:return save_dir.path
-    def stash (OO000OOOO00OO00OO ,OOOO00O0O00OO0000 ):#line:241:def stash(self, path):
-        ""#line:243:"""
-        if os .path .isdir (OOOO00O0O00OO0000 ):#line:244:if os.path.isdir(path):
-            OO0O00O00O0OO0000 =OO000OOOO00OO00OO ._get_directory_stash (OOOO00O0O00OO0000 )#line:245:new_path = self._get_directory_stash(path)
-        else :#line:246:else:
-            OO0O00O00O0OO0000 =OO000OOOO00OO00OO ._get_file_stash (OOOO00O0O00OO0000 )#line:247:new_path = self._get_file_stash(path)
-        OO000OOOO00OO00OO ._moves .append ((OOOO00O0O00OO0000 ,OO0O00O00O0OO0000 ))#line:249:self._moves.append((path, new_path))
-        if os .path .isdir (OOOO00O0O00OO0000 )and os .path .isdir (OO0O00O00O0OO0000 ):#line:250:if os.path.isdir(path) and os.path.isdir(new_path):
-            os .rmdir (OO0O00O00O0OO0000 )#line:256:os.rmdir(new_path)
-        renames (OOOO00O0O00OO0000 ,OO0O00O00O0OO0000 )#line:257:renames(path, new_path)
-        return OO0O00O00O0OO0000 #line:258:return new_path
-    def commit (O0OOOOOO00O0OO0OO ):#line:260:def commit(self):
-        ""#line:261:"""Commits the uninstall by removing stashed files."""
-        for _OO00OO0000OO00OO0 ,OO0O0O0O00O00O0OO in O0OOOOOO00O0OO0OO ._save_dirs .items ():#line:262:for _, save_dir in self._save_dirs.items():
-            OO0O0O0O00O00O0OO .cleanup ()#line:263:save_dir.cleanup()
-        O0OOOOOO00O0OO0OO ._moves =[]#line:264:self._moves = []
-        O0OOOOOO00O0OO0OO ._save_dirs ={}#line:265:self._save_dirs = {}
-    def rollback (O00O0O0000OO0OO0O ):#line:267:def rollback(self):
-        ""#line:268:"""Undoes the uninstall by moving stashed files back."""
-        for OOOOO00OO0OO0OOOO in O00O0O0000OO0OO0O ._moves :#line:269:for p in self._moves:
-            logging .info ("Moving to %s\n from %s",*OOOOO00OO0OO0OOOO )#line:270:logging.info("Moving to %s\n from %s", *p)
-        for O0O00OO000OOO0O00 ,OOOOOOOO000O00OOO in O00O0O0000OO0OO0O ._moves :#line:272:for new_path, path in self._moves:
-            try :#line:273:try:
-                logger .debug ('Replacing %s from %s',O0O00OO000OOO0O00 ,OOOOOOOO000O00OOO )#line:274:logger.debug('Replacing %s from %s', new_path, path)
-                if os .path .isfile (O0O00OO000OOO0O00 ):#line:275:if os.path.isfile(new_path):
-                    os .unlink (O0O00OO000OOO0O00 )#line:276:os.unlink(new_path)
-                elif os .path .isdir (O0O00OO000OOO0O00 ):#line:277:elif os.path.isdir(new_path):
-                    rmtree (O0O00OO000OOO0O00 )#line:278:rmtree(new_path)
-                renames (OOOOOOOO000O00OOO ,O0O00OO000OOO0O00 )#line:279:renames(path, new_path)
-            except OSError as OOOOO0O0OOO000O00 :#line:280:except OSError as ex:
-                logger .error ("Failed to restore %s",O0O00OO000OOO0O00 )#line:281:logger.error("Failed to restore %s", new_path)
-                logger .debug ("Exception: %s",OOOOO0O0OOO000O00 )#line:282:logger.debug("Exception: %s", ex)
-        O00O0O0000OO0OO0O .commit ()#line:284:self.commit()
-    @property #line:286:@property
-    def can_rollback (O000O0O00000O0OOO ):#line:287:def can_rollback(self):
-        return bool (O000O0O00000O0OOO ._moves )#line:288:return bool(self._moves)
-class UninstallPathSet (object ):#line:291:class UninstallPathSet(object):
-    ""#line:293:requirement."""
-    def __init__ (O0OOO0O0OOO0O0OOO ,OO0O0OOO0000OO0OO ):#line:294:def __init__(self, dist):
-        O0OOO0O0OOO0O0OOO .paths =set ()#line:295:self.paths = set()
-        O0OOO0O0OOO0O0OOO ._refuse =set ()#line:296:self._refuse = set()
-        O0OOO0O0OOO0O0OOO .pth ={}#line:297:self.pth = {}
-        O0OOO0O0OOO0O0OOO .dist =OO0O0OOO0000OO0OO #line:298:self.dist = dist
-        O0OOO0O0OOO0O0OOO ._moved_paths =StashedUninstallPathSet ()#line:299:self._moved_paths = StashedUninstallPathSet()
-    def _permitted (OOOO00OOOO0OO00O0 ,O00O0O0000000O00O ):#line:301:def _permitted(self, path):
-        ""#line:306:"""
-        return is_local (O00O0O0000000O00O )#line:307:return is_local(path)
-    def add (O00O0000O0O000OOO ,OOO000O0OOO00O00O ):#line:309:def add(self, path):
-        O00OO00O0O0O0O000 ,O00OOO00OO0O0OOO0 =os .path .split (OOO000O0OOO00O00O )#line:310:head, tail = os.path.split(path)
-        OOO000O0OOO00O00O =os .path .join (normalize_path (O00OO00O0O0O0O000 ),os .path .normcase (O00OOO00OO0O0OOO0 ))#line:314:path = os.path.join(normalize_path(head), os.path.normcase(tail))
-        if not os .path .exists (OOO000O0OOO00O00O ):#line:316:if not os.path.exists(path):
-            return #line:317:return
-        if O00O0000O0O000OOO ._permitted (OOO000O0OOO00O00O ):#line:318:if self._permitted(path):
-            O00O0000O0O000OOO .paths .add (OOO000O0OOO00O00O )#line:319:self.paths.add(path)
-        else :#line:320:else:
-            O00O0000O0O000OOO ._refuse .add (OOO000O0OOO00O00O )#line:321:self._refuse.add(path)
-        if os .path .splitext (OOO000O0OOO00O00O )[1 ]=='.py'and uses_pycache :#line:325:if os.path.splitext(path)[1] == '.py' and uses_pycache:
-            O00O0000O0O000OOO .add (cache_from_source (OOO000O0OOO00O00O ))#line:326:self.add(cache_from_source(path))
-    def add_pth (OOOOOOO0O000OOOOO ,O00O00O0O00OOO0O0 ,OO00O0O00OOO0OOOO ):#line:328:def add_pth(self, pth_file, entry):
-        O00O00O0O00OOO0O0 =normalize_path (O00O00O0O00OOO0O0 )#line:329:pth_file = normalize_path(pth_file)
-        if OOOOOOO0O000OOOOO ._permitted (O00O00O0O00OOO0O0 ):#line:330:if self._permitted(pth_file):
-            if O00O00O0O00OOO0O0 not in OOOOOOO0O000OOOOO .pth :#line:331:if pth_file not in self.pth:
-                OOOOOOO0O000OOOOO .pth [O00O00O0O00OOO0O0 ]=UninstallPthEntries (O00O00O0O00OOO0O0 )#line:332:self.pth[pth_file] = UninstallPthEntries(pth_file)
-            OOOOOOO0O000OOOOO .pth [O00O00O0O00OOO0O0 ].add (OO00O0O00OOO0OOOO )#line:333:self.pth[pth_file].add(entry)
-        else :#line:334:else:
-            OOOOOOO0O000OOOOO ._refuse .add (O00O00O0O00OOO0O0 )#line:335:self._refuse.add(pth_file)
-    def remove (O00000OO00O00O0O0 ,auto_confirm =False ,verbose =False ):#line:337:def remove(self, auto_confirm=False, verbose=False):
-        ""#line:339:``auto_confirm`` is True)."""
-        if not O00000OO00O00O0O0 .paths :#line:341:if not self.paths:
-            logger .info ("Can't uninstall '%s'. No files were found to uninstall.",O00000OO00O00O0O0 .dist .project_name ,)#line:345:)
-            return #line:346:return
-        O00O0O000OOO0OO00 =(O00000OO00O00O0O0 .dist .project_name +"-"+O00000OO00O00O0O0 .dist .version )#line:350:)
-        logger .info ('Uninstalling %s:',O00O0O000OOO0OO00 )#line:351:logger.info('Uninstalling %s:', dist_name_version)
-        with indent_log ():#line:353:with indent_log():
-            if auto_confirm or O00000OO00O00O0O0 ._allowed_to_proceed (verbose ):#line:354:if auto_confirm or self._allowed_to_proceed(verbose):
-                O00OO00OO0OOO000O =O00000OO00O00O0O0 ._moved_paths #line:355:moved = self._moved_paths
-                O0O00OO00OO0OOOO0 =compress_for_rename (O00000OO00O00O0O0 .paths )#line:357:for_rename = compress_for_rename(self.paths)
-                for O0OO0OO00O0O00OOO in sorted (compact (O0O00OO00OO0OOOO0 )):#line:359:for path in sorted(compact(for_rename)):
-                    O00OO00OO0OOO000O .stash (O0OO0OO00O0O00OOO )#line:360:moved.stash(path)
-                    logger .debug ('Removing file or directory %s',O0OO0OO00O0O00OOO )#line:361:logger.debug('Removing file or directory %s', path)
-                for OO0OOO0000O000O0O in O00000OO00O00O0O0 .pth .values ():#line:363:for pth in self.pth.values():
-                    OO0OOO0000O000O0O .remove ()#line:364:pth.remove()
-                logger .info ('Successfully uninstalled %s',O00O0O000OOO0OO00 )#line:366:logger.info('Successfully uninstalled %s', dist_name_version)
-    def _allowed_to_proceed (OOO000OO0000O0OOO ,O0O0OOOOOOO0OOO0O ):#line:368:def _allowed_to_proceed(self, verbose):
-        ""#line:370:"""
-        def _OOO0O0O0O00000OOO (OO0O0O0O0OOO0O0O0 ,OO00OO00OO0O0O000 ):#line:372:def _display(msg, paths):
-            if not OO00OO00OO0O0O000 :#line:373:if not paths:
-                return #line:374:return
-            logger .info (OO0O0O0O0OOO0O0O0 )#line:376:logger.info(msg)
-            with indent_log ():#line:377:with indent_log():
-                for O00OOOOOO0O000OO0 in sorted (compact (OO00OO00OO0O0O000 )):#line:378:for path in sorted(compact(paths)):
-                    logger .info (O00OOOOOO0O000OO0 )#line:379:logger.info(path)
-        if not O0O0OOOOOOO0OOO0O :#line:381:if not verbose:
-            O000O000000O0O00O ,OO0O00O0OOOO0O0OO =compress_for_output_listing (OOO000OO0000O0OOO .paths )#line:382:will_remove, will_skip = compress_for_output_listing(self.paths)
-        else :#line:383:else:
-            O000O000000O0O00O =list (OOO000OO0000O0OOO .paths )#line:386:will_remove = list(self.paths)
-            OO0O00O0OOOO0O0OO =set ()#line:387:will_skip = set()
-        _OOO0O0O0O00000OOO ('Would remove:',O000O000000O0O00O )#line:389:_display('Would remove:', will_remove)
-        _OOO0O0O0O00000OOO ('Would not remove (might be manually added):',OO0O00O0OOOO0O0OO )#line:390:_display('Would not remove (might be manually added):', will_skip)
-        _OOO0O0O0O00000OOO ('Would not remove (outside of prefix):',OOO000OO0000O0OOO ._refuse )#line:391:_display('Would not remove (outside of prefix):', self._refuse)
-        if O0O0OOOOOOO0OOO0O :#line:392:if verbose:
-            _OOO0O0O0O00000OOO ('Will actually move:',compress_for_rename (OOO000OO0000O0OOO .paths ))#line:393:_display('Will actually move:', compress_for_rename(self.paths))
-        return ask ('Proceed (y/n)? ',('y','n'))=='y'#line:395:return ask('Proceed (y/n)? ', ('y', 'n')) == 'y'
-    def rollback (OOOOO00OOO0O0OOO0 ):#line:397:def rollback(self):
-        ""#line:398:"""Rollback the changes previously made by remove()."""
-        if not OOOOO00OOO0O0OOO0 ._moved_paths .can_rollback :#line:399:if not self._moved_paths.can_rollback:
-            logger .error ("Can't roll back %s; was not uninstalled",OOOOO00OOO0O0OOO0 .dist .project_name ,)#line:403:)
-            return False #line:404:return False
-        logger .info ('Rolling back uninstall of %s',OOOOO00OOO0O0OOO0 .dist .project_name )#line:405:logger.info('Rolling back uninstall of %s', self.dist.project_name)
-        OOOOO00OOO0O0OOO0 ._moved_paths .rollback ()#line:406:self._moved_paths.rollback()
-        for OO00000OOOO0000OO in OOOOO00OOO0O0OOO0 .pth .values ():#line:407:for pth in self.pth.values():
-            OO00000OOOO0000OO .rollback ()#line:408:pth.rollback()
-    def commit (O0OOO0OO0OO000000 ):#line:410:def commit(self):
-        ""#line:411:"""Remove temporary save dir: rollback will no longer be possible."""
-        O0OOO0OO0OO000000 ._moved_paths .commit ()#line:412:self._moved_paths.commit()
-    @classmethod #line:414:@classmethod
-    def from_dist (OOO0OOOOOOOOOOOO0 ,OO0OO0OO0O0OO0000 ):#line:415:def from_dist(cls, dist):
-        OO0O0OOO00O00OO0O =normalize_path (OO0OO0OO0O0OO0000 .location )#line:416:dist_path = normalize_path(dist.location)
-        if not dist_is_local (OO0OO0OO0O0OO0000 ):#line:417:if not dist_is_local(dist):
-            logger .info ("Not uninstalling %s at %s, outside environment %s",OO0OO0OO0O0OO0000 .key ,OO0O0OOO00O00OO0O ,sys .prefix ,)#line:423:)
-            return OOO0OOOOOOOOOOOO0 (OO0OO0OO0O0OO0000 )#line:424:return cls(dist)
-        if OO0O0OOO00O00OO0O in {OOO00OO0OO000OOO0 for OOO00OO0OO000OOO0 in {sysconfig .get_path ("stdlib"),sysconfig .get_path ("platstdlib")}if OOO00OO0OO000OOO0 }:#line:428:if p}:
-            logger .info ("Not uninstalling %s at %s, as it is in the standard library.",OO0OO0OO0O0OO0000 .key ,OO0O0OOO00O00OO0O ,)#line:433:)
-            return OOO0OOOOOOOOOOOO0 (OO0OO0OO0O0OO0000 )#line:434:return cls(dist)
-        O000000OO0OO00000 =OOO0OOOOOOOOOOOO0 (OO0OO0OO0O0OO0000 )#line:436:paths_to_remove = cls(dist)
-        OO0OO000OO00O0O0O =egg_link_path (OO0OO0OO0O0OO0000 )#line:437:develop_egg_link = egg_link_path(dist)
-        OOO0000O0OOOO0O00 ='{}.egg-info'.format (pkg_resources .to_filename (OO0OO0OO0O0OO0000 .project_name ))#line:439:pkg_resources.to_filename(dist.project_name))
-        OO0OO0OO00000000O =OO0OO0OO0O0OO0000 .egg_info and os .path .exists (OO0OO0OO0O0OO0000 .egg_info )#line:440:egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
-        OOO00O0O000O0OOOO =getattr (OO0OO0OO0O0OO0000 ._provider ,'path',None )#line:442:distutils_egg_info = getattr(dist._provider, 'path', None)
-        if (OO0OO0OO00000000O and OO0OO0OO0O0OO0000 .egg_info .endswith ('.egg-info')and not OO0OO0OO0O0OO0000 .egg_info .endswith (OOO0000O0OOOO0O00 )):#line:447:not dist.egg_info.endswith(develop_egg_link_egg_info)):
-            O000000OO0OO00000 .add (OO0OO0OO0O0OO0000 .egg_info )#line:450:paths_to_remove.add(dist.egg_info)
-            if OO0OO0OO0O0OO0000 .has_metadata ('installed-files.txt'):#line:451:if dist.has_metadata('installed-files.txt'):
-                for O0OOO00OOOO0O0OO0 in OO0OO0OO0O0OO0000 .get_metadata ('installed-files.txt').splitlines ():#line:453:'installed-files.txt').splitlines():
-                    OOO0000O00OO0OOOO =os .path .normpath (os .path .join (OO0OO0OO0O0OO0000 .egg_info ,O0OOO00OOOO0O0OO0 ))#line:456:)
-                    O000000OO0OO00000 .add (OOO0000O00OO0OOOO )#line:457:paths_to_remove.add(path)
-            elif OO0OO0OO0O0OO0000 .has_metadata ('top_level.txt'):#line:461:elif dist.has_metadata('top_level.txt'):
-                if OO0OO0OO0O0OO0000 .has_metadata ('namespace_packages.txt'):#line:462:if dist.has_metadata('namespace_packages.txt'):
-                    OOOOO0O0OO0000O0O =OO0OO0OO0O0OO0000 .get_metadata ('namespace_packages.txt')#line:463:namespaces = dist.get_metadata('namespace_packages.txt')
-                else :#line:464:else:
-                    OOOOO0O0OO0000O0O =[]#line:465:namespaces = []
-                for OOO0000O00O0O00OO in [OOOOOOO0O0OO00OOO for OOOOOOO0O0OO00OOO in OO0OO0OO0O0OO0000 .get_metadata ('top_level.txt').splitlines ()if OOOOOOO0O0OO00OOO and OOOOOOO0O0OO00OOO not in OOOOO0O0OO0000O0O ]:#line:469:if p and p not in namespaces]:
-                    OOO0000O00OO0OOOO =os .path .join (OO0OO0OO0O0OO0000 .location ,OOO0000O00O0O00OO )#line:470:path = os.path.join(dist.location, top_level_pkg)
-                    O000000OO0OO00000 .add (OOO0000O00OO0OOOO )#line:471:paths_to_remove.add(path)
-                    O000000OO0OO00000 .add (OOO0000O00OO0OOOO +'.py')#line:472:paths_to_remove.add(path + '.py')
-                    O000000OO0OO00000 .add (OOO0000O00OO0OOOO +'.pyc')#line:473:paths_to_remove.add(path + '.pyc')
-                    O000000OO0OO00000 .add (OOO0000O00OO0OOOO +'.pyo')#line:474:paths_to_remove.add(path + '.pyo')
-        elif OOO00O0O000O0OOOO :#line:476:elif distutils_egg_info:
-            raise UninstallationError ("Cannot uninstall {!r}. It is a distutils installed project " "and thus we cannot accurately determine which files belong " "to it which would lead to only a partial uninstall.".format (OO0OO0OO0O0OO0000 .project_name ,))#line:483:)
-        elif OO0OO0OO0O0OO0000 .location .endswith ('.egg'):#line:485:elif dist.location.endswith('.egg'):
-            O000000OO0OO00000 .add (OO0OO0OO0O0OO0000 .location )#line:489:paths_to_remove.add(dist.location)
-            OOO0OO00O0000O0O0 =os .path .split (OO0OO0OO0O0OO0000 .location )[1 ]#line:490:easy_install_egg = os.path.split(dist.location)[1]
-            OOO000OO0OOOOOOOO =os .path .join (os .path .dirname (OO0OO0OO0O0OO0000 .location ),'easy-install.pth')#line:492:'easy-install.pth')
-            O000000OO0OO00000 .add_pth (OOO000OO0OOOOOOOO ,'./'+OOO0OO00O0000O0O0 )#line:493:paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
-        elif OO0OO0OO00000000O and OO0OO0OO0O0OO0000 .egg_info .endswith ('.dist-info'):#line:495:elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
-            for OOO0000O00OO0OOOO in uninstallation_paths (OO0OO0OO0O0OO0000 ):#line:496:for path in uninstallation_paths(dist):
-                O000000OO0OO00000 .add (OOO0000O00OO0OOOO )#line:497:paths_to_remove.add(path)
-        elif OO0OO000OO00O0O0O :#line:499:elif develop_egg_link:
-            with open (OO0OO000OO00O0O0O ,'r')as OOOO0O00OO0OOO000 :#line:501:with open(develop_egg_link, 'r') as fh:
-                OO0OO000OOO0OO0O0 =os .path .normcase (OOOO0O00OO0OOO000 .readline ().strip ())#line:502:link_pointer = os.path.normcase(fh.readline().strip())
-            assert (OO0OO000OOO0OO0O0 ==OO0OO0OO0O0OO0000 .location ),('Egg-link %s does not match installed location of %s ' '(at %s)'%(OO0OO000OOO0OO0O0 ,OO0OO0OO0O0OO0000 .project_name ,OO0OO0OO0O0OO0000 .location ))#line:506:)
-            O000000OO0OO00000 .add (OO0OO000OO00O0O0O )#line:507:paths_to_remove.add(develop_egg_link)
-            OOO000OO0OOOOOOOO =os .path .join (os .path .dirname (OO0OO000OO00O0O0O ),'easy-install.pth')#line:509:'easy-install.pth')
-            O000000OO0OO00000 .add_pth (OOO000OO0OOOOOOOO ,OO0OO0OO0O0OO0000 .location )#line:510:paths_to_remove.add_pth(easy_install_pth, dist.location)
-        else :#line:512:else:
-            logger .debug ('Not sure how to uninstall: %s - Check: %s',OO0OO0OO0O0OO0000 ,OO0OO0OO0O0OO0000 .location ,)#line:516:)
-        if OO0OO0OO0O0OO0000 .has_metadata ('scripts')and OO0OO0OO0O0OO0000 .metadata_isdir ('scripts'):#line:519:if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
-            for OOOOO0OOO00O0OOO0 in OO0OO0OO0O0OO0000 .metadata_listdir ('scripts'):#line:520:for script in dist.metadata_listdir('scripts'):
-                if dist_in_usersite (OO0OO0OO0O0OO0000 ):#line:521:if dist_in_usersite(dist):
-                    O0O0000O00O0OOO0O =bin_user #line:522:bin_dir = bin_user
-                else :#line:523:else:
-                    O0O0000O00O0OOO0O =bin_py #line:524:bin_dir = bin_py
-                O000000OO0OO00000 .add (os .path .join (O0O0000O00O0OOO0O ,OOOOO0OOO00O0OOO0 ))#line:525:paths_to_remove.add(os.path.join(bin_dir, script))
-                if WINDOWS :#line:526:if WINDOWS:
-                    O000000OO0OO00000 .add (os .path .join (O0O0000O00O0OOO0O ,OOOOO0OOO00O0OOO0 )+'.bat')#line:527:paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
-        _O000OOO000OO000OO =[]#line:530:_scripts_to_remove = []
-        OOOOO0O0000OOO00O =OO0OO0OO0O0OO0000 .get_entry_map (group ='console_scripts')#line:531:console_scripts = dist.get_entry_map(group='console_scripts')
-        for O0O00OO0O0OOOO0OO in OOOOO0O0000OOO00O .keys ():#line:532:for name in console_scripts.keys():
-            _O000OOO000OO000OO .extend (_O0OO00O0000000000 (OO0OO0OO0O0OO0000 ,O0O00OO0O0OOOO0OO ,False ))#line:533:_scripts_to_remove.extend(_script_names(dist, name, False))
-        OOO0000000O000O00 =OO0OO0OO0O0OO0000 .get_entry_map (group ='gui_scripts')#line:535:gui_scripts = dist.get_entry_map(group='gui_scripts')
-        for O0O00OO0O0OOOO0OO in OOO0000000O000O00 .keys ():#line:536:for name in gui_scripts.keys():
-            _O000OOO000OO000OO .extend (_O0OO00O0000000000 (OO0OO0OO0O0OO0000 ,O0O00OO0O0OOOO0OO ,True ))#line:537:_scripts_to_remove.extend(_script_names(dist, name, True))
-        for OOOO0O0OO00OOOOO0 in _O000OOO000OO000OO :#line:539:for s in _scripts_to_remove:
-            O000000OO0OO00000 .add (OOOO0O0OO00OOOOO0 )#line:540:paths_to_remove.add(s)
-        return O000000OO0OO00000 #line:542:return paths_to_remove
-class UninstallPthEntries (object ):#line:545:class UninstallPthEntries(object):
-    def __init__ (O0OO0O0OOO0000O0O ,O0OOO00OOO0O00O00 ):#line:546:def __init__(self, pth_file):
-        if not os .path .isfile (O0OOO00OOO0O00O00 ):#line:547:if not os.path.isfile(pth_file):
-            raise UninstallationError ("Cannot remove entries from nonexistent file %s"%O0OOO00OOO0O00O00 )#line:550:)
-        O0OO0O0OOO0000O0O .file =O0OOO00OOO0O00O00 #line:551:self.file = pth_file
-        O0OO0O0OOO0000O0O .entries =set ()#line:552:self.entries = set()
-        O0OO0O0OOO0000O0O ._saved_lines =None #line:553:self._saved_lines = None
-    def add (OOO0OOO0000OO00O0 ,O0O000OO00O00O0O0 ):#line:555:def add(self, entry):
-        O0O000OO00O00O0O0 =os .path .normcase (O0O000OO00O00O0O0 )#line:556:entry = os.path.normcase(entry)
-        if WINDOWS and not os .path .splitdrive (O0O000OO00O00O0O0 )[0 ]:#line:561:if WINDOWS and not os.path.splitdrive(entry)[0]:
-            O0O000OO00O00O0O0 =O0O000OO00O00O0O0 .replace ('\\','/')#line:562:entry = entry.replace('\\', '/')
-        OOO0OOO0000OO00O0 .entries .add (O0O000OO00O00O0O0 )#line:563:self.entries.add(entry)
-    def remove (OO0O00OOOOOO000OO ):#line:565:def remove(self):
-        logger .debug ('Removing pth entries from %s:',OO0O00OOOOOO000OO .file )#line:566:logger.debug('Removing pth entries from %s:', self.file)
-        with open (OO0O00OOOOOO000OO .file ,'rb')as OOO000OO000000OO0 :#line:567:with open(self.file, 'rb') as fh:
-            O00OOOOO000OOO000 =OOO000OO000000OO0 .readlines ()#line:569:lines = fh.readlines()
-            OO0O00OOOOOO000OO ._saved_lines =O00OOOOO000OOO000 #line:570:self._saved_lines = lines
-        if any (b'\r\n'in O0O00000O0O00O000 for O0O00000O0O00O000 in O00OOOOO000OOO000 ):#line:571:if any(b'\r\n' in line for line in lines):
-            O00O0O00O00O00OO0 ='\r\n'#line:572:endline = '\r\n'
-        else :#line:573:else:
-            O00O0O00O00O00OO0 ='\n'#line:574:endline = '\n'
-        if O00OOOOO000OOO000 and not O00OOOOO000OOO000 [-1 ].endswith (O00O0O00O00O00OO0 .encode ("utf-8")):#line:576:if lines and not lines[-1].endswith(endline.encode("utf-8")):
-            O00OOOOO000OOO000 [-1 ]=O00OOOOO000OOO000 [-1 ]+O00O0O00O00O00OO0 .encode ("utf-8")#line:577:lines[-1] = lines[-1] + endline.encode("utf-8")
-        for OOOOO00OO0OO00000 in OO0O00OOOOOO000OO .entries :#line:578:for entry in self.entries:
-            try :#line:579:try:
-                logger .debug ('Removing entry: %s',OOOOO00OO0OO00000 )#line:580:logger.debug('Removing entry: %s', entry)
-                O00OOOOO000OOO000 .remove ((OOOOO00OO0OO00000 +O00O0O00O00O00OO0 ).encode ("utf-8"))#line:581:lines.remove((entry + endline).encode("utf-8"))
-            except ValueError :#line:582:except ValueError:
-                pass #line:583:pass
-        with open (OO0O00OOOOOO000OO .file ,'wb')as OOO000OO000000OO0 :#line:584:with open(self.file, 'wb') as fh:
-            OOO000OO000000OO0 .writelines (O00OOOOO000OOO000 )#line:585:fh.writelines(lines)
-    def rollback (OOOO0OOOO0OOOOO0O ):#line:587:def rollback(self):
-        if OOOO0OOOO0OOOOO0O ._saved_lines is None :#line:588:if self._saved_lines is None:
-            logger .error ('Cannot roll back changes to %s, none were made',OOOO0OOOO0OOOOO0O .file )#line:591:)
-            return False #line:592:return False
-        logger .debug ('Rolling %s back to previous state',OOOO0OOOO0OOOOO0O .file )#line:593:logger.debug('Rolling %s back to previous state', self.file)
-        with open (OOOO0OOOO0OOOOO0O .file ,'wb')as OOO0O00OO00O000O0 :#line:594:with open(self.file, 'wb') as fh:
-            OOO0O00OO00O000O0 .writelines (OOOO0OOOO0OOOOO0O ._saved_lines )#line:595:fh.writelines(self._saved_lines)
-        return True #line:596:return True
+from tkinter import *#line:1
+import math as m #line:2
+root =Tk ()#line:4
+root .title ("Scientific CalC")#line:5
+e =Entry (root ,width =50 ,borderwidth =5 ,relief =RIDGE ,fg ="Yellow",bg ="#1c1c3c")#line:7
+e .grid (row =0 ,column =0 ,columnspan =5 ,padx =10 ,pady =15 )#line:8
+def click (O00OOO00O0OOOO000 ):#line:11
+    O0OOO0000000000O0 =e .get ()#line:12
+    e .delete (0 ,END )#line:13
+    e .insert (0 ,O0OOO0000000000O0 +O00OOO00O0OOOO000 )#line:14
+    return #line:15
+def sc (O0O000OO00OOOO0O0 ):#line:18
+    OOOO00O00000O0O0O =O0O000OO00OOOO0O0 .widget #line:19
+    OO0OO0O0O0OO0OO00 =OOOO00O00000O0O0O ["text"]#line:20
+    OOO00OOOOO0OO000O =e .get ()#line:21
+    OO0O0000OO00O0OO0 =""#line:22
+    if OO0OO0O0O0OO0OO00 =="deg":#line:23
+        OO0O0000OO00O0OO0 =str (m .degrees (float (OOO00OOOOO0OO000O )))#line:24
+    if OO0OO0O0O0OO0OO00 =="sin":#line:25
+        OO0O0000OO00O0OO0 =str (m .sin (float (OOO00OOOOO0OO000O )))#line:26
+    if OO0OO0O0O0OO0OO00 =="cos":#line:27
+        OO0O0000OO00O0OO0 =str (m .cos (float (OOO00OOOOO0OO000O )))#line:28
+    if OO0OO0O0O0OO0OO00 =="tan":#line:29
+        OO0O0000OO00O0OO0 =str (m .tan (float (OOO00OOOOO0OO000O )))#line:30
+    if OO0OO0O0O0OO0OO00 =="lg":#line:31
+        OO0O0000OO00O0OO0 =str (m .log10 (float (OOO00OOOOO0OO000O )))#line:32
+    if OO0OO0O0O0OO0OO00 =="ln":#line:33
+        OO0O0000OO00O0OO0 =str (m .log (float (OOO00OOOOO0OO000O )))#line:34
+    if OO0OO0O0O0OO0OO00 =="Sqrt":#line:35
+        OO0O0000OO00O0OO0 =str (m .sqrt (float (OOO00OOOOO0OO000O )))#line:36
+    if OO0OO0O0O0OO0OO00 =="x!":#line:38
+        OO0O0000OO00O0OO0 =str (m .factorial (float (OOO00OOOOO0OO000O )))#line:39
+    if OO0OO0O0O0OO0OO00 =="1/x":#line:40
+        OO0O0000OO00O0OO0 =str (1 /(float (OOO00OOOOO0OO000O )))#line:41
+    if OO0OO0O0O0OO0OO00 =="pi":#line:42
+        if OOO00OOOOO0OO000O =="":#line:43
+            OO0O0000OO00O0OO0 =str (m .pi )#line:44
+        else :#line:45
+            OO0O0000OO00O0OO0 =str (float (OOO00OOOOO0OO000O )*m .pi )#line:46
+    if OO0OO0O0O0OO0OO00 =="e":#line:47
+        if OOO00OOOOO0OO000O =="":#line:48
+            OO0O0000OO00O0OO0 =str (m .e )#line:49
+        else :#line:50
+            OO0O0000OO00O0OO0 =str (m .e **float (OOO00OOOOO0OO000O ))#line:51
+    e .delete (0 ,END )#line:52
+    e .insert (0 ,OO0O0000OO00O0OO0 )#line:53
+def clear ():#line:56
+    e .delete (0 ,END )#line:57
+    return #line:58
+def bksps ():#line:61
+    O0O0O0OO0000OO00O =e .get ()#line:62
+    OOO000O0O0O0OOO00 =len (O0O0O0OO0000OO00O )-1 #line:63
+    e .delete (OOO000O0O0O0OOO00 ,END )#line:64
+def evaluate ():#line:67
+    O0O0OOOO0000O0O0O =e .get ()#line:68
+    O0O0OOOO0000O0O0O =eval (O0O0OOOO0000O0O0O )#line:69
+    e .delete (0 ,END )#line:70
+    e .insert (0 ,O0O0OOOO0000O0O0O )#line:71
+lg =Button (root ,text ="lg",padx =28 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:74
+lg .bind ("<Button-1>",sc )#line:75
+ln =Button (root ,text ="ln",padx =28 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:76
+ln .bind ("<Button-1>",sc )#line:77
+par1st =Button (root ,text ="(",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("("),)#line:87
+par2nd =Button (root ,text =")",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click (")"),)#line:97
+dot =Button (root ,text =".",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("."),)#line:107
+exp =Button (root ,text ="^",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("**"),)#line:117
+degb =Button (root ,text ="deg",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:120
+degb .bind ("<Button-1>",sc )#line:121
+sinb =Button (root ,text ="sin",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:125
+sinb .bind ("<Button-1>",sc )#line:126
+cosb =Button (root ,text ="cos",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:129
+cosb .bind ("<Button-1>",sc )#line:130
+tanb =Button (root ,text ="tan",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:133
+tanb .bind ("<Button-1>",sc )#line:134
+sqrtm =Button (root ,text ="Sqrt",padx =23 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:138
+sqrtm .bind ("<Button-1>",sc )#line:139
+ac =Button (root ,text ="C",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#e08f5a",command =lambda :clear (),)#line:149
+bksp =Button (root ,text ="Bksp",padx =19 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#e08f5a",command =lambda :bksps (),)#line:159
+mod =Button (root ,text ="mod",padx =20 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("%"),)#line:169
+div =Button (root ,text ="/",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("/"),)#line:179
+fact =Button (root ,text ="x!",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:183
+fact .bind ("<Button-1>",sc )#line:184
+seven =Button (root ,text ="7",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("7"),)#line:194
+eight =Button (root ,text ="8",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("8"),)#line:204
+nine =Button (root ,text ="9",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("9"),)#line:214
+mult =Button (root ,text ="*",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("*"),)#line:224
+frac =Button (root ,text ="1/x",padx =25 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:228
+frac .bind ("<Button-1>",sc )#line:229
+four =Button (root ,text ="4",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("4"),)#line:239
+five =Button (root ,text ="5",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("5"),)#line:249
+six =Button (root ,text ="6",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("6"),)#line:259
+minus =Button (root ,text ="-",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("-"),)#line:269
+pib =Button (root ,text ="pi",padx =28 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:271
+pib .bind ("<Button-1>",sc )#line:272
+one =Button (root ,text ="1",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("1"),)#line:282
+two =Button (root ,text ="2",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("2"),)#line:292
+three =Button (root ,text ="3",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("3"),)#line:302
+plus =Button (root ,text ="+",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c",command =lambda :click ("+"),)#line:312
+e_b =Button (root ,text ="e",padx =29 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#1c1c3c")#line:315
+e_b .bind ("<Button-1>",sc )#line:316
+zero =Button (root ,text ="0",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="#3d4193",command =lambda :click ("0"),)#line:326
+equal =Button (root ,text ="=",padx =30 ,pady =10 ,relief =RAISED ,fg ="White",bg ="Orange",command =lambda :evaluate (),)#line:336
+lg .grid (row =1 ,column =0 )#line:339
+ln .grid (row =1 ,column =1 )#line:340
+par1st .grid (row =1 ,column =2 )#line:341
+par2nd .grid (row =1 ,column =3 )#line:342
+dot .grid (row =1 ,column =4 )#line:343
+exp .grid (row =2 ,column =0 )#line:345
+degb .grid (row =2 ,column =1 )#line:346
+sinb .grid (row =2 ,column =2 )#line:347
+cosb .grid (row =2 ,column =3 )#line:348
+tanb .grid (row =2 ,column =4 )#line:349
+sqrtm .grid (row =3 ,column =0 )#line:351
+ac .grid (row =3 ,column =1 )#line:352
+bksp .grid (row =3 ,column =2 )#line:353
+mod .grid (row =3 ,column =3 )#line:354
+div .grid (row =3 ,column =4 )#line:355
+fact .grid (row =4 ,column =0 )#line:357
+seven .grid (row =4 ,column =1 )#line:358
+eight .grid (row =4 ,column =2 )#line:359
+nine .grid (row =4 ,column =3 )#line:360
+mult .grid (row =4 ,column =4 )#line:361
+frac .grid (row =5 ,column =0 )#line:363
+four .grid (row =5 ,column =1 )#line:364
+five .grid (row =5 ,column =2 )#line:365
+six .grid (row =5 ,column =3 )#line:366
+minus .grid (row =5 ,column =4 )#line:367
+pib .grid (row =6 ,column =0 )#line:369
+one .grid (row =6 ,column =1 )#line:370
+two .grid (row =6 ,column =2 )#line:371
+three .grid (row =6 ,column =3 )#line:372
+plus .grid (row =6 ,column =4 )#line:373
+e_b .grid (row =7 ,column =1 )#line:375
+zero .grid (row =7 ,column =2 )#line:376
+equal .grid (row =7 ,column =3 )#line:377
+root .mainloop ()#line:378

@@ -1,231 +1,48 @@
-from __future__ import absolute_import ,division ,print_function #line:4:from __future__ import absolute_import, division, print_function
-import collections #line:6:import collections
-import itertools #line:7:import itertools
-import re #line:8:import re
-from ._structures import Infinity #line:10:from ._structures import Infinity
-__all__ =["parse","Version","LegacyVersion","InvalidVersion","VERSION_PATTERN"]#line:13:__all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
-_OO0OOOO0000000O00 =collections .namedtuple ("_Version",["epoch","release","dev","pre","post","local"])#line:18:)
-def parse (OO0OOO0O00000O00O ):#line:21:def parse(version):
-    ""#line:26:"""
-    try :#line:27:try:
-        return Version (OO0OOO0O00000O00O )#line:28:return Version(version)
-    except InvalidVersion :#line:29:except InvalidVersion:
-        return LegacyVersion (OO0OOO0O00000O00O )#line:30:return LegacyVersion(version)
-class InvalidVersion (ValueError ):#line:33:class InvalidVersion(ValueError):
-    ""#line:36:"""
-class _OO0000O00OOO0O0O0 (object ):#line:39:class _BaseVersion(object):
-    def __hash__ (O0O0O0000000O0000 ):#line:40:def __hash__(self):
-        return hash (O0O0O0000000O0000 ._key )#line:41:return hash(self._key)
-    def __lt__ (OOO0OO0OO000O0O00 ,O00O0OOOOOO000000 ):#line:43:def __lt__(self, other):
-        return OOO0OO0OO000O0O00 ._compare (O00O0OOOOOO000000 ,lambda O0O00O0OOO000O000 ,OO00O000O0OOO0000 :O0O00O0OOO000O000 <OO00O000O0OOO0000 )#line:44:return self._compare(other, lambda s, o: s < o)
-    def __le__ (OOOOOO0000O000000 ,O00OO0O0000O0O0O0 ):#line:46:def __le__(self, other):
-        return OOOOOO0000O000000 ._compare (O00OO0O0000O0O0O0 ,lambda OO0OO000OOOO000OO ,OO0OOOO00O000O0O0 :OO0OO000OOOO000OO <=OO0OOOO00O000O0O0 )#line:47:return self._compare(other, lambda s, o: s <= o)
-    def __eq__ (OO0O0OOOO0OO0OOO0 ,OO0OO0OOOO00O0000 ):#line:49:def __eq__(self, other):
-        return OO0O0OOOO0OO0OOO0 ._compare (OO0OO0OOOO00O0000 ,lambda OO00000O0OOOOOO00 ,O000O0O000OO000O0 :OO00000O0OOOOOO00 ==O000O0O000OO000O0 )#line:50:return self._compare(other, lambda s, o: s == o)
-    def __ge__ (O000O0O000OO0O0OO ,OO0O0O0OOO0000OO0 ):#line:52:def __ge__(self, other):
-        return O000O0O000OO0O0OO ._compare (OO0O0O0OOO0000OO0 ,lambda OO0OO00O0OOOOO0O0 ,OOO0O0OO000O00O0O :OO0OO00O0OOOOO0O0 >=OOO0O0OO000O00O0O )#line:53:return self._compare(other, lambda s, o: s >= o)
-    def __gt__ (O00O0000OOO0O0O00 ,O00OO0000O0OO00O0 ):#line:55:def __gt__(self, other):
-        return O00O0000OOO0O0O00 ._compare (O00OO0000O0OO00O0 ,lambda O0OOO0OOOOOOO00O0 ,O000O0OOOO0O0OO00 :O0OOO0OOOOOOO00O0 >O000O0OOOO0O0OO00 )#line:56:return self._compare(other, lambda s, o: s > o)
-    def __ne__ (OOO000O00O00O00OO ,O0000000OOO00OO0O ):#line:58:def __ne__(self, other):
-        return OOO000O00O00O00OO ._compare (O0000000OOO00OO0O ,lambda OO0OOO0O0O0OO0000 ,OO000OO0O0O00OOO0 :OO0OOO0O0O0OO0000 !=OO000OO0O0O00OOO0 )#line:59:return self._compare(other, lambda s, o: s != o)
-    def _compare (O00OO0000O00000OO ,OO00OOOO000O0OOOO ,OOO0OOO000OO0OOOO ):#line:61:def _compare(self, other, method):
-        if not isinstance (OO00OOOO000O0OOOO ,_OO0000O00OOO0O0O0 ):#line:62:if not isinstance(other, _BaseVersion):
-            return NotImplemented #line:63:return NotImplemented
-        return OOO0OOO000OO0OOOO (O00OO0000O00000OO ._key ,OO00OOOO000O0OOOO ._key )#line:65:return method(self._key, other._key)
-class LegacyVersion (_OO0000O00OOO0O0O0 ):#line:68:class LegacyVersion(_BaseVersion):
-    def __init__ (O00000OO0O00OO0OO ,OO00OOOO000O00000 ):#line:69:def __init__(self, version):
-        O00000OO0O00OO0OO ._version =str (OO00OOOO000O00000 )#line:70:self._version = str(version)
-        O00000OO0O00OO0OO ._key =_O00OO0OOO0OOO000O (O00000OO0O00OO0OO ._version )#line:71:self._key = _legacy_cmpkey(self._version)
-    def __str__ (OOOO0O000OO000O00 ):#line:73:def __str__(self):
-        return OOOO0O000OO000O00 ._version #line:74:return self._version
-    def __repr__ (O0O000OOOO00O0O0O ):#line:76:def __repr__(self):
-        return "<LegacyVersion({0})>".format (repr (str (O0O000OOOO00O0O0O )))#line:77:return "<LegacyVersion({0})>".format(repr(str(self)))
-    @property #line:79:@property
-    def public (O000OOO0O0OOOO0O0 ):#line:80:def public(self):
-        return O000OOO0O0OOOO0O0 ._version #line:81:return self._version
-    @property #line:83:@property
-    def base_version (OO0OOO00O0OO00O00 ):#line:84:def base_version(self):
-        return OO0OOO00O0OO00O00 ._version #line:85:return self._version
-    @property #line:87:@property
-    def epoch (OO0000000OO000O00 ):#line:88:def epoch(self):
-        return -1 #line:89:return -1
-    @property #line:91:@property
-    def release (O00O00O00O00OOOOO ):#line:92:def release(self):
-        return None #line:93:return None
-    @property #line:95:@property
-    def pre (O000OOO00O0OO0O0O ):#line:96:def pre(self):
-        return None #line:97:return None
-    @property #line:99:@property
-    def post (OO0OO0OOOOOO0OO00 ):#line:100:def post(self):
-        return None #line:101:return None
-    @property #line:103:@property
-    def dev (O000O0O0O000O0000 ):#line:104:def dev(self):
-        return None #line:105:return None
-    @property #line:107:@property
-    def local (O0OO0O00O00O0OO0O ):#line:108:def local(self):
-        return None #line:109:return None
-    @property #line:111:@property
-    def is_prerelease (OOOO0OO0OO0O000OO ):#line:112:def is_prerelease(self):
-        return False #line:113:return False
-    @property #line:115:@property
-    def is_postrelease (OO00OOO0O00OO0O00 ):#line:116:def is_postrelease(self):
-        return False #line:117:return False
-    @property #line:119:@property
-    def is_devrelease (O0O0O0O00OO0OOOO0 ):#line:120:def is_devrelease(self):
-        return False #line:121:return False
-_O0OOO0O000OOOOO00 =re .compile (r"(\d+ | [a-z]+ | \.| -)",re .VERBOSE )#line:124:_legacy_version_component_re = re.compile(r"(\d+ | [a-z]+ | \.| -)", re.VERBOSE)
-_O0O0O00O0000OOO00 ={"pre":"c","preview":"c","-":"final-","rc":"c","dev":"@",}#line:132:}
-def _O00000000O00OO000 (OO00OO00OOOOOOOO0 ):#line:135:def _parse_version_parts(s):
-    for OO0OO00O00O00OO00 in _O0OOO0O000OOOOO00 .split (OO00OO00OOOOOOOO0 ):#line:136:for part in _legacy_version_component_re.split(s):
-        OO0OO00O00O00OO00 =_O0O0O00O0000OOO00 .get (OO0OO00O00O00OO00 ,OO0OO00O00O00OO00 )#line:137:part = _legacy_version_replacement_map.get(part, part)
-        if not OO0OO00O00O00OO00 or OO0OO00O00O00OO00 ==".":#line:139:if not part or part == ".":
-            continue #line:140:continue
-        if OO0OO00O00O00OO00 [:1 ]in "0123456789":#line:142:if part[:1] in "0123456789":
-            yield OO0OO00O00O00OO00 .zfill (8 )#line:144:yield part.zfill(8)
-        else :#line:145:else:
-            yield "*"+OO0OO00O00O00OO00 #line:146:yield "*" + part
-    yield "*final"#line:149:yield "*final"
-def _O00OO0OOO0OOO000O (OOOOOO00OOOO0O0O0 ):#line:152:def _legacy_cmpkey(version):
-    OO0O0O0OO000OO0O0 =-1 #line:157:epoch = -1
-    O0OO0O0OO000OOO00 =[]#line:161:parts = []
-    for O0O000000OOO0O000 in _O00000000O00OO000 (OOOOOO00OOOO0O0O0 .lower ()):#line:162:for part in _parse_version_parts(version.lower()):
-        if O0O000000OOO0O000 .startswith ("*"):#line:163:if part.startswith("*"):
-            if O0O000000OOO0O000 <"*final":#line:165:if part < "*final":
-                while O0OO0O0OO000OOO00 and O0OO0O0OO000OOO00 [-1 ]=="*final-":#line:166:while parts and parts[-1] == "*final-":
-                    O0OO0O0OO000OOO00 .pop ()#line:167:parts.pop()
-            while O0OO0O0OO000OOO00 and O0OO0O0OO000OOO00 [-1 ]=="00000000":#line:170:while parts and parts[-1] == "00000000":
-                O0OO0O0OO000OOO00 .pop ()#line:171:parts.pop()
-        O0OO0O0OO000OOO00 .append (O0O000000OOO0O000 )#line:173:parts.append(part)
-    O0OO0O0OO000OOO00 =tuple (O0OO0O0OO000OOO00 )#line:174:parts = tuple(parts)
-    return OO0O0O0OO000OO0O0 ,O0OO0O0OO000OOO00 #line:176:return epoch, parts
-VERSION_PATTERN =r"""
-    v?
-    (?:
-        (?:(?P<epoch>[0-9]+)!)?                           # epoch
-        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
-        (?P<pre>                                          # pre-release
-            [-_\.]?
-            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
-            [-_\.]?
-            (?P<pre_n>[0-9]+)?
-        )?
-        (?P<post>                                         # post release
-            (?:-(?P<post_n1>[0-9]+))
-            |
-            (?:
-                [-_\.]?
-                (?P<post_l>post|rev|r)
-                [-_\.]?
-                (?P<post_n2>[0-9]+)?
-            )
-        )?
-        (?P<dev>                                          # dev release
-            [-_\.]?
-            (?P<dev_l>dev)
-            [-_\.]?
-            (?P<dev_n>[0-9]+)?
-        )?
-    )
-    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
-"""#line:210:"""
-class Version (_OO0000O00OOO0O0O0 ):#line:213:class Version(_BaseVersion):
-    _regex =re .compile (r"^\s*"+VERSION_PATTERN +r"\s*$",re .VERBOSE |re .IGNORECASE )#line:215:_regex = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
-    def __init__ (OO00OOO0O00OO0000 ,O0000OOO00O000OOO ):#line:217:def __init__(self, version):
-        OOO000OOO0OOO0O00 =OO00OOO0O00OO0000 ._regex .search (O0000OOO00O000OOO )#line:219:match = self._regex.search(version)
-        if not OOO000OOO0OOO0O00 :#line:220:if not match:
-            raise InvalidVersion ("Invalid version: '{0}'".format (O0000OOO00O000OOO ))#line:221:raise InvalidVersion("Invalid version: '{0}'".format(version))
-        OO00OOO0O00OO0000 ._version =_OO0OOOO0000000O00 (epoch =int (OOO000OOO0OOO0O00 .group ("epoch"))if OOO000OOO0OOO0O00 .group ("epoch")else 0 ,release =tuple (int (OOO0O00O00O00O000 )for OOO0O00O00O00O000 in OOO000OOO0OOO0O00 .group ("release").split (".")),pre =_OOOOO0OOOO0OO0000 (OOO000OOO0OOO0O00 .group ("pre_l"),OOO000OOO0OOO0O00 .group ("pre_n")),post =_OOOOO0OOOO0OO0000 (OOO000OOO0OOO0O00 .group ("post_l"),OOO000OOO0OOO0O00 .group ("post_n1")or OOO000OOO0OOO0O00 .group ("post_n2")),dev =_OOOOO0OOOO0OO0000 (OOO000OOO0OOO0O00 .group ("dev_l"),OOO000OOO0OOO0O00 .group ("dev_n")),local =_OOO000OO000OO000O (OOO000OOO0OOO0O00 .group ("local")),)#line:233:)
-        OO00OOO0O00OO0000 ._key =_OO0OOO0O000OO0O00 (OO00OOO0O00OO0000 ._version .epoch ,OO00OOO0O00OO0000 ._version .release ,OO00OOO0O00OO0000 ._version .pre ,OO00OOO0O00OO0000 ._version .post ,OO00OOO0O00OO0000 ._version .dev ,OO00OOO0O00OO0000 ._version .local ,)#line:243:)
-    def __repr__ (OOOOOO00OOO0000O0 ):#line:245:def __repr__(self):
-        return "<Version({0})>".format (repr (str (OOOOOO00OOO0000O0 )))#line:246:return "<Version({0})>".format(repr(str(self)))
-    def __str__ (OOO0O000OOOOOOOO0 ):#line:248:def __str__(self):
-        OO0O0O0OOO0OOOO00 =[]#line:249:parts = []
-        if OOO0O000OOOOOOOO0 .epoch !=0 :#line:252:if self.epoch != 0:
-            OO0O0O0OOO0OOOO00 .append ("{0}!".format (OOO0O000OOOOOOOO0 .epoch ))#line:253:parts.append("{0}!".format(self.epoch))
-        OO0O0O0OOO0OOOO00 .append (".".join (str (OO0O000O000OO0O00 )for OO0O000O000OO0O00 in OOO0O000OOOOOOOO0 .release ))#line:256:parts.append(".".join(str(x) for x in self.release))
-        if OOO0O000OOOOOOOO0 .pre is not None :#line:259:if self.pre is not None:
-            OO0O0O0OOO0OOOO00 .append ("".join (str (OO0O00000O0O000OO )for OO0O00000O0O000OO in OOO0O000OOOOOOOO0 .pre ))#line:260:parts.append("".join(str(x) for x in self.pre))
-        if OOO0O000OOOOOOOO0 .post is not None :#line:263:if self.post is not None:
-            OO0O0O0OOO0OOOO00 .append (".post{0}".format (OOO0O000OOOOOOOO0 .post ))#line:264:parts.append(".post{0}".format(self.post))
-        if OOO0O000OOOOOOOO0 .dev is not None :#line:267:if self.dev is not None:
-            OO0O0O0OOO0OOOO00 .append (".dev{0}".format (OOO0O000OOOOOOOO0 .dev ))#line:268:parts.append(".dev{0}".format(self.dev))
-        if OOO0O000OOOOOOOO0 .local is not None :#line:271:if self.local is not None:
-            OO0O0O0OOO0OOOO00 .append ("+{0}".format (OOO0O000OOOOOOOO0 .local ))#line:272:parts.append("+{0}".format(self.local))
-        return "".join (OO0O0O0OOO0OOOO00 )#line:274:return "".join(parts)
-    @property #line:276:@property
-    def epoch (O000O0O0O0OO000O0 ):#line:277:def epoch(self):
-        return O000O0O0O0OO000O0 ._version .epoch #line:278:return self._version.epoch
-    @property #line:280:@property
-    def release (OOO000OO0O0O0O000 ):#line:281:def release(self):
-        return OOO000OO0O0O0O000 ._version .release #line:282:return self._version.release
-    @property #line:284:@property
-    def pre (O00OO00OO00000O0O ):#line:285:def pre(self):
-        return O00OO00OO00000O0O ._version .pre #line:286:return self._version.pre
-    @property #line:288:@property
-    def post (O000OO0OOOOOOO0OO ):#line:289:def post(self):
-        return O000OO0OOOOOOO0OO ._version .post [1 ]if O000OO0OOOOOOO0OO ._version .post else None #line:290:return self._version.post[1] if self._version.post else None
-    @property #line:292:@property
-    def dev (O0OO00OOOOOOOO000 ):#line:293:def dev(self):
-        return O0OO00OOOOOOOO000 ._version .dev [1 ]if O0OO00OOOOOOOO000 ._version .dev else None #line:294:return self._version.dev[1] if self._version.dev else None
-    @property #line:296:@property
-    def local (O0OO0OOOOOO00OO00 ):#line:297:def local(self):
-        if O0OO0OOOOOO00OO00 ._version .local :#line:298:if self._version.local:
-            return ".".join (str (OO00000OOOO0O000O )for OO00000OOOO0O000O in O0OO0OOOOOO00OO00 ._version .local )#line:299:return ".".join(str(x) for x in self._version.local)
-        else :#line:300:else:
-            return None #line:301:return None
-    @property #line:303:@property
-    def public (OO000000O0OOO000O ):#line:304:def public(self):
-        return str (OO000000O0OOO000O ).split ("+",1 )[0 ]#line:305:return str(self).split("+", 1)[0]
-    @property #line:307:@property
-    def base_version (O00OOO0OOO0O00OO0 ):#line:308:def base_version(self):
-        O0000O0OO0OOOOO00 =[]#line:309:parts = []
-        if O00OOO0OOO0O00OO0 .epoch !=0 :#line:312:if self.epoch != 0:
-            O0000O0OO0OOOOO00 .append ("{0}!".format (O00OOO0OOO0O00OO0 .epoch ))#line:313:parts.append("{0}!".format(self.epoch))
-        O0000O0OO0OOOOO00 .append (".".join (str (OOO0O0OO00O000OOO )for OOO0O0OO00O000OOO in O00OOO0OOO0O00OO0 .release ))#line:316:parts.append(".".join(str(x) for x in self.release))
-        return "".join (O0000O0OO0OOOOO00 )#line:318:return "".join(parts)
-    @property #line:320:@property
-    def is_prerelease (O0O0000000O0OO000 ):#line:321:def is_prerelease(self):
-        return O0O0000000O0OO000 .dev is not None or O0O0000000O0OO000 .pre is not None #line:322:return self.dev is not None or self.pre is not None
-    @property #line:324:@property
-    def is_postrelease (O0O00O000O0O000O0 ):#line:325:def is_postrelease(self):
-        return O0O00O000O0O000O0 .post is not None #line:326:return self.post is not None
-    @property #line:328:@property
-    def is_devrelease (OO000000OO000OO0O ):#line:329:def is_devrelease(self):
-        return OO000000OO000OO0O .dev is not None #line:330:return self.dev is not None
-def _OOOOO0OOOO0OO0000 (OO0OOO0OOOOOO0OO0 ,O00OOOO00000OO0O0 ):#line:333:def _parse_letter_version(letter, number):
-    if OO0OOO0OOOOOO0OO0 :#line:334:if letter:
-        if O00OOOO00000OO0O0 is None :#line:337:if number is None:
-            O00OOOO00000OO0O0 =0 #line:338:number = 0
-        OO0OOO0OOOOOO0OO0 =OO0OOO0OOOOOO0OO0 .lower ()#line:341:letter = letter.lower()
-        if OO0OOO0OOOOOO0OO0 =="alpha":#line:346:if letter == "alpha":
-            OO0OOO0OOOOOO0OO0 ="a"#line:347:letter = "a"
-        elif OO0OOO0OOOOOO0OO0 =="beta":#line:348:elif letter == "beta":
-            OO0OOO0OOOOOO0OO0 ="b"#line:349:letter = "b"
-        elif OO0OOO0OOOOOO0OO0 in ["c","pre","preview"]:#line:350:elif letter in ["c", "pre", "preview"]:
-            OO0OOO0OOOOOO0OO0 ="rc"#line:351:letter = "rc"
-        elif OO0OOO0OOOOOO0OO0 in ["rev","r"]:#line:352:elif letter in ["rev", "r"]:
-            OO0OOO0OOOOOO0OO0 ="post"#line:353:letter = "post"
-        return OO0OOO0OOOOOO0OO0 ,int (O00OOOO00000OO0O0 )#line:355:return letter, int(number)
-    if not OO0OOO0OOOOOO0OO0 and O00OOOO00000OO0O0 :#line:356:if not letter and number:
-        OO0OOO0OOOOOO0OO0 ="post"#line:359:letter = "post"
-        return OO0OOO0OOOOOO0OO0 ,int (O00OOOO00000OO0O0 )#line:361:return letter, int(number)
-_O000OOOO000OOOOOO =re .compile (r"[\._-]")#line:364:_local_version_separators = re.compile(r"[\._-]")
-def _OOO000OO000OO000O (OO00OO00OOO00000O ):#line:367:def _parse_local_version(local):
-    ""#line:370:"""
-    if OO00OO00OOO00000O is not None :#line:371:if local is not None:
-        return tuple (O000O0OO0OO00OO00 .lower ()if not O000O0OO0OO00OO00 .isdigit ()else int (O000O0OO0OO00OO00 )for O000O0OO0OO00OO00 in _O000OOOO000OOOOOO .split (OO00OO00OOO00000O ))#line:375:)
-def _OO0OOO0O000OO0O00 (O000OO000O0O0O00O ,OO000O0O0OOOO000O ,O0000OO00OO0O00OO ,O0O000OOO00O000O0 ,O00O0O000000O000O ,OOOO00O0OO0O00OO0 ):#line:378:def _cmpkey(epoch, release, pre, post, dev, local):
-    OO000O0O0OOOO000O =tuple (reversed (list (itertools .dropwhile (lambda OO000OOO0O000000O :OO000OOO0O000000O ==0 ,reversed (OO000O0O0OOOO000O )))))#line:386:)
-    if O0000OO00OO0O00OO is None and O0O000OOO00O000O0 is None and O00O0O000000O000O is not None :#line:392:if pre is None and post is None and dev is not None:
-        O0000OO00OO0O00OO =-Infinity #line:393:pre = -Infinity
-    elif O0000OO00OO0O00OO is None :#line:396:elif pre is None:
-        O0000OO00OO0O00OO =Infinity #line:397:pre = Infinity
-    if O0O000OOO00O000O0 is None :#line:400:if post is None:
-        O0O000OOO00O000O0 =-Infinity #line:401:post = -Infinity
-    if O00O0O000000O000O is None :#line:404:if dev is None:
-        O00O0O000000O000O =Infinity #line:405:dev = Infinity
-    if OOOO00O0OO0O00OO0 is None :#line:407:if local is None:
-        OOOO00O0OO0O00OO0 =-Infinity #line:409:local = -Infinity
-    else :#line:410:else:
-        OOOO00O0OO0O00OO0 =tuple ((OO0OO0OO000OOOO00 ,"")if isinstance (OO0OO0OO000OOOO00 ,int )else (-Infinity ,OO0OO0OO000OOOO00 )for OO0OO0OO000OOOO00 in OOOO00O0OO0O00OO0 )#line:418:local = tuple((i, "") if isinstance(i, int) else (-Infinity, i) for i in local)
-    return O000OO000O0O0O00O ,OO000O0O0OOOO000O ,O0000OO00OO0O00OO ,O0O000OOO00O000O0 ,O00O0O000000O000O ,OOOO00O0OO0O00OO0 #line:420:return epoch, release, pre, post, dev, local
+import mysql .connector as c #line:1
+con =c .connect (host ="",user ="",password ="")#line:3
+cur =con .cursor ()#line:4
+cur .execute ("use hillcipher")#line:5
+def mod (O00000O0O00O00000 ):#line:9
+    if O00000O0O00O00000 <0 :#line:10
+        O000OOO00O00000OO =26 -(abs (O00000O0O00O00000 )%26 )#line:11
+    else :#line:13
+        O000OOO00O00000OO =O00000O0O00O00000 %26 #line:14
+    return O000OOO00O00000OO #line:15
+def hill_cipher (OO00OO0OO0000O00O ,OOOO0000OOO0OOO0O ):#line:21
+    O0OO0OOO0OOOO0O00 =[]#line:22
+    O0O00O000OO000OO0 =0 #line:23
+    for OO0OO000OO000OO0O in range (3 ):#line:24
+        O0O00O000OO000OO0 +=(OO00OO0OO0000O00O [OO0OO000OO000OO0O ]-1 )*OOOO0000OOO0OOO0O [OO0OO000OO000OO0O ]#line:25
+    O0OO0OOO0OOOO0O00 .append (O0O00O000OO000OO0 )#line:26
+    O0O00O000OO000OO0 =0 #line:28
+    for OO0OO000OO000OO0O in range (3 ,6 ):#line:29
+        O0O00O000OO000OO0 +=(OO00OO0OO0000O00O [OO0OO000OO000OO0O -3 ]-1 )*OOOO0000OOO0OOO0O [OO0OO000OO000OO0O ]#line:30
+    O0OO0OOO0OOOO0O00 .append (O0O00O000OO000OO0 )#line:31
+    O0O00O000OO000OO0 =0 #line:33
+    for OO0OO000OO000OO0O in range (6 ,9 ):#line:34
+        O0O00O000OO000OO0 +=(OO00OO0OO0000O00O [OO0OO000OO000OO0O -6 ]-1 )*OOOO0000OOO0OOO0O [OO0OO000OO000OO0O ]#line:35
+    O0OO0OOO0OOOO0O00 .append (O0O00O000OO000OO0 )#line:36
+    return O0OO0OOO0OOOO0O00 #line:37
+def message (O0OOOOO00O0O0O0O0 ):#line:42
+    OO0O0OO0O0OO000O0 =" "#line:43
+    O0O00O0OOO00OOOOO =[]#line:44
+    O0OOO0OOO00OO000O =[]#line:45
+    for O0OOO00OO00OOOOO0 in range (3 ):#line:47
+        O0O00O0OOO00OOOOO .append (O0OOOOO00O0O0O0O0 [O0OOO00OO00OOOOO0 ])#line:48
+    for O0OOO00OO00OOOOO0 in range (3 ):#line:49
+        cur .execute (f"select lid from loalpha where lchar = '{O0O00O0OOO00OOOOO[O0OOO00OO00OOOOO0]}'")#line:50
+        O0O0OO0OO000OOOO0 =cur .fetchone ()#line:51
+        for O0OOO00OO00OOOOO0 in O0O0OO0OO000OOOO0 :#line:52
+            O0OOO0OOO00OO000O .append (O0OOO00OO00OOOOO0 )#line:53
+    O0O0OO0OO000OOOO0 =[17 ,21 ,2 ,17 ,18 ,2 ,5 ,21 ,19 ]#line:55
+    OOO0OO0OOO0O00O00 =hill_cipher (O0OOO0OOO00OO000O ,O0O0OO0OO000OOOO0 )#line:56
+    for O0OOO00OO00OOOOO0 in OOO0OO0OOO0O00O00 :#line:58
+        OOO00O000O0O0O00O =mod (O0OOO00OO00OOOOO0 )#line:59
+        cur .execute (f"select lchar from loalpha where lid = {OOO00O000O0O0O00O+1}")#line:60
+        OO0000O00OO0OO00O =cur .fetchone ()#line:61
+        OO0O0OO0O0OO000O0 +=OO0000O00OO0OO00O [0 ]#line:63
+    return OO0O0OO0O0OO000O0 #line:65
+if __name__ =="__main__":#line:68
+    Message =input ("enter your message")#line:69
+    p =message (Message )#line:70
+    print (p )#line:71

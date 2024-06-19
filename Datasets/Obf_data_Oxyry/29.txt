@@ -1,246 +1,78 @@
-""#line:9:"""
-import os .path #line:11:import os.path
-import socket #line:12:import socket
-from pip ._vendor .urllib3 .poolmanager import PoolManager ,proxy_from_url #line:14:from pip._vendor.urllib3.poolmanager import PoolManager, proxy_from_url
-from pip ._vendor .urllib3 .response import HTTPResponse #line:15:from pip._vendor.urllib3.response import HTTPResponse
-from pip ._vendor .urllib3 .util import parse_url #line:16:from pip._vendor.urllib3.util import parse_url
-from pip ._vendor .urllib3 .util import Timeout as TimeoutSauce #line:17:from pip._vendor.urllib3.util import Timeout as TimeoutSauce
-from pip ._vendor .urllib3 .util .retry import Retry #line:18:from pip._vendor.urllib3.util.retry import Retry
-from pip ._vendor .urllib3 .exceptions import ClosedPoolError #line:19:from pip._vendor.urllib3.exceptions import ClosedPoolError
-from pip ._vendor .urllib3 .exceptions import ConnectTimeoutError #line:20:from pip._vendor.urllib3.exceptions import ConnectTimeoutError
-from pip ._vendor .urllib3 .exceptions import HTTPError as _HTTPError #line:21:from pip._vendor.urllib3.exceptions import HTTPError as _HTTPError
-from pip ._vendor .urllib3 .exceptions import MaxRetryError #line:22:from pip._vendor.urllib3.exceptions import MaxRetryError
-from pip ._vendor .urllib3 .exceptions import NewConnectionError #line:23:from pip._vendor.urllib3.exceptions import NewConnectionError
-from pip ._vendor .urllib3 .exceptions import ProxyError as _ProxyError #line:24:from pip._vendor.urllib3.exceptions import ProxyError as _ProxyError
-from pip ._vendor .urllib3 .exceptions import ProtocolError #line:25:from pip._vendor.urllib3.exceptions import ProtocolError
-from pip ._vendor .urllib3 .exceptions import ReadTimeoutError #line:26:from pip._vendor.urllib3.exceptions import ReadTimeoutError
-from pip ._vendor .urllib3 .exceptions import SSLError as _SSLError #line:27:from pip._vendor.urllib3.exceptions import SSLError as _SSLError
-from pip ._vendor .urllib3 .exceptions import ResponseError #line:28:from pip._vendor.urllib3.exceptions import ResponseError
-from pip ._vendor .urllib3 .exceptions import LocationValueError #line:29:from pip._vendor.urllib3.exceptions import LocationValueError
-from .models import Response #line:31:from .models import Response
-from .compat import urlparse ,basestring #line:32:from .compat import urlparse, basestring
-from .utils import (DEFAULT_CA_BUNDLE_PATH ,extract_zipped_paths ,get_encoding_from_headers ,prepend_scheme_if_needed ,get_auth_from_url ,urldefragauth ,select_proxy )#line:35:get_auth_from_url, urldefragauth, select_proxy)
-from .structures import CaseInsensitiveDict #line:36:from .structures import CaseInsensitiveDict
-from .cookies import extract_cookies_to_jar #line:37:from .cookies import extract_cookies_to_jar
-from .exceptions import (ConnectionError ,ConnectTimeout ,ReadTimeout ,SSLError ,ProxyError ,RetryError ,InvalidSchema ,InvalidProxyURL ,InvalidURL )#line:40:InvalidURL)
-from .auth import _basic_auth_str #line:41:from .auth import _basic_auth_str
-try :#line:43:try:
-    from pip ._vendor .urllib3 .contrib .socks import SOCKSProxyManager #line:44:from pip._vendor.urllib3.contrib.socks import SOCKSProxyManager
-except ImportError :#line:45:except ImportError:
-    def SOCKSProxyManager (*OOO0O000OOO0OO00O ,**O0000O00O000OOO00 ):#line:46:def SOCKSProxyManager(*args, **kwargs):
-        raise InvalidSchema ("Missing dependencies for SOCKS support.")#line:47:raise InvalidSchema("Missing dependencies for SOCKS support.")
-DEFAULT_POOLBLOCK =False #line:49:DEFAULT_POOLBLOCK = False
-DEFAULT_POOLSIZE =10 #line:50:DEFAULT_POOLSIZE = 10
-DEFAULT_RETRIES =0 #line:51:DEFAULT_RETRIES = 0
-DEFAULT_POOL_TIMEOUT =None #line:52:DEFAULT_POOL_TIMEOUT = None
-class BaseAdapter (object ):#line:55:class BaseAdapter(object):
-    ""#line:56:"""The Base Transport Adapter"""
-    def __init__ (O0000O0OOO000O0O0 ):#line:58:def __init__(self):
-        super (BaseAdapter ,O0000O0OOO000O0O0 ).__init__ ()#line:59:super(BaseAdapter, self).__init__()
-    def send (OO0OOOO00O00OOO0O ,OOO0O000O0O0O0OOO ,stream =False ,timeout =None ,verify =True ,cert =None ,proxies =None ):#line:62:cert=None, proxies=None):
-        ""#line:76:"""
-        raise NotImplementedError #line:77:raise NotImplementedError
-    def close (O000O0O00O0OO0O0O ):#line:79:def close(self):
-        ""#line:80:"""Cleans up adapter specific items."""
-        raise NotImplementedError #line:81:raise NotImplementedError
-class HTTPAdapter (BaseAdapter ):#line:84:class HTTPAdapter(BaseAdapter):
-    ""#line:109:"""
-    __attrs__ =['max_retries','config','_pool_connections','_pool_maxsize','_pool_block']#line:111:'_pool_block']
-    def __init__ (O0OOO0O0OO00OOO00 ,pool_connections =DEFAULT_POOLSIZE ,pool_maxsize =DEFAULT_POOLSIZE ,max_retries =DEFAULT_RETRIES ,pool_block =DEFAULT_POOLBLOCK ):#line:115:pool_block=DEFAULT_POOLBLOCK):
-        if max_retries ==DEFAULT_RETRIES :#line:116:if max_retries == DEFAULT_RETRIES:
-            O0OOO0O0OO00OOO00 .max_retries =Retry (0 ,read =False )#line:117:self.max_retries = Retry(0, read=False)
-        else :#line:118:else:
-            O0OOO0O0OO00OOO00 .max_retries =Retry .from_int (max_retries )#line:119:self.max_retries = Retry.from_int(max_retries)
-        O0OOO0O0OO00OOO00 .config ={}#line:120:self.config = {}
-        O0OOO0O0OO00OOO00 .proxy_manager ={}#line:121:self.proxy_manager = {}
-        super (HTTPAdapter ,O0OOO0O0OO00OOO00 ).__init__ ()#line:123:super(HTTPAdapter, self).__init__()
-        O0OOO0O0OO00OOO00 ._pool_connections =pool_connections #line:125:self._pool_connections = pool_connections
-        O0OOO0O0OO00OOO00 ._pool_maxsize =pool_maxsize #line:126:self._pool_maxsize = pool_maxsize
-        O0OOO0O0OO00OOO00 ._pool_block =pool_block #line:127:self._pool_block = pool_block
-        O0OOO0O0OO00OOO00 .init_poolmanager (pool_connections ,pool_maxsize ,block =pool_block )#line:129:self.init_poolmanager(pool_connections, pool_maxsize, block=pool_block)
-    def __getstate__ (O0O000O0OO00OOO00 ):#line:131:def __getstate__(self):
-        return {OO0O00000OO0O0O0O :getattr (O0O000O0OO00OOO00 ,OO0O00000OO0O0O0O ,None )for OO0O00000OO0O0O0O in O0O000O0OO00OOO00 .__attrs__ }#line:132:return {attr: getattr(self, attr, None) for attr in self.__attrs__}
-    def __setstate__ (OO0000OO00O0O0O0O ,OO00O0O0000O0OO00 ):#line:134:def __setstate__(self, state):
-        OO0000OO00O0O0O0O .proxy_manager ={}#line:137:self.proxy_manager = {}
-        OO0000OO00O0O0O0O .config ={}#line:138:self.config = {}
-        for O000OOOO000O0O00O ,O00O0O0O00O0OO0O0 in OO00O0O0000O0OO00 .items ():#line:140:for attr, value in state.items():
-            setattr (OO0000OO00O0O0O0O ,O000OOOO000O0O00O ,O00O0O0O00O0OO0O0 )#line:141:setattr(self, attr, value)
-        OO0000OO00O0O0O0O .init_poolmanager (OO0000OO00O0O0O0O ._pool_connections ,OO0000OO00O0O0O0O ._pool_maxsize ,block =OO0000OO00O0O0O0O ._pool_block )#line:144:block=self._pool_block)
-    def init_poolmanager (OOOO000OOO0O00O00 ,OO0O00O00O00O0000 ,O000OOO0OOO0O00OO ,block =DEFAULT_POOLBLOCK ,**O00O00O00O00O000O ):#line:146:def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
-        ""#line:157:"""
-        OOOO000OOO0O00O00 ._pool_connections =OO0O00O00O00O0000 #line:159:self._pool_connections = connections
-        OOOO000OOO0O00O00 ._pool_maxsize =O000OOO0OOO0O00OO #line:160:self._pool_maxsize = maxsize
-        OOOO000OOO0O00O00 ._pool_block =block #line:161:self._pool_block = block
-        OOOO000OOO0O00O00 .poolmanager =PoolManager (num_pools =OO0O00O00O00O0000 ,maxsize =O000OOO0OOO0O00OO ,block =block ,strict =True ,**O00O00O00O00O000O )#line:164:block=block, strict=True, **pool_kwargs)
-    def proxy_manager_for (O0O0O0000000O0O00 ,O00OO0O0OOOO0O000 ,**O0O0O0OO0OOO0OO0O ):#line:166:def proxy_manager_for(self, proxy, **proxy_kwargs):
-        ""#line:177:"""
-        if O00OO0O0OOOO0O000 in O0O0O0000000O0O00 .proxy_manager :#line:178:if proxy in self.proxy_manager:
-            OO000O0OOO0O0O00O =O0O0O0000000O0O00 .proxy_manager [O00OO0O0OOOO0O000 ]#line:179:manager = self.proxy_manager[proxy]
-        elif O00OO0O0OOOO0O000 .lower ().startswith ('socks'):#line:180:elif proxy.lower().startswith('socks'):
-            OOO0OO0O0000OO00O ,OOO0OOOO00O0O0000 =get_auth_from_url (O00OO0O0OOOO0O000 )#line:181:username, password = get_auth_from_url(proxy)
-            OO000O0OOO0O0O00O =O0O0O0000000O0O00 .proxy_manager [O00OO0O0OOOO0O000 ]=SOCKSProxyManager (O00OO0O0OOOO0O000 ,username =OOO0OO0O0000OO00O ,password =OOO0OOOO00O0O0000 ,num_pools =O0O0O0000000O0O00 ._pool_connections ,maxsize =O0O0O0000000O0O00 ._pool_maxsize ,block =O0O0O0000000O0O00 ._pool_block ,**O0O0O0OO0OOO0OO0O )#line:190:)
-        else :#line:191:else:
-            O0O0O00OOOOO00OOO =O0O0O0000000O0O00 .proxy_headers (O00OO0O0OOOO0O000 )#line:192:proxy_headers = self.proxy_headers(proxy)
-            OO000O0OOO0O0O00O =O0O0O0000000O0O00 .proxy_manager [O00OO0O0OOOO0O000 ]=proxy_from_url (O00OO0O0OOOO0O000 ,proxy_headers =O0O0O00OOOOO00OOO ,num_pools =O0O0O0000000O0O00 ._pool_connections ,maxsize =O0O0O0000000O0O00 ._pool_maxsize ,block =O0O0O0000000O0O00 ._pool_block ,**O0O0O0OO0OOO0OO0O )#line:199:**proxy_kwargs)
-        return OO000O0OOO0O0O00O #line:201:return manager
-    def cert_verify (O0O00000O0O0O0OOO ,O0O00O00O0O0OOO0O ,OOO00O0000OOOO000 ,OOOO000OOO000O0OO ,OOOO0OOOO0OOOO0OO ):#line:203:def cert_verify(self, conn, url, verify, cert):
-        ""#line:214:"""
-        if OOO00O0000OOOO000 .lower ().startswith ('https')and OOOO000OOO000O0OO :#line:215:if url.lower().startswith('https') and verify:
-            O0OOO0OOO00O0O0O0 =None #line:217:cert_loc = None
-            if OOOO000OOO000O0OO is not True :#line:220:if verify is not True:
-                O0OOO0OOO00O0O0O0 =OOOO000OOO000O0OO #line:221:cert_loc = verify
-            if not O0OOO0OOO00O0O0O0 :#line:223:if not cert_loc:
-                O0OOO0OOO00O0O0O0 =extract_zipped_paths (DEFAULT_CA_BUNDLE_PATH )#line:224:cert_loc = extract_zipped_paths(DEFAULT_CA_BUNDLE_PATH)
-            if not O0OOO0OOO00O0O0O0 or not os .path .exists (O0OOO0OOO00O0O0O0 ):#line:226:if not cert_loc or not os.path.exists(cert_loc):
-                raise IOError ("Could not find a suitable TLS CA certificate bundle, " "invalid path: {}".format (O0OOO0OOO00O0O0O0 ))#line:228:"invalid path: {}".format(cert_loc))
-            O0O00O00O0O0OOO0O .cert_reqs ='CERT_REQUIRED'#line:230:conn.cert_reqs = 'CERT_REQUIRED'
-            if not os .path .isdir (O0OOO0OOO00O0O0O0 ):#line:232:if not os.path.isdir(cert_loc):
-                O0O00O00O0O0OOO0O .ca_certs =O0OOO0OOO00O0O0O0 #line:233:conn.ca_certs = cert_loc
-            else :#line:234:else:
-                O0O00O00O0O0OOO0O .ca_cert_dir =O0OOO0OOO00O0O0O0 #line:235:conn.ca_cert_dir = cert_loc
-        else :#line:236:else:
-            O0O00O00O0O0OOO0O .cert_reqs ='CERT_NONE'#line:237:conn.cert_reqs = 'CERT_NONE'
-            O0O00O00O0O0OOO0O .ca_certs =None #line:238:conn.ca_certs = None
-            O0O00O00O0O0OOO0O .ca_cert_dir =None #line:239:conn.ca_cert_dir = None
-        if OOOO0OOOO0OOOO0OO :#line:241:if cert:
-            if not isinstance (OOOO0OOOO0OOOO0OO ,basestring ):#line:242:if not isinstance(cert, basestring):
-                O0O00O00O0O0OOO0O .cert_file =OOOO0OOOO0OOOO0OO [0 ]#line:243:conn.cert_file = cert[0]
-                O0O00O00O0O0OOO0O .key_file =OOOO0OOOO0OOOO0OO [1 ]#line:244:conn.key_file = cert[1]
-            else :#line:245:else:
-                O0O00O00O0O0OOO0O .cert_file =OOOO0OOOO0OOOO0OO #line:246:conn.cert_file = cert
-                O0O00O00O0O0OOO0O .key_file =None #line:247:conn.key_file = None
-            if O0O00O00O0O0OOO0O .cert_file and not os .path .exists (O0O00O00O0O0OOO0O .cert_file ):#line:248:if conn.cert_file and not os.path.exists(conn.cert_file):
-                raise IOError ("Could not find the TLS certificate file, " "invalid path: {}".format (O0O00O00O0O0OOO0O .cert_file ))#line:250:"invalid path: {}".format(conn.cert_file))
-            if O0O00O00O0O0OOO0O .key_file and not os .path .exists (O0O00O00O0O0OOO0O .key_file ):#line:251:if conn.key_file and not os.path.exists(conn.key_file):
-                raise IOError ("Could not find the TLS key file, " "invalid path: {}".format (O0O00O00O0O0OOO0O .key_file ))#line:253:"invalid path: {}".format(conn.key_file))
-    def build_response (O00O00OO000O0OO00 ,O0000OOOOO0O00000 ,O0O0O0O0O00000OOO ):#line:255:def build_response(self, req, resp):
-        ""#line:264:"""
-        O0O00O000O0O00O0O =Response ()#line:265:response = Response()
-        O0O00O000O0O00O0O .status_code =getattr (O0O0O0O0O00000OOO ,'status',None )#line:268:response.status_code = getattr(resp, 'status', None)
-        O0O00O000O0O00O0O .headers =CaseInsensitiveDict (getattr (O0O0O0O0O00000OOO ,'headers',{}))#line:271:response.headers = CaseInsensitiveDict(getattr(resp, 'headers', {}))
-        O0O00O000O0O00O0O .encoding =get_encoding_from_headers (O0O00O000O0O00O0O .headers )#line:274:response.encoding = get_encoding_from_headers(response.headers)
-        O0O00O000O0O00O0O .raw =O0O0O0O0O00000OOO #line:275:response.raw = resp
-        O0O00O000O0O00O0O .reason =O0O00O000O0O00O0O .raw .reason #line:276:response.reason = response.raw.reason
-        if isinstance (O0000OOOOO0O00000 .url ,bytes ):#line:278:if isinstance(req.url, bytes):
-            O0O00O000O0O00O0O .url =O0000OOOOO0O00000 .url .decode ('utf-8')#line:279:response.url = req.url.decode('utf-8')
-        else :#line:280:else:
-            O0O00O000O0O00O0O .url =O0000OOOOO0O00000 .url #line:281:response.url = req.url
-        extract_cookies_to_jar (O0O00O000O0O00O0O .cookies ,O0000OOOOO0O00000 ,O0O0O0O0O00000OOO )#line:284:extract_cookies_to_jar(response.cookies, req, resp)
-        O0O00O000O0O00O0O .request =O0000OOOOO0O00000 #line:287:response.request = req
-        O0O00O000O0O00O0O .connection =O00O00OO000O0OO00 #line:288:response.connection = self
-        return O0O00O000O0O00O0O #line:290:return response
-    def get_connection (O000O0O0000O000O0 ,O000O00O000O00OO0 ,proxies =None ):#line:292:def get_connection(self, url, proxies=None):
-        ""#line:300:"""
-        O000OOOO00OO0OOOO =select_proxy (O000O00O000O00OO0 ,proxies )#line:301:proxy = select_proxy(url, proxies)
-        if O000OOOO00OO0OOOO :#line:303:if proxy:
-            O000OOOO00OO0OOOO =prepend_scheme_if_needed (O000OOOO00OO0OOOO ,'http')#line:304:proxy = prepend_scheme_if_needed(proxy, 'http')
-            O0O00OOO0O0O0O0OO =parse_url (O000OOOO00OO0OOOO )#line:305:proxy_url = parse_url(proxy)
-            if not O0O00OOO0O0O0O0OO .host :#line:306:if not proxy_url.host:
-                raise InvalidProxyURL ("Please check proxy URL. It is malformed" " and could be missing the host.")#line:308:" and could be missing the host.")
-            O0O0O0O00OOOO00OO =O000O0O0000O000O0 .proxy_manager_for (O000OOOO00OO0OOOO )#line:309:proxy_manager = self.proxy_manager_for(proxy)
-            OOOO0OOO00000O0OO =O0O0O0O00OOOO00OO .connection_from_url (O000O00O000O00OO0 )#line:310:conn = proxy_manager.connection_from_url(url)
-        else :#line:311:else:
-            O00OOO0O0000000OO =urlparse (O000O00O000O00OO0 )#line:313:parsed = urlparse(url)
-            O000O00O000O00OO0 =O00OOO0O0000000OO .geturl ()#line:314:url = parsed.geturl()
-            OOOO0OOO00000O0OO =O000O0O0000O000O0 .poolmanager .connection_from_url (O000O00O000O00OO0 )#line:315:conn = self.poolmanager.connection_from_url(url)
-        return OOOO0OOO00000O0OO #line:317:return conn
-    def close (O00OO0O000O00OO0O ):#line:319:def close(self):
-        ""#line:324:"""
-        O00OO0O000O00OO0O .poolmanager .clear ()#line:325:self.poolmanager.clear()
-        for O000OO0O0OOO0OOO0 in O00OO0O000O00OO0O .proxy_manager .values ():#line:326:for proxy in self.proxy_manager.values():
-            O000OO0O0OOO0OOO0 .clear ()#line:327:proxy.clear()
-    def request_url (O00OOO0OO00O0O000 ,OOOO0000OOOOOOOO0 ,O0000OOOOOOOO0O00 ):#line:329:def request_url(self, request, proxies):
-        ""#line:342:"""
-        OO00OO0OOOO0OO000 =select_proxy (OOOO0000OOOOOOOO0 .url ,O0000OOOOOOOO0O00 )#line:343:proxy = select_proxy(request.url, proxies)
-        OO0O0O00OOO0OO00O =urlparse (OOOO0000OOOOOOOO0 .url ).scheme #line:344:scheme = urlparse(request.url).scheme
-        OOO0O00OO0000OO0O =(OO00OO0OOOO0OO000 and OO0O0O00OOO0OO00O !='https')#line:346:is_proxied_http_request = (proxy and scheme != 'https')
-        OO0O000OO0OO0OO0O =False #line:347:using_socks_proxy = False
-        if OO00OO0OOOO0OO000 :#line:348:if proxy:
-            O00O0O0OO0000O0OO =urlparse (OO00OO0OOOO0OO000 ).scheme .lower ()#line:349:proxy_scheme = urlparse(proxy).scheme.lower()
-            OO0O000OO0OO0OO0O =O00O0O0OO0000O0OO .startswith ('socks')#line:350:using_socks_proxy = proxy_scheme.startswith('socks')
-        OO00O0O00O0O0OO0O =OOOO0000OOOOOOOO0 .path_url #line:352:url = request.path_url
-        if OOO0O00OO0000OO0O and not OO0O000OO0OO0OO0O :#line:353:if is_proxied_http_request and not using_socks_proxy:
-            OO00O0O00O0O0OO0O =urldefragauth (OOOO0000OOOOOOOO0 .url )#line:354:url = urldefragauth(request.url)
-        return OO00O0O00O0O0OO0O #line:356:return url
-    def add_headers (O0O00OOO0O0OO0OOO ,O00000O0OO00000OO ,**O000O0O0OOO00O0O0 ):#line:358:def add_headers(self, request, **kwargs):
-        ""#line:369:"""
-        pass #line:370:pass
-    def proxy_headers (OOOOO0O0OO000O0OO ,O0O00O0O00OOOO0OO ):#line:372:def proxy_headers(self, proxy):
-        ""#line:384:"""
-        O00O0O0OO0000OO0O ={}#line:385:headers = {}
-        OOO000O0000O000O0 ,OO0O0O0OOO00O0OO0 =get_auth_from_url (O0O00O0O00OOOO0OO )#line:386:username, password = get_auth_from_url(proxy)
-        if OOO000O0000O000O0 :#line:388:if username:
-            O00O0O0OO0000OO0O ['Proxy-Authorization']=_basic_auth_str (OOO000O0000O000O0 ,OO0O0O0OOO00O0OO0 )#line:390:password)
-        return O00O0O0OO0000OO0O #line:392:return headers
-    def send (O00O0OO00OOO000OO ,O0OO0OOO00OOOOOOO ,stream =False ,timeout =None ,verify =True ,cert =None ,proxies =None ):#line:394:def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
-        ""#line:409:"""
-        try :#line:411:try:
-            O000O00000OOO00O0 =O00O0OO00OOO000OO .get_connection (O0OO0OOO00OOOOOOO .url ,proxies )#line:412:conn = self.get_connection(request.url, proxies)
-        except LocationValueError as OO0O000000O0O0O00 :#line:413:except LocationValueError as e:
-            raise InvalidURL (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:414:raise InvalidURL(e, request=request)
-        O00O0OO00OOO000OO .cert_verify (O000O00000OOO00O0 ,O0OO0OOO00OOOOOOO .url ,verify ,cert )#line:416:self.cert_verify(conn, request.url, verify, cert)
-        OOOO000OOOO0OOO00 =O00O0OO00OOO000OO .request_url (O0OO0OOO00OOOOOOO ,proxies )#line:417:url = self.request_url(request, proxies)
-        O00O0OO00OOO000OO .add_headers (O0OO0OOO00OOOOOOO ,stream =stream ,timeout =timeout ,verify =verify ,cert =cert ,proxies =proxies )#line:418:self.add_headers(request, stream=stream, timeout=timeout, verify=verify, cert=cert, proxies=proxies)
-        O00O00OOO000O00OO =not (O0OO0OOO00OOOOOOO .body is None or 'Content-Length'in O0OO0OOO00OOOOOOO .headers )#line:420:chunked = not (request.body is None or 'Content-Length' in request.headers)
-        if isinstance (timeout ,tuple ):#line:422:if isinstance(timeout, tuple):
-            try :#line:423:try:
-                O00OO000O00OO0O0O ,OO0OO00OOO0OO00OO =timeout #line:424:connect, read = timeout
-                timeout =TimeoutSauce (connect =O00OO000O00OO0O0O ,read =OO0OO00OOO0OO00OO )#line:425:timeout = TimeoutSauce(connect=connect, read=read)
-            except ValueError as OO0O000000O0O0O00 :#line:426:except ValueError as e:
-                O0O0000OO000000OO =("Invalid timeout {}. Pass a (connect, read) " "timeout tuple, or a single float to set " "both timeouts to the same value".format (timeout ))#line:430:"both timeouts to the same value".format(timeout))
-                raise ValueError (O0O0000OO000000OO )#line:431:raise ValueError(err)
-        elif isinstance (timeout ,TimeoutSauce ):#line:432:elif isinstance(timeout, TimeoutSauce):
-            pass #line:433:pass
-        else :#line:434:else:
-            timeout =TimeoutSauce (connect =timeout ,read =timeout )#line:435:timeout = TimeoutSauce(connect=timeout, read=timeout)
-        try :#line:437:try:
-            if not O00O00OOO000O00OO :#line:438:if not chunked:
-                O0OO000O00O0OO0OO =O000O00000OOO00O0 .urlopen (method =O0OO0OOO00OOOOOOO .method ,url =OOOO000OOOO0OOO00 ,body =O0OO0OOO00OOOOOOO .body ,headers =O0OO0OOO00OOOOOOO .headers ,redirect =False ,assert_same_host =False ,preload_content =False ,decode_content =False ,retries =O00O0OO00OOO000OO .max_retries ,timeout =timeout )#line:450:)
-            else :#line:453:else:
-                if hasattr (O000O00000OOO00O0 ,'proxy_pool'):#line:454:if hasattr(conn, 'proxy_pool'):
-                    O000O00000OOO00O0 =O000O00000OOO00O0 .proxy_pool #line:455:conn = conn.proxy_pool
-                OOOO0O000O0000O00 =O000O00000OOO00O0 ._get_conn (timeout =DEFAULT_POOL_TIMEOUT )#line:457:low_conn = conn._get_conn(timeout=DEFAULT_POOL_TIMEOUT)
-                try :#line:459:try:
-                    OOOO0O000O0000O00 .putrequest (O0OO0OOO00OOOOOOO .method ,OOOO000OOOO0OOO00 ,skip_accept_encoding =True )#line:462:skip_accept_encoding=True)
-                    for OOO0OO0OOOOO0O0O0 ,OOOO00OO00OOOOO0O in O0OO0OOO00OOOOOOO .headers .items ():#line:464:for header, value in request.headers.items():
-                        OOOO0O000O0000O00 .putheader (OOO0OO0OOOOO0O0O0 ,OOOO00OO00OOOOO0O )#line:465:low_conn.putheader(header, value)
-                    OOOO0O000O0000O00 .endheaders ()#line:467:low_conn.endheaders()
-                    for OOO0000O00OO00O0O in O0OO0OOO00OOOOOOO .body :#line:469:for i in request.body:
-                        OOOO0O000O0000O00 .send (hex (len (OOO0000O00OO00O0O ))[2 :].encode ('utf-8'))#line:470:low_conn.send(hex(len(i))[2:].encode('utf-8'))
-                        OOOO0O000O0000O00 .send (b'\r\n')#line:471:low_conn.send(b'\r\n')
-                        OOOO0O000O0000O00 .send (OOO0000O00OO00O0O )#line:472:low_conn.send(i)
-                        OOOO0O000O0000O00 .send (b'\r\n')#line:473:low_conn.send(b'\r\n')
-                    OOOO0O000O0000O00 .send (b'0\r\n\r\n')#line:474:low_conn.send(b'0\r\n\r\n')
-                    try :#line:477:try:
-                        OOOO0OOOO0000OO00 =OOOO0O000O0000O00 .getresponse (buffering =True )#line:479:r = low_conn.getresponse(buffering=True)
-                    except TypeError :#line:480:except TypeError:
-                        OOOO0OOOO0000OO00 =OOOO0O000O0000O00 .getresponse ()#line:482:r = low_conn.getresponse()
-                    O0OO000O00O0OO0OO =HTTPResponse .from_httplib (OOOO0OOOO0000OO00 ,pool =O000O00000OOO00O0 ,connection =OOOO0O000O0000O00 ,preload_content =False ,decode_content =False )#line:490:)
-                except :#line:491:except:
-                    OOOO0O000O0000O00 .close ()#line:494:low_conn.close()
-                    raise #line:495:raise
-        except (ProtocolError ,socket .error )as O0O0000OO000000OO :#line:497:except (ProtocolError, socket.error) as err:
-            raise ConnectionError (O0O0000OO000000OO ,request =O0OO0OOO00OOOOOOO )#line:498:raise ConnectionError(err, request=request)
-        except MaxRetryError as OO0O000000O0O0O00 :#line:500:except MaxRetryError as e:
-            if isinstance (OO0O000000O0O0O00 .reason ,ConnectTimeoutError ):#line:501:if isinstance(e.reason, ConnectTimeoutError):
-                if not isinstance (OO0O000000O0O0O00 .reason ,NewConnectionError ):#line:503:if not isinstance(e.reason, NewConnectionError):
-                    raise ConnectTimeout (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:504:raise ConnectTimeout(e, request=request)
-            if isinstance (OO0O000000O0O0O00 .reason ,ResponseError ):#line:506:if isinstance(e.reason, ResponseError):
-                raise RetryError (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:507:raise RetryError(e, request=request)
-            if isinstance (OO0O000000O0O0O00 .reason ,_ProxyError ):#line:509:if isinstance(e.reason, _ProxyError):
-                raise ProxyError (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:510:raise ProxyError(e, request=request)
-            if isinstance (OO0O000000O0O0O00 .reason ,_SSLError ):#line:512:if isinstance(e.reason, _SSLError):
-                raise SSLError (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:514:raise SSLError(e, request=request)
-            raise ConnectionError (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:516:raise ConnectionError(e, request=request)
-        except ClosedPoolError as OO0O000000O0O0O00 :#line:518:except ClosedPoolError as e:
-            raise ConnectionError (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:519:raise ConnectionError(e, request=request)
-        except _ProxyError as OO0O000000O0O0O00 :#line:521:except _ProxyError as e:
-            raise ProxyError (OO0O000000O0O0O00 )#line:522:raise ProxyError(e)
-        except (_SSLError ,_HTTPError )as OO0O000000O0O0O00 :#line:524:except (_SSLError, _HTTPError) as e:
-            if isinstance (OO0O000000O0O0O00 ,_SSLError ):#line:525:if isinstance(e, _SSLError):
-                raise SSLError (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:527:raise SSLError(e, request=request)
-            elif isinstance (OO0O000000O0O0O00 ,ReadTimeoutError ):#line:528:elif isinstance(e, ReadTimeoutError):
-                raise ReadTimeout (OO0O000000O0O0O00 ,request =O0OO0OOO00OOOOOOO )#line:529:raise ReadTimeout(e, request=request)
-            else :#line:530:else:
-                raise #line:531:raise
-        return O00O0OO00OOO000OO .build_response (O0OO0OOO00OOOOOOO ,O0OO000O00O0OO0OO )#line:533:return self.build_response(request, resp)
+import tensorflow as tf #line:1
+from tensorflow .contrib import rnn #line:2
+from utils import get_init_embedding #line:3
+class Model (object ):#line:6
+    def __init__ (OO0O000OOOOO00OOO ,O00O0OO00O00O0O0O ,OO00OOO00OO0OO000 ,OO0O0OOO00O0OO0OO ,OO0OO0O0OO000O0O0 ,forward_only =False ):#line:7
+        OO0O000OOOOO00OOO .vocabulary_size =len (O00O0OO00O00O0O0O )#line:8
+        OO0O000OOOOO00OOO .embedding_size =OO0OO0O0OO000O0O0 .embedding_size #line:9
+        OO0O000OOOOO00OOO .num_hidden =OO0OO0O0OO000O0O0 .num_hidden #line:10
+        OO0O000OOOOO00OOO .num_layers =OO0OO0O0OO000O0O0 .num_layers #line:11
+        OO0O000OOOOO00OOO .learning_rate =OO0OO0O0OO000O0O0 .learning_rate #line:12
+        OO0O000OOOOO00OOO .beam_width =OO0OO0O0OO000O0O0 .beam_width #line:13
+        if not forward_only :#line:14
+            OO0O000OOOOO00OOO .keep_prob =OO0OO0O0OO000O0O0 .keep_prob #line:15
+        else :#line:16
+            OO0O000OOOOO00OOO .keep_prob =1.0 #line:17
+        OO0O000OOOOO00OOO .cell =tf .nn .rnn_cell .BasicLSTMCell #line:18
+        with tf .variable_scope ("decoder/projection"):#line:19
+            OO0O000OOOOO00OOO .projection_layer =tf .layers .Dense (OO0O000OOOOO00OOO .vocabulary_size ,use_bias =False )#line:21
+        OO0O000OOOOO00OOO .batch_size =tf .placeholder (tf .int32 ,(),name ="batch_size")#line:23
+        OO0O000OOOOO00OOO .X =tf .placeholder (tf .int32 ,[None ,OO00OOO00OO0OO000 ])#line:24
+        OO0O000OOOOO00OOO .X_len =tf .placeholder (tf .int32 ,[None ])#line:25
+        OO0O000OOOOO00OOO .decoder_input =tf .placeholder (tf .int32 ,[None ,OO0O0OOO00O0OO0OO ])#line:26
+        OO0O000OOOOO00OOO .decoder_len =tf .placeholder (tf .int32 ,[None ])#line:27
+        OO0O000OOOOO00OOO .decoder_target =tf .placeholder (tf .int32 ,[None ,OO0O0OOO00O0OO0OO ])#line:28
+        OO0O000OOOOO00OOO .global_step =tf .Variable (0 ,trainable =False )#line:29
+        with tf .name_scope ("embedding"):#line:31
+            if not forward_only and OO0OO0O0OO000O0O0 .glove :#line:32
+                O0O0OOO00O00OOOOO =tf .constant (get_init_embedding (O00O0OO00O00O0O0O ,OO0O000OOOOO00OOO .embedding_size ),dtype =tf .float32 )#line:34
+            else :#line:35
+                O0O0OOO00O00OOOOO =tf .random_uniform ([OO0O000OOOOO00OOO .vocabulary_size ,OO0O000OOOOO00OOO .embedding_size ],-1.0 ,1.0 )#line:37
+            OO0O000OOOOO00OOO .embeddings =tf .get_variable ("embeddings",initializer =O0O0OOO00O00OOOOO )#line:39
+            OO0O000OOOOO00OOO .encoder_emb_inp =tf .transpose (tf .nn .embedding_lookup (OO0O000OOOOO00OOO .embeddings ,OO0O000OOOOO00OOO .X ),perm =[1 ,0 ,2 ])#line:41
+            OO0O000OOOOO00OOO .decoder_emb_inp =tf .transpose (tf .nn .embedding_lookup (OO0O000OOOOO00OOO .embeddings ,OO0O000OOOOO00OOO .decoder_input ),perm =[1 ,0 ,2 ])#line:43
+        with tf .name_scope ("encoder"):#line:45
+            OOOO00OO00O0O0O00 =[OO0O000OOOOO00OOO .cell (OO0O000OOOOO00OOO .num_hidden )for _OOO0000OOO0O0OOOO in range (OO0O000OOOOO00OOO .num_layers )]#line:47
+            OO000000O0O0000OO =[OO0O000OOOOO00OOO .cell (OO0O000OOOOO00OOO .num_hidden )for _O0000O00000OO0000 in range (OO0O000OOOOO00OOO .num_layers )]#line:49
+            OOOO00OO00O0O0O00 =[rnn .DropoutWrapper (OOO00O0OO0O00O00O )for OOO00O0OO0O00O00O in OOOO00OO00O0O0O00 ]#line:50
+            OO000000O0O0000OO =[rnn .DropoutWrapper (O0O00O00O0O00O0OO )for O0O00O00O0O00O0OO in OO000000O0O0000OO ]#line:51
+            OO0O0OOO0O0O00OOO ,O0O0OOO0O00O0O00O ,OOO00OOO0OOO0OOOO =tf .contrib .rnn .stack_bidirectional_dynamic_rnn (OOOO00OO00O0O0O00 ,OO000000O0O0000OO ,OO0O000OOOOO00OOO .encoder_emb_inp ,sequence_length =OO0O000OOOOO00OOO .X_len ,time_major =True ,dtype =tf .float32 )#line:55
+            OO0O000OOOOO00OOO .encoder_output =tf .concat (OO0O0OOO0O0O00OOO ,2 )#line:56
+            OOO0O0OO0000O00O0 =tf .concat ((O0O0OOO0O00O0O00O [0 ].c ,OOO00OOO0OOO0OOOO [0 ].c ),1 )#line:58
+            O00O0O0000OOOO0O0 =tf .concat ((O0O0OOO0O00O0O00O [0 ].h ,OOO00OOO0OOO0OOOO [0 ].h ),1 )#line:60
+            OO0O000OOOOO00OOO .encoder_state =rnn .LSTMStateTuple (c =OOO0O0OO0000O00O0 ,h =O00O0O0000OOOO0O0 )#line:62
+        with tf .name_scope ("decoder"),tf .variable_scope ("decoder")as O0OO0OOO000000O00 :#line:64
+            O0O0O0O0O0OOO0O00 =OO0O000OOOOO00OOO .cell (OO0O000OOOOO00OOO .num_hidden *2 )#line:65
+            if not forward_only :#line:67
+                O0OO0OOO0O0O0O000 =tf .transpose (OO0O000OOOOO00OOO .encoder_output ,[1 ,0 ,2 ])#line:68
+                O0OO00O000O0OO000 =tf .contrib .seq2seq .BahdanauAttention (OO0O000OOOOO00OOO .num_hidden *2 ,O0OO0OOO0O0O0O000 ,memory_sequence_length =OO0O000OOOOO00OOO .X_len ,normalize =True )#line:70
+                O0O0O0O0O0OOO0O00 =tf .contrib .seq2seq .AttentionWrapper (O0O0O0O0O0OOO0O00 ,O0OO00O000O0OO000 ,attention_layer_size =OO0O000OOOOO00OOO .num_hidden *2 )#line:72
+                O0O0OO0OOOO0O0000 =O0O0O0O0O0OOO0O00 .zero_state (dtype =tf .float32 ,batch_size =OO0O000OOOOO00OOO .batch_size )#line:74
+                O0O0OO0OOOO0O0000 =O0O0OO0OOOO0O0000 .clone (cell_state =OO0O000OOOOO00OOO .encoder_state )#line:76
+                O0000O0OOO00O000O =tf .contrib .seq2seq .TrainingHelper (OO0O000OOOOO00OOO .decoder_emb_inp ,OO0O000OOOOO00OOO .decoder_len ,time_major =True )#line:78
+                OO0OOO0OOO00000OO =tf .contrib .seq2seq .BasicDecoder (O0O0O0O0O0OOO0O00 ,O0000O0OOO00O000O ,O0O0OO0OOOO0O0000 )#line:80
+                O00O00000OOO000O0 ,_OO0O00OO000O00OOO ,_OO0O00OO000O00OOO =tf .contrib .seq2seq .dynamic_decode (OO0OOO0OOO00000OO ,output_time_major =True ,scope =O0OO0OOO000000O00 )#line:82
+                OO0O000OOOOO00OOO .decoder_output =O00O00000OOO000O0 .rnn_output #line:83
+                OO0O000OOOOO00OOO .logits =tf .transpose (OO0O000OOOOO00OOO .projection_layer (OO0O000OOOOO00OOO .decoder_output ),perm =[1 ,0 ,2 ])#line:85
+                OO0O000OOOOO00OOO .logits_reshape =tf .concat ([OO0O000OOOOO00OOO .logits ,tf .zeros ([OO0O000OOOOO00OOO .batch_size ,OO0O0OOO00O0OO0OO -tf .shape (OO0O000OOOOO00OOO .logits )[1 ],OO0O000OOOOO00OOO .vocabulary_size ])],axis =1 )#line:87
+            else :#line:88
+                OOOO00O0000O0O0O0 =tf .contrib .seq2seq .tile_batch (tf .transpose (OO0O000OOOOO00OOO .encoder_output ,perm =[1 ,0 ,2 ]),multiplier =OO0O000OOOOO00OOO .beam_width )#line:90
+                OO00O000OO000O0OO =tf .contrib .seq2seq .tile_batch (OO0O000OOOOO00OOO .encoder_state ,multiplier =OO0O000OOOOO00OOO .beam_width )#line:92
+                O0OO0O0OO00OO00O0 =tf .contrib .seq2seq .tile_batch (OO0O000OOOOO00OOO .X_len ,multiplier =OO0O000OOOOO00OOO .beam_width )#line:94
+                O0OO00O000O0OO000 =tf .contrib .seq2seq .BahdanauAttention (OO0O000OOOOO00OOO .num_hidden *2 ,OOOO00O0000O0O0O0 ,memory_sequence_length =O0OO0O0OO00OO00O0 ,normalize =True )#line:96
+                O0O0O0O0O0OOO0O00 =tf .contrib .seq2seq .AttentionWrapper (O0O0O0O0O0OOO0O00 ,O0OO00O000O0OO000 ,attention_layer_size =OO0O000OOOOO00OOO .num_hidden *2 )#line:98
+                O0O0OO0OOOO0O0000 =O0O0O0O0O0OOO0O00 .zero_state (dtype =tf .float32 ,batch_size =OO0O000OOOOO00OOO .batch_size *OO0O000OOOOO00OOO .beam_width )#line:100
+                O0O0OO0OOOO0O0000 =O0O0OO0OOOO0O0000 .clone (cell_state =OO00O000OO000O0OO )#line:102
+                OO0OOO0OOO00000OO =tf .contrib .seq2seq .BeamSearchDecoder (cell =O0O0O0O0O0OOO0O00 ,embedding =OO0O000OOOOO00OOO .embeddings ,start_tokens =tf .fill ([OO0O000OOOOO00OOO .batch_size ],tf .constant (2 )),end_token =tf .constant (3 ),initial_state =O0O0OO0OOOO0O0000 ,beam_width =OO0O000OOOOO00OOO .beam_width ,output_layer =OO0O000OOOOO00OOO .projection_layer )#line:111
+                O00O00000OOO000O0 ,_OO0O00OO000O00OOO ,_OO0O00OO000O00OOO =tf .contrib .seq2seq .dynamic_decode (OO0OOO0OOO00000OO ,output_time_major =True ,maximum_iterations =OO0O0OOO00O0OO0OO ,scope =O0OO0OOO000000O00 )#line:113
+                OO0O000OOOOO00OOO .prediction =tf .transpose (O00O00000OOO000O0 .predicted_ids ,perm =[1 ,2 ,0 ])#line:115
+        with tf .name_scope ("loss"):#line:117
+            if not forward_only :#line:118
+                OO0O00O0OO00O0OOO =tf .nn .sparse_softmax_cross_entropy_with_logits (logits =OO0O000OOOOO00OOO .logits_reshape ,labels =OO0O000OOOOO00OOO .decoder_target )#line:120
+                O0OOOOO00OO0O0OOO =tf .sequence_mask (OO0O000OOOOO00OOO .decoder_len ,OO0O0OOO00O0OO0OO ,dtype =tf .float32 )#line:122
+                OO0O000OOOOO00OOO .loss =tf .reduce_sum (OO0O00O0OO00O0OOO *O0OOOOO00OO0O0OOO /tf .to_float (OO0O000OOOOO00OOO .batch_size ))#line:124
+                O0O000O00000OO00O =tf .trainable_variables ()#line:126
+                O0OO0O00O0O00O0O0 =tf .gradients (OO0O000OOOOO00OOO .loss ,O0O000O00000OO00O )#line:127
+                OO00OOOOO0OOOOOO0 ,_OO0O00OO000O00OOO =tf .clip_by_global_norm (O0OO0O00O0O00O0O0 ,5.0 )#line:128
+                O0O0O000OO0OO000O =tf .train .AdamOptimizer (OO0O000OOOOO00OOO .learning_rate )#line:129
+                OO0O000OOOOO00OOO .update =O0O0O000OO0OO000O .apply_gradients (zip (OO00OOOOO0OOOOOO0 ,O0O000O00000OO00O ),global_step =OO0O000OOOOO00OOO .global_step )#line:131

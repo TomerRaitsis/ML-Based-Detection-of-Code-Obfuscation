@@ -1,124 +1,28 @@
-""#line:12:"""
-import pytest #line:14:import pytest
-def test_list_type ():#line:17:def test_list_type():
-    ""#line:18:"""List type."""
-    O0O0OO0000000O00O =[1 ,4 ,9 ,16 ,25 ]#line:23:squares = [1, 4, 9, 16, 25]
-    assert isinstance (O0O0OO0000000O00O ,list )#line:25:assert isinstance(squares, list)
-    assert O0O0OO0000000O00O [0 ]==1 #line:29:assert squares[0] == 1  # indexing returns the item
-    assert O0O0OO0000000O00O [-1 ]==25 #line:30:assert squares[-1] == 25
-    assert O0O0OO0000000O00O [-3 :]==[9 ,16 ,25 ]#line:31:assert squares[-3:] == [9, 16, 25]  # slicing returns a new list
-    assert O0O0OO0000000O00O [:]==[1 ,4 ,9 ,16 ,25 ]#line:36:assert squares[:] == [1, 4, 9, 16, 25]
-    assert O0O0OO0000000O00O +[36 ,49 ,64 ,81 ,100 ]==[1 ,4 ,9 ,16 ,25 ,36 ,49 ,64 ,81 ,100 ]#line:39:assert squares + [36, 49, 64, 81, 100] == [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
-    O00OO00OOOO0OO00O =[1 ,8 ,27 ,65 ,125 ]#line:43:cubes = [1, 8, 27, 65, 125]  # something's wrong here, the cube of 4 is 64!
-    O00OO00OOOO0OO00O [3 ]=64 #line:44:cubes[3] = 64  # replace the wrong value
-    assert O00OO00OOOO0OO00O ==[1 ,8 ,27 ,64 ,125 ]#line:45:assert cubes == [1, 8, 27, 64, 125]
-    O00OO00OOOO0OO00O .append (216 )#line:49:cubes.append(216)  # add the cube of 6
-    O00OO00OOOO0OO00O .append (7 **3 )#line:50:cubes.append(7 ** 3)  # and the cube of 7
-    assert O00OO00OOOO0OO00O ==[1 ,8 ,27 ,64 ,125 ,216 ,343 ]#line:51:assert cubes == [1, 8, 27, 64, 125, 216, 343]
-    O0OO0000OOO0O000O =['a','b','c','d','e','f','g']#line:55:letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
-    O0OO0000OOO0O000O [2 :5 ]=['C','D','E']#line:56:letters[2:5] = ['C', 'D', 'E']  # replace some values
-    assert O0OO0000OOO0O000O ==['a','b','C','D','E','f','g']#line:57:assert letters == ['a', 'b', 'C', 'D', 'E', 'f', 'g']
-    O0OO0000OOO0O000O [2 :5 ]=[]#line:58:letters[2:5] = []  # now remove them
-    assert O0OO0000OOO0O000O ==['a','b','f','g']#line:59:assert letters == ['a', 'b', 'f', 'g']
-    O0OO0000OOO0O000O [:]=[]#line:61:letters[:] = []
-    assert O0OO0000OOO0O000O ==[]#line:62:assert letters == []
-    O0OO0000OOO0O000O =['a','b','c','d']#line:65:letters = ['a', 'b', 'c', 'd']
-    assert len (O0OO0000OOO0O000O )==4 #line:66:assert len(letters) == 4
-    O0000000OO00OOOOO =['a','b','c']#line:70:list_of_chars = ['a', 'b', 'c']
-    O0O00O0O0OO00O0OO =[1 ,2 ,3 ]#line:71:list_of_numbers = [1, 2, 3]
-    OOO0OO00O000OO00O =[O0000000OO00OOOOO ,O0O00O0O0OO00O0OO ]#line:72:mixed_list = [list_of_chars, list_of_numbers]
-    assert OOO0OO00O000OO00O ==[['a','b','c'],[1 ,2 ,3 ]]#line:73:assert mixed_list == [['a', 'b', 'c'], [1, 2, 3]]
-    assert OOO0OO00O000OO00O [0 ]==['a','b','c']#line:74:assert mixed_list[0] == ['a', 'b', 'c']
-    assert OOO0OO00O000OO00O [0 ][1 ]=='b'#line:75:assert mixed_list[0][1] == 'b'
-def test_list_methods ():#line:78:def test_list_methods():
-    ""#line:79:"""Test list methods."""
-    OO0O0OO000O0O0OOO =['orange','apple','pear','banana','kiwi','apple','banana']#line:81:fruits = ['orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana']
-    OO0O0OO000O0O0OOO .append ('grape')#line:86:fruits.append('grape')
-    assert OO0O0OO000O0O0OOO ==['orange','apple','pear','banana','kiwi','apple','banana','grape']#line:87:assert fruits == ['orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana', 'grape']
-    OO0O0OO000O0O0OOO .remove ('grape')#line:92:fruits.remove('grape')
-    assert OO0O0OO000O0O0OOO ==['orange','apple','pear','banana','kiwi','apple','banana']#line:93:assert fruits == ['orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana']
-    with pytest .raises (Exception ):#line:95:with pytest.raises(Exception):
-        OO0O0OO000O0O0OOO .remove ('not existing element')#line:96:fruits.remove('not existing element')
-    OO0O0OO000O0O0OOO .insert (0 ,'grape')#line:102:fruits.insert(0, 'grape')
-    assert OO0O0OO000O0O0OOO ==['grape','orange','apple','pear','banana','kiwi','apple','banana']#line:103:assert fruits == ['grape', 'orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana']
-    assert OO0O0OO000O0O0OOO .index ('grape')==0 #line:111:assert fruits.index('grape') == 0
-    assert OO0O0OO000O0O0OOO .index ('orange')==1 #line:112:assert fruits.index('orange') == 1
-    assert OO0O0OO000O0O0OOO .index ('banana')==4 #line:113:assert fruits.index('banana') == 4
-    assert OO0O0OO000O0O0OOO .index ('banana',5 )==7 #line:114:assert fruits.index('banana', 5) == 7  # Find next banana starting a position 5
-    with pytest .raises (Exception ):#line:116:with pytest.raises(Exception):
-        OO0O0OO000O0O0OOO .index ('not existing element')#line:117:fruits.index('not existing element')
-    assert OO0O0OO000O0O0OOO .count ('tangerine')==0 #line:121:assert fruits.count('tangerine') == 0
-    assert OO0O0OO000O0O0OOO .count ('banana')==2 #line:122:assert fruits.count('banana') == 2
-    O0O00OOO0OOO0000O =OO0O0OO000O0O0OOO .copy ()#line:126:fruits_copy = fruits.copy()
-    assert O0O00OOO0OOO0000O ==['grape','orange','apple','pear','banana','kiwi','apple','banana']#line:127:assert fruits_copy == ['grape', 'orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana']
-    O0O00OOO0OOO0000O .reverse ()#line:131:fruits_copy.reverse()
-    assert O0O00OOO0OOO0000O ==['banana','apple','kiwi','banana','pear','apple','orange','grape',]#line:141:]
-    O0O00OOO0OOO0000O .sort ()#line:146:fruits_copy.sort()
-    assert O0O00OOO0OOO0000O ==['apple','apple','banana','banana','grape','kiwi','orange','pear',]#line:156:]
-    assert OO0O0OO000O0O0OOO ==['grape','orange','apple','pear','banana','kiwi','apple','banana']#line:163:assert fruits == ['grape', 'orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana']
-    assert OO0O0OO000O0O0OOO .pop ()=='banana'#line:164:assert fruits.pop() == 'banana'
-    assert OO0O0OO000O0O0OOO ==['grape','orange','apple','pear','banana','kiwi','apple']#line:165:assert fruits == ['grape', 'orange', 'apple', 'pear', 'banana', 'kiwi', 'apple']
-    OO0O0OO000O0O0OOO .clear ()#line:169:fruits.clear()
-    assert OO0O0OO000O0O0OOO ==[]#line:170:assert fruits == []
-def test_del_statement ():#line:173:def test_del_statement():
-    ""#line:180:"""
-    OOOO0000OOO0OO000 =[-1 ,1 ,66.25 ,333 ,333 ,1234.5 ]#line:182:numbers = [-1, 1, 66.25, 333, 333, 1234.5]
-    del OOOO0000OOO0OO000 [0 ]#line:184:del numbers[0]
-    assert OOOO0000OOO0OO000 ==[1 ,66.25 ,333 ,333 ,1234.5 ]#line:185:assert numbers == [1, 66.25, 333, 333, 1234.5]
-    del OOOO0000OOO0OO000 [2 :4 ]#line:187:del numbers[2:4]
-    assert OOOO0000OOO0OO000 ==[1 ,66.25 ,1234.5 ]#line:188:assert numbers == [1, 66.25, 1234.5]
-    del OOOO0000OOO0OO000 [:]#line:190:del numbers[:]
-    assert OOOO0000OOO0OO000 ==[]#line:191:assert numbers == []
-    del OOOO0000OOO0OO000 #line:194:del numbers
-    with pytest .raises (Exception ):#line:195:with pytest.raises(Exception):
-        assert OOOO0000OOO0OO000 ==[]#line:198:assert numbers == []  # noqa: F821
-def test_list_comprehensions ():#line:201:def test_list_comprehensions():
-    ""#line:212:"""
-    O000O00OO0O00OO0O =[]#line:215:squares = []
-    for OO0O000OOOO0O0O0O in range (10 ):#line:216:for number in range(10):
-        O000O00OO0O00OO0O .append (OO0O000OOOO0O0O0O **2 )#line:217:squares.append(number ** 2)
-    assert O000O00OO0O00OO0O ==[0 ,1 ,4 ,9 ,16 ,25 ,36 ,49 ,64 ,81 ]#line:219:assert squares == [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
-    O000O00OO0O00OO0O =list (map (lambda OO000O0OO00O0O00O :OO000O0OO00O0O00O **2 ,range (10 )))#line:223:squares = list(map(lambda x: x ** 2, range(10)))
-    assert O000O00OO0O00OO0O ==[0 ,1 ,4 ,9 ,16 ,25 ,36 ,49 ,64 ,81 ]#line:224:assert squares == [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
-    O000O00OO0O00OO0O =[OOO0OO0OOOOOOOO0O **2 for OOO0OO0OOOOOOOO0O in range (10 )]#line:227:squares = [x ** 2 for x in range(10)]
-    assert O000O00OO0O00OO0O ==[0 ,1 ,4 ,9 ,16 ,25 ,36 ,49 ,64 ,81 ]#line:228:assert squares == [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
-    OOOOOO0OOOOO00000 =[(O0OO00OOO0OOOOO0O ,OOO00OO0O00OO00O0 )for O0OO00OOO0OOOOO0O in [1 ,2 ,3 ]for OOO00OO0O00OO00O0 in [3 ,1 ,4 ]if O0OO00OOO0OOOOO0O !=OOO00OO0O00OO00O0 ]#line:231:combinations = [(x, y) for x in [1, 2, 3] for y in [3, 1, 4] if x != y]
-    assert OOOOOO0OOOOO00000 ==[(1 ,3 ),(1 ,4 ),(2 ,3 ),(2 ,1 ),(2 ,4 ),(3 ,1 ),(3 ,4 )]#line:232:assert combinations == [(1, 3), (1, 4), (2, 3), (2, 1), (2, 4), (3, 1), (3, 4)]
-    OOOOOO0OOOOO00000 =[]#line:235:combinations = []
-    for O0OOOO00O0O0OO0O0 in [1 ,2 ,3 ]:#line:236:for first_number in [1, 2, 3]:
-        for OOOO0OO0OO000O000 in [3 ,1 ,4 ]:#line:237:for second_number in [3, 1, 4]:
-            if O0OOOO00O0O0OO0O0 !=OOOO0OO0OO000O000 :#line:238:if first_number != second_number:
-                OOOOOO0OOOOO00000 .append ((O0OOOO00O0O0OO0O0 ,OOOO0OO0OO000O000 ))#line:239:combinations.append((first_number, second_number))
-    assert OOOOOO0OOOOO00000 ==[(1 ,3 ),(1 ,4 ),(2 ,3 ),(2 ,1 ),(2 ,4 ),(3 ,1 ),(3 ,4 )]#line:241:assert combinations == [(1, 3), (1, 4), (2, 3), (2, 1), (2, 4), (3, 1), (3, 4)]
-    OO0O0OO0O0OOOO0OO =[-4 ,-2 ,0 ,2 ,4 ]#line:250:vector = [-4, -2, 0, 2, 4]
-    OOO000000000000O0 =[OO0O0O0O00O0O0O00 *2 for OO0O0O0O00O0O0O00 in OO0O0OO0O0OOOO0OO ]#line:253:doubled_vector = [x * 2 for x in vector]
-    assert OOO000000000000O0 ==[-8 ,-4 ,0 ,4 ,8 ]#line:254:assert doubled_vector == [-8, -4, 0, 4, 8]
-    O00OOOO0O0O0OO0OO =[OOO0OOO0O0OOOOOO0 for OOO0OOO0O0OOOOOO0 in OO0O0OO0O0OOOO0OO if OOO0OOO0O0OOOOOO0 >=0 ]#line:257:positive_vector = [x for x in vector if x >= 0]
-    assert O00OOOO0O0O0OO0OO ==[0 ,2 ,4 ]#line:258:assert positive_vector == [0, 2, 4]
-    OOO00OOO0O0O00OOO =[abs (OOO0OOO0OO0O00OOO )for OOO0OOO0OO0O00OOO in OO0O0OO0O0OOOO0OO ]#line:261:abs_vector = [abs(x) for x in vector]
-    assert OOO00OOO0O0O00OOO ==[4 ,2 ,0 ,2 ,4 ]#line:262:assert abs_vector == [4, 2, 0, 2, 4]
-    O0OO0OOO000000O0O =['  banana','  loganberry ','passion fruit  ']#line:265:fresh_fruit = ['  banana', '  loganberry ', 'passion fruit  ']
-    OOO00O0OO0OOOOOO0 =[OOO0OOO00000O0O0O .strip ()for OOO0OOO00000O0O0O in O0OO0OOO000000O0O ]#line:266:clean_fresh_fruit = [weapon.strip() for weapon in fresh_fruit]
-    assert OOO00O0OO0OOOOOO0 ==['banana','loganberry','passion fruit']#line:267:assert clean_fresh_fruit == ['banana', 'loganberry', 'passion fruit']
-    OO0O0O0OOOO0OO0OO =[(OOO0OO0O00000O0OO ,OOO0OO0O00000O0OO **2 )for OOO0OO0O00000O0OO in range (6 )]#line:270:square_tuples = [(x, x ** 2) for x in range(6)]
-    assert OO0O0O0OOOO0OO0OO ==[(0 ,0 ),(1 ,1 ),(2 ,4 ),(3 ,9 ),(4 ,16 ),(5 ,25 )]#line:271:assert square_tuples == [(0, 0), (1, 1), (2, 4), (3, 9), (4, 16), (5, 25)]
-    OO0O0OO0O0OOOO0OO =[[1 ,2 ,3 ],[4 ,5 ,6 ],[7 ,8 ,9 ]]#line:274:vector = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-    OO000O0O0OOO00O0O =[O0O0O0000O0OO0O00 for OO0000O0OO0000OOO in OO0O0OO0O0OOOO0OO for O0O0O0000O0OO0O00 in OO0000O0OO0000OOO ]#line:275:flatten_vector = [num for elem in vector for num in elem]
-    assert OO000O0O0OOO00O0O ==[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ]#line:276:assert flatten_vector == [1, 2, 3, 4, 5, 6, 7, 8, 9]
-def test_nested_list_comprehensions ():#line:279:def test_nested_list_comprehensions():
-    ""#line:284:"""
-    OO00OOOO00OOO0OOO =[[1 ,2 ,3 ,4 ],[5 ,6 ,7 ,8 ],[9 ,10 ,11 ,12 ],]#line:291:]
-    OOOO0O0O00000OO0O =[[OOO0OOO0O0OOO0OOO [OO0O0O00O0O0OOOO0 ]for OOO0OOO0O0OOO0OOO in OO00OOOO00OOO0OOO ]for OO0O0O00O0O0OOOO0 in range (4 )]#line:294:transposed_matrix = [[row[i] for row in matrix] for i in range(4)]
-    assert OOOO0O0O00000OO0O ==[[1 ,5 ,9 ],[2 ,6 ,10 ],[3 ,7 ,11 ],[4 ,8 ,12 ],]#line:300:]
-    OOO0000OO000000OO =[]#line:304:transposed = []
-    for OOOO0O0OO0O0OOOO0 in range (4 ):#line:305:for i in range(4):
-        OOO0000OO000000OO .append ([O0OO00O00000O00O0 [OOOO0O0OO0O0OOOO0 ]for O0OO00O00000O00O0 in OO00OOOO00OOO0OOO ])#line:306:transposed.append([row[i] for row in matrix])
-    assert OOO0000OO000000OO ==[[1 ,5 ,9 ],[2 ,6 ,10 ],[3 ,7 ,11 ],[4 ,8 ,12 ],]#line:313:]
-    OOO0000OO000000OO =[]#line:316:transposed = []
-    for OOOO0O0OO0O0OOOO0 in range (4 ):#line:317:for i in range(4):
-        O00000OOO000O0000 =[]#line:319:transposed_row = []
-        for OOO0OOOOOOO000O0O in OO00OOOO00OOO0OOO :#line:320:for row in matrix:
-            O00000OOO000O0000 .append (OOO0OOOOOOO000O0O [OOOO0O0OO0O0OOOO0 ])#line:321:transposed_row.append(row[i])
-        OOO0000OO000000OO .append (O00000OOO000O0000 )#line:322:transposed.append(transposed_row)
-    assert OOO0000OO000000OO ==[[1 ,5 ,9 ],[2 ,6 ,10 ],[3 ,7 ,11 ],[4 ,8 ,12 ],]#line:329:]
-    assert list (zip (*OO00OOOO00OOO0OOO ))==[(1 ,5 ,9 ),(2 ,6 ,10 ),(3 ,7 ,11 ),(4 ,8 ,12 ),]#line:338:]
+# !/usr/bin/env python
+from selenium import webdriver #line:2
+from webdriver_manager .chrome import ChromeDriverManager #line:3
+import json #line:4
+import requests #line:5
+def get_driver ():#line:12
+    O00000O00O00O0OO0 =webdriver .ChromeOptions ()#line:14
+    OO0OO0O000000O0OO ={"recentDestinations":[{"id":"Save as PDF","origin":"local","account":""}],"selectedDestinationId":"Save as PDF","version":2 ,}#line:21
+    O0OOOOOO0O000O0OO ={"printing.print_preview_sticky_settings.appState":json .dumps (OO0OO0O000000O0OO )}#line:24
+    O00000O00O00O0OO0 .add_experimental_option ("prefs",O0OOOOOO0O000O0OO )#line:25
+    O00000O00O00O0OO0 .add_argument ("--kiosk-printing")#line:26
+    O0000O0O0000OO000 =webdriver .Chrome (executable_path =ChromeDriverManager ().install (),options =O00000O00O00O0OO0 )#line:31
+    return O0000O0O0000OO000 #line:32
+def download_article (O0OO00OOOO0OO0O00 ):#line:35
+    O000000O0OOO0O0O0 =get_driver ()#line:36
+    O000000O0OOO0O0O0 .get (O0OO00OOOO0OO0O00 )#line:37
+    O000000O0OOO0O0O0 .execute_script ("window.print();")#line:40
+    O000000O0OOO0O0O0 .close ()#line:41
+if __name__ =="__main__":#line:44
+    URL =input ("provide article URL: ")#line:45
+    if requests .get (URL ).status_code ==200 :#line:47
+        try :#line:48
+            download_article (URL )#line:49
+            print ("Your article is successfully downloaded")#line:50
+        except Exception as e :#line:51
+            print (e )#line:52
+    else :#line:53
+        print ("Enter a valid working URL")#line:54

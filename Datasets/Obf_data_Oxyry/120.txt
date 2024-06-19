@@ -1,112 +1,28 @@
-from abc import ABC ,abstractmethod #line:1
-from item import ItemsDB #line:2
-import pandas as pd #line:3
-import statistics #line:4
-class ExpenseIncomeStats :#line:7
-    ""#line:10
-    def __init__ (OO0OOO0O0O0O0OOO0 ,O0O0OOO00O0O0000O :str ,start :str =None ,end :str =None ):#line:12
-        ""#line:20
-        OO0OOO0O0O0O0OOO0 ._items_db =ItemsDB (O0O0OOO00O0O0000O )#line:22
-        OO0OOO0O0O0O0OOO0 .start =start #line:23
-        OO0OOO0O0O0O0OOO0 .end =end #line:24
-    @property #line:26
-    def items (O0OO0000000O00O0O ):#line:27
-        ""#line:33
-        return O0OO0000000O00O0O ._items_db .get_all_items ()#line:34
-    @staticmethod #line:36
-    def get_stats_expense_and_income (OO00O0O0O00OOOO00 )->dict :#line:37
-        ""#line:46
-        OO0O0000O00O0000O =[OOO0OOOOOOO000OO0 .amount for OOO0OOOOOOO000OO0 in OO00O0O0O00OOOO00 if OOO0OOOOOOO000OO0 .amount <0 ]#line:48
-        if len (OO0O0000O00O0000O )>0 :#line:49
-            OO00OOOO0O00O0000 ={"average_expense":statistics .mean (OO0O0000O00O0000O ),"min_expense":max (OO0O0000O00O0000O ),"max_expense":min (OO0O0000O00O0000O ),}#line:54
-        else :#line:55
-            OO00OOOO0O00O0000 ={}#line:56
-        OO0OO0O0000O0O000 =[OOO000OOOO00000OO .amount for OOO000OOOO00000OO in OO00O0O0O00OOOO00 if OOO000OOOO00000OO .amount >0 ]#line:58
-        if len (OO0OO0O0000O0O000 )>0 :#line:59
-            O00O00O0O0OO0O0O0 ={"average_income":statistics .mean (OO0OO0O0000O0O000 ),"min_income":min (OO0OO0O0000O0O000 ),"max_income":max (OO0OO0O0000O0O000 ),}#line:64
-        else :#line:65
-            O00O00O0O0OO0O0O0 ={}#line:66
-        return OO00OOOO0O00O0000 |O00O00O0O0OO0O0O0 #line:68
-    @staticmethod #line:70
-    def get_stats (O000O0OO000OOO0O0 )->dict :#line:71
-        ""#line:80
-        if len (O000O0OO000OOO0O0 )<1 :#line:81
-            raise ValueError ("The list of items must contain at least one item")#line:82
-        return {"average":statistics .mean (O000O0OO000OOO0O0 ),"max":max (O000O0OO000OOO0O0 ),"min":min (O000O0OO000OOO0O0 ),}#line:88
-    def get_stats_all_items (OO0OO0OOO0OOO0OOO ):#line:90
-        ""#line:96
-        return OO0OO0OOO0OOO0OOO .get_stats_expense_and_income (OO0OO0OOO0OOO0OOO .items )#line:97
-    def get_stats_by_category (O000O00O0O0O00OO0 )->dict :#line:99
-        ""#line:105
-        O00OOO0OOOOOOO00O =O000O00O0O0O00OO0 ._items_db .get_category_names ()#line:106
-        O000O0OOO00O00000 ={}#line:107
-        for OOOOOOOOOO0OOOO0O in O00OOO0OOOOOOO00O :#line:108
-            OOOO000O00OO0OO0O =[O0OO000OO000O0O0O for O0OO000OO000O0O0O in O000O00O0O0O00OO0 ._items_db .get_items_by_category (OOOOOOOOOO0OOOO0O )]#line:111
-            O000O0OOO00O00000 [OOOOOOOOOO0OOOO0O ]=O000O00O0O0O00OO0 .get_stats_expense_and_income (OOOO000O00OO0OO0O )#line:112
-        return O000O0OOO00O00000 #line:114
-    def get_stats_by_category_with_subcategories (OO000O000OO0O0O0O )->dict :#line:116
-        ""#line:122
-        OO000O0O00OOOOO0O =OO000O000OO0O0O0O ._items_db .get_category_names ()#line:123
-        OOO0OOO000OO00O00 ={}#line:124
-        for OO0OOO00OO0OOOOO0 in OO000O0O00OOOOO0O :#line:125
-            OOO0OOO000OO00O00 [f"{OO0OOO00OO0OOOOO0}-NoSubcategory"]=(OO000O000OO0O0O0O .get_stats_expense_and_income (OO000O000OO0O0O0O ._items_db .get_items_without_subcategory (OO0OOO00OO0OOOOO0 )))#line:131
-            for OO0O00000O0O00O0O in OO000O000OO0O0O0O ._items_db .get_subcategory_names (OO0OOO00OO0OOOOO0 ):#line:134
-                OOO0OOO000OO00O00 [f"{OO0OOO00OO0OOOOO0}-{OO0O00000O0O00O0O}"]=(OO000O000OO0O0O0O .get_stats_expense_and_income (OO000O000OO0O0O0O ._items_db .get_items_by_category_and_subcategory (OO0OOO00OO0OOOOO0 ,OO0O00000O0O00O0O )))#line:141
-        return OOO0OOO000OO00O00 #line:143
-class Report (ABC ):#line:146
-    ""#line:149
-    def __init__ (OO0O00OOOOO0OOO00 ,O00000O0OO0OO0OOO :str ,OOO0O0O000O0O00O0 :ItemsDB ):#line:151
-        ""#line:158
-        OO0O00OOOOO0OOO00 .file_path =O00000O0OO0OO0OOO #line:160
-        OO0O00OOOOO0OOO00 .items_db =OOO0O0O000O0O00O0 #line:161
-    @abstractmethod #line:163
-    def generate_report (OO000O00O00000000 ,*O0O0000OOO00000OO ,**OO000O00OO000000O ):#line:164
-        ""#line:171
-        pass #line:172
-    @staticmethod #line:174
-    def to_dataframe (OOO0OOO000O00O0O0 )->pd .DataFrame :#line:175
-        ""#line:184
-        OOOO000O00O000OOO =[]#line:188
-        for O0OOOOOO00OOO0O0O in OOO0OOO000O00O0O0 :#line:189
-            O00OOO0OOO0O0OO0O =O0OOOOOO00OOO0O0O .category #line:190
-            OO0OOOO000O00OO0O ={O0OOO00OO0OO00OOO :O0OOO0O00OO00OOOO for O0OOO00OO0OO00OOO ,O0OOO0O00OO00OOOO in O0OOOOOO00OOO0O0O .__dict__ .items ()if O0OOO00OO0OO00OOO !="category"}#line:191
-            if O00OOO0OOO0O0OO0O is not None :#line:193
-                OO0OOOO000O00OO0O ["category"]=O00OOO0OOO0O0OO0O .name #line:194
-                if O00OOO0OOO0O0OO0O .subcategory is not None :#line:195
-                    OO0OOOO000O00OO0O ["subcategory"]=O00OOO0OOO0O0OO0O .subcategory #line:196
-            OOOO000O00O000OOO .append (OO0OOOO000O00OO0O )#line:198
-        return pd .DataFrame (OOOO000O00O000OOO )#line:200
-class ExcelReport (Report ):#line:203
-    ""#line:204
-    def generate_report (OOO00O00OO00OO0OO ):#line:206
-        ""#line:207
-        OO0O0O00O0OOO0OO0 =OOO00O00OO00OO0OO .items_db .get_all_items ()#line:210
-        O0000O00O000000OO =OOO00O00OO00OO0OO .to_dataframe (OO0O0O00O0OOO0OO0 )#line:211
-        with pd .ExcelWriter (OOO00O00OO00OO0OO .file_path ,engine ="xlsxwriter")as O000O00O0O00O0O00 :#line:213
-            O0O00O0000OOOO0O0 =O000O00O0O00O0O00 .book #line:214
-            O0000O00O000000OO .to_excel (O000O00O0O00O0O00 ,"Data",index =False ,)#line:221
-            OOOOO000O0OOO0OOO =O000O00O0O00O0O00 .sheets ["Data"]#line:224
-            OOOO000OOOOOO0000 =O0000O00O000000OO .pivot_table (values ="amount",index =["category","subcategory"],aggfunc ={"amount":["mean","max","min"],},)#line:233
-            OOOO000OOOOOO0000 .columns =[f"{OOOO0OO000OO00O00}_amount"for OOOO0OO000OO00O00 in OOOO000OOOOOO0000 .columns ]#line:236
-            OOOO000OOOOOO0000 .to_excel (O000O00O0O00O0O00 ,"Summary By Category",index =True ,)#line:242
-            OOOOO000O0OOO0OOO =O000O00O0O00O0O00 .sheets ["Summary By Category"]#line:243
-class PdfReport (Report ):#line:246
-    ""#line:247
-    def generate_report (O000O00000O0OOO00 ):#line:249
-        ""#line:250
-        O0O0O00O0O0OOO0OO =O000O00000O0OOO00 .items_db .get_all_items ()#line:252
-        O0000OO00OOO00O0O =O000O00000O0OOO00 .to_dataframe (O0O0O00O0O0OOO0OO )#line:253
-        from reportlab .lib import colors #line:255
-        from reportlab .lib .pagesizes import letter #line:256
-        from reportlab .platypus import SimpleDocTemplate ,Table ,TableStyle #line:257
-        O00000O00O0OO0OO0 =O0000OO00OOO00O0O .pivot_table (values ="amount",index =["category","subcategory"],aggfunc ={"amount":["mean","max","min"],},)#line:266
-        O00000O00O0OO0OO0 =O00000O00O0OO0OO0 .reset_index ()#line:267
-        O0O00OO00O0OOOO0O =[list (O00000O00O0OO0OO0 .columns )]+O00000O00O0OO0OO0 .values .tolist ()#line:270
-        O0OO0O0O0O0O00O0O =O000O00000O0OOO00 .file_path #line:273
-        OOOO0OO00OOOO000O =SimpleDocTemplate (O0OO0O0O0O0O00O0O ,pagesize =letter )#line:274
-        O00OOOO0O0OOOOOO0 =[]#line:275
-        OOOOO00OOO000OOO0 =Table (O0O00OO00O0OOOO0O )#line:278
-        O00OOO0OOOOOO0OO0 =TableStyle ([("BACKGROUND",(0 ,0 ),(-1 ,0 ),colors .gray ),("TEXTCOLOR",(0 ,0 ),(-1 ,0 ),colors .whitesmoke ),("ALIGN",(0 ,0 ),(-1 ,-1 ),"CENTER"),("FONTNAME",(0 ,0 ),(-1 ,0 ),"Helvetica-Bold"),("BOTTOMPADDING",(0 ,0 ),(-1 ,0 ),12 ),("BACKGROUND",(0 ,1 ),(-1 ,-1 ),colors .beige ),("GRID",(0 ,0 ),(-1 ,-1 ),1 ,colors .black ),])#line:291
-        OOOOO00OOO000OOO0 .setStyle (O00OOO0OOOOOO0OO0 )#line:293
-        O00OOOO0O0OOOOOO0 .append (OOOOO00OOO000OOO0 )#line:296
-        OOOO0OO00OOOO000O .build (O00OOOO0O0OOOOOO0 )#line:299
+from constants import GameSettings ,Direction ,Point #line:1
+class Snake :#line:4
+    ""#line:5
+    def __init__ (OOO0O0OO0000OO00O ,init_length =3 ):#line:7
+        ""#line:12
+        OOO0O0OO0000OO00O .head =Point (GameSettings .WIDTH /2 ,GameSettings .HEIGHT /2 )#line:13
+        OOO0O0OO0000OO00O .block_size =GameSettings .BLOCK_SIZE #line:14
+        OOO0O0OO0000OO00O .blocks =[OOO0O0OO0000OO00O .head ]+[Point (OOO0O0OO0000OO00O .head .x -(OOOOOOO0OOO0O0OO0 *OOO0O0OO0000OO00O .block_size ),OOO0O0OO0000OO00O .head .y )for OOOOOOO0OOO0O0OO0 in range (1 ,init_length )]#line:18
+        OOO0O0OO0000OO00O .direction =Direction .RIGHT #line:19
+    def move (OO000O0000OOO00OO ,OO00O0O0O0O00O00O ):#line:21
+        ""#line:29
+        O0O0OOO00OO0OOO00 ,OOO000O0O0OO0O00O =OO000O0000OOO00OO .head #line:30
+        if OO00O0O0O0O00O00O ==Direction .RIGHT :#line:31
+            O0O0OOO00OO0OOO00 +=OO000O0000OOO00OO .block_size #line:32
+        elif OO00O0O0O0O00O00O ==Direction .LEFT :#line:33
+            O0O0OOO00OO0OOO00 -=OO000O0000OOO00OO .block_size #line:34
+        elif OO00O0O0O0O00O00O ==Direction .DOWN :#line:35
+            OOO000O0O0OO0O00O +=OO000O0000OOO00OO .block_size #line:36
+        elif OO00O0O0O0O00O00O ==Direction .UP :#line:37
+            OOO000O0O0OO0O00O -=OO000O0000OOO00OO .block_size #line:38
+        OO000O0000OOO00OO .head =Point (O0O0OOO00OO0OOO00 ,OOO000O0O0OO0O00O )#line:39
+        OO000O0000OOO00OO .blocks .insert (0 ,OO000O0000OOO00OO .head )#line:40
+        return OO000O0000OOO00OO .head #line:41
+    def self_collision (O0OOO0OO0O000OOOO ):#line:43
+        ""#line:48
+        if O0OOO0OO0O000OOOO .head in O0OOO0OO0O000OOOO .blocks [1 :]:#line:49
+            return True #line:50
+        return False #line:51

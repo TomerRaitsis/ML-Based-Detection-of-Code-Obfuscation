@@ -1,174 +1,28 @@
-__license__ ="MIT"#line:2:__license__ = "MIT"
-__all__ =['LXMLTreeBuilderForXML','LXMLTreeBuilder',]#line:7:]
-try :#line:9:try:
-    from collections .abc import Callable #line:10:from collections.abc import Callable # Python 3.6
-except ImportError as OOOO000O00OO0OOO0 :#line:11:except ImportError as e:
-    from collections import Callable #line:12:from collections import Callable
-from io import BytesIO #line:14:from io import BytesIO
-from io import StringIO #line:15:from io import StringIO
-from lxml import etree #line:16:from lxml import etree
-from bs4 .element import (Comment ,Doctype ,NamespacedAttribute ,ProcessingInstruction ,XMLProcessingInstruction ,)#line:23:)
-from bs4 .builder import (FAST ,HTML ,HTMLTreeBuilder ,PERMISSIVE ,ParserRejectedMarkup ,TreeBuilder ,XML )#line:31:XML)
-from bs4 .dammit import EncodingDetector #line:32:from bs4.dammit import EncodingDetector
-OO0OOOO00O00OO0O0 ='lxml'#line:34:LXML = 'lxml'
-def _OOO0000000O0O0O0O (O0OO0OOOO0OO00OOO ):#line:36:def _invert(d):
-    ""#line:37:"Invert a dictionary."
-    return dict ((O00OOOOOOOO0O000O ,O0000OO0O000O00O0 )for O0000OO0O000O00O0 ,O00OOOOOOOO0O000O in list (O0OO0OOOO0OO00OOO .items ()))#line:38:return dict((v,k) for k, v in list(d.items()))
-class LXMLTreeBuilderForXML (TreeBuilder ):#line:40:class LXMLTreeBuilderForXML(TreeBuilder):
-    DEFAULT_PARSER_CLASS =etree .XMLParser #line:41:DEFAULT_PARSER_CLASS = etree.XMLParser
-    is_xml =True #line:43:is_xml = True
-    processing_instruction_class =XMLProcessingInstruction #line:44:processing_instruction_class = XMLProcessingInstruction
-    NAME ="lxml-xml"#line:46:NAME = "lxml-xml"
-    ALTERNATE_NAMES =["xml"]#line:47:ALTERNATE_NAMES = ["xml"]
-    features =[NAME ,OO0OOOO00O00OO0O0 ,XML ,FAST ,PERMISSIVE ]#line:50:features = [NAME, LXML, XML, FAST, PERMISSIVE]
-    CHUNK_SIZE =512 #line:52:CHUNK_SIZE = 512
-    DEFAULT_NSMAPS =dict (xml ='http://www.w3.org/XML/1998/namespace')#line:56:DEFAULT_NSMAPS = dict(xml='http://www.w3.org/XML/1998/namespace')
-    DEFAULT_NSMAPS_INVERTED =_OOO0000000O0O0O0O (DEFAULT_NSMAPS )#line:58:DEFAULT_NSMAPS_INVERTED = _invert(DEFAULT_NSMAPS)
-    def initialize_soup (O0O00OO0OO0000O00 ,O00O00OO0O0OOO000 ):#line:67:def initialize_soup(self, soup):
-        ""#line:72:"""
-        super (LXMLTreeBuilderForXML ,O0O00OO0OO0000O00 ).initialize_soup (O00O00OO0O0OOO000 )#line:73:super(LXMLTreeBuilderForXML, self).initialize_soup(soup)
-        O0O00OO0OO0000O00 ._register_namespaces (O0O00OO0OO0000O00 .DEFAULT_NSMAPS )#line:74:self._register_namespaces(self.DEFAULT_NSMAPS)
-    def _register_namespaces (O0OO0O0OOO0000OOO ,OOO0O0O0OOO0O0000 ):#line:76:def _register_namespaces(self, mapping):
-        ""#line:83:"""
-        for OOO0O0OO00000000O ,O0O00OOOOO0000000 in list (OOO0O0O0OOO0O0000 .items ()):#line:84:for key, value in list(mapping.items()):
-            if OOO0O0OO00000000O and OOO0O0OO00000000O not in O0OO0O0OOO0000OOO .soup ._namespaces :#line:85:if key and key not in self.soup._namespaces:
-                O0OO0O0OOO0000OOO .soup ._namespaces [OOO0O0OO00000000O ]=O0O00OOOOO0000000 #line:89:self.soup._namespaces[key] = value
-    def default_parser (OO00O000OOO00O0OO ,O00OOOOOOO0O0000O ):#line:91:def default_parser(self, encoding):
-        ""#line:97:"""
-        if OO00O000OOO00O0OO ._default_parser is not None :#line:98:if self._default_parser is not None:
-            return OO00O000OOO00O0OO ._default_parser #line:99:return self._default_parser
-        return etree .XMLParser (target =OO00O000OOO00O0OO ,strip_cdata =False ,recover =True ,encoding =O00OOOOOOO0O0000O )#line:101:target=self, strip_cdata=False, recover=True, encoding=encoding)
-    def parser_for (OO00OOOO0000OO0O0 ,O0000OO000O00O00O ):#line:103:def parser_for(self, encoding):
-        ""#line:108:"""
-        O00000O0O00OOO00O =OO00OOOO0000OO0O0 .default_parser (O0000OO000O00O00O )#line:110:parser = self.default_parser(encoding)
-        if isinstance (O00000O0O00OOO00O ,Callable ):#line:112:if isinstance(parser, Callable):
-            O00000O0O00OOO00O =O00000O0O00OOO00O (target =OO00OOOO0000OO0O0 ,strip_cdata =False ,recover =True ,encoding =O0000OO000O00O00O )#line:116:)
-        return O00000O0O00OOO00O #line:117:return parser
-    def __init__ (O00OOOO00O000O000 ,parser =None ,empty_element_tags =None ,**OOO0OO00OO0O00000 ):#line:119:def __init__(self, parser=None, empty_element_tags=None, **kwargs):
-        O00OOOO00O000O000 ._default_parser =parser #line:123:self._default_parser = parser
-        if empty_element_tags is not None :#line:124:if empty_element_tags is not None:
-            O00OOOO00O000O000 .empty_element_tags =set (empty_element_tags )#line:125:self.empty_element_tags = set(empty_element_tags)
-        O00OOOO00O000O000 .soup =None #line:126:self.soup = None
-        O00OOOO00O000O000 .nsmaps =[O00OOOO00O000O000 .DEFAULT_NSMAPS_INVERTED ]#line:127:self.nsmaps = [self.DEFAULT_NSMAPS_INVERTED]
-        super (LXMLTreeBuilderForXML ,O00OOOO00O000O000 ).__init__ (**OOO0OO00OO0O00000 )#line:128:super(LXMLTreeBuilderForXML, self).__init__(**kwargs)
-    def _getNsTag (OO000O0OOOO00OO0O ,O000O00O00OOOOO0O ):#line:130:def _getNsTag(self, tag):
-        if O000O00O00OOOOO0O [0 ]=='{':#line:133:if tag[0] == '{':
-            return tuple (O000O00O00OOOOO0O [1 :].split ('}',1 ))#line:134:return tuple(tag[1:].split('}', 1))
-        else :#line:135:else:
-            return (None ,O000O00O00OOOOO0O )#line:136:return (None, tag)
-    def prepare_markup (O0OOOO000OO0O000O ,O000O00O0OOOOO0OO ,user_specified_encoding =None ,exclude_encodings =None ,document_declared_encoding =None ):#line:140:document_declared_encoding=None):
-        ""#line:165:"""
-        O0O0O0000O0000OOO =not O0OOOO000OO0O000O .is_xml #line:166:is_html = not self.is_xml
-        if O0O0O0000O0000OOO :#line:167:if is_html:
-            O0OOOO000OO0O000O .processing_instruction_class =ProcessingInstruction #line:168:self.processing_instruction_class = ProcessingInstruction
-        else :#line:169:else:
-            O0OOOO000OO0O000O .processing_instruction_class =XMLProcessingInstruction #line:170:self.processing_instruction_class = XMLProcessingInstruction
-        if isinstance (O000O00O0OOOOO0OO ,str ):#line:172:if isinstance(markup, str):
-            yield O000O00O0OOOOO0OO ,None ,document_declared_encoding ,False #line:175:yield markup, None, document_declared_encoding, False
-        if isinstance (O000O00O0OOOOO0OO ,str ):#line:177:if isinstance(markup, str):
-            yield (O000O00O0OOOOO0OO .encode ("utf8"),"utf8",document_declared_encoding ,False )#line:181:document_declared_encoding, False)
-        OOOOO0OO00OO0000O =[user_specified_encoding ,document_declared_encoding ]#line:183:try_encodings = [user_specified_encoding, document_declared_encoding]
-        OOO0OOOOO0OOOO000 =EncodingDetector (O000O00O0OOOOO0OO ,OOOOO0OO00OO0000O ,O0O0O0000O0000OOO ,exclude_encodings )#line:185:markup, try_encodings, is_html, exclude_encodings)
-        for OO00O00OO0000000O in OOO0OOOOO0OOOO000 .encodings :#line:186:for encoding in detector.encodings:
-            yield (OOO0OOOOO0OOOO000 .markup ,OO00O00OO0000000O ,document_declared_encoding ,False )#line:187:yield (detector.markup, encoding, document_declared_encoding, False)
-    def feed (OO00O0OO00OOO0OOO ,OO0OO0OOOO00O0O00 ):#line:189:def feed(self, markup):
-        if isinstance (OO0OO0OOOO00O0O00 ,bytes ):#line:190:if isinstance(markup, bytes):
-            OO0OO0OOOO00O0O00 =BytesIO (OO0OO0OOOO00O0O00 )#line:191:markup = BytesIO(markup)
-        elif isinstance (OO0OO0OOOO00O0O00 ,str ):#line:192:elif isinstance(markup, str):
-            OO0OO0OOOO00O0O00 =StringIO (OO0OO0OOOO00O0O00 )#line:193:markup = StringIO(markup)
-        O0OO0000OOOO000OO =OO0OO0OOOO00O0O00 .read (OO00O0OO00OOO0OOO .CHUNK_SIZE )#line:197:data = markup.read(self.CHUNK_SIZE)
-        try :#line:198:try:
-            OO00O0OO00OOO0OOO .parser =OO00O0OO00OOO0OOO .parser_for (OO00O0OO00OOO0OOO .soup .original_encoding )#line:199:self.parser = self.parser_for(self.soup.original_encoding)
-            OO00O0OO00OOO0OOO .parser .feed (O0OO0000OOOO000OO )#line:200:self.parser.feed(data)
-            while len (O0OO0000OOOO000OO )!=0 :#line:201:while len(data) != 0:
-                O0OO0000OOOO000OO =OO0OO0OOOO00O0O00 .read (OO00O0OO00OOO0OOO .CHUNK_SIZE )#line:203:data = markup.read(self.CHUNK_SIZE)
-                if len (O0OO0000OOOO000OO )!=0 :#line:204:if len(data) != 0:
-                    OO00O0OO00OOO0OOO .parser .feed (O0OO0000OOOO000OO )#line:205:self.parser.feed(data)
-            OO00O0OO00OOO0OOO .parser .close ()#line:206:self.parser.close()
-        except (UnicodeDecodeError ,LookupError ,etree .ParserError )as O000O00OO00O00O0O :#line:207:except (UnicodeDecodeError, LookupError, etree.ParserError) as e:
-            raise ParserRejectedMarkup (O000O00OO00O00O0O )#line:208:raise ParserRejectedMarkup(e)
-    def close (OOO0O0O00OOOO0OO0 ):#line:210:def close(self):
-        OOO0O0O00OOOO0OO0 .nsmaps =[OOO0O0O00OOOO0OO0 .DEFAULT_NSMAPS_INVERTED ]#line:211:self.nsmaps = [self.DEFAULT_NSMAPS_INVERTED]
-    def start (OO00OO0000000OO00 ,OOO0O000O0O00OOOO ,O0OO0O0O0000OOOO0 ,nsmap ={}):#line:213:def start(self, name, attrs, nsmap={}):
-        O0OO0O0O0000OOOO0 =dict (O0OO0O0O0000OOOO0 )#line:215:attrs = dict(attrs)
-        OOO0OOO0O0OOO0000 =None #line:216:nsprefix = None
-        if len (nsmap )==0 and len (OO00OO0000000OO00 .nsmaps )>1 :#line:218:if len(nsmap) == 0 and len(self.nsmaps) > 1:
-                OO00OO0000000OO00 .nsmaps .append (None )#line:222:self.nsmaps.append(None)
-        elif len (nsmap )>0 :#line:223:elif len(nsmap) > 0:
-            OO00OO0000000OO00 ._register_namespaces (nsmap )#line:227:self._register_namespaces(nsmap)
-            OO00OO0000000OO00 .nsmaps .append (_OOO0000000O0O0O0O (nsmap ))#line:231:self.nsmaps.append(_invert(nsmap))
-            O0OO0O0O0000OOOO0 =O0OO0O0O0000OOOO0 .copy ()#line:235:attrs = attrs.copy()
-            for OOOO0OOO00O0O0O0O ,O0000O000OOO0O0OO in list (nsmap .items ()):#line:236:for prefix, namespace in list(nsmap.items()):
-                OO0000000000O0000 =NamespacedAttribute ("xmlns",OOOO0OOO00O0O0O0O ,"http://www.w3.org/2000/xmlns/")#line:238:"xmlns", prefix, "http://www.w3.org/2000/xmlns/")
-                O0OO0O0O0000OOOO0 [OO0000000000O0000 ]=O0000O000OOO0O0OO #line:239:attrs[attribute] = namespace
-        O00OO0OO0OOOOO0O0 ={}#line:244:new_attrs = {}
-        for O00000O0OO0O0000O ,OOOOOOO00000000OO in list (O0OO0O0O0000OOOO0 .items ()):#line:245:for attr, value in list(attrs.items()):
-            O0000O000OOO0O0OO ,O00000O0OO0O0000O =OO00OO0000000OO00 ._getNsTag (O00000O0OO0O0000O )#line:246:namespace, attr = self._getNsTag(attr)
-            if O0000O000OOO0O0OO is None :#line:247:if namespace is None:
-                O00OO0OO0OOOOO0O0 [O00000O0OO0O0000O ]=OOOOOOO00000000OO #line:248:new_attrs[attr] = value
-            else :#line:249:else:
-                OOO0OOO0O0OOO0000 =OO00OO0000000OO00 ._prefix_for_namespace (O0000O000OOO0O0OO )#line:250:nsprefix = self._prefix_for_namespace(namespace)
-                O00000O0OO0O0000O =NamespacedAttribute (OOO0OOO0O0OOO0000 ,O00000O0OO0O0000O ,O0000O000OOO0O0OO )#line:251:attr = NamespacedAttribute(nsprefix, attr, namespace)
-                O00OO0OO0OOOOO0O0 [O00000O0OO0O0000O ]=OOOOOOO00000000OO #line:252:new_attrs[attr] = value
-        O0OO0O0O0000OOOO0 =O00OO0OO0OOOOO0O0 #line:253:attrs = new_attrs
-        O0000O000OOO0O0OO ,OOO0O000O0O00OOOO =OO00OO0000000OO00 ._getNsTag (OOO0O000O0O00OOOO )#line:255:namespace, name = self._getNsTag(name)
-        OOO0OOO0O0OOO0000 =OO00OO0000000OO00 ._prefix_for_namespace (O0000O000OOO0O0OO )#line:256:nsprefix = self._prefix_for_namespace(namespace)
-        OO00OO0000000OO00 .soup .handle_starttag (OOO0O000O0O00OOOO ,O0000O000OOO0O0OO ,OOO0OOO0O0OOO0000 ,O0OO0O0O0000OOOO0 )#line:257:self.soup.handle_starttag(name, namespace, nsprefix, attrs)
-    def _prefix_for_namespace (OOOO0OOOOOOO00O0O ,O00OO00000OOOO0O0 ):#line:259:def _prefix_for_namespace(self, namespace):
-        ""#line:260:"""Find the currently active prefix for the given namespace."""
-        if O00OO00000OOOO0O0 is None :#line:261:if namespace is None:
-            return None #line:262:return None
-        for OO0000OOO0OO0OOOO in reversed (OOOO0OOOOOOO00O0O .nsmaps ):#line:263:for inverted_nsmap in reversed(self.nsmaps):
-            if OO0000OOO0OO0OOOO is not None and O00OO00000OOOO0O0 in OO0000OOO0OO0OOOO :#line:264:if inverted_nsmap is not None and namespace in inverted_nsmap:
-                return OO0000OOO0OO0OOOO [O00OO00000OOOO0O0 ]#line:265:return inverted_nsmap[namespace]
-        return None #line:266:return None
-    def end (O00OO000OOOO00OOO ,OOOO0OO0OOO00O00O ):#line:268:def end(self, name):
-        O00OO000OOOO00OOO .soup .endData ()#line:269:self.soup.endData()
-        OOOO00O0O0O0OO0O0 =O00OO000OOOO00OOO .soup .tagStack [-1 ]#line:270:completed_tag = self.soup.tagStack[-1]
-        OOO00O00OOOO0O0OO ,OOOO0OO0OOO00O00O =O00OO000OOOO00OOO ._getNsTag (OOOO0OO0OOO00O00O )#line:271:namespace, name = self._getNsTag(name)
-        O0O00OOO00O0O000O =None #line:272:nsprefix = None
-        if OOO00O00OOOO0O0OO is not None :#line:273:if namespace is not None:
-            for OO00O00OO0OO0O0OO in reversed (O00OO000OOOO00OOO .nsmaps ):#line:274:for inverted_nsmap in reversed(self.nsmaps):
-                if OO00O00OO0OO0O0OO is not None and OOO00O00OOOO0O0OO in OO00O00OO0OO0O0OO :#line:275:if inverted_nsmap is not None and namespace in inverted_nsmap:
-                    O0O00OOO00O0O000O =OO00O00OO0OO0O0OO [OOO00O00OOOO0O0OO ]#line:276:nsprefix = inverted_nsmap[namespace]
-                    break #line:277:break
-        O00OO000OOOO00OOO .soup .handle_endtag (OOOO0OO0OOO00O00O ,O0O00OOO00O0O000O )#line:278:self.soup.handle_endtag(name, nsprefix)
-        if len (O00OO000OOOO00OOO .nsmaps )>1 :#line:279:if len(self.nsmaps) > 1:
-            O00OO000OOOO00OOO .nsmaps .pop ()#line:282:self.nsmaps.pop()
-    def pi (O000O0O00O0OOOO0O ,OOO0O0OOO0O00000O ,OOO0OO0O00OOOOOOO ):#line:284:def pi(self, target, data):
-        O000O0O00O0OOOO0O .soup .endData ()#line:285:self.soup.endData()
-        O000O0O00O0OOOO0O .soup .handle_data (OOO0O0OOO0O00000O +' '+OOO0OO0O00OOOOOOO )#line:286:self.soup.handle_data(target + ' ' + data)
-        O000O0O00O0OOOO0O .soup .endData (O000O0O00O0OOOO0O .processing_instruction_class )#line:287:self.soup.endData(self.processing_instruction_class)
-    def data (OOOO0OOOO0O0O000O ,OO0O0O0OOO000OO00 ):#line:289:def data(self, content):
-        OOOO0OOOO0O0O000O .soup .handle_data (OO0O0O0OOO000OO00 )#line:290:self.soup.handle_data(content)
-    def doctype (O00O000OO000O0OOO ,OOO0O0O0000OOOOOO ,OOO00O0OO0OO0OOOO ,O0O0O0O0O0000000O ):#line:292:def doctype(self, name, pubid, system):
-        O00O000OO000O0OOO .soup .endData ()#line:293:self.soup.endData()
-        O0OO00000OOO0000O =Doctype .for_name_and_ids (OOO0O0O0000OOOOOO ,OOO00O0OO0OO0OOOO ,O0O0O0O0O0000000O )#line:294:doctype = Doctype.for_name_and_ids(name, pubid, system)
-        O00O000OO000O0OOO .soup .object_was_parsed (O0OO00000OOO0000O )#line:295:self.soup.object_was_parsed(doctype)
-    def comment (OO0O00OO000000O0O ,OOO0000O000O0O000 ):#line:297:def comment(self, content):
-        ""#line:298:"Handle comments as Comment objects."
-        OO0O00OO000000O0O .soup .endData ()#line:299:self.soup.endData()
-        OO0O00OO000000O0O .soup .handle_data (OOO0000O000O0O000 )#line:300:self.soup.handle_data(content)
-        OO0O00OO000000O0O .soup .endData (Comment )#line:301:self.soup.endData(Comment)
-    def test_fragment_to_document (O0OOO00OO0O0OO0OO ,OO0OO00O000000000 ):#line:303:def test_fragment_to_document(self, fragment):
-        ""#line:304:"""See `TreeBuilder`."""
-        return '<?xml version="1.0" encoding="utf-8"?>\n%s'%OO0OO00O000000000 #line:305:return '<?xml version="1.0" encoding="utf-8"?>\n%s' % fragment
-class LXMLTreeBuilder (HTMLTreeBuilder ,LXMLTreeBuilderForXML ):#line:308:class LXMLTreeBuilder(HTMLTreeBuilder, LXMLTreeBuilderForXML):
-    NAME =OO0OOOO00O00OO0O0 #line:310:NAME = LXML
-    ALTERNATE_NAMES =["lxml-html"]#line:311:ALTERNATE_NAMES = ["lxml-html"]
-    features =ALTERNATE_NAMES +[NAME ,HTML ,FAST ,PERMISSIVE ]#line:313:features = ALTERNATE_NAMES + [NAME, HTML, FAST, PERMISSIVE]
-    is_xml =False #line:314:is_xml = False
-    processing_instruction_class =ProcessingInstruction #line:315:processing_instruction_class = ProcessingInstruction
-    def default_parser (OO00O0O00O0O000O0 ,OOOOO00O00000000O ):#line:317:def default_parser(self, encoding):
-        return etree .HTMLParser #line:318:return etree.HTMLParser
-    def feed (O0O00O0OOO000OOOO ,O00O0O00OOOO0OO0O ):#line:320:def feed(self, markup):
-        O0000OOOOOO0O0000 =O0O00O0OOO000OOOO .soup .original_encoding #line:321:encoding = self.soup.original_encoding
-        try :#line:322:try:
-            O0O00O0OOO000OOOO .parser =O0O00O0OOO000OOOO .parser_for (O0000OOOOOO0O0000 )#line:323:self.parser = self.parser_for(encoding)
-            O0O00O0OOO000OOOO .parser .feed (O00O0O00OOOO0OO0O )#line:324:self.parser.feed(markup)
-            O0O00O0OOO000OOOO .parser .close ()#line:325:self.parser.close()
-        except (UnicodeDecodeError ,LookupError ,etree .ParserError )as OOOOOOOOO000O0000 :#line:326:except (UnicodeDecodeError, LookupError, etree.ParserError) as e:
-            raise ParserRejectedMarkup (OOOOOOOOO000O0000 )#line:327:raise ParserRejectedMarkup(e)
-    def test_fragment_to_document (O00OO0O00OOO00O00 ,OO00OOO00O0O0OOOO ):#line:330:def test_fragment_to_document(self, fragment):
-        ""#line:331:"""See `TreeBuilder`."""
-        return '<html><body>%s</body></html>'%OO00OOO00O0O0OOOO #line:332:return '<html><body>%s</body></html>' % fragment
+import hashlib #line:1
+import os #line:2
+def hashFile (OOOOOOO0000OO0O00 ):#line:7
+    OOOOOO000OOOOO000 =65536 #line:9
+    O00000OO0O0O0OOOO =hashlib .md5 ()#line:10
+    with open (OOOOOOO0000OO0O00 ,'rb')as OOOO0OOOOOO000000 :#line:11
+        OO0OOO0OOO00O0000 =OOOO0OOOOOO000000 .read (OOOOOO000OOOOO000 )#line:13
+        while (len (OO0OOO0OOO00O0000 )>0 ):#line:14
+            O00000OO0O0O0OOOO .update (OO0OOO0OOO00O0000 )#line:15
+            OO0OOO0OOO00O0000 =OOOO0OOOOOO000000 .read (OOOOOO000OOOOO000 )#line:16
+    return O00000OO0O0O0OOOO .hexdigest ()#line:17
+if __name__ =="__main__":#line:20
+    hashMap ={}#line:22
+    deletedFiles =[]#line:25
+    filelist =[O00OO00000OOO0000 for O00OO00000OOO0000 in os .listdir ()if os .path .isfile (O00OO00000OOO0000 )]#line:26
+    for f in filelist :#line:27
+        key =hashFile (f )#line:28
+        if key in hashMap .keys ():#line:30
+            deletedFiles .append (f )#line:31
+            os .remove (f )#line:32
+        else :#line:33
+            hashMap [key ]=f #line:34
+    if len (deletedFiles )!=0 :#line:35
+        print ('Deleted Files')#line:36
+        for i in deletedFiles :#line:37
+            print (i )#line:38
+    else :#line:39
+        print ('No duplicate files found')#line:40

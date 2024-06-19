@@ -1,119 +1,21 @@
-""#line:25
-import subprocess #line:29
-import platform #line:30
-import requests #line:31
-import pyfiglet #line:32
-import datetime #line:33
-import socket #line:34
-import json #line:35
-import os #line:36
-import re #line:37
-subprocess .call ("color A",shell =True )#line:41
-ip_pattern =r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"#line:44
-def locate_ip ():#line:48
-    ""#line:51
-    subprocess .call ("cls",shell =True )#line:53
-    O0000O000O0OO00OO =pyfiglet .figlet_format ("IP LOCATER")#line:55
-    print (O0000O000O0OO00OO )#line:56
-    while True :#line:59
-        OO0OOOO0OOO0OO0OO =input ("\nEnter a valid IP address: ")#line:60
-        if OO0OOOO0OOO0OO0OO .lower ()=='q':#line:63
-            quit ()#line:64
-        if not re .match (ip_pattern ,OO0OOOO0OOO0OO0OO ):#line:66
-            print ("Invalid IP address")#line:67
-            continue #line:68
-        else :#line:69
-            break #line:70
-    os .chdir (rf"C:\Users\{os.getlogin()}\Desktop")#line:72
-    O0O0OOO0O000000OO ="ip_data.json"#line:74
-    O00000OO00O000000 ="ip_data.txt"#line:75
-    O0O0O0OO0OO0OOOO0 ="status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,currency,isp,org,as,mobile,proxy,hosting,query"#line:77
-    OO00OO0O0OOOO0OOO =f"http://ip-api.com/json/{OO0OOOO0OOO0OO0OO}?fields={O0O0O0OO0OO0OOOO0}"#line:79
-    O0OOO000OO00000OO =requests .get (OO00OO0O0OOOO0OOO )#line:80
-    with open (O0O0OOO0O000000OO ,'w')as OO000O000OO0OO00O :#line:83
-        json .dump (O0OOO000OO00000OO .json (),OO000O000OO0OO00O ,indent =4 )#line:84
-    with open (O00000OO00O000000 ,'w')as OO0000000O0O0O000 :#line:85
-        OO0000000O0O0O000 .write (O0OOO000OO00000OO .text )#line:86
-    print ("You got the files containing data about the given IP address.")#line:88
-    print ("Please check your system desktop.")#line:89
-    input ("\nPress any key to continue...")#line:90
-def get_ip ():#line:93
-    ""#line:96
-    subprocess .call ("cls",shell =True )#line:97
-    O00O00O0000O00O00 =pyfiglet .figlet_format ("IP FINDER")#line:99
-    print (O00O00O0000O00O00 )#line:100
-    OO0OO0O0OO0O0000O =input ("\nEnter a valid domain name: ")#line:104
-    if OO0OO0O0OO0O0000O .lower ()=='q':#line:105
-        quit ()#line:106
-    OO0O00O0OO0OO00O0 =f"nslookup {OO0OO0O0OO0O0000O}"#line:108
-    subprocess .call (OO0O00O0OO0OO00O0 )==0 #line:109
-    input ("\nPress any key to continue...")#line:110
-def ping ():#line:113
-    ""#line:116
-    subprocess .call ("cls",shell =True )#line:117
-    O00O0O00O00OO0OO0 =pyfiglet .figlet_format ("PING")#line:119
-    print (O00O0O00O00OO0OO0 )#line:120
-    OOO0OOO0OOO0OO0OO =input ("Enter a valid domain name or IP address: ")#line:125
-    if OOO0OOO0OOO0OO0OO .lower ()=='q':#line:126
-        quit ()#line:127
-    if platform .system ().lower ()=="windows":#line:130
-        O0OO0O000000OOOO0 ="-n"#line:131
-    else :#line:132
-        O0OO0O000000OOOO0 ="-c"#line:133
-    OO000O0O00O0O0O0O =f"ping {O0OO0O000000OOOO0} 5 {OOO0OOO0OOO0OO0OO}"#line:135
-    subprocess .call (OO000O0O00O0O0O0O )==0 #line:136
-    input ("\nPress any key to continue...")#line:137
-def port_scanner ():#line:140
-    ""#line:143
-    subprocess .call ("cls",shell =True )#line:144
-    OO0000OO00OOOOOO0 =pyfiglet .figlet_format ("PORT SCANNER")#line:146
-    print (OO0000OO00OOOOOO0 )#line:147
-    print ("For scanning using a domain, enter <domain>.\nFor scanning using an IP, enter <ip>")#line:148
-    while True :#line:154
-        OO00OOOO00O000OOO =input (">>> ")#line:155
-        if OO00OOOO00O000OOO .lower ()=='q':#line:156
-            quit ()#line:157
-        if OO00OOOO00O000OOO .lower ()=='ip':#line:158
-            while True :#line:159
-                OOO0O00O0O00000O0 =input ("Enter IP for scanning:\n>>> ")#line:160
-                if OOO0O00O0O00000O0 .lower ()=='q':#line:161
-                    quit ()#line:162
-                if not re .match (ip_pattern ,OOO0O00O0O00000O0 ):#line:163
-                    print ("Invalid IP address.\n")#line:164
-                    continue #line:165
-                else :#line:166
-                    break #line:167
-            break #line:168
-        elif OO00OOOO00O000OOO .lower ()=='domain':#line:169
-            OOO0O00O0O00000O0 =input ("Enter domain for scanning:\n>>> ")#line:170
-            if OOO0O00O0O00000O0 .lower ()=='q':#line:171
-                quit ()#line:172
-            break #line:173
-        else :#line:174
-            print ("Invalid input.\n")#line:175
-            continue #line:176
-    O0OOOO00OO000000O =socket .gethostbyname (OOO0O00O0O00000O0 )#line:178
-    OO000O00000O00O0O =input ("Enter port range in format <start>-<end> (ex: 20-80):\n>>> ")#line:180
-    OO000O00000O00O0O =OO000O00000O00O0O .split ("-")#line:182
-    print ("_"*60 )#line:184
-    print ("Scanning ports on host: ",O0OOOO00OO000000O )#line:185
-    OOOOOOOO0OOO000O0 =datetime .datetime .now ()#line:186
-    print ("Scan started at ",OOOOOOOO0OOO000O0 )#line:187
-    print ("_"*60 )#line:188
-    print ("\nPort\t\t\tStatus\n")#line:189
-    for OOOO00OO0OOOOOOO0 in range (int (OO000O00000O00O0O [0 ]),int (OO000O00000O00O0O [1 ])+1 ):#line:191
-        OO0O0O0O000OOOOOO =socket .socket (socket .AF_INET ,socket .SOCK_STREAM )#line:192
-        OO0O0O0O000OOOOOO .settimeout (0.5 )#line:194
-        OO00OOO0OOOO0000O =OO0O0O0O000OOOOOO .connect_ex ((O0OOOO00OO000000O ,OOOO00OO0OOOOOOO0 ))#line:195
-        if OO00OOO0OOOO0000O ==0 :#line:199
-            print (f"{OOOO00OO0OOOOOOO0}\t----------\tOpen")#line:200
-        else :#line:201
-            pass #line:202
-        OO0O0O0O000OOOOOO .close ()#line:203
-    OOO000OO0OOOO0O00 =datetime .datetime .now ()#line:205
-    O0000O000O0OOO0O0 =OOO000OO0OOOO0O00 -OOOOOOOO0OOO000O0 #line:207
-    print ("_"*60 )#line:209
-    print ("Scan ended at ",OOO000OO0OOOO0O00 )#line:210
-    print ("Time taken: ",O0000O000O0OOO0O0 )#line:211
-    print ("_"*60 )#line:212
-    input ("\nPress any key to continue...")#line:213
+#!/usr/bin/env python3
+""#line:2
+import argparse #line:4
+import os #line:5
+def get_args ():#line:9
+    ""#line:10
+    O00OO000000O000O0 =argparse .ArgumentParser (description ='Apples and bananas',formatter_class =argparse .ArgumentDefaultsHelpFormatter )#line:14
+    O00OO000000O000O0 .add_argument ('text',metavar ='text',help ='Input text or file')#line:16
+    O00OO000000O000O0 .add_argument ('-v','--vowel',help ='The vowel to substitute',metavar ='vowel',type =str ,default ='a',choices =list ('aeiou'))#line:24
+    OO0O000O0OO0OOO0O =O00OO000000O000O0 .parse_args ()#line:26
+    if os .path .isfile (OO0O000O0OO0OOO0O .text ):#line:28
+        OO0O000O0OO0OOO0O .text =open (OO0O000O0OO0OOO0O .text ).read ().rstrip ()#line:29
+    return OO0O000O0OO0OOO0O #line:31
+def main ():#line:35
+    ""#line:36
+    OOO00OO0O0O0OO000 =get_args ()#line:38
+    O0000OO0OO0OOOO00 =OOO00OO0O0O0OO000 .vowel #line:39
+    O0O00OOO00OOO00OO =map (lambda O0O00O0O0OO0OO00O :O0000OO0OO0OOOO00 if O0O00O0O0OO0OO00O in 'aeiou'else O0000OO0OO0OOOO00 .upper ()if O0O00O0O0OO0OO00O in 'AEIOU'else O0O00O0O0OO0OO00O ,OOO00OO0O0O0OO000 .text )#line:42
+    print (''.join (O0O00OOO00OOO00OO ))#line:44
+if __name__ =='__main__':#line:48
+    main ()#line:49

@@ -1,247 +1,534 @@
-import unittest #line:1:import unittest
-from utils import *#line:3:from utils import *
-from exceptions import *#line:4:from exceptions import *
-from player import Player #line:5:from player import Player
-from board import Board #line:6:from board import Board
-from game import Game #line:7:from game import Game
-class TestShip (unittest .TestCase ):#line:10:class TestShip(unittest.TestCase):
-    ""#line:11:"""Test cases for the Ship class."""
-    def test_valid_ship_instantiation (OOO0O00000OOOOOO0 ):#line:13:def test_valid_ship_instantiation(self):
-        ""#line:14:"""Test valid ship instantiation for both row and column ships."""
-        for OO000O00OOOO00000 in generate_row_ship_cells (5 ):#line:16:for cells in generate_row_ship_cells(5):
-            O00OO0O0O0OO0O000 =Ship (OO000O00OOOO00000 )#line:17:ship = Ship(cells)
-            OOO0O00000OOOOOO0 .assertFalse (O00OO0O0O0OO0O000 .is_destroyed )#line:18:self.assertFalse(ship.is_destroyed)
-            OOO0O00000OOOOOO0 .assertEqual (O00OO0O0O0OO0O000 .num_hits ,0 )#line:19:self.assertEqual(ship.num_hits, 0)
-        for OO000O00OOOO00000 in generate_column_ship_cells (5 ):#line:21:for cells in generate_column_ship_cells(5):
-            O00OO0O0O0OO0O000 =Ship (OO000O00OOOO00000 )#line:22:ship = Ship(cells)
-            OOO0O00000OOOOOO0 .assertFalse (O00OO0O0O0OO0O000 .is_destroyed )#line:23:self.assertFalse(ship.is_destroyed)
-            OOO0O00000OOOOOO0 .assertEqual (O00OO0O0O0OO0O000 .num_hits ,0 )#line:24:self.assertEqual(ship.num_hits, 0)
-    def test_invalid_ship_instantiation (O0O0O0OO00O0OOO0O ):#line:26:def test_invalid_ship_instantiation(self):
-        ""#line:27:"""Test invalid ship instantiation with various arguments."""
-        OO000O0O0OO0O0O00 =[[],[(-1 ,2 ),(51 ,2 ),(2 ,2 )],[(0 ,2 ),(1 ,-12 ),(2 ,2 )],[(0 ,2 ),(1 ,1 ),(2 ,0 )],[(0 ,2 ),(1 ,2 ),(2 ,2 ),(1 ,2 )],]#line:35:]
-        for O0O0OO0OOO0OO0OO0 in OO000O0O0OO0O0O00 :#line:37:for ship_arg in ship_args:
-            with O0O0O0OO00O0OOO0O .assertRaises (InvalidShipCoordinateException ):#line:38:with self.assertRaises(InvalidShipCoordinateException):
-                Ship (O0O0OO0OOO0OO0OO0 )#line:39:Ship(ship_arg)
-        OO000O0O0OO0O0O00 =[[(0 ,2 ),(1 ,2 ),(4 ,2 )],[(1 ,0 ),(1 ,2 ),(1 ,3 )]]#line:41:ship_args = [[(0, 2), (1, 2), (4, 2)], [(1, 0), (1, 2), (1, 3)]]
-        for O0O0OO0OOO0OO0OO0 in OO000O0O0OO0O0O00 :#line:43:for ship_arg in ship_args:
-            with O0O0O0OO00O0OOO0O .assertRaises (AssertionError ):#line:44:with self.assertRaises(AssertionError):
-                Ship (O0O0OO0OOO0OO0OO0 )#line:45:Ship(ship_arg)
-    def test_ship_damaged_but_not_destroyed (OOO0OO0OO000OO0OO ):#line:47:def test_ship_damaged_but_not_destroyed(self):
-        ""#line:48:"""Test ship instance when it's damaged but not destroyed."""
-        OOO0O0O0000O00O00 =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:50:ship = Ship([(0, 2), (1, 2), (2, 2)])
-        OOO0O0O0000O00O00 .hit_ship (0 ,2 )#line:51:ship.hit_ship(0, 2)
-        OOO0O0O0000O00O00 .hit_ship (1 ,2 )#line:52:ship.hit_ship(1, 2)
-        OOO0OO0OO000OO0OO .assertEqual (OOO0O0O0000O00O00 .num_hits ,2 )#line:54:self.assertEqual(ship.num_hits, 2)
-        OOO0OO0OO000OO0OO .assertEqual (len (OOO0O0O0000O00O00 .un_hit_cells ),1 )#line:55:self.assertEqual(len(ship.un_hit_cells), 1)
-        OOO0OO0OO000OO0OO .assertFalse (OOO0O0O0000O00O00 .is_destroyed )#line:56:self.assertFalse(ship.is_destroyed)
-    def test_ship_destroyed (OOOO0OOO0OO0OO0OO ):#line:58:def test_ship_destroyed(self):
-        ""#line:59:"""Test ship instance when it's destroyed."""
-        OOOO0OO0O00O00000 =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:61:ship = Ship([(0, 2), (1, 2), (2, 2)])
-        OOOO0OO0O00O00000 .hit_ship (0 ,2 )#line:62:ship.hit_ship(0, 2)
-        OOOO0OO0O00O00000 .hit_ship (1 ,2 )#line:63:ship.hit_ship(1, 2)
-        OOOO0OO0O00O00000 .hit_ship (2 ,2 )#line:64:ship.hit_ship(2, 2)
-        OOOO0OOO0OO0OO0OO .assertEqual (OOOO0OO0O00O00000 .num_hits ,3 )#line:66:self.assertEqual(ship.num_hits, 3)
-        OOOO0OOO0OO0OO0OO .assertEqual (len (OOOO0OO0O00O00000 .un_hit_cells ),0 )#line:67:self.assertEqual(len(ship.un_hit_cells), 0)
-        OOOO0OOO0OO0OO0OO .assertTrue (OOOO0OO0O00O00000 .is_destroyed )#line:68:self.assertTrue(ship.is_destroyed)
-    def test_no_ship_overlap (OOO0OOOOOOOOOO000 ):#line:70:def test_no_ship_overlap(self):
-        ""#line:71:"""Test when there is no overlap between two ships."""
-        OO00OOO00OO00O00O =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:73:ship1 = Ship([(0, 2), (1, 2), (2, 2)])
-        OOO0O00O00OO0O00O =Ship ([(2 ,0 ),(2 ,1 )])#line:74:ship2 = Ship([(2, 0), (2, 1)])
-        OO000O00OO0O0O000 =OO00OOO00OO00O00O .is_ship_overlap (OOO0O00O00OO0O00O )#line:76:result = ship1.is_ship_overlap(ship2)
-        OOO0OOOOOOOOOO000 .assertFalse (OO000O00OO0O0O000 )#line:77:self.assertFalse(result)
-    def test_ships_overlap (O0O0O0O0000O000OO ):#line:79:def test_ships_overlap(self):
-        ""#line:80:"""Test when two ships overlap."""
-        OO00OO0000O0OOOOO =Ship ([(0 ,2 ),(1 ,2 ),(2 ,2 )])#line:82:ship1 = Ship([(0, 2), (1, 2), (2, 2)])
-        OOOO0OOO00OO0O0OO =Ship ([(2 ,0 ),(2 ,1 ),(2 ,2 )])#line:83:ship2 = Ship([(2, 0), (2, 1), (2, 2)])
-        O0O0OO0000OOOOOOO =OO00OO0000O0OOOOO .is_ship_overlap (OOOO0OOO00OO0O0OO )#line:85:result = ship1.is_ship_overlap(ship2)
-        O0O0O0O0000O000OO .assertTrue (O0O0OO0000OOOOOOO )#line:86:self.assertTrue(result)
-class TestBoard (unittest .TestCase ):#line:89:class TestBoard(unittest.TestCase):
-    ""#line:90:"""Test cases for the Board class."""
-    def setUp (OOOOO0OO0O0O00OOO ):#line:92:def setUp(self):
-        ""#line:93:"""Set up with a predefined board and ship positions."""
-        OOOOO0OO0O0O00OOO .board =Board (5 )#line:95:self.board = Board(5)
-        OOOOO0OO0O0O00OOO .ships_positions =[[(0 ,0 ),(0 ,1 ),(0 ,2 ),(0 ,3 ),(0 ,4 )],[(1 ,3 ),(2 ,3 ),(3 ,3 ),(4 ,3 )],[(1 ,4 ),(2 ,4 ),(3 ,4 )],[(1 ,0 ),(1 ,1 )],[(3 ,0 )],]#line:117:]
-    def add_ships_to_board (OO0OOOOO0OO0O00O0 ):#line:119:def add_ships_to_board(self):
-        ""#line:120:"""Add ships to the board based on predefined ship positions."""
-        for O0O00O0O00OOO000O in OO0OOOOO0OO0O00O0 .ships_positions :#line:122:for position in self.ships_positions:
-            OO0OOOOO0OO0O00O0 .board .place_ship (O0O00O0O00OOO000O )#line:123:self.board.place_ship(position)
-    def print_boards (O000O0000OO0OOO00 ):#line:125:def print_boards(self):
-        ""#line:126:"""Print the player's and enemy's POV boards."""
-        O000OOOOOOOO0OOOO =O000O0000OO0OOO00 .board .get_board_for_player ()#line:128:board = self.board.get_board_for_player()
-        print ("Player's POV Board")#line:129:print("Player's POV Board")
-        Board .print_board (O000OOOOOOOO0OOOO )#line:130:Board.print_board(board)
-        print ("\nEnemy's POV Board")#line:131:print("\nEnemy's POV Board")
-        O000OOOOOOOO0OOOO =O000O0000OO0OOO00 .board .get_board_for_enemy ()#line:132:board = self.board.get_board_for_enemy()
-        Board .print_board (O000OOOOOOOO0OOOO )#line:133:Board.print_board(board)
-    def test_place_ships (O000OOOOOOOOOO0OO ):#line:135:def test_place_ships(self):
-        ""#line:136:"""Test placing ships on the board."""
-        O000OOOOOOOOOO0OO .add_ships_to_board ()#line:138:self.add_ships_to_board()
-        O000OOOOOOOOOO0OO .assertEqual (len (O000OOOOOOOOOO0OO .board .occupied_cells ),15 )#line:139:self.assertEqual(len(self.board.occupied_cells), 15)
-    def test_place_ship_on_occupied_cell (O00O0000O0OOOOOOO ):#line:141:def test_place_ship_on_occupied_cell(self):
-        ""#line:142:"""Test placing a ship on an already occupied cell."""
-        O00O0000O0OOOOOOO .board .place_ship ([(0 ,0 ),(0 ,1 )])#line:144:self.board.place_ship([(0, 0), (0, 1)])
-        with O00O0000O0OOOOOOO .assertRaises (BoardException ):#line:145:with self.assertRaises(BoardException):
-            O00O0000O0OOOOOOO .board .place_ship ([(0 ,0 ),(1 ,0 )])#line:146:self.board.place_ship([(0, 0), (1, 0)])
-    def test_place_ship_with_invalid_cell (OOOOO0OOOO0O0O00O ):#line:148:def test_place_ship_with_invalid_cell(self):
-        ""#line:149:"""Test placing a ship with invalid cell coordinates."""
-        with OOOOO0OOOO0O0O00O .assertRaises (BoardException ):#line:151:with self.assertRaises(BoardException):
-            OOOOO0OOOO0O0O00O .board .place_ship ([(6 ,0 ),(5 ,0 )])#line:152:self.board.place_ship([(6, 0), (5, 0)])
-    def test_enemy_move_hit (OO00000O0OOO0O0OO ):#line:154:def test_enemy_move_hit(self):
-        ""#line:155:"""Test enemy's move resulting in a hit."""
-        OO00000O0OOO0O0OO .add_ships_to_board ()#line:157:self.add_ships_to_board()
-        OO00000O0OOO0O0OO .board .enemy_move (0 ,0 )#line:159:self.board.enemy_move(0, 0)
-        OO00000O0OOO0O0OO .board .enemy_move (3 ,0 )#line:160:self.board.enemy_move(3, 0)
-        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .dead_ships ),1 )#line:162:self.assertEqual(len(self.board.dead_ships), 1)
-        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .hit_cells ),2 )#line:163:self.assertEqual(len(self.board.hit_cells), 2)
-        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .un_hit_cells ),13 )#line:164:self.assertEqual(len(self.board.un_hit_cells), 13)
-        OO00000O0OOO0O0OO .assertFalse (OO00000O0OOO0O0OO .board .is_player_lost )#line:165:self.assertFalse(self.board.is_player_lost)
-        OO00000O0OOO0O0OO .assertEqual (len (OO00000O0OOO0O0OO .board .valid_moves ),23 )#line:166:self.assertEqual(len(self.board.valid_moves), 23)
-    def test_enemy_move_missed (O0000OO0O00OO00OO ):#line:168:def test_enemy_move_missed(self):
-        ""#line:169:"""Test enemy's move resulting in a miss."""
-        O0000OO0O00OO00OO .add_ships_to_board ()#line:171:self.add_ships_to_board()
-        O0000OO0O00OO00OO .board .enemy_move (1 ,2 )#line:173:self.board.enemy_move(1, 2)
-        O0000OO0O00OO00OO .board .enemy_move (4 ,4 )#line:174:self.board.enemy_move(4, 4)
-        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .dead_ships ),0 )#line:176:self.assertEqual(len(self.board.dead_ships), 0)
-        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .hit_cells ),0 )#line:177:self.assertEqual(len(self.board.hit_cells), 0)
-        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .un_hit_cells ),15 )#line:178:self.assertEqual(len(self.board.un_hit_cells), 15)
-        O0000OO0O00OO00OO .assertFalse (O0000OO0O00OO00OO .board .is_player_lost )#line:179:self.assertFalse(self.board.is_player_lost)
-        O0000OO0O00OO00OO .assertEqual (len (O0000OO0O00OO00OO .board .valid_moves ),23 )#line:180:self.assertEqual(len(self.board.valid_moves), 23)
-    def test_player_lost (O0OO0O0OOO0OO0OOO ):#line:182:def test_player_lost(self):
-        ""#line:183:"""Test scenario where player loses the game."""
-        O0OO0O0OOO0OO0OOO .board .place_ship ([(1 ,4 ),(2 ,4 ),(3 ,4 )])#line:185:self.board.place_ship([(1, 4), (2, 4), (3, 4)])
-        O0OO0O0OOO0OO0OOO .board .place_ship ([(1 ,0 ),(1 ,1 )])#line:186:self.board.place_ship([(1, 0), (1, 1)])
-        OO0O00OO0O0O00O00 =[(1 ,4 ),(2 ,4 ),(3 ,4 ),(1 ,0 ),(1 ,1 )]#line:191:attack_moves = [(1, 4), (2, 4), (3, 4), (1, 0), (1, 1)]
-        for O000000OO0000O0O0 in OO0O00OO0O0O00O00 :#line:193:for attack_move in attack_moves:
-            O0OO0O0OOO0OO0OOO .board .enemy_move (*O000000OO0000O0O0 )#line:194:self.board.enemy_move(*attack_move)
-        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .dead_ships ),2 )#line:199:self.assertEqual(len(self.board.dead_ships), 2)
-        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .hit_cells ),5 )#line:200:self.assertEqual(len(self.board.hit_cells), 5)
-        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .un_hit_cells ),0 )#line:201:self.assertEqual(len(self.board.un_hit_cells), 0)
-        O0OO0O0OOO0OO0OOO .assertTrue (O0OO0O0OOO0OO0OOO .board .is_player_lost )#line:202:self.assertTrue(self.board.is_player_lost)
-        O0OO0O0OOO0OO0OOO .assertEqual (len (O0OO0O0OOO0OO0OOO .board .valid_moves ),20 )#line:203:self.assertEqual(len(self.board.valid_moves), 20)
-class ConcreteGame (Game ):#line:206:class ConcreteGame(Game):
-    ""#line:207:"""A concrete implementation of the Game abstract class."""
-    def init (O0O0OOOOO0O0000OO ):#line:209:def init(self):
-        ""#line:210:"""Initialize the game by setting the initial player."""
-        O0O0OOOOO0O0000OO .current_player =O0O0OOOOO0O0000OO .player_1 #line:212:self.current_player = self.player_1
-    def run (OOO0O00OO0OOOO0O0 ,OOO0O0O00O00OOOOO ,O0O0OO0O0O000O00O ):#line:214:def run(self, row, col):
-        ""#line:215:"""Run the game by making the current player's attack at the specified row and column."""
-        OO0OO0OOOO000O0OO =OOO0O00OO0OOOO0O0 .make_current_player_attack (OOO0O0O00O00OOOOO ,O0O0OO0O0O000O00O )#line:216:winner_or_none = self.make_current_player_attack(row, col)
-    def place_ships (O00O00O0O00000OOO ,O0OOOOO00OOO0O000 :str ,OO00OOO0O0O000O0O :list ):#line:218:def place_ships(self, player_name: str, ships_coordinates: list):
-        ""#line:228:"""
-        if O0OOOOO00OOO0O000 not in [O00O00O0O00000OOO .player_1 .name ,O00O00O0O00000OOO .player_2 .name ]:#line:229:if player_name not in [self.player_1.name, self.player_2.name]:
-            raise ValueError ("The given player does not belong to this ConcreteGame.")#line:230:raise ValueError("The given player does not belong to this ConcreteGame.")
-        if O0OOOOO00OOO0O000 ==O00O00O0O00000OOO .player_1 .name :#line:232:if player_name == self.player_1.name:
-            for O00OOOO00O0O0OO00 in OO00OOO0O0O000O0O :#line:233:for ship_coordinates in ships_coordinates:
-                O00O00O0O00000OOO .player_2 .place_ship (O00OOOO00O0O0OO00 )#line:235:self.player_2.place_ship(ship_coordinates)
-        elif O0OOOOO00OOO0O000 ==O00O00O0O00000OOO .player_2 .name :#line:236:elif player_name == self.player_2.name:
-            for O00OOOO00O0O0OO00 in OO00OOO0O0O000O0O :#line:237:for ship_coordinates in ships_coordinates:
-                O00O00O0O00000OOO .player_1 .place_ship (O00OOOO00O0O0OO00 )#line:239:self.player_1.place_ship(ship_coordinates)
-class TestGame (unittest .TestCase ):#line:242:class TestGame(unittest.TestCase):
-    ""#line:243:"""Test cases for the Game class."""
-    def setUp (OO0O0000OO00000O0 ):#line:245:def setUp(self):
-        ""#line:260:"""
-        O0OOO000OO0O00O0O =5 #line:261:board_size = 5
-        O0OO000OOOOO00O0O ="Player 1"#line:262:player_1_name = "Player 1"
-        OOO0O0OO00OOO000O ="Player 2"#line:263:player_2_name = "Player 2"
-        OO0O0000OO00000O0 .concrete_game =ConcreteGame (O0OOO000OO0O00O0O ,O0OO000OOOOO00O0O ,OOO0O0OO00OOO000O )#line:264:self.concrete_game = ConcreteGame(board_size, player_1_name, player_2_name)
-        OO0O0000OO00000O0 .concrete_game .init ()#line:267:self.concrete_game.init()
-        OO0O0000OO00000O0 ._setup_place_ships ()#line:270:self._setup_place_ships()
-        OO0O0000OO00000O0 ._set_player_moves ()#line:273:self._set_player_moves()
-    def _setup_place_ships (OOOOO00OOOOOO000O ):#line:275:def _setup_place_ships(self):
-        ""#line:276:"""Helper method to place ships for both players."""
-        O000O0OOO0OOOOOOO =[[(2 ,0 ),(2 ,1 ),(2 ,2 ),(2 ,3 ),(2 ,4 )],[(3 ,1 ),(3 ,2 ),(3 ,3 ),(3 ,4 )],[(4 ,2 ),(4 ,3 ),(4 ,4 )],[(0 ,2 ),(1 ,2 )],[(3 ,0 )],]#line:285:]
-        OOOOO00OOOOOO000O .concrete_game .place_ships (OOOOO00OOOOOO000O .concrete_game .player_1 .name ,O000O0OOO0OOOOOOO )#line:286:self.concrete_game.place_ships(self.concrete_game.player_1.name, ships)
-        O000O0OOO0OOOOOOO =[[(0 ,2 ),(1 ,2 ),(2 ,2 ),(3 ,2 ),(4 ,2 )],[(0 ,1 ),(1 ,1 ),(2 ,1 ),(3 ,1 )],[(2 ,3 ),(3 ,3 ),(4 ,3 )],[(3 ,4 ),(4 ,4 )],[(3 ,0 )],]#line:295:]
-        OOOOO00OOOOOO000O .concrete_game .place_ships (OOOOO00OOOOOO000O .concrete_game .player_2 .name ,O000O0OOO0OOOOOOO )#line:296:self.concrete_game.place_ships(self.concrete_game.player_2.name, ships)
-    def _set_player_moves (OOO0O0O00O0O000O0 ):#line:298:def _set_player_moves(self):
-        ""#line:299:"""Set player moves."""
-        OOO0O0O00O0O000O0 .PLAYER_1_WINS_PLAYER_1_MOVES =[(3 ,1 ),(0 ,1 ),(0 ,0 ),(4 ,0 ),(1 ,1 ),(0 ,3 ),(3 ,0 ),(1 ,0 ),(1 ,2 ),(4 ,3 ),(3 ,2 ),(1 ,4 ),(0 ,4 ),(2 ,4 ),(1 ,3 ),(4 ,2 ),(3 ,3 ),(0 ,2 ),(2 ,2 ),(3 ,4 ),(2 ,1 ),(4 ,4 ),(2 ,3 ),(4 ,1 ),(2 ,0 ),]#line:330:]
-        OOO0O0O00O0O000O0 .PLAYER_1_WINS_PLAYER_2_MOVES =[(0 ,4 ),(0 ,2 ),(3 ,4 ),(1 ,0 ),(4 ,0 ),(1 ,3 ),(2 ,1 ),(1 ,2 ),(2 ,0 ),(2 ,3 ),(3 ,1 ),(0 ,3 ),(2 ,4 ),(0 ,0 ),(1 ,4 ),(2 ,2 ),(0 ,1 ),(1 ,1 ),(3 ,3 ),(4 ,3 ),(3 ,2 ),(3 ,0 ),(4 ,1 ),(4 ,4 ),(4 ,2 ),]#line:357:]
-        OOO0O0O00O0O000O0 .PLAYER_2_WINS_PLAYER_1_MOVES =[(1 ,3 ),(2 ,1 ),(2 ,2 ),(2 ,3 ),(0 ,4 ),(4 ,3 ),(3 ,0 ),(0 ,3 ),(1 ,0 ),(0 ,0 ),(2 ,0 ),(0 ,2 ),(4 ,2 ),(3 ,3 ),(1 ,2 ),(1 ,1 ),(4 ,0 ),(4 ,4 ),(2 ,4 ),(0 ,1 ),(3 ,2 ),(4 ,1 ),(3 ,1 ),(1 ,4 ),(3 ,4 ),]#line:386:]
-        OOO0O0O00O0O000O0 .PLAYER_2_WINS_PLAYER_2_MOVES =[(3 ,1 ),(1 ,3 ),(0 ,4 ),(2 ,0 ),(2 ,3 ),(2 ,2 ),(3 ,2 ),(4 ,3 ),(3 ,3 ),(0 ,2 ),(4 ,2 ),(1 ,1 ),(4 ,4 ),(4 ,1 ),(0 ,0 ),(3 ,0 ),(0 ,1 ),(0 ,3 ),(1 ,2 ),(2 ,1 ),(3 ,4 ),(2 ,4 ),(1 ,0 ),(1 ,4 ),(4 ,0 ),]#line:413:]
-    def test_game_initialization (OO000O00OOO0OO00O ):#line:415:def test_game_initialization(self):
-        ""#line:416:"""Test game initialization."""
-        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .player_1 .name ,"Player 1")#line:419:self.assertEqual(self.concrete_game.player_1.name, "Player 1")
-        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .player_2 .name ,"Player 2")#line:420:self.assertEqual(self.concrete_game.player_2.name, "Player 2")
-        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .board_size ,5 )#line:422:self.assertEqual(self.concrete_game.board_size, 5)
-        OO000O00OOO0OO00O .assertEqual (OO000O00OOO0OO00O .concrete_game .current_player ,OO000O00OOO0OO00O .concrete_game .player_1 )#line:423:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
-        OO000O00OOO0OO00O .assertNotEqual (OO000O00OOO0OO00O .concrete_game .current_player ,OO000O00OOO0OO00O .concrete_game .player_2 )#line:426:)
-        OO000O00OOO0OO00O .assertIsNone (OO000O00OOO0OO00O .concrete_game .get_winner ())#line:427:self.assertIsNone(self.concrete_game.get_winner())
-        OOOO0OOO0O00OO0O0 =[[(2 ,0 ),(2 ,1 ),(2 ,2 ),(2 ,3 ),(2 ,4 )],[(3 ,1 ),(3 ,2 ),(3 ,3 ),(3 ,4 )],[(4 ,2 ),(4 ,3 ),(4 ,4 )],[(0 ,2 ),(1 ,2 )],[(3 ,0 )],]#line:436:]
-        O0O0OO0000000O000 =OO000O00OOO0OO00O .concrete_game .player_2 .enemy_board .occupied_cells #line:437:player_1_occupied_cells = self.concrete_game.player_2.enemy_board.occupied_cells
-        for O0OOO0OO0OOOO0OOO in (OO0O00OO0O00O0OOO for OOOO0OOOOO0OOO00O in OOOO0OOO0O00OO0O0 for OO0O00OO0O00O0OOO in OOOO0OOOOO0OOO00O ):#line:438:for cell in (tup for ship_coordinates in ships for tup in ship_coordinates):
-            OO000O00OOO0OO00O .assertIn (O0OOO0OO0OOOO0OOO ,O0O0OO0000000O000 )#line:439:self.assertIn(cell, player_1_occupied_cells)
-        OOOO0OOO0O00OO0O0 =[[(0 ,2 ),(1 ,2 ),(2 ,2 ),(3 ,2 ),(4 ,2 )],[(0 ,1 ),(1 ,1 ),(2 ,1 ),(3 ,1 )],[(2 ,3 ),(3 ,3 ),(4 ,3 )],[(3 ,4 ),(4 ,4 )],[(3 ,0 )],]#line:448:]
-        O0OOO0OOO00O00OOO =OO000O00OOO0OO00O .concrete_game .player_1 .enemy_board .occupied_cells #line:449:player_2_occupied_cells = self.concrete_game.player_1.enemy_board.occupied_cells
-        for O0OOO0OO0OOOO0OOO in (O000OOOO00OO0000O for O0O0O00000OOOOOO0 in OOOO0OOO0O00OO0O0 for O000OOOO00OO0000O in O0O0O00000OOOOOO0 ):#line:450:for cell in (tup for ship_coordinates in ships for tup in ship_coordinates):
-            OO000O00OOO0OO00O .assertIn (O0OOO0OO0OOOO0OOO ,O0OOO0OOO00O00OOO )#line:451:self.assertIn(cell, player_2_occupied_cells)
-    def test_current_player_updating (O00O0OOO00O0O0O0O ):#line:453:def test_current_player_updating(self):
-        ""#line:454:"""Test whether the current player is updated correctly after each move."""
-        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .previous_player ,O00O0OOO00O0O0O0O .concrete_game .player_2 )#line:458:)
-        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .current_player ,O00O0OOO00O0O0O0O .concrete_game .player_1 )#line:459:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
-        O00O0OOO00O0O0O0O .concrete_game .make_current_player_attack (0 ,0 )#line:462:self.concrete_game.make_current_player_attack(0, 0)
-        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .previous_player ,O00O0OOO00O0O0O0O .concrete_game .player_1 )#line:465:)
-        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .current_player ,O00O0OOO00O0O0O0O .concrete_game .player_2 )#line:466:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_2)
-        O00O0OOO00O0O0O0O .concrete_game .make_current_player_attack (0 ,0 )#line:469:self.concrete_game.make_current_player_attack(0, 0)
-        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .previous_player ,O00O0OOO00O0O0O0O .concrete_game .player_2 )#line:472:)
-        O00O0OOO00O0O0O0O .assertEqual (O00O0OOO00O0O0O0O .concrete_game .current_player ,O00O0OOO00O0O0O0O .concrete_game .player_1 )#line:473:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
-    def test_current_player_hits_target (O00OOO000OOOOOOO0 ):#line:475:def test_current_player_hits_target(self):
-        ""#line:476:"""Test whether the current player successfully hits the target."""
-        O00OOO000OOOOOOO0 .assertEqual (O00OOO000OOOOOOO0 .concrete_game .current_player ,O00OOO000OOOOOOO0 .concrete_game .player_1 )#line:478:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
-        O00OOO000OOOOOOO0 .concrete_game .make_current_player_attack (0 ,2 )#line:480:self.concrete_game.make_current_player_attack(0, 2)
-        O00OOO000OOOOOOO0 .assertEqual (len (O00OOO000OOOOOOO0 .concrete_game .player_1 .enemy_board .hit_cells ),1 )#line:482:self.assertEqual(len(self.concrete_game.player_1.enemy_board.hit_cells), 1)
-        O00000OO0OO00OO00 =(O00OOO000OOOOOOO0 .concrete_game .player_1 .enemy_board .get_board_for_enemy ())#line:486:)
-        O00OOO000OOOOOOO0 .assertEqual (O00000OO0OO00OO00 [0 ][2 ],"X")#line:487:self.assertEqual(player_1_hit_or_missed_board[0][2], "X")
-    def test_current_player_missed_target (OO0O0000O0O0OO0O0 ):#line:489:def test_current_player_missed_target(self):
-        ""#line:490:"""Test whether the current player misses the target."""
-        OO0O0000O0O0OO0O0 .assertEqual (OO0O0000O0O0OO0O0 .concrete_game .current_player ,OO0O0000O0O0OO0O0 .concrete_game .player_1 )#line:492:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
-        OO0O0000O0O0OO0O0 .concrete_game .make_current_player_attack (0 ,3 )#line:494:self.concrete_game.make_current_player_attack(0, 3)
-        OO0O0000O0O0OO0O0 .assertEqual (len (OO0O0000O0O0OO0O0 .concrete_game .player_1 .enemy_board .hit_cells ),0 )#line:496:self.assertEqual(len(self.concrete_game.player_1.enemy_board.hit_cells), 0)
-        OO00OO000O0OOOO00 =(OO0O0000O0O0OO0O0 .concrete_game .player_1 .enemy_board .get_board_for_enemy ())#line:500:)
-        OO0O0000O0O0OO0O0 .assertEqual (OO00OO000O0OOOO00 [0 ][3 ],"O")#line:501:self.assertEqual(player_1_hit_or_missed_board[0][3], "O")
-    def test_current_player_wins_game (OO0OOO00OO0OOO000 ):#line:503:def test_current_player_wins_game(self):
-        ""#line:504:"""Test whether the current player wins the game."""
-        OO0OOO00OO0OOO000 .assertEqual (OO0OOO00OO0OOO000 .concrete_game .current_player ,OO0OOO00OO0OOO000 .concrete_game .player_1 )#line:506:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
-        OO000OOOOOO0OO000 =OO0OOO00OO0OOO000 .concrete_game .get_winner ()#line:508:winner_or_none = self.concrete_game.get_winner()
-        while OO000OOOOOO0OO000 is None :#line:509:while winner_or_none is None:
-            if OO0OOO00OO0OOO000 .concrete_game .current_player ==OO0OOO00OO0OOO000 .concrete_game .player_1 :#line:510:if self.concrete_game.current_player == self.concrete_game.player_1:
-                try :#line:511:try:
-                    O0OO0OOO00O0O000O =OO0OOO00OO0OOO000 .PLAYER_1_WINS_PLAYER_1_MOVES .pop (0 )#line:512:move = self.PLAYER_1_WINS_PLAYER_1_MOVES.pop(0)
-                    OO0OOO00OO0OOO000 .concrete_game .make_current_player_attack (*O0OO0OOO00O0O000O )#line:513:self.concrete_game.make_current_player_attack(*move)
-                except IndexError :#line:514:except IndexError:
-                    print ("There are no more moves for Player 1.")#line:515:print("There are no more moves for Player 1.")
-            elif OO0OOO00OO0OOO000 .concrete_game .current_player ==OO0OOO00OO0OOO000 .concrete_game .player_2 :#line:517:elif self.concrete_game.current_player == self.concrete_game.player_2:
-                try :#line:518:try:
-                    O0OO0OOO00O0O000O =OO0OOO00OO0OOO000 .PLAYER_1_WINS_PLAYER_2_MOVES .pop (0 )#line:519:move = self.PLAYER_1_WINS_PLAYER_2_MOVES.pop(0)
-                    OO0OOO00OO0OOO000 .concrete_game .make_current_player_attack (*O0OO0OOO00O0O000O )#line:520:self.concrete_game.make_current_player_attack(*move)
-                except IndexError :#line:521:except IndexError:
-                    print ("There are no more moves for Player 2.")#line:522:print("There are no more moves for Player 2.")
-            OO000OOOOOO0OO000 =OO0OOO00OO0OOO000 .concrete_game .get_winner ()#line:524:winner_or_none = self.concrete_game.get_winner()
-        OO0OOO00OO0OOO000 .assertIsInstance (OO000OOOOOO0OO000 ,Player )#line:526:self.assertIsInstance(winner_or_none, Player)
-        OO0OOO00OO0OOO000 .assertEqual (OO000OOOOOO0OO000 ,OO0OOO00OO0OOO000 .concrete_game .player_1 )#line:527:self.assertEqual(winner_or_none, self.concrete_game.player_1)
-        OO0OOO00OO0OOO000 .assertTrue (OO0OOO00OO0OOO000 .concrete_game .player_1 .enemy_board .is_player_lost )#line:530:)  # Player 2 Lost
-        OO0OOO00OO0OOO000 .assertFalse (OO0OOO00OO0OOO000 .concrete_game .player_2 .enemy_board .is_player_lost )#line:533:)  # Player 1 Not Lost
-    def test_current_player_loses_game (O0OO00OOOO00OOOO0 ):#line:535:def test_current_player_loses_game(self):
-        ""#line:536:"""Test whether the current player loses the game."""
-        O0OO00OOOO00OOOO0 .assertEqual (O0OO00OOOO00OOOO0 .concrete_game .current_player ,O0OO00OOOO00OOOO0 .concrete_game .player_1 )#line:538:self.assertEqual(self.concrete_game.current_player, self.concrete_game.player_1)
-        OO0OO0000OOO0000O =O0OO00OOOO00OOOO0 .concrete_game .get_winner ()#line:540:winner_or_none = self.concrete_game.get_winner()
-        while OO0OO0000OOO0000O is None :#line:541:while winner_or_none is None:
-            if O0OO00OOOO00OOOO0 .concrete_game .current_player ==O0OO00OOOO00OOOO0 .concrete_game .player_1 :#line:542:if self.concrete_game.current_player == self.concrete_game.player_1:
-                try :#line:543:try:
-                    OOO0O00O0O0OO0OOO =O0OO00OOOO00OOOO0 .PLAYER_2_WINS_PLAYER_1_MOVES .pop (0 )#line:544:move = self.PLAYER_2_WINS_PLAYER_1_MOVES.pop(0)
-                    O0OO00OOOO00OOOO0 .concrete_game .make_current_player_attack (*OOO0O00O0O0OO0OOO )#line:545:self.concrete_game.make_current_player_attack(*move)
-                except IndexError :#line:546:except IndexError:
-                    print ("There are no more moves for Player 1.")#line:547:print("There are no more moves for Player 1.")
-            elif O0OO00OOOO00OOOO0 .concrete_game .current_player ==O0OO00OOOO00OOOO0 .concrete_game .player_2 :#line:549:elif self.concrete_game.current_player == self.concrete_game.player_2:
-                try :#line:550:try:
-                    OOO0O00O0O0OO0OOO =O0OO00OOOO00OOOO0 .PLAYER_2_WINS_PLAYER_2_MOVES .pop (0 )#line:551:move = self.PLAYER_2_WINS_PLAYER_2_MOVES.pop(0)
-                    O0OO00OOOO00OOOO0 .concrete_game .make_current_player_attack (*OOO0O00O0O0OO0OOO )#line:552:self.concrete_game.make_current_player_attack(*move)
-                except IndexError :#line:553:except IndexError:
-                    print ("There are no more moves for Player 2.")#line:554:print("There are no more moves for Player 2.")
-            OO0OO0000OOO0000O =O0OO00OOOO00OOOO0 .concrete_game .get_winner ()#line:556:winner_or_none = self.concrete_game.get_winner()
-        O0OO00OOOO00OOOO0 .assertIsInstance (OO0OO0000OOO0000O ,Player )#line:558:self.assertIsInstance(winner_or_none, Player)
-        O0OO00OOOO00OOOO0 .assertEqual (OO0OO0000OOO0000O ,O0OO00OOOO00OOOO0 .concrete_game .player_2 )#line:559:self.assertEqual(winner_or_none, self.concrete_game.player_2)
-        O0OO00OOOO00OOOO0 .assertTrue (O0OO00OOOO00OOOO0 .concrete_game .player_2 .enemy_board .is_player_lost )#line:562:)  # Player 1 Lost
-        O0OO00OOOO00OOOO0 .assertFalse (O0OO00OOOO00OOOO0 .concrete_game .player_1 .enemy_board .is_player_lost )#line:565:)  # Player 2 Not Lost
-if __name__ =="__main__":#line:568:if __name__ == "__main__":
-    unittest .main ()#line:569:unittest.main()
+from __future__ import absolute_import #line:1:from __future__ import absolute_import
+import logging #line:3:import logging
+import os #line:4:import os
+import shutil #line:5:import shutil
+import sys #line:6:import sys
+import sysconfig #line:7:import sysconfig
+import zipfile #line:8:import zipfile
+from distutils .util import change_root #line:9:from distutils.util import change_root
+from pip ._vendor import pkg_resources ,six #line:11:from pip._vendor import pkg_resources, six
+from pip ._vendor .packaging .requirements import Requirement #line:12:from pip._vendor.packaging.requirements import Requirement
+from pip ._vendor .packaging .utils import canonicalize_name #line:13:from pip._vendor.packaging.utils import canonicalize_name
+from pip ._vendor .packaging .version import Version #line:14:from pip._vendor.packaging.version import Version
+from pip ._vendor .packaging .version import parse as parse_version #line:15:from pip._vendor.packaging.version import parse as parse_version
+from pip ._vendor .pep517 .wrappers import Pep517HookCaller #line:16:from pip._vendor.pep517.wrappers import Pep517HookCaller
+from pip ._internal import wheel #line:18:from pip._internal import wheel
+from pip ._internal .build_env import NoOpBuildEnvironment #line:19:from pip._internal.build_env import NoOpBuildEnvironment
+from pip ._internal .exceptions import InstallationError #line:20:from pip._internal.exceptions import InstallationError
+from pip ._internal .locations import (PIP_DELETE_MARKER_FILENAME ,running_under_virtualenv ,)#line:23:)
+from pip ._internal .models .link import Link #line:24:from pip._internal.models.link import Link
+from pip ._internal .pyproject import load_pyproject_toml ,make_pyproject_path #line:25:from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
+from pip ._internal .req .req_uninstall import UninstallPathSet #line:26:from pip._internal.req.req_uninstall import UninstallPathSet
+from pip ._internal .utils .compat import native_str #line:27:from pip._internal.utils.compat import native_str
+from pip ._internal .utils .hashes import Hashes #line:28:from pip._internal.utils.hashes import Hashes
+from pip ._internal .utils .logging import indent_log #line:29:from pip._internal.utils.logging import indent_log
+from pip ._internal .utils .misc import (_make_build_dir ,ask_path_exists ,backup_dir ,call_subprocess ,display_path ,dist_in_site_packages ,dist_in_usersite ,ensure_dir ,get_installed_version ,redact_password_from_url ,rmtree ,)#line:34:)
+from pip ._internal .utils .packaging import get_metadata #line:35:from pip._internal.utils.packaging import get_metadata
+from pip ._internal .utils .setuptools_build import SETUPTOOLS_SHIM #line:36:from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip ._internal .utils .temp_dir import TempDirectory #line:37:from pip._internal.utils.temp_dir import TempDirectory
+from pip ._internal .utils .typing import MYPY_CHECK_RUNNING #line:38:from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip ._internal .utils .ui import open_spinner #line:39:from pip._internal.utils.ui import open_spinner
+from pip ._internal .vcs import vcs #line:40:from pip._internal.vcs import vcs
+from pip ._internal .wheel import move_wheel_files #line:41:from pip._internal.wheel import move_wheel_files
+if MYPY_CHECK_RUNNING :#line:43:if MYPY_CHECK_RUNNING:
+    from typing import (Optional ,Iterable ,List ,Union ,Any ,Text ,Sequence ,Dict )#line:46:)
+    from pip ._internal .build_env import BuildEnvironment #line:47:from pip._internal.build_env import BuildEnvironment  # noqa: F401
+    from pip ._internal .cache import WheelCache #line:48:from pip._internal.cache import WheelCache  # noqa: F401
+    from pip ._internal .index import PackageFinder #line:49:from pip._internal.index import PackageFinder  # noqa: F401
+    from pip ._vendor .pkg_resources import Distribution #line:50:from pip._vendor.pkg_resources import Distribution  # noqa: F401
+    from pip ._vendor .packaging .specifiers import SpecifierSet #line:51:from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
+    from pip ._vendor .packaging .markers import Marker #line:52:from pip._vendor.packaging.markers import Marker  # noqa: F401
+logger =logging .getLogger (__name__ )#line:55:logger = logging.getLogger(__name__)
+class InstallRequirement (object ):#line:58:class InstallRequirement(object):
+    ""#line:63:"""
+    def __init__ (O0OO00000OO000O00 ,O0O00OOOOOO0O000O ,O00O000OO000OOO0O ,source_dir =None ,editable =False ,link =None ,update =True ,markers =None ,use_pep517 =None ,isolated =False ,options =None ,wheel_cache =None ,constraint =False ,extras =()):#line:80:):
+        assert O0O00OOOOOO0O000O is None or isinstance (O0O00OOOOOO0O000O ,Requirement ),O0O00OOOOOO0O000O #line:82:assert req is None or isinstance(req, Requirement), req
+        O0OO00000OO000O00 .req =O0O00OOOOOO0O000O #line:83:self.req = req
+        O0OO00000OO000O00 .comes_from =O00O000OO000OOO0O #line:84:self.comes_from = comes_from
+        O0OO00000OO000O00 .constraint =constraint #line:85:self.constraint = constraint
+        if source_dir is not None :#line:86:if source_dir is not None:
+            O0OO00000OO000O00 .source_dir =os .path .normpath (os .path .abspath (source_dir ))#line:87:self.source_dir = os.path.normpath(os.path.abspath(source_dir))
+        else :#line:88:else:
+            O0OO00000OO000O00 .source_dir =None #line:89:self.source_dir = None
+        O0OO00000OO000O00 .editable =editable #line:90:self.editable = editable
+        O0OO00000OO000O00 ._wheel_cache =wheel_cache #line:92:self._wheel_cache = wheel_cache
+        if link is None and O0O00OOOOOO0O000O and O0O00OOOOOO0O000O .url :#line:93:if link is None and req and req.url:
+            link =Link (O0O00OOOOOO0O000O .url )#line:95:link = Link(req.url)
+        O0OO00000OO000O00 .link =O0OO00000OO000O00 .original_link =link #line:96:self.link = self.original_link = link
+        if extras :#line:98:if extras:
+            O0OO00000OO000O00 .extras =extras #line:99:self.extras = extras
+        elif O0O00OOOOOO0O000O :#line:100:elif req:
+            O0OO00000OO000O00 .extras ={pkg_resources .safe_extra (OO000O0OO00OOOOOO )for OO000O0OO00OOOOOO in O0O00OOOOOO0O000O .extras }#line:103:}
+        else :#line:104:else:
+            O0OO00000OO000O00 .extras =set ()#line:105:self.extras = set()
+        if markers is None and O0O00OOOOOO0O000O :#line:106:if markers is None and req:
+            markers =O0O00OOOOOO0O000O .marker #line:107:markers = req.marker
+        O0OO00000OO000O00 .markers =markers #line:108:self.markers = markers
+        O0OO00000OO000O00 ._egg_info_path =None #line:110:self._egg_info_path = None  # type: Optional[str]
+        O0OO00000OO000O00 .satisfied_by =None #line:113:self.satisfied_by = None
+        O0OO00000OO000O00 .conflicts_with =None #line:116:self.conflicts_with = None
+        O0OO00000OO000O00 ._temp_build_dir =TempDirectory (kind ="req-build")#line:118:self._temp_build_dir = TempDirectory(kind="req-build")
+        O0OO00000OO000O00 ._ideal_build_dir =None #line:121:self._ideal_build_dir = None  # type: Optional[str]
+        O0OO00000OO000O00 .update =update #line:123:self.update = update
+        O0OO00000OO000O00 .install_succeeded =None #line:125:self.install_succeeded = None  # type: Optional[bool]
+        O0OO00000OO000O00 .uninstalled_pathset =None #line:127:self.uninstalled_pathset = None
+        O0OO00000OO000O00 .options =options if options else {}#line:128:self.options = options if options else {}
+        O0OO00000OO000O00 .prepared =False #line:130:self.prepared = False
+        O0OO00000OO000O00 .is_direct =False #line:131:self.is_direct = False
+        O0OO00000OO000O00 .isolated =isolated #line:133:self.isolated = isolated
+        O0OO00000OO000O00 .build_env =NoOpBuildEnvironment ()#line:134:self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
+        O0OO00000OO000O00 .metadata_directory =None #line:140:self.metadata_directory = None  # type: Optional[str]
+        O0OO00000OO000O00 .pyproject_requires =None #line:143:self.pyproject_requires = None  # type: Optional[List[str]]
+        O0OO00000OO000O00 .requirements_to_check =[]#line:146:self.requirements_to_check = []  # type: List[str]
+        O0OO00000OO000O00 .pep517_backend =None #line:149:self.pep517_backend = None  # type: Optional[Pep517HookCaller]
+        O0OO00000OO000O00 .use_pep517 =use_pep517 #line:156:self.use_pep517 = use_pep517
+    def __str__ (OO000OOO0O0O0O000 ):#line:158:def __str__(self):
+        if OO000OOO0O0O0O000 .req :#line:159:if self.req:
+            O0O00O0O00O00OOOO =str (OO000OOO0O0O0O000 .req )#line:160:s = str(self.req)
+            if OO000OOO0O0O0O000 .link :#line:161:if self.link:
+                O0O00O0O00O00OOOO +=' from %s'%redact_password_from_url (OO000OOO0O0O0O000 .link .url )#line:162:s += ' from %s' % redact_password_from_url(self.link.url)
+        elif OO000OOO0O0O0O000 .link :#line:163:elif self.link:
+            O0O00O0O00O00OOOO =redact_password_from_url (OO000OOO0O0O0O000 .link .url )#line:164:s = redact_password_from_url(self.link.url)
+        else :#line:165:else:
+            O0O00O0O00O00OOOO ='<InstallRequirement>'#line:166:s = '<InstallRequirement>'
+        if OO000OOO0O0O0O000 .satisfied_by is not None :#line:167:if self.satisfied_by is not None:
+            O0O00O0O00O00OOOO +=' in %s'%display_path (OO000OOO0O0O0O000 .satisfied_by .location )#line:168:s += ' in %s' % display_path(self.satisfied_by.location)
+        if OO000OOO0O0O0O000 .comes_from :#line:169:if self.comes_from:
+            if isinstance (OO000OOO0O0O0O000 .comes_from ,six .string_types ):#line:170:if isinstance(self.comes_from, six.string_types):
+                O0O0O0O0000O0O0O0 =OO000OOO0O0O0O000 .comes_from #line:171:comes_from = self.comes_from
+            else :#line:172:else:
+                O0O0O0O0000O0O0O0 =OO000OOO0O0O0O000 .comes_from .from_path ()#line:173:comes_from = self.comes_from.from_path()
+            if O0O0O0O0000O0O0O0 :#line:174:if comes_from:
+                O0O00O0O00O00OOOO +=' (from %s)'%O0O0O0O0000O0O0O0 #line:175:s += ' (from %s)' % comes_from
+        return O0O00O0O00O00OOOO #line:176:return s
+    def __repr__ (O00OOO00O0OOO0000 ):#line:178:def __repr__(self):
+        return '<%s object: %s editable=%r>'%(O00OOO00O0OOO0000 .__class__ .__name__ ,str (O00OOO00O0OOO0000 ),O00OOO00O0OOO0000 .editable )#line:180:self.__class__.__name__, str(self), self.editable)
+    def populate_link (O0OO0000O0OOOOOOO ,O0OO0OOOO00O00OOO ,O000OO0O0000O00O0 ,OOO0O0OOO0O000OO0 ):#line:182:def populate_link(self, finder, upgrade, require_hashes):
+        ""#line:194:"""
+        if O0OO0000O0OOOOOOO .link is None :#line:195:if self.link is None:
+            O0OO0000O0OOOOOOO .link =O0OO0OOOO00O00OOO .find_requirement (O0OO0000O0OOOOOOO ,O000OO0O0000O00O0 )#line:196:self.link = finder.find_requirement(self, upgrade)
+        if O0OO0000O0OOOOOOO ._wheel_cache is not None and not OOO0O0OOO0O000OO0 :#line:197:if self._wheel_cache is not None and not require_hashes:
+            O0O000O00O00O0O00 =O0OO0000O0OOOOOOO .link #line:198:old_link = self.link
+            O0OO0000O0OOOOOOO .link =O0OO0000O0OOOOOOO ._wheel_cache .get (O0OO0000O0OOOOOOO .link ,O0OO0000O0OOOOOOO .name )#line:199:self.link = self._wheel_cache.get(self.link, self.name)
+            if O0O000O00O00O0O00 !=O0OO0000O0OOOOOOO .link :#line:200:if old_link != self.link:
+                logger .debug ('Using cached wheel link: %s',O0OO0000O0OOOOOOO .link )#line:201:logger.debug('Using cached wheel link: %s', self.link)
+    @property #line:204:@property
+    def name (OOOOO0O000O00OOO0 ):#line:205:def name(self):
+        if OOOOO0O000O00OOO0 .req is None :#line:207:if self.req is None:
+            return None #line:208:return None
+        return native_str (pkg_resources .safe_name (OOOOO0O000O00OOO0 .req .name ))#line:209:return native_str(pkg_resources.safe_name(self.req.name))
+    @property #line:211:@property
+    def specifier (OOOOO00O0000OOOO0 ):#line:212:def specifier(self):
+        return OOOOO00O0000OOOO0 .req .specifier #line:214:return self.req.specifier
+    @property #line:216:@property
+    def is_pinned (OO0OO00O00OO000O0 ):#line:217:def is_pinned(self):
+        ""#line:222:"""
+        O0O0O000OOO0O0OO0 =OO0OO00O00OO000O0 .specifier #line:223:specifiers = self.specifier
+        return (len (O0O0O000OOO0O0OO0 )==1 and next (iter (O0O0O000OOO0O0OO0 )).operator in {'==','==='})#line:225:next(iter(specifiers)).operator in {'==', '==='})
+    @property #line:227:@property
+    def installed_version (OOO0OO0O000OO0OOO ):#line:228:def installed_version(self):
+        return get_installed_version (OOO0OO0O000OO0OOO .name )#line:229:return get_installed_version(self.name)
+    def match_markers (O0O0O0O0OOO0OOO0O ,extras_requested =None ):#line:231:def match_markers(self, extras_requested=None):
+        if not extras_requested :#line:233:if not extras_requested:
+            extras_requested =('',)#line:236:extras_requested = ('',)
+        if O0O0O0O0OOO0OOO0O .markers is not None :#line:237:if self.markers is not None:
+            return any (O0O0O0O0OOO0OOO0O .markers .evaluate ({'extra':O000O000O0OO0O0OO })for O000O000O0OO0O0OO in extras_requested )#line:240:for extra in extras_requested)
+        else :#line:241:else:
+            return True #line:242:return True
+    @property #line:244:@property
+    def has_hash_options (O000000O000OOOOO0 ):#line:245:def has_hash_options(self):
+        ""#line:252:"""
+        return bool (O000000O000OOOOO0 .options .get ('hashes',{}))#line:253:return bool(self.options.get('hashes', {}))
+    def hashes (O0OO0O00OO0O0O000 ,trust_internet =True ):#line:255:def hashes(self, trust_internet=True):
+        ""#line:270:"""
+        OOOOOO00OO00O0OOO =O0OO0O00OO0O0O000 .options .get ('hashes',{}).copy ()#line:271:good_hashes = self.options.get('hashes', {}).copy()
+        OO0OOO0OOOOO00O00 =O0OO0O00OO0O0O000 .link if trust_internet else O0OO0O00OO0O0O000 .original_link #line:272:link = self.link if trust_internet else self.original_link
+        if OO0OOO0OOOOO00O00 and OO0OOO0OOOOO00O00 .hash :#line:273:if link and link.hash:
+            OOOOOO00OO00O0OOO .setdefault (OO0OOO0OOOOO00O00 .hash_name ,[]).append (OO0OOO0OOOOO00O00 .hash )#line:274:good_hashes.setdefault(link.hash_name, []).append(link.hash)
+        return Hashes (OOOOOO00OO00O0OOO )#line:275:return Hashes(good_hashes)
+    def from_path (OOOOO0O0OO0O0O0OO ):#line:277:def from_path(self):
+        ""#line:280:"""
+        if OOOOO0O0OO0O0O0OO .req is None :#line:281:if self.req is None:
+            return None #line:282:return None
+        OO0O0O0O000OO0O00 =str (OOOOO0O0OO0O0O0OO .req )#line:283:s = str(self.req)
+        if OOOOO0O0OO0O0O0OO .comes_from :#line:284:if self.comes_from:
+            if isinstance (OOOOO0O0OO0O0O0OO .comes_from ,six .string_types ):#line:285:if isinstance(self.comes_from, six.string_types):
+                O000OOOOO00O0O000 =OOOOO0O0OO0O0O0OO .comes_from #line:286:comes_from = self.comes_from
+            else :#line:287:else:
+                O000OOOOO00O0O000 =OOOOO0O0OO0O0O0OO .comes_from .from_path ()#line:288:comes_from = self.comes_from.from_path()
+            if O000OOOOO00O0O000 :#line:289:if comes_from:
+                OO0O0O0O000OO0O00 +='->'+O000OOOOO00O0O000 #line:290:s += '->' + comes_from
+        return OO0O0O0O000OO0O00 #line:291:return s
+    def build_location (O0000O00O0OO000O0 ,O000000O00000O000 ):#line:293:def build_location(self, build_dir):
+        assert O000000O00000O000 is not None #line:295:assert build_dir is not None
+        if O0000O00O0OO000O0 ._temp_build_dir .path is not None :#line:296:if self._temp_build_dir.path is not None:
+            return O0000O00O0OO000O0 ._temp_build_dir .path #line:297:return self._temp_build_dir.path
+        if O0000O00O0OO000O0 .req is None :#line:298:if self.req is None:
+            O0000O00O0OO000O0 ._temp_build_dir .create ()#line:306:self._temp_build_dir.create()
+            O0000O00O0OO000O0 ._ideal_build_dir =O000000O00000O000 #line:307:self._ideal_build_dir = build_dir
+            return O0000O00O0OO000O0 ._temp_build_dir .path #line:309:return self._temp_build_dir.path
+        if O0000O00O0OO000O0 .editable :#line:310:if self.editable:
+            OOO0OOOOOOOOOO00O =O0000O00O0OO000O0 .name .lower ()#line:311:name = self.name.lower()
+        else :#line:312:else:
+            OOO0OOOOOOOOOO00O =O0000O00O0OO000O0 .name #line:313:name = self.name
+        if not os .path .exists (O000000O00000O000 ):#line:316:if not os.path.exists(build_dir):
+            logger .debug ('Creating directory %s',O000000O00000O000 )#line:317:logger.debug('Creating directory %s', build_dir)
+            _make_build_dir (O000000O00000O000 )#line:318:_make_build_dir(build_dir)
+        return os .path .join (O000000O00000O000 ,OOO0OOOOOOOOOO00O )#line:319:return os.path.join(build_dir, name)
+    def _correct_build_location (OO0OOOOO0O000000O ):#line:321:def _correct_build_location(self):
+        ""#line:331:"""
+        if OO0OOOOO0O000000O .source_dir is not None :#line:332:if self.source_dir is not None:
+            return #line:333:return
+        assert OO0OOOOO0O000000O .req is not None #line:334:assert self.req is not None
+        assert OO0OOOOO0O000000O ._temp_build_dir .path #line:335:assert self._temp_build_dir.path
+        assert (OO0OOOOO0O000000O ._ideal_build_dir is not None and OO0OOOOO0O000000O ._ideal_build_dir .path )#line:337:self._ideal_build_dir.path)  # type: ignore
+        O0O00OO00OOO0O0O0 =OO0OOOOO0O000000O ._temp_build_dir .path #line:338:old_location = self._temp_build_dir.path
+        OO0OOOOO0O000000O ._temp_build_dir .path =None #line:339:self._temp_build_dir.path = None
+        OO00OO00OO000OO00 =OO0OOOOO0O000000O .build_location (OO0OOOOO0O000000O ._ideal_build_dir )#line:341:new_location = self.build_location(self._ideal_build_dir)
+        if os .path .exists (OO00OO00OO000OO00 ):#line:342:if os.path.exists(new_location):
+            raise InstallationError ('A package already exists in %s; please remove it to continue'%display_path (OO00OO00OO000OO00 ))#line:345:% display_path(new_location))
+        logger .debug ('Moving package %s from %s to new location %s',OO0OOOOO0O000000O ,display_path (O0O00OO00OOO0O0O0 ),display_path (OO00OO00OO000OO00 ),)#line:349:)
+        shutil .move (O0O00OO00OOO0O0O0 ,OO00OO00OO000OO00 )#line:350:shutil.move(old_location, new_location)
+        OO0OOOOO0O000000O ._temp_build_dir .path =OO00OO00OO000OO00 #line:351:self._temp_build_dir.path = new_location
+        OO0OOOOO0O000000O ._ideal_build_dir =None #line:352:self._ideal_build_dir = None
+        OO0OOOOO0O000000O .source_dir =os .path .normpath (os .path .abspath (OO00OO00OO000OO00 ))#line:353:self.source_dir = os.path.normpath(os.path.abspath(new_location))
+        OO0OOOOO0O000000O ._egg_info_path =None #line:354:self._egg_info_path = None
+        if OO0OOOOO0O000000O .metadata_directory :#line:357:if self.metadata_directory:
+            OO0OO000O00O000O0 =OO0OOOOO0O000000O .metadata_directory #line:358:old_meta = self.metadata_directory
+            O00O0OO000000OO0O =os .path .relpath (OO0OO000O00O000O0 ,start =O0O00OO00OOO0O0O0 )#line:359:rel = os.path.relpath(old_meta, start=old_location)
+            O0000O00O0O0O0OO0 =os .path .join (OO00OO00OO000OO00 ,O00O0OO000000OO0O )#line:360:new_meta = os.path.join(new_location, rel)
+            O0000O00O0O0O0OO0 =os .path .normpath (os .path .abspath (O0000O00O0O0O0OO0 ))#line:361:new_meta = os.path.normpath(os.path.abspath(new_meta))
+            OO0OOOOO0O000000O .metadata_directory =O0000O00O0O0O0OO0 #line:362:self.metadata_directory = new_meta
+    def remove_temporary_source (O000OO0OOO000OO00 ):#line:364:def remove_temporary_source(self):
+        ""#line:367:for deletion"""
+        if O000OO0OOO000OO00 .source_dir and os .path .exists (os .path .join (O000OO0OOO000OO00 .source_dir ,PIP_DELETE_MARKER_FILENAME )):#line:369:os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)):
+            logger .debug ('Removing source in %s',O000OO0OOO000OO00 .source_dir )#line:370:logger.debug('Removing source in %s', self.source_dir)
+            rmtree (O000OO0OOO000OO00 .source_dir )#line:371:rmtree(self.source_dir)
+        O000OO0OOO000OO00 .source_dir =None #line:372:self.source_dir = None
+        O000OO0OOO000OO00 ._temp_build_dir .cleanup ()#line:373:self._temp_build_dir.cleanup()
+        O000OO0OOO000OO00 .build_env .cleanup ()#line:374:self.build_env.cleanup()
+    def check_if_exists (OOOOOOO0O0O0000OO ,OOOO000OOO00OO000 ):#line:376:def check_if_exists(self, use_user_site):
+        ""#line:381:"""
+        if OOOOOOO0O0O0000OO .req is None :#line:382:if self.req is None:
+            return False #line:383:return False
+        try :#line:384:try:
+            OO00OOOO0O00OO0O0 =Requirement (str (OOOOOOO0O0O0000OO .req ))#line:389:no_marker = Requirement(str(self.req))
+            OO00OOOO0O00OO0O0 .marker =None #line:390:no_marker.marker = None
+            OOOOOOO0O0O0000OO .satisfied_by =pkg_resources .get_distribution (str (OO00OOOO0O00OO0O0 ))#line:391:self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
+            if OOOOOOO0O0O0000OO .editable and OOOOOOO0O0O0000OO .satisfied_by :#line:392:if self.editable and self.satisfied_by:
+                OOOOOOO0O0O0000OO .conflicts_with =OOOOOOO0O0O0000OO .satisfied_by #line:393:self.conflicts_with = self.satisfied_by
+                OOOOOOO0O0O0000OO .satisfied_by =None #line:396:self.satisfied_by = None
+                return True #line:397:return True
+        except pkg_resources .DistributionNotFound :#line:398:except pkg_resources.DistributionNotFound:
+            return False #line:399:return False
+        except pkg_resources .VersionConflict :#line:400:except pkg_resources.VersionConflict:
+            O0OO00000O000000O =pkg_resources .get_distribution (OOOOOOO0O0O0000OO .req .name )#line:403:)
+            if OOOO000OOO00OO000 :#line:404:if use_user_site:
+                if dist_in_usersite (O0OO00000O000000O ):#line:405:if dist_in_usersite(existing_dist):
+                    OOOOOOO0O0O0000OO .conflicts_with =O0OO00000O000000O #line:406:self.conflicts_with = existing_dist
+                elif (running_under_virtualenv ()and dist_in_site_packages (O0OO00000O000000O )):#line:408:dist_in_site_packages(existing_dist)):
+                    raise InstallationError ("Will not install to the user site because it will " "lack sys.path precedence to %s in %s"%(O0OO00000O000000O .project_name ,O0OO00000O000000O .location ))#line:413:)
+            else :#line:414:else:
+                OOOOOOO0O0O0000OO .conflicts_with =O0OO00000O000000O #line:415:self.conflicts_with = existing_dist
+        return True #line:416:return True
+    @property #line:419:@property
+    def is_wheel (OOOO00O0OO00000O0 ):#line:420:def is_wheel(self):
+        if not OOOO00O0OO00000O0 .link :#line:422:if not self.link:
+            return False #line:423:return False
+        return OOOO00O0OO00000O0 .link .is_wheel #line:424:return self.link.is_wheel
+    def move_wheel_files (OO0000O0O0O0OO0OO ,O0O0000O00O00OO0O ,root =None ,home =None ,prefix =None ,warn_script_location =True ,use_user_site =False ,pycompile =True ):#line:435:):
+        move_wheel_files (OO0000O0O0O0OO0OO .name ,OO0000O0O0O0OO0OO .req ,O0O0000O00O00OO0O ,user =use_user_site ,home =home ,root =root ,prefix =prefix ,pycompile =pycompile ,isolated =OO0000O0O0O0OO0OO .isolated ,warn_script_location =warn_script_location ,)#line:446:)
+    @property #line:449:@property
+    def setup_py_dir (OOOOOOOOOOO0O0000 ):#line:450:def setup_py_dir(self):
+        return os .path .join (OOOOOOOOOOO0O0000 .source_dir ,OOOOOOOOOOO0O0000 .link and OOOOOOOOOOO0O0000 .link .subdirectory_fragment or '')#line:454:self.link and self.link.subdirectory_fragment or '')
+    @property #line:456:@property
+    def setup_py (OOO0O0OOO0O00OO00 ):#line:457:def setup_py(self):
+        assert OOO0O0OOO0O00OO00 .source_dir ,"No source dir for %s"%OOO0O0OOO0O00OO00 #line:459:assert self.source_dir, "No source dir for %s" % self
+        OO00OO0O0O00OOO00 =os .path .join (OOO0O0OOO0O00OO00 .setup_py_dir ,'setup.py')#line:461:setup_py = os.path.join(self.setup_py_dir, 'setup.py')
+        if six .PY2 and isinstance (OO00OO0O0O00OOO00 ,six .text_type ):#line:464:if six.PY2 and isinstance(setup_py, six.text_type):
+            OO00OO0O0O00OOO00 =OO00OO0O0O00OOO00 .encode (sys .getfilesystemencoding ())#line:465:setup_py = setup_py.encode(sys.getfilesystemencoding())
+        return OO00OO0O0O00OOO00 #line:467:return setup_py
+    @property #line:469:@property
+    def pyproject_toml (OOO0OOOO00OOO0OOO ):#line:470:def pyproject_toml(self):
+        assert OOO0OOOO00OOO0OOO .source_dir ,"No source dir for %s"%OOO0OOOO00OOO0OOO #line:472:assert self.source_dir, "No source dir for %s" % self
+        return make_pyproject_path (OOO0OOOO00OOO0OOO .setup_py_dir )#line:474:return make_pyproject_path(self.setup_py_dir)
+    def load_pyproject_toml (OO0OO0O0O0O00OO00 ):#line:476:def load_pyproject_toml(self):
+        ""#line:484:"""
+        O0O0O00OOOOOOO0O0 =load_pyproject_toml (OO0OO0O0O0O00OO00 .use_pep517 ,OO0OO0O0O0O00OO00 .pyproject_toml ,OO0OO0O0O0O00OO00 .setup_py ,str (OO0OO0O0O0O00OO00 ))#line:490:)
+        if O0O0O00OOOOOOO0O0 is None :#line:492:if pep517_data is None:
+            OO0OO0O0O0O00OO00 .use_pep517 =False #line:493:self.use_pep517 = False
+        else :#line:494:else:
+            OO0OO0O0O0O00OO00 .use_pep517 =True #line:495:self.use_pep517 = True
+            OOOO0OOOO0OOO00O0 ,O0OOO00000O00O00O ,OO00O00O0O00O0O00 =O0O0O00OOOOOOO0O0 #line:496:requires, backend, check = pep517_data
+            OO0OO0O0O0O00OO00 .requirements_to_check =OO00O00O0O00O0O00 #line:497:self.requirements_to_check = check
+            OO0OO0O0O0O00OO00 .pyproject_requires =OOOO0OOOO0OOO00O0 #line:498:self.pyproject_requires = requires
+            OO0OO0O0O0O00OO00 .pep517_backend =Pep517HookCaller (OO0OO0O0O0O00OO00 .setup_py_dir ,O0OOO00000O00O00O )#line:499:self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+            OO0OO0O0O0O00OO00 .spin_message =""#line:502:self.spin_message = ""
+            def O000O0O000000OOO0 (O0O000000O0O00O00 ,cwd =None ,extra_environ =None ):#line:504:def runner(cmd, cwd=None, extra_environ=None):
+                with open_spinner (OO0OO0O0O0O00OO00 .spin_message )as O0OOO0OOO0000OO0O :#line:505:with open_spinner(self.spin_message) as spinner:
+                    call_subprocess (O0O000000O0O00O00 ,cwd =cwd ,extra_environ =extra_environ ,show_stdout =False ,spinner =O0OOO0OOO0000OO0O )#line:512:)
+                OO0OO0O0O0O00OO00 .spin_message =""#line:513:self.spin_message = ""
+            OO0OO0O0O0O00OO00 .pep517_backend ._subprocess_runner =O000O0O000000OOO0 #line:515:self.pep517_backend._subprocess_runner = runner
+    def prepare_metadata (O0O0O0O00O00O0O0O ):#line:517:def prepare_metadata(self):
+        ""#line:523:"""
+        assert O0O0O0O00O00O0O0O .source_dir #line:524:assert self.source_dir
+        with indent_log ():#line:526:with indent_log():
+            if O0O0O0O00O00O0O0O .use_pep517 :#line:527:if self.use_pep517:
+                O0O0O0O00O00O0O0O .prepare_pep517_metadata ()#line:528:self.prepare_pep517_metadata()
+            else :#line:529:else:
+                O0O0O0O00O00O0O0O .run_egg_info ()#line:530:self.run_egg_info()
+        if not O0O0O0O00O00O0O0O .req :#line:532:if not self.req:
+            if isinstance (parse_version (O0O0O0O00O00O0O0O .metadata ["Version"]),Version ):#line:533:if isinstance(parse_version(self.metadata["Version"]), Version):
+                OO00OO00OOOOO0O00 ="=="#line:534:op = "=="
+            else :#line:535:else:
+                OO00OO00OOOOO0O00 ="==="#line:536:op = "==="
+            O0O0O0O00O00O0O0O .req =Requirement ("".join ([O0O0O0O00O00O0O0O .metadata ["Name"],OO00OO00OOOOO0O00 ,O0O0O0O00O00O0O0O .metadata ["Version"],]))#line:543:)
+            O0O0O0O00O00O0O0O ._correct_build_location ()#line:544:self._correct_build_location()
+        else :#line:545:else:
+            OOOO00OOO0OO00000 =canonicalize_name (O0O0O0O00O00O0O0O .metadata ["Name"])#line:546:metadata_name = canonicalize_name(self.metadata["Name"])
+            if canonicalize_name (O0O0O0O00O00O0O0O .req .name )!=OOOO00OOO0OO00000 :#line:547:if canonicalize_name(self.req.name) != metadata_name:
+                logger .warning ('Generating metadata for package %s ' 'produced metadata for project name %s. Fix your ' '#egg=%s fragments.',O0O0O0O00O00O0O0O .name ,OOOO00OOO0OO00000 ,O0O0O0O00O00O0O0O .name )#line:553:)
+                O0O0O0O00O00O0O0O .req =Requirement (OOOO00OOO0OO00000 )#line:554:self.req = Requirement(metadata_name)
+    def prepare_pep517_metadata (O0000000OO00O00O0 ):#line:556:def prepare_pep517_metadata(self):
+        assert O0000000OO00O00O0 .pep517_backend is not None #line:558:assert self.pep517_backend is not None
+        OOO000OOOOO0O0OOO =os .path .join (O0000000OO00O00O0 .setup_py_dir ,'pip-wheel-metadata')#line:563:)
+        ensure_dir (OOO000OOOOO0O0OOO )#line:564:ensure_dir(metadata_dir)
+        with O0000000OO00O00O0 .build_env :#line:566:with self.build_env:
+            O0000OOO0OOOO000O =O0000000OO00O00O0 .pep517_backend #line:570:backend = self.pep517_backend
+            O0000000OO00O00O0 .spin_message ="Preparing wheel metadata"#line:571:self.spin_message = "Preparing wheel metadata"
+            OO0000OO00O000OOO =O0000OOO0OOOO000O .prepare_metadata_for_build_wheel (OOO000OOOOO0O0OOO )#line:574:)
+        O0000000OO00O00O0 .metadata_directory =os .path .join (OOO000OOOOO0O0OOO ,OO0000OO00O000OOO )#line:576:self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
+    def run_egg_info (O0O0OO00OOOOOOOO0 ):#line:578:def run_egg_info(self):
+        if O0O0OO00OOOOOOOO0 .name :#line:580:if self.name:
+            logger .debug ('Running setup.py (path:%s) egg_info for package %s',O0O0OO00OOOOOOOO0 .setup_py ,O0O0OO00OOOOOOOO0 .name ,)#line:584:)
+        else :#line:585:else:
+            logger .debug ('Running setup.py (path:%s) egg_info for package from %s',O0O0OO00OOOOOOOO0 .setup_py ,O0O0OO00OOOOOOOO0 .link ,)#line:589:)
+        O00000OOO00O000OO =SETUPTOOLS_SHIM %O0O0OO00OOOOOOOO0 .setup_py #line:590:script = SETUPTOOLS_SHIM % self.setup_py
+        O0000OOO0O00O000O =[sys .executable ,'-c',O00000OOO00O000OO ]#line:591:base_cmd = [sys.executable, '-c', script]
+        if O0O0OO00OOOOOOOO0 .isolated :#line:592:if self.isolated:
+            O0000OOO0O00O000O +=["--no-user-cfg"]#line:593:base_cmd += ["--no-user-cfg"]
+        O0OOOOO0O0O000OO0 =O0000OOO0O00O000O +['egg_info']#line:594:egg_info_cmd = base_cmd + ['egg_info']
+        if O0O0OO00OOOOOOOO0 .editable :#line:598:if self.editable:
+            OOOOOO0OO0O00OOO0 =[]#line:599:egg_base_option = []  # type: List[str]
+        else :#line:600:else:
+            OOO00OOOOO0O00000 =os .path .join (O0O0OO00OOOOOOOO0 .setup_py_dir ,'pip-egg-info')#line:601:egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            ensure_dir (OOO00OOOOO0O00000 )#line:602:ensure_dir(egg_info_dir)
+            OOOOOO0OO0O00OOO0 =['--egg-base','pip-egg-info']#line:603:egg_base_option = ['--egg-base', 'pip-egg-info']
+        with O0O0OO00OOOOOOOO0 .build_env :#line:604:with self.build_env:
+            call_subprocess (O0OOOOO0O0O000OO0 +OOOOOO0OO0O00OOO0 ,cwd =O0O0OO00OOOOOOOO0 .setup_py_dir ,show_stdout =False ,command_desc ='python setup.py egg_info')#line:609:command_desc='python setup.py egg_info')
+    @property #line:611:@property
+    def egg_info_path (OO0O000O0000O0OOO ):#line:612:def egg_info_path(self):
+        if OO0O000O0000O0OOO ._egg_info_path is None :#line:614:if self._egg_info_path is None:
+            if OO0O000O0000O0OOO .editable :#line:615:if self.editable:
+                O0O0OOOO0O0O00O0O =OO0O000O0000O0OOO .source_dir #line:616:base = self.source_dir
+            else :#line:617:else:
+                O0O0OOOO0O0O00O0O =os .path .join (OO0O000O0000O0OOO .setup_py_dir ,'pip-egg-info')#line:618:base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            OO00O0000OO0OO000 =os .listdir (O0O0OOOO0O0O00O0O )#line:619:filenames = os.listdir(base)
+            if OO0O000O0000O0OOO .editable :#line:620:if self.editable:
+                OO00O0000OO0OO000 =[]#line:621:filenames = []
+                for OOO0O0OO00OOOO0OO ,O0000O0O0O00OOO00 ,O00OOO000OO0OO000 in os .walk (O0O0OOOO0O0O00O0O ):#line:622:for root, dirs, files in os.walk(base):
+                    for OO0O0OOOOOOO0000O in vcs .dirnames :#line:623:for dir in vcs.dirnames:
+                        if OO0O0OOOOOOO0000O in O0000O0O0O00OOO00 :#line:624:if dir in dirs:
+                            O0000O0O0O00OOO00 .remove (OO0O0OOOOOOO0000O )#line:625:dirs.remove(dir)
+                    for OO0O0OOOOOOO0000O in list (O0000O0O0O00OOO00 ):#line:629:for dir in list(dirs):
+                        if (os .path .lexists (os .path .join (OOO0O0OO00OOOO0OO ,OO0O0OOOOOOO0000O ,'bin','python'))or os .path .exists (os .path .join (OOO0O0OO00OOOO0OO ,OO0O0OOOOOOO0000O ,'Scripts','Python.exe'))):#line:640:)):
+                            O0000O0O0O00OOO00 .remove (OO0O0OOOOOOO0000O )#line:641:dirs.remove(dir)
+                        elif OO0O0OOOOOOO0000O =='test'or OO0O0OOOOOOO0000O =='tests':#line:643:elif dir == 'test' or dir == 'tests':
+                            O0000O0O0O00OOO00 .remove (OO0O0OOOOOOO0000O )#line:644:dirs.remove(dir)
+                    OO00O0000OO0OO000 .extend ([os .path .join (OOO0O0OO00OOOO0OO ,O0O00O0O00OO00O00 )for O0O00O0O00OO00O00 in O0000O0O0O00OOO00 ])#line:646:for dir in dirs])
+                OO00O0000OO0OO000 =[O000OOOO000O00OOO for O000OOOO000O00OOO in OO00O0000OO0OO000 if O000OOOO000O00OOO .endswith ('.egg-info')]#line:647:filenames = [f for f in filenames if f.endswith('.egg-info')]
+            if not OO00O0000OO0OO000 :#line:649:if not filenames:
+                raise InstallationError ("Files/directories not found in %s"%O0O0OOOO0O0O00O0O )#line:652:)
+            if len (OO00O0000OO0OO000 )>1 :#line:656:if len(filenames) > 1:
+                OO00O0000OO0OO000 .sort (key =lambda OO0O00000OOOOOO0O :OO0O00000OOOOOO0O .count (os .path .sep )+(os .path .altsep and OO0O00000OOOOOO0O .count (os .path .altsep )or 0 ))#line:660:)
+            OO0O000O0000O0OOO ._egg_info_path =os .path .join (O0O0OOOO0O0O00O0O ,OO00O0000OO0OO000 [0 ])#line:661:self._egg_info_path = os.path.join(base, filenames[0])
+        return OO0O000O0000O0OOO ._egg_info_path #line:662:return self._egg_info_path
+    @property #line:664:@property
+    def metadata (O00O0OO00O00OO0OO ):#line:665:def metadata(self):
+        if not hasattr (O00O0OO00O00OO0OO ,'_metadata'):#line:666:if not hasattr(self, '_metadata'):
+            O00O0OO00O00OO0OO ._metadata =get_metadata (O00O0OO00O00OO0OO .get_dist ())#line:667:self._metadata = get_metadata(self.get_dist())
+        return O00O0OO00O00OO0OO ._metadata #line:669:return self._metadata
+    def get_dist (OO0OOOOOOOOO000OO ):#line:671:def get_dist(self):
+        ""#line:673:"""Return a pkg_resources.Distribution for this requirement"""
+        if OO0OOOOOOOOO000OO .metadata_directory :#line:674:if self.metadata_directory:
+            OOOO00OO0000OOO0O ,O00O0OOO0OOO0O00O =os .path .split (OO0OOOOOOOOO000OO .metadata_directory )#line:675:base_dir, distinfo = os.path.split(self.metadata_directory)
+            O00OO000OOO0OO00O =pkg_resources .PathMetadata (OOOO00OO0000OOO0O ,OO0OOOOOOOOO000OO .metadata_directory )#line:678:)
+            O0O00O0OOO0O000OO =os .path .splitext (O00O0OOO0OOO0O00O )[0 ]#line:679:dist_name = os.path.splitext(distinfo)[0]
+            OO000OOOO0000OOO0 =pkg_resources .DistInfoDistribution #line:680:typ = pkg_resources.DistInfoDistribution
+        else :#line:681:else:
+            O00O00OO0O00OO000 =OO0OOOOOOOOO000OO .egg_info_path .rstrip (os .path .sep )#line:682:egg_info = self.egg_info_path.rstrip(os.path.sep)
+            OOOO00OO0000OOO0O =os .path .dirname (O00O00OO0O00OO000 )#line:683:base_dir = os.path.dirname(egg_info)
+            O00OO000OOO0OO00O =pkg_resources .PathMetadata (OOOO00OO0000OOO0O ,O00O00OO0O00OO000 )#line:684:metadata = pkg_resources.PathMetadata(base_dir, egg_info)
+            O0O00O0OOO0O000OO =os .path .splitext (os .path .basename (O00O00OO0O00OO000 ))[0 ]#line:685:dist_name = os.path.splitext(os.path.basename(egg_info))[0]
+            OO000OOOO0000OOO0 =pkg_resources .Distribution #line:687:typ = pkg_resources.Distribution  # type: ignore
+        return OO000OOOO0000OOO0 (OOOO00OO0000OOO0O ,project_name =O0O00O0OOO0O000OO ,metadata =O00OO000OOO0OO00O ,)#line:693:)
+    def assert_source_matches_version (O00OO0O00O0O0O00O ):#line:695:def assert_source_matches_version(self):
+        assert O00OO0O00O0O0O00O .source_dir #line:697:assert self.source_dir
+        OO00O0OO0OOO0000O =O00OO0O00O0O0O00O .metadata ['version']#line:698:version = self.metadata['version']
+        if O00OO0O00O0O0O00O .req .specifier and OO00O0OO0OOO0000O not in O00OO0O00O0O0O00O .req .specifier :#line:699:if self.req.specifier and version not in self.req.specifier:
+            logger .warning ('Requested %s, but installing version %s',O00OO0O00O0O0O00O ,OO00O0OO0OOO0000O ,)#line:704:)
+        else :#line:705:else:
+            logger .debug ('Source in %s has version %s, which satisfies requirement %s',display_path (O00OO0O00O0O0O00O .source_dir ),OO00O0OO0OOO0000O ,O00OO0O00O0O0O00O ,)#line:711:)
+    def ensure_has_source_dir (O00OOO0O0OOO0O00O ,OOOOOOOOOO0OOOO00 ):#line:714:def ensure_has_source_dir(self, parent_dir):
+        ""#line:724:"""
+        if O00OOO0O0OOO0O00O .source_dir is None :#line:725:if self.source_dir is None:
+            O00OOO0O0OOO0O00O .source_dir =O00OOO0O0OOO0O00O .build_location (OOOOOOOOOO0OOOO00 )#line:726:self.source_dir = self.build_location(parent_dir)
+        return O00OOO0O0OOO0O00O .source_dir #line:727:return self.source_dir
+    def install_editable (O0000OOO0O00O0O00 ,O000OOOOO0OO0OOO0 ,global_options =(),prefix =None ):#line:735:):
+        logger .info ('Running setup.py develop for %s',O0000OOO0O00O0O00 .name )#line:737:logger.info('Running setup.py develop for %s', self.name)
+        if O0000OOO0O00O0O00 .isolated :#line:739:if self.isolated:
+            global_options =list (global_options )+["--no-user-cfg"]#line:740:global_options = list(global_options) + ["--no-user-cfg"]
+        if prefix :#line:742:if prefix:
+            OO0OO0O0O0O0OO00O =['--prefix={}'.format (prefix )]#line:743:prefix_param = ['--prefix={}'.format(prefix)]
+            O000OOOOO0OO0OOO0 =list (O000OOOOO0OO0OOO0 )+OO0OO0O0O0O0OO00O #line:744:install_options = list(install_options) + prefix_param
+        with indent_log ():#line:746:with indent_log():
+            with O0000OOO0O00O0O00 .build_env :#line:748:with self.build_env:
+                call_subprocess ([sys .executable ,'-c',SETUPTOOLS_SHIM %O0000OOO0O00O0O00 .setup_py ]+list (global_options )+['develop','--no-deps']+list (O000OOOOO0OO0OOO0 ),cwd =O0000OOO0O00O0O00 .setup_py_dir ,show_stdout =False ,)#line:761:)
+        O0000OOO0O00O0O00 .install_succeeded =True #line:763:self.install_succeeded = True
+    def update_editable (OOOOOO00O0O0O0O0O ,obtain =True ):#line:765:def update_editable(self, obtain=True):
+        if not OOOOOO00O0O0O0O0O .link :#line:767:if not self.link:
+            logger .debug ("Cannot update repository at %s; repository location is " "unknown",OOOOOO00O0O0O0O0O .source_dir ,)#line:772:)
+            return #line:773:return
+        assert OOOOOO00O0O0O0O0O .editable #line:774:assert self.editable
+        assert OOOOOO00O0O0O0O0O .source_dir #line:775:assert self.source_dir
+        if OOOOOO00O0O0O0O0O .link .scheme =='file':#line:776:if self.link.scheme == 'file':
+            return #line:778:return
+        assert '+'in OOOOOO00O0O0O0O0O .link .url ,"bad url: %r"%OOOOOO00O0O0O0O0O .link .url #line:779:assert '+' in self.link.url, "bad url: %r" % self.link.url
+        if not OOOOOO00O0O0O0O0O .update :#line:780:if not self.update:
+            return #line:781:return
+        O0OO000OOO00OOOO0 ,O00O0OOO000OOO00O =OOOOOO00O0O0O0O0O .link .url .split ('+',1 )#line:782:vc_type, url = self.link.url.split('+', 1)
+        O0000OOOOO00OOOOO =vcs .get_backend (O0OO000OOO00OOOO0 )#line:783:backend = vcs.get_backend(vc_type)
+        if O0000OOOOO00OOOOO :#line:784:if backend:
+            O000O000O0OO0000O =O0000OOOOO00OOOOO (OOOOOO00O0O0O0O0O .link .url )#line:785:vcs_backend = backend(self.link.url)
+            if obtain :#line:786:if obtain:
+                O000O000O0OO0000O .obtain (OOOOOO00O0O0O0O0O .source_dir )#line:787:vcs_backend.obtain(self.source_dir)
+            else :#line:788:else:
+                O000O000O0OO0000O .export (OOOOOO00O0O0O0O0O .source_dir )#line:789:vcs_backend.export(self.source_dir)
+        else :#line:790:else:
+            assert 0 ,('Unexpected version control type (in %s): %s'%(OOOOOO00O0O0O0O0O .link ,O0OO000OOO00OOOO0 ))#line:793:% (self.link, vc_type))
+    def uninstall (OO0OO0O00OO0000OO ,auto_confirm =False ,verbose =False ,use_user_site =False ):#line:797:use_user_site=False):
+        ""#line:810:"""
+        if not OO0OO0O00OO0000OO .check_if_exists (use_user_site ):#line:811:if not self.check_if_exists(use_user_site):
+            logger .warning ("Skipping %s as it is not installed.",OO0OO0O00OO0000OO .name )#line:812:logger.warning("Skipping %s as it is not installed.", self.name)
+            return None #line:813:return None
+        O00O00OOO00O0O00O =OO0OO0O00OO0000OO .satisfied_by or OO0OO0O00OO0000OO .conflicts_with #line:814:dist = self.satisfied_by or self.conflicts_with
+        OO0OOO00O0O0OO0O0 =UninstallPathSet .from_dist (O00O00OOO00O0O00O )#line:816:uninstalled_pathset = UninstallPathSet.from_dist(dist)
+        OO0OOO00O0O0OO0O0 .remove (auto_confirm ,verbose )#line:817:uninstalled_pathset.remove(auto_confirm, verbose)
+        return OO0OOO00O0O0OO0O0 #line:818:return uninstalled_pathset
+    def _clean_zip_name (O0O00O00OO0OOOO00 ,OO00O0OO00O00O0OO ,O00OO0OO000O0OO0O ):#line:820:def _clean_zip_name(self, name, prefix):  # only used by archive.
+        assert OO00O0OO00O00O0OO .startswith (O00OO0OO000O0OO0O +os .path .sep ),("name %r doesn't start with prefix %r"%(OO00O0OO00O00O0OO ,O00OO0OO000O0OO0O ))#line:823:)
+        OO00O0OO00O00O0OO =OO00O0OO00O00O0OO [len (O00OO0OO000O0OO0O )+1 :]#line:824:name = name[len(prefix) + 1:]
+        OO00O0OO00O00O0OO =OO00O0OO00O00O0OO .replace (os .path .sep ,'/')#line:825:name = name.replace(os.path.sep, '/')
+        return OO00O0OO00O00O0OO #line:826:return name
+    def _get_archive_name (O0O00OOOOO0000O00 ,O000OO00000000OO0 ,O0000O0O00O00OO0O ,OOOO00O0O000O0OOO ):#line:828:def _get_archive_name(self, path, parentdir, rootdir):
+        O000OO00000000OO0 =os .path .join (O0000O0O00O00OO0O ,O000OO00000000OO0 )#line:830:path = os.path.join(parentdir, path)
+        O0OO0O0OO0O00000O =O0O00OOOOO0000O00 ._clean_zip_name (O000OO00000000OO0 ,OOOO00O0O000O0OOO )#line:831:name = self._clean_zip_name(path, rootdir)
+        return O0O00OOOOO0000O00 .name +'/'+O0OO0O0OO0O00000O #line:832:return self.name + '/' + name
+    def archive (OOO00O0O0O00O00O0 ,OO00000O0OOO0OO0O ):#line:836:def archive(self, build_dir):
+        assert OOO00O0O0O00O00O0 .source_dir #line:838:assert self.source_dir
+        O00OOOO0O0O0OOOOO =True #line:839:create_archive = True
+        OO00OOOOOOOO00OO0 ='%s-%s.zip'%(OOO00O0O0O00O00O0 .name ,OOO00O0O0O00O00O0 .metadata ["version"])#line:840:archive_name = '%s-%s.zip' % (self.name, self.metadata["version"])
+        OOO00O0O000O0OOOO =os .path .join (OO00000O0OOO0OO0O ,OO00OOOOOOOO00OO0 )#line:841:archive_path = os.path.join(build_dir, archive_name)
+        if os .path .exists (OOO00O0O000O0OOOO ):#line:842:if os.path.exists(archive_path):
+            O0O0000OO000000OO =ask_path_exists ('The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)bort '%display_path (OOO00O0O000O0OOOO ),('i','w','b','a'))#line:845:display_path(archive_path), ('i', 'w', 'b', 'a'))
+            if O0O0000OO000000OO =='i':#line:846:if response == 'i':
+                O00OOOO0O0O0OOOOO =False #line:847:create_archive = False
+            elif O0O0000OO000000OO =='w':#line:848:elif response == 'w':
+                logger .warning ('Deleting %s',display_path (OOO00O0O000O0OOOO ))#line:849:logger.warning('Deleting %s', display_path(archive_path))
+                os .remove (OOO00O0O000O0OOOO )#line:850:os.remove(archive_path)
+            elif O0O0000OO000000OO =='b':#line:851:elif response == 'b':
+                O000OO0OO0OO000O0 =backup_dir (OOO00O0O000O0OOOO )#line:852:dest_file = backup_dir(archive_path)
+                logger .warning ('Backing up %s to %s',display_path (OOO00O0O000O0OOOO ),display_path (O000OO0OO0OO000O0 ),)#line:857:)
+                shutil .move (OOO00O0O000O0OOOO ,O000OO0OO0OO000O0 )#line:858:shutil.move(archive_path, dest_file)
+            elif O0O0000OO000000OO =='a':#line:859:elif response == 'a':
+                sys .exit (-1 )#line:860:sys.exit(-1)
+        if O00OOOO0O0O0OOOOO :#line:861:if create_archive:
+            OO0OOOOOO0OOO0O0O =zipfile .ZipFile (OOO00O0O000O0OOOO ,'w',zipfile .ZIP_DEFLATED ,allowZip64 =True )#line:865:)
+            OO00OO0OO0O0O000O =os .path .normcase (os .path .abspath (OOO00O0O0O00O00O0 .setup_py_dir ))#line:866:dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
+            for O0O00OO00OOOO00O0 ,O0OO0000OO0OO0OOO ,OO000000O0O00OO00 in os .walk (OO00OO0OO0O0O000O ):#line:867:for dirpath, dirnames, filenames in os.walk(dir):
+                if 'pip-egg-info'in O0OO0000OO0OO0OOO :#line:868:if 'pip-egg-info' in dirnames:
+                    O0OO0000OO0OO0OOO .remove ('pip-egg-info')#line:869:dirnames.remove('pip-egg-info')
+                for O000O0O0000OOOO00 in O0OO0000OO0OO0OOO :#line:870:for dirname in dirnames:
+                    O0OOO00O0OO0O000O =OOO00O0O0O00O00O0 ._get_archive_name (O000O0O0000OOOO00 ,parentdir =O0O00OO00OOOO00O0 ,rootdir =OO00OO0OO0O0O000O )#line:873:rootdir=dir)
+                    O00O0OOOO00000O0O =zipfile .ZipInfo (O0OOO00O0OO0O000O +'/')#line:874:zipdir = zipfile.ZipInfo(dir_arcname + '/')
+                    O00O0OOOO00000O0O .external_attr =0x1ED <<16 #line:875:zipdir.external_attr = 0x1ED << 16  # 0o755
+                    OO0OOOOOO0OOO0O0O .writestr (O00O0OOOO00000O0O ,'')#line:876:zip.writestr(zipdir, '')
+                for O000OO0O00000OO00 in OO000000O0O00OO00 :#line:877:for filename in filenames:
+                    if O000OO0O00000OO00 ==PIP_DELETE_MARKER_FILENAME :#line:878:if filename == PIP_DELETE_MARKER_FILENAME:
+                        continue #line:879:continue
+                    O00OO00000O00000O =OOO00O0O0O00O00O0 ._get_archive_name (O000OO0O00000OO00 ,parentdir =O0O00OO00OOOO00O0 ,rootdir =OO00OO0OO0O0O000O )#line:882:rootdir=dir)
+                    O000OO0O00000OO00 =os .path .join (O0O00OO00OOOO00O0 ,O000OO0O00000OO00 )#line:883:filename = os.path.join(dirpath, filename)
+                    OO0OOOOOO0OOO0O0O .write (O000OO0O00000OO00 ,O00OO00000O00000O )#line:884:zip.write(filename, file_arcname)
+            OO0OOOOOO0OOO0O0O .close ()#line:885:zip.close()
+            logger .info ('Saved %s',display_path (OOO00O0O000O0OOOO ))#line:886:logger.info('Saved %s', display_path(archive_path))
+    def install (O0OOO000O0O0OO0O0 ,OO0O00OOO0OO0OOOO ,global_options =None ,root =None ,home =None ,prefix =None ,warn_script_location =True ,use_user_site =False ,pycompile =True ):#line:898:):
+        global_options =global_options if global_options is not None else []#line:900:global_options = global_options if global_options is not None else []
+        if O0OOO000O0O0OO0O0 .editable :#line:901:if self.editable:
+            O0OOO000O0O0OO0O0 .install_editable (OO0O00OOO0OO0OOOO ,global_options ,prefix =prefix ,)#line:904:)
+            return #line:905:return
+        if O0OOO000O0O0OO0O0 .is_wheel :#line:906:if self.is_wheel:
+            O000000O0000OOOOO =wheel .wheel_version (O0OOO000O0O0OO0O0 .source_dir )#line:907:version = wheel.wheel_version(self.source_dir)
+            wheel .check_compatibility (O000000O0000OOOOO ,O0OOO000O0O0OO0O0 .name )#line:908:wheel.check_compatibility(version, self.name)
+            O0OOO000O0O0OO0O0 .move_wheel_files (O0OOO000O0O0OO0O0 .source_dir ,root =root ,prefix =prefix ,home =home ,warn_script_location =warn_script_location ,use_user_site =use_user_site ,pycompile =pycompile ,)#line:914:)
+            O0OOO000O0O0OO0O0 .install_succeeded =True #line:915:self.install_succeeded = True
+            return #line:916:return
+        global_options =list (global_options )+O0OOO000O0O0OO0O0 .options .get ('global_options',[])#line:924:self.options.get('global_options', [])
+        OO0O00OOO0OO0OOOO =list (OO0O00OOO0OO0OOOO )+O0OOO000O0O0OO0O0 .options .get ('install_options',[])#line:926:self.options.get('install_options', [])
+        if O0OOO000O0O0OO0O0 .isolated :#line:928:if self.isolated:
+            global_options =global_options +["--no-user-cfg"]#line:930:global_options = global_options + ["--no-user-cfg"]  # type: ignore
+        with TempDirectory (kind ="record")as OOOO0000O00O000OO :#line:932:with TempDirectory(kind="record") as temp_dir:
+            OO00OO00OO00OO000 =os .path .join (OOOO0000O00O000OO .path ,'install-record.txt')#line:933:record_filename = os.path.join(temp_dir.path, 'install-record.txt')
+            O00OO00OOOO000OO0 =O0OOO000O0O0OO0O0 .get_install_args (global_options ,OO00OO00OO00OO000 ,root ,prefix ,pycompile ,)#line:936:)
+            OO00OO00000O0O0O0 ='Running setup.py install for %s'%(O0OOO000O0O0OO0O0 .name ,)#line:937:msg = 'Running setup.py install for %s' % (self.name,)
+            with open_spinner (OO00OO00000O0O0O0 )as O00O0OOOO0000O00O :#line:938:with open_spinner(msg) as spinner:
+                with indent_log ():#line:939:with indent_log():
+                    with O0OOO000O0O0OO0O0 .build_env :#line:940:with self.build_env:
+                        call_subprocess (O00OO00OOOO000OO0 +OO0O00OOO0OO0OOOO ,cwd =O0OOO000O0O0OO0O0 .setup_py_dir ,show_stdout =False ,spinner =O00O0OOOO0000O00O ,)#line:946:)
+            if not os .path .exists (OO00OO00OO00OO000 ):#line:948:if not os.path.exists(record_filename):
+                logger .debug ('Record file %s not found',OO00OO00OO00OO000 )#line:949:logger.debug('Record file %s not found', record_filename)
+                return #line:950:return
+            O0OOO000O0O0OO0O0 .install_succeeded =True #line:951:self.install_succeeded = True
+            def OOOO0O000OO0O00O0 (OO0O000O000O0O0O0 ):#line:953:def prepend_root(path):
+                if root is None or not os .path .isabs (OO0O000O000O0O0O0 ):#line:954:if root is None or not os.path.isabs(path):
+                    return OO0O000O000O0O0O0 #line:955:return path
+                else :#line:956:else:
+                    return change_root (root ,OO0O000O000O0O0O0 )#line:957:return change_root(root, path)
+            with open (OO00OO00OO00OO000 )as O0O0O00OOOO0O0000 :#line:959:with open(record_filename) as f:
+                for OOOOO00OOOOOO00OO in O0O0O00OOOO0O0000 :#line:960:for line in f:
+                    OOO0O0000OO0OOO00 =os .path .dirname (OOOOO00OOOOOO00OO )#line:961:directory = os.path.dirname(line)
+                    if OOO0O0000OO0OOO00 .endswith ('.egg-info'):#line:962:if directory.endswith('.egg-info'):
+                        OOOOO0O0OOO0O00O0 =OOOO0O000OO0O00O0 (OOO0O0000OO0OOO00 )#line:963:egg_info_dir = prepend_root(directory)
+                        break #line:964:break
+                else :#line:965:else:
+                    logger .warning ('Could not find .egg-info directory in install record' ' for %s',O0OOO000O0O0OO0O0 ,)#line:970:)
+                    return #line:973:return
+            O0000O00O00O0OOO0 =[]#line:974:new_lines = []
+            with open (OO00OO00OO00OO000 )as O0O0O00OOOO0O0000 :#line:975:with open(record_filename) as f:
+                for OOOOO00OOOOOO00OO in O0O0O00OOOO0O0000 :#line:976:for line in f:
+                    O0OO00OOO0OOO000O =OOOOO00OOOOOO00OO .strip ()#line:977:filename = line.strip()
+                    if os .path .isdir (O0OO00OOO0OOO000O ):#line:978:if os.path.isdir(filename):
+                        O0OO00OOO0OOO000O +=os .path .sep #line:979:filename += os.path.sep
+                    O0000O00O00O0OOO0 .append (os .path .relpath (OOOO0O000OO0O00O0 (O0OO00OOO0OOO000O ),OOOOO0O0OOO0O00O0 ))#line:982:)
+            O0000O00O00O0OOO0 .sort ()#line:983:new_lines.sort()
+            ensure_dir (OOOOO0O0OOO0O00O0 )#line:984:ensure_dir(egg_info_dir)
+            O0000000OOO00OO00 =os .path .join (OOOOO0O0OOO0O00O0 ,'installed-files.txt')#line:985:inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
+            with open (O0000000OOO00OO00 ,'w')as O0O0O00OOOO0O0000 :#line:986:with open(inst_files_path, 'w') as f:
+                O0O0O00OOOO0O0000 .write ('\n'.join (O0000O00O00O0OOO0 )+'\n')#line:987:f.write('\n'.join(new_lines) + '\n')
+    def get_install_args (O0O0OOO0OOOO00OOO ,O00OOOOO0000000OO ,O00OOOOO00000OOO0 ,OOOOO0000OO0O000O ,O0OO0O0OOOO0OO00O ,OO00OO00O00O0O0OO ):#line:996:):
+        O0OO000OOOO000OOO =[sys .executable ,"-u"]#line:998:install_args = [sys.executable, "-u"]
+        O0OO000OOOO000OOO .append ('-c')#line:999:install_args.append('-c')
+        O0OO000OOOO000OOO .append (SETUPTOOLS_SHIM %O0O0OOO0OOOO00OOO .setup_py )#line:1000:install_args.append(SETUPTOOLS_SHIM % self.setup_py)
+        O0OO000OOOO000OOO +=list (O00OOOOO0000000OO )+['install','--record',O00OOOOO00000OOO0 ]#line:1002:['install', '--record', record_filename]
+        O0OO000OOOO000OOO +=['--single-version-externally-managed']#line:1003:install_args += ['--single-version-externally-managed']
+        if OOOOO0000OO0O000O is not None :#line:1005:if root is not None:
+            O0OO000OOOO000OOO +=['--root',OOOOO0000OO0O000O ]#line:1006:install_args += ['--root', root]
+        if O0OO0O0OOOO0OO00O is not None :#line:1007:if prefix is not None:
+            O0OO000OOOO000OOO +=['--prefix',O0OO0O0OOOO0OO00O ]#line:1008:install_args += ['--prefix', prefix]
+        if OO00OO00O00O0O0OO :#line:1010:if pycompile:
+            O0OO000OOOO000OOO +=["--compile"]#line:1011:install_args += ["--compile"]
+        else :#line:1012:else:
+            O0OO000OOOO000OOO +=["--no-compile"]#line:1013:install_args += ["--no-compile"]
+        if running_under_virtualenv ():#line:1015:if running_under_virtualenv():
+            OO0OOOOOOOO0O0000 ='python'+sysconfig .get_python_version ()#line:1016:py_ver_str = 'python' + sysconfig.get_python_version()
+            O0OO000OOOO000OOO +=['--install-headers',os .path .join (sys .prefix ,'include','site',OO0OOOOOOOO0O0000 ,O0O0OOO0OOOO00OOO .name )]#line:1019:py_ver_str, self.name)]
+        return O0OO000OOOO000OOO #line:1021:return install_args

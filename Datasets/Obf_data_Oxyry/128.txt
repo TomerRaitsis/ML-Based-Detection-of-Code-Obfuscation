@@ -1,141 +1,23 @@
-from __future__ import absolute_import ,division ,print_function #line:4
-import operator #line:6
-import os #line:7
-import platform #line:8
-import sys #line:9
-from pip ._vendor .pyparsing import ParseException ,ParseResults ,stringStart ,stringEnd #line:11
-from pip ._vendor .pyparsing import ZeroOrMore ,Group ,Forward ,QuotedString #line:12
-from pip ._vendor .pyparsing import Literal as L #line:13
-from ._compat import string_types #line:15
-from .specifiers import Specifier ,InvalidSpecifier #line:16
-__all__ =["InvalidMarker","UndefinedComparison","UndefinedEnvironmentName","Marker","default_environment",]#line:25
-class InvalidMarker (ValueError ):#line:28
-    ""#line:31
-class UndefinedComparison (ValueError ):#line:34
+#!/usr/bin/env python3
+""#line:2
+import argparse #line:4
+import os #line:5
+import re #line:6
+def get_args ():#line:10
+    ""#line:11
+    OOO0OOO0OOOO000OO =argparse .ArgumentParser (description ='Apples and bananas',formatter_class =argparse .ArgumentDefaultsHelpFormatter )#line:15
+    OOO0OOO0OOOO000OO .add_argument ('text',metavar ='text',help ='Input text or file')#line:17
+    OOO0OOO0OOOO000OO .add_argument ('-v','--vowel',help ='The vowel to substitute',metavar ='vowel',type =str ,default ='a',choices =list ('aeiou'))#line:25
+    O00OOO00000O00000 =OOO0OOO0OOOO000OO .parse_args ()#line:27
+    if os .path .isfile (O00OOO00000O00000 .text ):#line:29
+        O00OOO00000O00000 .text =open (O00OOO00000O00000 .text ).read ().rstrip ()#line:30
+    return O00OOO00000O00000 #line:32
+def main ():#line:36
     ""#line:37
-class UndefinedEnvironmentName (ValueError ):#line:40
-    ""#line:44
-class O00O00O0OOO0O000O (object ):#line:47
-    def __init__ (OO0O0000O0O0OOOOO ,OO0OO0000OO0000OO ):#line:48
-        OO0O0000O0O0OOOOO .value =OO0OO0000OO0000OO #line:49
-    def __str__ (OO0O0O00OO0OO0O0O ):#line:51
-        return str (OO0O0O00OO0OO0O0O .value )#line:52
-    def __repr__ (O00OOOO000OOOO0OO ):#line:54
-        return "<{0}({1!r})>".format (O00OOOO000OOOO0OO .__class__ .__name__ ,str (O00OOOO000OOOO0OO ))#line:55
-    def serialize (OOOOO0OOO000OOOO0 ):#line:57
-        raise NotImplementedError #line:58
-class O0OOOOOO0O0O0OOOO (O00O00O0OOO0O000O ):#line:61
-    def serialize (OO0O0OO0OOO0O0O00 ):#line:62
-        return str (OO0O0OO0OOO0O0O00 )#line:63
-class OO0OO0OO00OO0O000 (O00O00O0OOO0O000O ):#line:66
-    def serialize (O00OO000O00OOOOOO ):#line:67
-        return '"{0}"'.format (O00OO000O00OOOOOO )#line:68
-class O0O0O0OO0O00O00O0 (O00O00O0OOO0O000O ):#line:71
-    def serialize (O0OOOO0OOO0OO00O0 ):#line:72
-        return str (O0OOOO0OOO0OO00O0 )#line:73
-O00O0OOOO0O0OOO00 =(L ("implementation_version")|L ("platform_python_implementation")|L ("implementation_name")|L ("python_full_version")|L ("platform_release")|L ("platform_version")|L ("platform_machine")|L ("platform_system")|L ("python_version")|L ("sys_platform")|L ("os_name")|L ("os.name")|L ("sys.platform")|L ("platform.version")|L ("platform.machine")|L ("platform.python_implementation")|L ("python_implementation")|L ("extra"))#line:95
-OO0O0000O0O000O0O ={"os.name":"os_name","sys.platform":"sys_platform","platform.version":"platform_version","platform.machine":"platform_machine","platform.python_implementation":"platform_python_implementation","python_implementation":"platform_python_implementation",}#line:103
-O00O0OOOO0O0OOO00 .setParseAction (lambda O0O0OOOO0O0000OO0 ,O00OOOOO00OO0OOOO ,O00O000O0000O00OO :O0OOOOOO0O0O0OOOO (OO0O0000O0O000O0O .get (O00O000O0000O00OO [0 ],O00O000O0000O00OO [0 ])))#line:104
-OOOO000OO0000000O =(L ("===")|L ("==")|L (">=")|L ("<=")|L ("!=")|L ("~=")|L (">")|L ("<"))#line:108
-OO0O0O0OO0O0O0OO0 =OOOO000OO0000000O |L ("not in")|L ("in")#line:110
-OO0O0O0OO0O0O0OO0 .setParseAction (lambda O0OOOOO00000000OO ,OOOOOO00OOO0OOOO0 ,O00000OO000O00000 :O0O0O0OO0O00O00O0 (O00000OO000O00000 [0 ]))#line:111
-O00000OOO0OOOOOO0 =QuotedString ("'")|QuotedString ('"')#line:113
-O00000OOO0OOOOOO0 .setParseAction (lambda O000OOOOOOO000O00 ,OOO0OOO0000O00O00 ,OO000OOOOO0OOO0O0 :OO0OO0OO00OO0O000 (OO000OOOOO0OOO0O0 [0 ]))#line:114
-O0OO0O00OOOOOO0OO =L ("and")|L ("or")#line:116
-OO0000O0OOOO0O000 =O00O0OOOO0O0OOO00 |O00000OOO0OOOOOO0 #line:118
-OO0O000OO0OO0O0O0 =Group (OO0000O0OOOO0O000 +OO0O0O0OO0O0O0OO0 +OO0000O0OOOO0O000 )#line:120
-OO0O000OO0OO0O0O0 .setParseAction (lambda O0O00O0OOOOOOOOOO ,OOOOO00OOO0O0OOO0 ,OOO0OOO0OO0OO0O0O :tuple (OOO0OOO0OO0OO0O0O [0 ]))#line:121
-OO000O000O0000O00 =L ("(").suppress ()#line:123
-OOOO0000OOO0OOOOO =L (")").suppress ()#line:124
-OO0O0O0O0OO0OO00O =Forward ()#line:126
-O0O0OO0O0O00O00O0 =OO0O000OO0OO0O0O0 |Group (OO000O000O0000O00 +OO0O0O0O0OO0OO00O +OOOO0000OOO0OOOOO )#line:127
-OO0O0O0O0OO0OO00O <<O0O0OO0O0O00O00O0 +ZeroOrMore (O0OO0O00OOOOOO0OO +OO0O0O0O0OO0OO00O )#line:128
-O0000O00OO0OO00OO =stringStart +OO0O0O0O0OO0OO00O +stringEnd #line:130
-def _O0OO00O0O000000O0 (OOO00OOO00OO0O0OO ):#line:133
-    if isinstance (OOO00OOO00OO0O0OO ,ParseResults ):#line:134
-        return [_O0OO00O0O000000O0 (OO0OOO000OOO00OOO )for OO0OOO000OOO00OOO in OOO00OOO00OO0O0OO ]#line:135
-    else :#line:136
-        return OOO00OOO00OO0O0OO #line:137
-def _OOOOO00OO00OO0OOO (OOOOO0OOO00OO0OO0 ,first =True ):#line:140
-    assert isinstance (OOOOO0OOO00OO0OO0 ,(list ,tuple ,string_types ))#line:141
-    if (isinstance (OOOOO0OOO00OO0OO0 ,list )and len (OOOOO0OOO00OO0OO0 )==1 and isinstance (OOOOO0OOO00OO0OO0 [0 ],(list ,tuple ))):#line:151
-        return _OOOOO00OO00OO0OOO (OOOOO0OOO00OO0OO0 [0 ])#line:152
-    if isinstance (OOOOO0OOO00OO0OO0 ,list ):#line:154
-        OO0000O0OO0O0OOO0 =(_OOOOO00OO00OO0OOO (O0OOO00OO0OOO00OO ,first =False )for O0OOO00OO0OOO00OO in OOOOO0OOO00OO0OO0 )#line:155
-        if first :#line:156
-            return " ".join (OO0000O0OO0O0OOO0 )#line:157
-        else :#line:158
-            return "("+" ".join (OO0000O0OO0O0OOO0 )+")"#line:159
-    elif isinstance (OOOOO0OOO00OO0OO0 ,tuple ):#line:160
-        return " ".join ([O0000OOOO0000OO0O .serialize ()for O0000OOOO0000OO0O in OOOOO0OOO00OO0OO0 ])#line:161
-    else :#line:162
-        return OOOOO0OOO00OO0OO0 #line:163
-_O0OO00000O0O0O0O0 ={"in":lambda OOO0000O0000O0000 ,OOO0O0O00O00OO000 :OOO0000O0000O0000 in OOO0O0O00O00OO000 ,"not in":lambda O00O0OO00O0000OOO ,OO00O0O00O0O000OO :O00O0OO00O0000OOO not in OO00O0O00O0O000OO ,"<":operator .lt ,"<=":operator .le ,"==":operator .eq ,"!=":operator .ne ,">=":operator .ge ,">":operator .gt ,}#line:175
-def _OOOO000OO0O0O0O0O (OOO000O0000O0O0OO ,OO00O0OO00000OO0O ,O00O0O0O000000000 ):#line:178
-    try :#line:179
-        O0000OOO0OO0OOO00 =Specifier ("".join ([OO00O0OO00000OO0O .serialize (),O00O0O0O000000000 ]))#line:180
-    except InvalidSpecifier :#line:181
-        pass #line:182
-    else :#line:183
-        return O0000OOO0OO0OOO00 .contains (OOO000O0000O0O0OO )#line:184
-    O0OO00O0OOO0O0000 =_O0OO00000O0O0O0O0 .get (OO00O0OO00000OO0O .serialize ())#line:186
-    if O0OO00O0OOO0O0000 is None :#line:187
-        raise UndefinedComparison ("Undefined {0!r} on {1!r} and {2!r}.".format (OO00O0OO00000OO0O ,OOO000O0000O0O0OO ,O00O0O0O000000000 ))#line:190
-    return O0OO00O0OOO0O0000 (OOO000O0000O0O0OO ,O00O0O0O000000000 )#line:192
-_OOOO00O000OOO00O0 =object ()#line:195
-def _OOOO0O00O0000OOO0 (OOOOO0O0O0O000000 ,O00OO0O000O00OOO0 ):#line:198
-    O00O0O000O00OO00O =OOOOO0O0O0O000000 .get (O00OO0O000O00OOO0 ,_OOOO00O000OOO00O0 )#line:199
-    if O00O0O000O00OO00O is _OOOO00O000OOO00O0 :#line:201
-        raise UndefinedEnvironmentName ("{0!r} does not exist in evaluation environment.".format (O00OO0O000O00OOO0 ))#line:204
-    return O00O0O000O00OO00O #line:206
-def _O00O0OO00OOO00OOO (O0OOO00OO0OO0O0O0 ,O0O0O0OOOOOOO0O00 ):#line:209
-    O0000OO0000O00OO0 =[[]]#line:210
-    for OO0O00O00OO0000O0 in O0OOO00OO0OO0O0O0 :#line:212
-        assert isinstance (OO0O00O00OO0000O0 ,(list ,tuple ,string_types ))#line:213
-        if isinstance (OO0O00O00OO0000O0 ,list ):#line:215
-            O0000OO0000O00OO0 [-1 ].append (_O00O0OO00OOO00OOO (OO0O00O00OO0000O0 ,O0O0O0OOOOOOO0O00 ))#line:216
-        elif isinstance (OO0O00O00OO0000O0 ,tuple ):#line:217
-            OOOO0OOOOO00O000O ,O0OOOOO0OOO0OO00O ,O0OO00000O0OOO0O0 =OO0O00O00OO0000O0 #line:218
-            if isinstance (OOOO0OOOOO00O000O ,O0OOOOOO0O0O0OOOO ):#line:220
-                O0OOOO0OO00OOO000 =_OOOO0O00O0000OOO0 (O0O0O0OOOOOOO0O00 ,OOOO0OOOOO00O000O .value )#line:221
-                O0OOO0OO0OOOO0OO0 =O0OO00000O0OOO0O0 .value #line:222
-            else :#line:223
-                O0OOOO0OO00OOO000 =OOOO0OOOOO00O000O .value #line:224
-                O0OOO0OO0OOOO0OO0 =_OOOO0O00O0000OOO0 (O0O0O0OOOOOOO0O00 ,O0OO00000O0OOO0O0 .value )#line:225
-            O0000OO0000O00OO0 [-1 ].append (_OOOO000OO0O0O0O0O (O0OOOO0OO00OOO000 ,O0OOOOO0OOO0OO00O ,O0OOO0OO0OOOO0OO0 ))#line:227
-        else :#line:228
-            assert OO0O00O00OO0000O0 in ["and","or"]#line:229
-            if OO0O00O00OO0000O0 =="or":#line:230
-                O0000OO0000O00OO0 .append ([])#line:231
-    return any (all (OO0000O0OOO0O0O0O )for OO0000O0OOO0O0O0O in O0000OO0000O00OO0 )#line:233
-def O0O0OO0OO00O0OOO0 (O000OO00000000O00 ):#line:236
-    OO00OOO0OOOOO000O ="{0.major}.{0.minor}.{0.micro}".format (O000OO00000000O00 )#line:237
-    OO00O000O0OOO00OO =O000OO00000000O00 .releaselevel #line:238
-    if OO00O000O0OOO00OO !="final":#line:239
-        OO00OOO0OOOOO000O +=OO00O000O0OOO00OO [0 ]+str (O000OO00000000O00 .serial )#line:240
-    return OO00OOO0OOOOO000O #line:241
-def default_environment ():#line:244
-    if hasattr (sys ,"implementation"):#line:245
-        O0O0O000000OOOO0O =O0O0OO0OO00O0OOO0 (sys .implementation .version )#line:246
-        O00O000000OO00O0O =sys .implementation .name #line:247
-    else :#line:248
-        O0O0O000000OOOO0O ="0"#line:249
-        O00O000000OO00O0O =""#line:250
-    return {"implementation_name":O00O000000OO00O0O ,"implementation_version":O0O0O000000OOOO0O ,"os_name":os .name ,"platform_machine":platform .machine (),"platform_release":platform .release (),"platform_system":platform .system (),"platform_version":platform .version (),"python_full_version":platform .python_version (),"platform_python_implementation":platform .python_implementation (),"python_version":platform .python_version ()[:3 ],"sys_platform":sys .platform ,}#line:264
-class Marker (object ):#line:267
-    def __init__ (OO000O000O0O000OO ,OOOO0OOOO00OO0000 ):#line:268
-        try :#line:269
-            OO000O000O0O000OO ._markers =_O0OO00O0O000000O0 (O0000O00OO0OO00OO .parseString (OOOO0OOOO00OO0000 ))#line:270
-        except ParseException as O0O00OO0O000OO000 :#line:271
-            OO0OOO0O0OO0O0OOO ="Invalid marker: {0!r}, parse error at {1!r}".format (OOOO0OOOO00OO0000 ,OOOO0OOOO00OO0000 [O0O00OO0O000OO000 .loc :O0O00OO0O000OO000 .loc +8 ])#line:274
-            raise InvalidMarker (OO0OOO0O0OO0O0OOO )#line:275
-    def __str__ (O0OO000O00OO00OOO ):#line:277
-        return _OOOOO00OO00OO0OOO (O0OO000O00OO00OOO ._markers )#line:278
-    def __repr__ (OO0O00O0O00OO000O ):#line:280
-        return "<Marker({0!r})>".format (str (OO0O00O0O00OO000O ))#line:281
-    def evaluate (OO0O0O0O00OO0O00O ,environment =None ):#line:283
-        ""#line:291
-        O0O00O0OO000O0OOO =default_environment ()#line:292
-        if environment is not None :#line:293
-            O0O00O0OO000O0OOO .update (environment )#line:294
-        return _O00O0OO00OOO00OOO (OO0O0O0O00OO0O00O ._markers ,O0O00O0OO000O0OOO )#line:296
+    O0O0O000O0000O0O0 =get_args ()#line:39
+    print (''.join ([new_char (OO000OO000OOO00O0 ,O0O0O000O0000O0O0 .vowel )for OO000OO000OOO00O0 in O0O0O000O0000O0O0 .text ]))#line:40
+def new_char (O0OO00O000OO000O0 ,OOOO00000O0OOO00O ):#line:44
+    ""#line:45
+    return OOOO00000O0OOO00O if O0OO00O000OO000O0 in 'aeiou'else OOOO00000O0OOO00O .upper ()if O0OO00O000OO000O0 in 'AEIOU'else O0OO00O000OO000O0 #line:48
+if __name__ =='__main__':#line:52
+    main ()#line:53

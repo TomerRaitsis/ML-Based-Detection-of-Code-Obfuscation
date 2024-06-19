@@ -1,126 +1,22 @@
-from chat import chat #line:1
-import pandas as pd #line:2
-import requests #line:3
-import streamlit as st #line:4
-from sklearn .model_selection import train_test_split #line:5
-from sklearn .svm import SVC #line:6
-from sklearn .metrics import accuracy_score #line:7
-from streamlit_lottie import st_lottie #line:8
-st .set_page_config (page_title ="PredictO",layout ="wide",page_icon =":pill:")#line:10
-def load_lottieurl (OO00O0O00O0O0000O :str ):#line:13
-    OO0OOO000000O0000 =requests .get (OO00O0O00O0O0000O )#line:14
-    if OO0OOO000000O0000 .status_code !=200 :#line:15
-        return None #line:16
-    return OO0OOO000000O0000 .json ()#line:17
-lottie_files1 =load_lottieurl ("https://lottie.host/c44be9f7-2309-4573-bc2f-1735c2d0581d/JkZN9a1nq8.json")#line:23
-lottie_files2 =load_lottieurl ("https://lottie.host/805c4752-59c1-4bb8-bbed-ee08a2fa18fe/y2uZUuipJB.json")#line:26
-lottie_files3 =load_lottieurl ("https://lottie.host/198f917d-41bf-47b4-a8ed-6c7838f693d0/G6AU3k0wqA.json")#line:29
-st .subheader ("WELCOME TO PREDICTO :wave:")#line:32
-st .title ("Your Real-Time Healthcare App")#line:33
-with st .container ():#line:34
-    l_column ,r_column =st .columns ((7 ,3 ))#line:35
-    with l_column :#line:36
-        st .write ("Revolutionize your healthcare experience with our smart app! " "Accessible, intuitive, and personalized, it empowers you to take control of your well-being. " "From tracking vital signs to scheduling appointments, our app seamlessly connects you with healthcare" " professionals and provides tailored recommendations for a healthier life. " "Experience the future of healthcare at your fingertips!")#line:43
-with st .container ():#line:46
-    st .write ("---")#line:47
-    left_column ,right_column =st .columns (2 )#line:48
-    with left_column :#line:49
-        st .header ("How to get yourself Checked?")#line:50
-        st .write ("##")#line:51
-        st .write ("""
-            - Fill in all the values in their respective blocks.
-
-            - Click on the 'Predict' button.
-
-            - Get to know your results in Real-time.
-
-            """)#line:61
-    with right_column :#line:63
-        st_lottie (lottie_files1 ,height =300 ,key ="health")#line:64
-df =pd .read_csv ("diabetesv2.0.csv")#line:67
-X =df [["BMI","Glucose","Pregnancies","Age"]]#line:70
-y =df ["Outcome"]#line:71
-X_train ,X_test ,y_train ,y_test =train_test_split (X ,y ,test_size =0.2 ,random_state =42 )#line:76
-svm =SVC ()#line:79
-svm .fit (X_train ,y_train )#line:80
-train_predictions =svm .predict (X_train )#line:83
-train_accuracy =accuracy_score (y_train ,train_predictions )*100 #line:84
-with st .container ():#line:88
-    st .write ("---")#line:89
-    st .header ("Let's get you Checked!")#line:90
-    st .write ("##")#line:91
-    (col1 ,col2 ,col3 ,)=st .columns ((3 ,1 ,3 ))#line:96
-    with col1 :#line:97
-        gender =st .radio ("Select your gender",("Male","Female"))#line:99
-        height =st .number_input ("Height(in centimeters)",min_value =0.0 ,max_value =300.0 ,value =0.0 )#line:102
-        weight =st .number_input ("Weight(in kilograms)",min_value =0.0 ,max_value =600.0 ,value =0.0 )#line:105
-    with col3 :#line:107
-        st .write ("""
-            - #### Use your Beato Sensor and fill in the Glucose value.
-            """)#line:112
-        glucose =st .number_input ("Glucose Level",min_value =0 ,max_value =200 ,value =0 )#line:113
-        pregnancies =st .number_input ("Number of Pregnancies",min_value =0 ,max_value =20 ,value =0 )#line:116
-        age =st .number_input ("Age",min_value =0 ,max_value =120 ,value =0 )#line:117
-        def user_report ():#line:119
-            O000OO00O00OOO0OO ={"BMI":weight /(height **2 ),"Glucose":glucose ,"Pregnancies":pregnancies ,"Age":age ,}#line:125
-            OO0OO00000OO0OO00 =pd .DataFrame (O000OO00O00OOO0OO ,index =[0 ])#line:126
-            return OO0OO00000OO0OO00 #line:127
-        user_result =None #line:130
-        if st .button ("Predict"):#line:133
-            user_data =user_report ()#line:135
-            user_result =svm .predict (user_data )#line:136
-with st .container ():#line:139
-    st .write ("---")#line:140
-    l_column ,r_column ,end_column =st .columns ((3 ,3 ,3 ))#line:141
-    with r_column :#line:142
-        if user_result is not None :#line:143
-            if user_result [0 ]==0 :#line:144
-                st_lottie (lottie_files2 ,height =300 ,key ="healthy")#line:145
-                st .write (" ##### Prediction: You are not Diabetic")#line:146
-                st .write (f"Training Data Accuracy: {train_accuracy:.2f}%")#line:147
-            else :#line:148
-                st_lottie (lottie_files3 ,height =300 ,key ="unhealthy")#line:149
-                st .write (" ##### Prediction: You are Diabetic")#line:150
-                st .write (f"Training Data Accuracy: {train_accuracy:.2f}%")#line:151
-if user_result is not None :#line:152
-    with st .container ():#line:153
-        st .write ("---")#line:154
-        left_column ,mid_column ,right_column =st .columns ((2 ,6 ,2 ))#line:155
-        with mid_column :#line:156
-            st .header ("Additional Diagnostic")#line:157
-            st .write ("##")#line:158
-            if user_result is None :#line:159
-                st .write ("  ")#line:160
-            else :#line:161
-                if gender =="male":#line:163
-                    bmr =10 *weight +6.25 *height -5 *age +5 #line:164
-                    st .write ("Your Basal Metabolic Rate(BMR) is ",bmr ,"calories/day")#line:166
-                else :#line:168
-                    bmr =10 *weight +6.25 *height -5 *age -161 #line:169
-                    st .write ("Your Basal Metabolic Rate(BMR) is ",bmr ,"calories/day")#line:171
-            st .write ("##")#line:173
-            st .write ("##")#line:174
-            try :#line:176
-                bmi =weight /(height **2 )#line:177
-            except ZeroDivisionError :#line:178
-                bmi =""#line:179
-            query =""#line:181
-            if user_result is not None :#line:183
-                if user_result [0 ]==0 :#line:184
-                    query =f"""I am a {gender}, {age} years old having a BMI of {bmi} kg/square meters and
-                            BMR of {bmr} calories/day, I have had {pregnancies} pregnancies and my current glucose
-                            levels are {glucose} mg/dL and I am non diabetic, please suggest me health prescriptions
-                            to keep myself healthy and also to keep a check on my fitness condition based on the 
-                            parameters I have mentioned. Give suggestions in points, avoid using any other comprehension 
-                            other than what is asked for and keep it user friendly. """#line:190
-                else :#line:191
-                    query =f"""I am a {gender}, {age} years old having a BMI of {bmi} kg/square meters and
-                                            BMR of {bmr} calories/day, I have had {pregnancies} pregnancies and my 
-                                            current glucose levels are {glucose} mg/dL and I am diabetic, please 
-                                            suggest me health prescriptions to keep myself healthy and also to keep a 
-                                            check on my fitness condition based on the parameters I have mentioned. 
-                                            Give suggestions in points, avoid using any other comprehension other 
-                                            than what is asked for and keep it user friendly."""#line:198
-            if user_result is not None :#line:199
-                data =chat (query )#line:200
-                st .markdown (f"```markdown\n{data}\n```")#line:203
+#!/usr/bin/env python3
+""#line:2
+import argparse #line:4
+import os #line:5
+def get_args ():#line:9
+    ""#line:10
+    O00OOOOOOO0OOOOOO =argparse .ArgumentParser (description ='Apples and bananas',formatter_class =argparse .ArgumentDefaultsHelpFormatter )#line:14
+    O00OOOOOOO0OOOOOO .add_argument ('text',metavar ='text',help ='Input text or file')#line:16
+    O00OOOOOOO0OOOOOO .add_argument ('-v','--vowel',help ='The vowel to substitute',metavar ='vowel',type =str ,default ='a',choices =list ('aeiou'))#line:24
+    OO00O0OOO00O0O00O =O00OOOOOOO0OOOOOO .parse_args ()#line:26
+    if os .path .isfile (OO00O0OOO00O0O00O .text ):#line:28
+        OO00O0OOO00O0O00O .text =open (OO00O0OOO00O0O00O .text ).read ().rstrip ()#line:29
+    return OO00O0OOO00O0O00O #line:31
+def main ():#line:35
+    ""#line:36
+    OO000O00OOOOO0O0O =get_args ()#line:38
+    O000O0OO000O000OO =OO000O00OOOOO0O0O .vowel #line:39
+    def OO00OO00OO0O0OO0O (OO00OO000O0000OO0 ):#line:41
+        return O000O0OO000O000OO if OO00OO000O0000OO0 in 'aeiou'else O000O0OO000O000OO .upper ()if OO00OO000O0000OO0 in 'AEIOU'else OO00OO000O0000OO0 #line:42
+    print (''.join (map (OO00OO00OO0O0OO0O ,OO000O00OOOOO0O0O .text )))#line:44
+if __name__ =='__main__':#line:48
+    main ()#line:49
