@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.svm import SVC
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from Utils import extract_features, load_and_split_data_v2, train_and_evaluate_model, plot_feature_importances
+from Utils import extract_features, load_and_split_data, load_and_split_data_v2, train_and_evaluate_model, plot_feature_importances
 
 # Paths to your data
 base_path = "./Datasets"  # Adjust this path to your data location
 folders = ["Non_Obfuscated", "Obf_data_Jlaive", "Obf_data_Oxyry", "Obf_data_PyArmor", "Obf_data_Pyobfuscate", "Obf_data_FCTPyobfuscator"]
 
 # Number of runs
-num_runs = 5
+num_runs = 10
 
 # Initialize accumulators for results
 svm_accuracies = []
@@ -24,8 +24,8 @@ feature_names = ['Entropy', 'Avg Token Length', 'Median Token Length', 'Std Toke
 for i in range(num_runs):
     print(f"\nRun {i+1}/{num_runs}")
     
-    # Load and split the data for binary classification (non-obfuscated = 0, obfuscated = 1)
-    X_train, X_test, y_train, y_test = load_and_split_data_v2(base_path, folders, extract_features)
+    # Load and split the data
+    X_train, X_test, y_train, y_test = load_and_split_data(base_path, folders, extract_features)
 
     # SVM Model
     print("\nTraining SVM Model")

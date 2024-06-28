@@ -3,7 +3,7 @@ settings_dict = {}
 lines_arr = []
 
 # Open the file and process it line by line
-with open('helloworld.txt', 'r') as file:
+with open('file_33.txt', 'r') as file:
     line = file.readline()
     while line:
         line = line.replace('"', '')  # Remove double quotes from the line
