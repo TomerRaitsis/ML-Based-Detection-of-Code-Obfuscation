@@ -1,32 +1,58 @@
-# deCipher: ML-Based Detection of Code Obfuscation
+# ML-Based Detection of Code Obfuscation
 
-## Authors
-- Yossi Elgazari
-- Tomer Raitsis
+## Overview
 
-## Project Overview
-deCipher is a project dedicated to developing machine learning models for detecting code obfuscation in software binaries. Code obfuscation is a technique used to make code more difficult to understand and reverse-engineer, often employed to protect intellectual property or conceal malicious activities. Detecting obfuscation is crucial for software security, aiding in the identification of potentially harmful code and ensuring the integrity of software applications.
+This project focuses on the detection and classification of code obfuscation using machine learning models. Code obfuscation is a technique used to protect software by making its code difficult to understand, thereby preventing reverse engineering and unauthorized access. However, it can also be used for malicious purposes, hiding vulnerabilities, or malicious features in the software.
 
-## Objectives
-Our primary objectives are:
-- To create robust machine learning models that can accurately distinguish between obfuscated and non-obfuscated code.
-- To analyze the effectiveness of various machine learning algorithms in detecting obfuscation.
-- To provide insights into the patterns and characteristics of obfuscated code that can be leveraged for more effective detection.
+In this project, we explore various code obfuscation techniques, their ethical implications, and develop models to classify obfuscated versus non-obfuscated code. Our research leverages several machine learning models, including Random Forest, Gradient Boosting, and Support Vector Machines (SVM), to identify obfuscation techniques employed by tools such as Jlaive, Oxyry, PyObfuscate, Pyarmor, and Py-obfuscator.
 
-## Methodology
-We approach this problem by:
-1. **Data Collection**: Gathering a diverse dataset of obfuscated and non-obfuscated code samples.
-2. **Feature Extraction**: Analyzing the code samples to extract relevant features that can be used for model training.
-3. **Model Development**: Implementing various machine learning models, including Gradient Boosting, Random Forest, and Support Vector Machines, to classify the code samples.
-4. **Model Evaluation**: Assessing the performance of the models using metrics such as accuracy, precision, recall, and F1 score.
+## Project Structure
 
-## Current Progress
-- We have collected and processed a significant amount of data, comprising both obfuscated and non-obfuscated code samples.
-- Initial models have been developed and are undergoing testing and refinement.
-- Preliminary results indicate promising accuracy in detecting obfuscation, with ongoing efforts to further improve model performance.
+- **Data Collection and Preparation**: 
+  - The data collection phase involved sourcing a diverse set of EXE and BAT files for obfuscation and non-obfuscated data.
+  - Automation scripts were developed to streamline the obfuscation process using the Jlaive tool.
+  - Ensured diversity in the dataset to cover various types of EXE files and addressed file integrity issues with rigorous validation checks.
 
-## Future Directions
-As we continue to develop and refine our models, we aim to:
-- Expand our dataset to include a wider variety of obfuscation techniques.
-- Experiment with advanced machine learning and deep learning algorithms to enhance detection accuracy.
-- Explore the integration of our models into real-time detection systems for practical application in software development and security.
+- **Model Selection and Implementation**:
+  - Selected Random Forest (RF), Gradient Boosting (GB), and Support Vector Machine (SVM) for their suitability in binary and multi-class classification tasks.
+  - Initially achieved 100% accuracy on the training dataset, indicating overfitting, leading to further testing with new obfuscators.
+  - Enhanced model training with additional features like string entropy, token length statistics, comment density, and unique token ratio, improving model robustness.
+
+- **Feature Engineering**:
+  - Key features included string entropy, average token length, standard deviation of token length, median token length, overall code entropy, comment density, unique token ratio, and keyword count.
+  - These features were selected based on their potential to capture the nuances introduced by different obfuscation techniques.
+
+- **Model Performance**:
+  - The final dataset included obfuscated and non-obfuscated files from various sources, with the Gradient Boosting model achieving the highest accuracy of 97.30%.
+  - A confusion matrix was generated to assess the performance of the Gradient Boosting model in classifying obfuscated and non-obfuscated files.
+
+## Obfuscation Tools Overview
+
+- **Jlaive**: An open-source tool that obfuscates .exe files into batch scripts using AES/XOR encryption for data protection.
+- **Oxyry**: Provides basic obfuscation for Python code, focusing on renaming symbols and removing documentation strings.
+- **PyObfuscate**: A Python-specific tool that employs a combination of lexical and control flow obfuscation techniques.
+- **Pyarmor**: A popular tool that offers strong obfuscation for Python scripts, including encryption of code objects and protection against debugging and tampering.
+- **Py-obfuscator**: A basic tool for Python code obfuscation, suitable for small projects and personal use.
+
+## Ethical Considerations
+
+While obfuscation is essential for protecting intellectual property and enhancing software security, it also raises significant ethical concerns:
+
+- **Transparency and Accountability**: Obfuscation can obscure code transparency, making it difficult to hold developers accountable for software behavior.
+- **Potential for Malicious Use**: Obfuscation can conceal harmful features or hidden data collection mechanisms, leading to potential misuse of user data.
+
+## Conclusion
+
+This project underscores the importance of balancing the need for code protection through obfuscation with ethical considerations such as transparency and accountability. Our models demonstrate the potential for accurate detection and classification of obfuscated code, providing valuable tools for improving software security.
+
+## Future Work
+
+Future research could explore AI-based obfuscation methods and leverage advancements in quantum computing to develop more robust security measures.
+
+## References
+
+- [Jlaive GitHub Repository](https://github.com/witchfindertr/Jlaive)
+- [Oxyry Obfuscation Platform](https://pyob.oxyry.com/)
+- [PyObfuscate Tool](https://pyobfuscate.com/pyd)
+- [Pyarmor GitHub Repository](https://github.com/dashingsoft/pyarmor)
+- [Py-Obfuscate FCT](https://freecodingtools.org/py-obfuscator)
